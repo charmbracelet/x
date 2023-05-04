@@ -103,7 +103,7 @@ type TestModel struct {
 	program *tea.Program
 
 	in  *bytes.Buffer
-	out *bytes.Buffer
+	out io.ReadWriter
 
 	modelCh chan tea.Model
 	model   tea.Model
@@ -116,7 +116,7 @@ type TestModel struct {
 func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel {
 	tm := &TestModel{
 		in:      bytes.NewBuffer(nil),
-		out:     bytes.NewBuffer(nil),
+		out:     safe(bytes.NewBuffer(nil)),
 		modelCh: make(chan tea.Model, 1),
 		doneCh:  make(chan bool, 1),
 	}
@@ -124,7 +124,7 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 	tm.program = tea.NewProgram(
 		m,
 		tea.WithInput(tm.in),
-		tea.WithOutput(safe(tm.out)),
+		tea.WithOutput(tm.out),
 		tea.WithoutSignals(),
 	)
 
@@ -175,7 +175,14 @@ func (tm *TestModel) FinalModel() tea.Model {
 	}
 }
 
-// Output returns the program's output io.Reader.
+// FinalOutput returns the program's final output io.Reader.
+// It'll block until the program finishes.
+func (tm *TestModel) FinalOutput() io.Reader {
+	tm.waitDone()
+	return tm.Output()
+}
+
+// Output returns the program's current output io.Reader.
 func (tm *TestModel) Output() io.Reader {
 	return tm.out
 }
@@ -188,8 +195,7 @@ func (tm *TestModel) Send(m tea.Msg) {
 // Quit quits the program and releases the terminal.
 func (tm *TestModel) Quit() error {
 	tm.program.Quit()
-	tm.program.Wait()
-	return tm.program.ReleaseTerminal()
+	return nil
 }
 
 // Type types the given text into the given program.
@@ -241,17 +247,24 @@ func RequireEqualOutput(tb testing.TB, out []byte) {
 	}
 }
 
-func safe(w io.Writer) io.Writer {
-	return &safeWriter{w: w}
+func safe(rw io.ReadWriter) io.ReadWriter {
+	return &safeReadWriter{rw: rw}
 }
 
-type safeWriter struct {
-	w io.Writer
-	m sync.Mutex
+type safeReadWriter struct {
+	rw io.ReadWriter
+	m  sync.Mutex
 }
 
-func (s *safeWriter) Write(p []byte) (int, error) {
+// Read implements io.ReadWriter
+func (s *safeReadWriter) Read(p []byte) (n int, err error) {
 	s.m.Lock()
 	defer s.m.Unlock()
-	return s.w.Write(p)
+	return s.rw.Read(p)
+}
+
+func (s *safeReadWriter) Write(p []byte) (int, error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	return s.rw.Write(p)
 }
