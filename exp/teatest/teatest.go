@@ -4,6 +4,7 @@ package teatest
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"io"
 	"os"
 	"os/signal"
@@ -74,7 +75,12 @@ func WaitFor(
 	options ...WaitForOption,
 ) {
 	tb.Helper()
+	if err := doWaitFor(r, condition, options...); err != nil {
+		tb.Fatal(err)
+	}
+}
 
+func doWaitFor(r io.Reader, condition func(bts []byte) bool, options ...WaitForOption) error {
 	wf := WaitingForContext{
 		Duration:      time.Second,
 		CheckInterval: 50 * time.Millisecond,
@@ -88,14 +94,14 @@ func WaitFor(
 	start := time.Now()
 	for time.Since(start) <= wf.Duration {
 		if _, err := io.ReadAll(io.TeeReader(r, &b)); err != nil {
-			tb.Fatal("WaitFor:", err)
+			return fmt.Errorf("WaitFor: %w", err)
 		}
 		if condition(b.Bytes()) {
-			return
+			return nil
 		}
 		time.Sleep(wf.CheckInterval)
 	}
-	tb.Fatalf("WaitFor: condition not met after %s", wf.Duration)
+	return fmt.Errorf("WaitFor: condition not met after %s", wf.Duration)
 }
 
 // TestModel is a model that is being tested.
