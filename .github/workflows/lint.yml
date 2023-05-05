@@ -24,4 +24,4 @@ jobs:
           #args:
           # Optional: show only new issues if it's a pull request. The default value is `false`.
           only-new-issues: true
-          working-directory: ./exp/teatest
+          args: ./exp/teatest/...
