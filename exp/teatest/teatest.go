@@ -83,7 +83,7 @@ func WaitFor(
 func doWaitFor(r io.Reader, condition func(bts []byte) bool, options ...WaitForOption) error {
 	wf := WaitingForContext{
 		Duration:      time.Second,
-		CheckInterval: 50 * time.Millisecond,
+		CheckInterval: 50 * time.Millisecond, //nolint: gomnd
 	}
 
 	for _, opt := range options {
@@ -227,19 +227,19 @@ func RequireEqualOutput(tb testing.TB, out []byte) {
 
 	golden := filepath.Join("testdata", tb.Name()+".golden")
 	if *update {
-		if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil { // nolint: gomnd
+		if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil { //nolint: gomnd
 			tb.Fatal(err)
 		}
-		if err := os.WriteFile(golden, out, 0o600); err != nil { // nolint: gomnd
+		if err := os.WriteFile(golden, out, 0o600); err != nil { //nolint: gomnd
 			tb.Fatal(err)
 		}
 	}
 
 	path := filepath.Join(tb.TempDir(), tb.Name()+".out")
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil { // nolint: gomnd
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil { //nolint: gomnd
 		tb.Fatal(err)
 	}
-	if err := os.WriteFile(path, out, 0o600); err != nil { // nolint: gomnd
+	if err := os.WriteFile(path, out, 0o600); err != nil { //nolint: gomnd
 		tb.Fatal(err)
 	}
 
@@ -257,20 +257,22 @@ func safe(rw io.ReadWriter) io.ReadWriter {
 	return &safeReadWriter{rw: rw}
 }
 
+// safeReadWriter implements io.ReadWriter, but locks reads and writes.
 type safeReadWriter struct {
 	rw io.ReadWriter
-	m  sync.Mutex
+	m  sync.RWMutex
 }
 
-// Read implements io.ReadWriter
+// Read implements io.ReadWriter.
 func (s *safeReadWriter) Read(p []byte) (n int, err error) {
-	s.m.Lock()
-	defer s.m.Unlock()
-	return s.rw.Read(p)
+	s.m.RLock()
+	defer s.m.RUnlock()
+	return s.rw.Read(p) //nolint: wrapcheck
 }
 
+// Write implements io.ReadWriter.
 func (s *safeReadWriter) Write(p []byte) (int, error) {
 	s.m.Lock()
 	defer s.m.Unlock()
-	return s.rw.Write(p)
+	return s.rw.Write(p) //nolint: wrapcheck
 }
