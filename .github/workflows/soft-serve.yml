@@ -3,7 +3,7 @@ name: soft-serve
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   soft-serve:
