@@ -196,6 +196,13 @@ func WithFinalTimeout(d time.Duration) FinalOpt {
 	}
 }
 
+// WaitFinished waits for the app to finish.
+// This method only returns once the program has finished running or when it
+// times out.
+func (tm *TestModel) WaitFinished(tb testing.TB, opts ...FinalOpt) {
+	tm.waitDone(tb, opts)
+}
+
 // FinalModel returns the resulting model, resulting from program.Run().
 // This method only returns once the program has finished running or when it
 // times out.
