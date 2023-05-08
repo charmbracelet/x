@@ -189,7 +189,7 @@ type FinalOpts struct {
 type FinalOpt func(opts *FinalOpts)
 
 // WithFinalTimeout allows to set a timeout for how long FinalModel and
-// FinalOuput will wait for the program to complete.
+// FinalOuput should wait for the program to complete.
 func WithFinalTimeout(d time.Duration) FinalOpt {
 	return func(opts *FinalOpts) {
 		opts.timeout = d
@@ -197,7 +197,8 @@ func WithFinalTimeout(d time.Duration) FinalOpt {
 }
 
 // FinalModel returns the resulting model, resulting from program.Run().
-// This method only returns once the program has finished running.
+// This method only returns once the program has finished running or when it
+// times out.
 func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
 	tm.waitDone(tb, opts)
 	select {
@@ -210,7 +211,8 @@ func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
 }
 
 // FinalOutput returns the program's final output io.Reader.
-// It'll block until the program finishes.
+// This method only returns once the program has finished running or when it
+// times out.
 func (tm *TestModel) FinalOutput(tb testing.TB, opts ...FinalOpt) io.Reader {
 	tm.waitDone(tb, opts)
 	return tm.Output()
