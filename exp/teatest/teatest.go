@@ -162,16 +162,44 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 	return tm
 }
 
-func (tm *TestModel) waitDone() {
+func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
 	tm.done.Do(func() {
-		<-tm.doneCh
+		fopts := FinalOpts{}
+		for _, opt := range opts {
+			opt(&fopts)
+		}
+		if fopts.timeout > 0 {
+			select {
+			case <-time.After(fopts.timeout):
+				tb.Fatalf("timeout after %s", fopts.timeout)
+			case <-tm.doneCh:
+			}
+		} else {
+			<-tm.doneCh
+		}
 	})
+}
+
+// FinalOpts represents the options for FinalModel and FinalOutput.
+type FinalOpts struct {
+	timeout time.Duration
+}
+
+// FinalOpt changes FinalOpts.
+type FinalOpt func(opts *FinalOpts)
+
+// WithFinalTimeout allows to set a timeout for how long FinalModel and
+// FinalOuput will wait for the program to complete.
+func WithFinalTimeout(d time.Duration) FinalOpt {
+	return func(opts *FinalOpts) {
+		opts.timeout = d
+	}
 }
 
 // FinalModel returns the resulting model, resulting from program.Run().
 // This method only returns once the program has finished running.
-func (tm *TestModel) FinalModel() tea.Model {
-	tm.waitDone()
+func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
+	tm.waitDone(tb, opts)
 	select {
 	case m := <-tm.modelCh:
 		tm.model = m
@@ -183,8 +211,8 @@ func (tm *TestModel) FinalModel() tea.Model {
 
 // FinalOutput returns the program's final output io.Reader.
 // It'll block until the program finishes.
-func (tm *TestModel) FinalOutput() io.Reader {
-	tm.waitDone()
+func (tm *TestModel) FinalOutput(tb testing.TB, opts ...FinalOpt) io.Reader {
+	tm.waitDone(tb, opts)
 	return tm.Output()
 }
 
