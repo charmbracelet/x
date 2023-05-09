@@ -17,7 +17,7 @@ into other repositories.
 
 Currently the following packages are available:
 
-- [teatest](./exp/teatest)
+- [`teatest`](./exp/teatest): a library for testing [Bubble Tea](https://github.com/charmbracelet/bubbletea) programs
 
 
 ## Feedback
