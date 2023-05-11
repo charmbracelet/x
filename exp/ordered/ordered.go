@@ -1,4 +1,4 @@
-package clamp
+package ordered
 
 import (
 	"golang.org/x/exp/constraints"
