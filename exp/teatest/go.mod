@@ -4,11 +4,10 @@ go 1.20
 
 require (
 	github.com/aymanbagabas/go-udiff v0.1.0
-	github.com/charmbracelet/bubbletea v0.23.3-0.20230504193325-5326d76c402a
+	github.com/charmbracelet/bubbletea v0.24.2
 )
 
 require (
-	github.com/aymanbagabas/go-osc52 v1.2.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
