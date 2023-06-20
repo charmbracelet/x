@@ -19,8 +19,8 @@ func Foldr[A any](f func(x, y A) A, start A, list []A) A {
 }
 
 // Map applies a given function to each element of a list, returning a new list.
-func Map[A any](f func(A) A, list []A) []A {
-	res := make([]A, len(list))
+func Map[A, B any](f func(A) B, list []A) []B {
+	res := make([]B, len(list))
 	for i, v := range list {
 		res[i] = f(v)
 	}
