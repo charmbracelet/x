@@ -10,15 +10,15 @@
   <a href="https://github.com/charmbracelet/x/actions"><img src="https://github.com/charmbracelet/x/workflows/build/badge.svg" alt="Build Status"></a>
 </p>
 
-This repository contains packages that are experimental and that we don't
+This repository contains packages that are experimental and that we don’t
 promise any backwards compatibility. Once they mature here, they might be moved
 into other repositories.
 
-
 Currently the following packages are available:
 
-- [`teatest`](./exp/teatest): a library for testing [Bubble Tea](https://github.com/charmbracelet/bubbletea) programs
-
+* [`higherorder`](./exp/higherorder): generic higher order functions
+* [`ordered`](./exp/ordered): generic `min`, `max`, and `clamp` functions for ordered types
+* [`teatest`](./exp/teatest): a library for testing [Bubble Tea](https://github.com/charmbracelet/bubbletea) programs
 
 ## Feedback
 
