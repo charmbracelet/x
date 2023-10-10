@@ -1,11 +1,9 @@
 package ordered
 
-import (
-	"golang.org/x/exp/constraints"
-)
+import "cmp"
 
 // Max returns the smaller of a and b.
-func Min[T constraints.Ordered](a, b T) T {
+func Min[T cmp.Ordered](a, b T) T {
 	if a < b {
 		return a
 	}
@@ -13,7 +11,7 @@ func Min[T constraints.Ordered](a, b T) T {
 }
 
 // Max returns the larger of a and b.
-func Max[T constraints.Ordered](a, b T) T {
+func Max[T cmp.Ordered](a, b T) T {
 	if a > b {
 		return a
 	}
@@ -21,9 +19,24 @@ func Max[T constraints.Ordered](a, b T) T {
 }
 
 // Clamp returns a value clamped between the given low and high values.
-func Clamp[T constraints.Ordered](n, low, high T) T {
+func Clamp[T cmp.Ordered](n, low, high T) T {
 	if low > high {
 		low, high = high, low
 	}
 	return Min(high, Max(low, n))
+}
+
+// First returns the first non-default value of a fixed number of
+// arguments of [cmp.Ordered] types.
+func First[T cmp.Ordered](x T, y ...T) T {
+	var empty T
+	if x != empty {
+		return x
+	}
+	for _, s := range y {
+		if s != empty {
+			return s
+		}
+	}
+	return empty
 }
