@@ -1,8 +1,9 @@
 package strings
 
-// This package works well for some Western languages. PRs for other languages
-// are welcome, but do note that implementation for some languages will be less
-// straightforward than the ones in use here.
+// The so-called spoken language join here works well for some Western
+// languages. PRs for other languages are welcome, but do note that
+// implementation for some languages will be less straightforward than the ones
+// in use here.
 
 import (
 	"strings"

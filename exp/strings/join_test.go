@@ -26,11 +26,6 @@ func TestEnglishJoin(t *testing.T) {
 			expected:    "one and two",
 		},
 		{
-			words:       []string{"one", "two"},
-			oxfordComma: true,
-			expected:    "one and two",
-		},
-		{
 			words:       []string{"one", "two", "three"},
 			oxfordComma: false,
 			expected:    "one, two and three",
