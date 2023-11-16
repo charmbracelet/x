@@ -1,6 +1,7 @@
 go 1.20
 
 use (
+	./editor
 	./exp/higherorder
 	./exp/ordered
 	./exp/slice
