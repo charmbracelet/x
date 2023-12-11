@@ -1,7 +1,7 @@
 package ordered
 
 import (
-	"cmp"
+	"github.com/google/go-cmp/cmp"
 	"fmt"
 	"testing"
 )

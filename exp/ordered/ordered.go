@@ -1,6 +1,6 @@
 package ordered
 
-import "cmp"
+import "github.com/google/go-cmp/cmp"
 
 // Max returns the smaller of a and b.
 func Min[T cmp.Ordered](a, b T) T {
