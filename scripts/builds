@@ -25,7 +25,7 @@ jobs:
 find . -type f -name go.mod | while read -r mod; do
   echo "      - name: $(dirname "$mod")
         working-directory: $(dirname "$mod")
-        run: >
+        run: |
           go mod download
           go build -v ./...
           go test -race -v ./..." >>./.github/workflows/build.yml

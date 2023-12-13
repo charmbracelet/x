@@ -20,37 +20,37 @@ jobs:
           cache: true
       - name: ./exp/slice
         working-directory: ./exp/slice
-        run: >
+        run: |
           go mod download
           go build -v ./...
           go test -race -v ./...
       - name: ./exp/teatest
         working-directory: ./exp/teatest
-        run: >
+        run: |
           go mod download
           go build -v ./...
           go test -race -v ./...
       - name: ./exp/strings
         working-directory: ./exp/strings
-        run: >
+        run: |
           go mod download
           go build -v ./...
           go test -race -v ./...
       - name: ./exp/ordered
         working-directory: ./exp/ordered
-        run: >
+        run: |
           go mod download
           go build -v ./...
           go test -race -v ./...
       - name: ./exp/higherorder
         working-directory: ./exp/higherorder
-        run: >
+        run: |
           go mod download
           go build -v ./...
           go test -race -v ./...
       - name: ./editor
         working-directory: ./editor
-        run: >
+        run: |
           go mod download
           go build -v ./...
           go test -race -v ./...
