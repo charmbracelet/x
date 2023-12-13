@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+echo 'version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"' >./.github/dependabot.yml
+
+find . -type f -name go.mod | cut -f2- -d'/' | while read -r mod; do
+  echo '
+  - package-ecosystem: "gomod"
+  directory: "/'"$(dirname "$mod")"'"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "feat"
+      include: "scope"' >>./.github/dependabot.yml
+done
