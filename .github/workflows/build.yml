@@ -19,8 +19,6 @@ jobs:
           go-version-file: ./exp/slice/go.mod
           cache: true
           cache-dependency-path: ./exp/slice.sum
-      - run: echo /home/carlos/Developer/charmbracelet/x
-      - run: go mod download
       - run: go build -v ./...
       - run: go test -race -v ./...
   teatest:
@@ -38,8 +36,6 @@ jobs:
           go-version-file: ./exp/teatest/go.mod
           cache: true
           cache-dependency-path: ./exp/teatest.sum
-      - run: echo /home/carlos/Developer/charmbracelet/x
-      - run: go mod download
       - run: go build -v ./...
       - run: go test -race -v ./...
   strings:
@@ -57,8 +53,6 @@ jobs:
           go-version-file: ./exp/strings/go.mod
           cache: true
           cache-dependency-path: ./exp/strings.sum
-      - run: echo /home/carlos/Developer/charmbracelet/x
-      - run: go mod download
       - run: go build -v ./...
       - run: go test -race -v ./...
   ordered:
@@ -76,8 +70,6 @@ jobs:
           go-version-file: ./exp/ordered/go.mod
           cache: true
           cache-dependency-path: ./exp/ordered.sum
-      - run: echo /home/carlos/Developer/charmbracelet/x
-      - run: go mod download
       - run: go build -v ./...
       - run: go test -race -v ./...
   higherorder:
@@ -95,8 +87,6 @@ jobs:
           go-version-file: ./exp/higherorder/go.mod
           cache: true
           cache-dependency-path: ./exp/higherorder.sum
-      - run: echo /home/carlos/Developer/charmbracelet/x
-      - run: go mod download
       - run: go build -v ./...
       - run: go test -race -v ./...
   editor:
@@ -114,7 +104,5 @@ jobs:
           go-version-file: ./editor/go.mod
           cache: true
           cache-dependency-path: ./editor.sum
-      - run: echo /home/carlos/Developer/charmbracelet/x
-      - run: go mod download
       - run: go build -v ./...
       - run: go test -race -v ./...

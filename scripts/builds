@@ -26,8 +26,6 @@ find . -type f -name go.mod | while read -r mod; do
           go-version-file: $mod
           cache: true
           cache-dependency-path: $sum
-      - run: echo $PWD
-      - run: go mod download
       - run: go build -v ./...
       - run: go test -race -v ./..." >>./.github/workflows/build.yml
 done
