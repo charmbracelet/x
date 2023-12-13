@@ -1,4 +1,4 @@
-name: dependabot-generate
+name: generate
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch: {}
 
 jobs:
-  tidy:
+  generate:
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -17,11 +17,11 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - shell: bash
-        run: ./scripts/dependabot
+      - run: ./scripts/dependabot
+      - run: ./scripts/builds
       - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "ci: update dependabot configuration"
+          commit_message: "ci: auto-update configuration"
           branch: main
           commit_user_name: actions-user
           commit_user_email: actions@github.com
