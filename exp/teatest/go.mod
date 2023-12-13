@@ -1,6 +1,6 @@
 module github.com/charmbracelet/x/exp/teatest
 
-go 1.20
+go 1.19
 
 require (
 	github.com/aymanbagabas/go-udiff v0.1.0
