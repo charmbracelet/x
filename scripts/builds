@@ -10,22 +10,23 @@ jobs:" >./.github/workflows/build.yml
 
 find . -type f -name go.mod | while read -r mod; do
   name="$(basename "$(dirname "$mod")")"
+  sum="$(dirname "$mod").sum"
   echo "  $name:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: \${{ matrix.os }}
-    env:
-      GO111MODULE: on
+    defaults:
+      run:
+        working-directory: $(dirname "$mod")
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: $mod
           cache: true
-      - working-directory: $(dirname "$mod")
-        run: |
-          go mod download
-          go build -v ./...
-          go test -race -v ./..." >>./.github/workflows/build.yml
+          cache-dependency-path: $sum
+      - run: go mod download
+      - run: go build -v ./...
+      - run: go test -race -v ./..." >>./.github/workflows/build.yml
 done

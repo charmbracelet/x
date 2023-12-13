@@ -9,106 +9,106 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      GO111MODULE: on
+    defaults:
+      run:
+        working-directory: ./exp/slice
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: ./exp/slice/go.mod
           cache: true
-      - working-directory: ./exp/slice
-        run: |
-          go mod download
-          go build -v ./...
-          go test -race -v ./...
+          cache-dependency-path: ./exp/slice.sum
+      - run: go mod download
+      - run: go build -v ./...
+      - run: go test -race -v ./...
   teatest:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      GO111MODULE: on
+    defaults:
+      run:
+        working-directory: ./exp/teatest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: ./exp/teatest/go.mod
           cache: true
-      - working-directory: ./exp/teatest
-        run: |
-          go mod download
-          go build -v ./...
-          go test -race -v ./...
+          cache-dependency-path: ./exp/teatest.sum
+      - run: go mod download
+      - run: go build -v ./...
+      - run: go test -race -v ./...
   strings:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      GO111MODULE: on
+    defaults:
+      run:
+        working-directory: ./exp/strings
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: ./exp/strings/go.mod
           cache: true
-      - working-directory: ./exp/strings
-        run: |
-          go mod download
-          go build -v ./...
-          go test -race -v ./...
+          cache-dependency-path: ./exp/strings.sum
+      - run: go mod download
+      - run: go build -v ./...
+      - run: go test -race -v ./...
   ordered:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      GO111MODULE: on
+    defaults:
+      run:
+        working-directory: ./exp/ordered
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: ./exp/ordered/go.mod
           cache: true
-      - working-directory: ./exp/ordered
-        run: |
-          go mod download
-          go build -v ./...
-          go test -race -v ./...
+          cache-dependency-path: ./exp/ordered.sum
+      - run: go mod download
+      - run: go build -v ./...
+      - run: go test -race -v ./...
   higherorder:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      GO111MODULE: on
+    defaults:
+      run:
+        working-directory: ./exp/higherorder
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: ./exp/higherorder/go.mod
           cache: true
-      - working-directory: ./exp/higherorder
-        run: |
-          go mod download
-          go build -v ./...
-          go test -race -v ./...
+          cache-dependency-path: ./exp/higherorder.sum
+      - run: go mod download
+      - run: go build -v ./...
+      - run: go test -race -v ./...
   editor:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    env:
-      GO111MODULE: on
+    defaults:
+      run:
+        working-directory: ./editor
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version-file: ./editor/go.mod
           cache: true
-      - working-directory: ./editor
-        run: |
-          go mod download
-          go build -v ./...
-          go test -race -v ./...
+          cache-dependency-path: ./editor.sum
+      - run: go mod download
+      - run: go build -v ./...
+      - run: go test -race -v ./...
