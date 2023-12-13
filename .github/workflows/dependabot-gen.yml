@@ -1,0 +1,27 @@
+name: dependabot-generate
+
+on:
+  push:
+    branches:
+      - "main"
+  workflow_dispatch: {}
+
+jobs:
+  tidy:
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: stable
+          cache: true
+      - shell: bash
+        run: ./scripts/dependabot
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: update dependabot configuration"
+          branch: main
+          commit_user_name: actions-user
+          commit_user_email: actions@github.com
