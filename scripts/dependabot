@@ -13,9 +13,8 @@ updates:
       include: "scope"' >./.github/dependabot.yml
 
 find . -type f -name go.mod | cut -f2- -d'/' | while read -r mod; do
-  echo '
-  - package-ecosystem: "gomod"
-  directory: "/'"$(dirname "$mod")"'"
+  echo '  - package-ecosystem: "gomod"
+    directory: "/'"$(dirname "$mod")"'"
     schedule:
       interval: "daily"
     labels:
