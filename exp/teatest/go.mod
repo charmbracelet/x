@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/exp/teatest
 go 1.19
 
 require (
-	github.com/aymanbagabas/go-udiff v0.1.0
+	github.com/aymanbagabas/go-udiff v0.2.0
 	github.com/charmbracelet/bubbletea v0.24.2
 )
 
