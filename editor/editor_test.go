@@ -24,6 +24,26 @@ func TestEditor(t *testing.T) {
 		})
 	}
 
+	t.Run("with line number", func(t *testing.T) {
+		for k, v := range map[string][]string{
+			"":             {"nano", "+12", filename},
+			"nvim":         {"nvim", "+12", filename},
+			"vim":          {"vim", "+12", filename},
+			"vscode --foo": {"vscode", "--foo", filename},
+			"nvim -a -b":   {"nvim", "-a", "-b", "+12", filename},
+			"code --foo":   {"code", "--foo", "--goto", filename + ":12"},
+		} {
+			t.Run(k, func(t *testing.T) {
+				t.Setenv("EDITOR", k)
+				cmd, _ := Cmd("X", "README.md", AtLine(12))
+				got := cmd.Args
+				if !reflect.DeepEqual(got, v) {
+					t.Fatalf("expected %v; got %v", v, got)
+				}
+			})
+		}
+	})
+
 	t.Run("inside snap", func(t *testing.T) {
 		t.Setenv("SNAP_REVISION", "10")
 		got, err := Cmd("X", "foo")

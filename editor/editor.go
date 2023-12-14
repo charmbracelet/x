@@ -4,51 +4,63 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
 const defaultEditor = "nano"
 
-// Get editors that have support for the `+[line number]` flag
-// to edit the file at the current line that is in the pager
-func getEditorsWithLineNumberSupport() []string {
-	return []string{
-		"vi",
-		"vim",
-		"nvim",
-		"nano",
-	}
-}
+// Option defines an editor option.
+//
+// An option may act differently in some editors, or not even be supported.
+type Option func(editor, filename string) ([]string, bool)
 
-func hasLineNumberSupport(editor string) bool {
-	for _, supportedEditor := range getEditorsWithLineNumberSupport() {
-		if editor == supportedEditor {
-			return true
+// AtLine opens the file at the given line number in supported editors.
+func AtLine(number uint) Option {
+	return func(editor, filename string) ([]string, bool) {
+		for _, plusLineEditors := range []string{
+			"vi",
+			"vim",
+			"nvim",
+			"nano",
+		} {
+			if editor == plusLineEditors {
+				return []string{fmt.Sprintf("+%d", number)}, false
+			}
 		}
+		if editor == "code" {
+			return []string{
+				"--goto",
+				fmt.Sprintf("%s:%d", filename, number),
+			}, true
+		}
+		return nil, false
 	}
-    return false
 }
 
 // Cmd returns a *exec.Cmd editing the given path with $EDITOR or nano if no
 // $EDITOR is set.
-func Cmd(app, path string, lineNumber_optional ...uint) (*exec.Cmd, error) {
+func Cmd(app, path string, options ...Option) (*exec.Cmd, error) {
 	if os.Getenv("SNAP_REVISION") != "" {
 		return nil, fmt.Errorf("Did you install with Snap? %[1]s is sandboxed and unable to open an editor. Please install %[1]s with Go or another package manager to enable editing.", app)
 	}
 
 	editor, args := getEditor()
+	editorName := filepath.Base(editor)
 
-	// Add line number to open the editor at if provided and a supported editor is being used
-	if len(lineNumber_optional) == 1 && hasLineNumberSupport(editor) {
-		lineNumber := lineNumber_optional[0]
-
-		lineNumberArg := fmt.Sprintf("+%d", lineNumber)
-		// Insert line position arg before file name and other flags (required for nano)
-		args = append([]string{lineNumberArg}, args...)
-
+	needsToAppendPath := true
+	for _, opt := range options {
+		optarg, b := opt(editorName, path)
+		if b {
+			needsToAppendPath = false
+		}
+		args = append(args, optarg...)
+	}
+	if needsToAppendPath {
+		args = append(args, path)
 	}
 
-	return exec.Command(editor, append(args, path)...), nil
+	return exec.Command(editor, args...), nil
 }
 
 func getEditor() (string, []string) {
