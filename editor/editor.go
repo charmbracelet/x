@@ -12,19 +12,16 @@ const defaultEditor = "nano"
 
 // Option defines an editor option.
 //
-// An option may act differently in some editors, or not even be supported.
-type Option func(editor, filename string) ([]string, bool)
+// An Option may act differently in some editors, or not be supported in
+// some of them.
+type Option func(editor, filename string) (args []string, pathInArgs bool)
 
-// AtLine opens the file at the given line number in supported editors.
-func AtLine(number uint) Option {
+// OpenAtLine opens the file at the given line number in supported editors.
+func OpenAtLine(number uint) Option {
+	plusLineEditors := []string{"vi", "vim", "nvim", "nano"}
 	return func(editor, filename string) ([]string, bool) {
-		for _, plusLineEditors := range []string{
-			"vi",
-			"vim",
-			"nvim",
-			"nano",
-		} {
-			if editor == plusLineEditors {
+		for _, e := range plusLineEditors {
+			if editor == e {
 				return []string{fmt.Sprintf("+%d", number)}, false
 			}
 		}
@@ -50,11 +47,11 @@ func Cmd(app, path string, options ...Option) (*exec.Cmd, error) {
 
 	needsToAppendPath := true
 	for _, opt := range options {
-		optarg, b := opt(editorName, path)
-		if b {
+		optArgs, pathInArgs := opt(editorName, path)
+		if pathInArgs {
 			needsToAppendPath = false
 		}
-		args = append(args, optarg...)
+		args = append(args, optArgs...)
 	}
 	if needsToAppendPath {
 		args = append(args, path)
