@@ -1,8 +1,9 @@
-go 1.21
+go 1.21.5
 
 use (
 	./editor
 	./exp/higherorder
+	./exp/maps
 	./exp/ordered
 	./exp/slice
 	./exp/strings

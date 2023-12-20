@@ -20,6 +20,7 @@ Currently the following packages are available:
 - [`higherorder`](./exp/higherorder): generic higher order functions
 - [`ordered`](./exp/ordered): generic `min`, `max`, and `clamp` functions for ordered types
 - [`slice`](./exp/slice): generic slice utilities
+- [`maps`](./exp/maps): generic maps utilities
 - [`strings`](./exp/strings): utilities for working with strings
 - [`teatest`](./exp/teatest): a library for testing [Bubble Tea](https://github.com/charmbracelet/bubbletea) programs
 
