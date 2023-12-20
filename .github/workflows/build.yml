@@ -4,72 +4,21 @@ name: build
 on: [push, pull_request]
 
 jobs:
-  slice:
+  editor:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: ./exp/slice
+        working-directory: ./editor
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: ./exp/slice/go.mod
+          go-version-file: ./editor/go.mod
           cache: true
-          cache-dependency-path: ./exp/slice.sum
-      - run: go build -v ./...
-      - run: go test -race -v ./...
-  teatest:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: ./exp/teatest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: ./exp/teatest/go.mod
-          cache: true
-          cache-dependency-path: ./exp/teatest.sum
-      - run: go build -v ./...
-      - run: go test -race -v ./...
-  strings:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: ./exp/strings
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: ./exp/strings/go.mod
-          cache: true
-          cache-dependency-path: ./exp/strings.sum
-      - run: go build -v ./...
-      - run: go test -race -v ./...
-  ordered:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        working-directory: ./exp/ordered
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version-file: ./exp/ordered/go.mod
-          cache: true
-          cache-dependency-path: ./exp/ordered.sum
+          cache-dependency-path: ./editor.sum
       - run: go build -v ./...
       - run: go test -race -v ./...
   higherorder:
@@ -89,20 +38,88 @@ jobs:
           cache-dependency-path: ./exp/higherorder.sum
       - run: go build -v ./...
       - run: go test -race -v ./...
-  editor:
+  maps:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     defaults:
       run:
-        working-directory: ./editor
+        working-directory: ./exp/maps
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version-file: ./editor/go.mod
+          go-version-file: ./exp/maps/go.mod
           cache: true
-          cache-dependency-path: ./editor.sum
+          cache-dependency-path: ./exp/maps.sum
+      - run: go build -v ./...
+      - run: go test -race -v ./...
+  ordered:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./exp/ordered
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./exp/ordered/go.mod
+          cache: true
+          cache-dependency-path: ./exp/ordered.sum
+      - run: go build -v ./...
+      - run: go test -race -v ./...
+  slice:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./exp/slice
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./exp/slice/go.mod
+          cache: true
+          cache-dependency-path: ./exp/slice.sum
+      - run: go build -v ./...
+      - run: go test -race -v ./...
+  strings:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./exp/strings
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./exp/strings/go.mod
+          cache: true
+          cache-dependency-path: ./exp/strings.sum
+      - run: go build -v ./...
+      - run: go test -race -v ./...
+  teatest:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./exp/teatest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./exp/teatest/go.mod
+          cache: true
+          cache-dependency-path: ./exp/teatest.sum
       - run: go build -v ./...
       - run: go test -race -v ./...
