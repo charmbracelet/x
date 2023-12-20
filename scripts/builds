@@ -8,7 +8,7 @@ on: [push, pull_request]
 
 jobs:" >./.github/workflows/build.yml
 
-find . -type f -name go.mod | while read -r mod; do
+find . -type f -name go.mod | sort | while read -r mod; do
   name="$(basename "$(dirname "$mod")")"
   sum="$(dirname "$mod").sum"
   echo "  $name:

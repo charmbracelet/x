@@ -3,6 +3,7 @@ go 1.21
 use (
 	./editor
 	./exp/higherorder
+	./exp/maps
 	./exp/ordered
 	./exp/slice
 	./exp/strings

@@ -14,7 +14,7 @@ updates:
       prefix: "chore"
       include: "scope"' >./.github/dependabot.yml
 
-find . -type f -name go.mod | cut -f2- -d'/' | while read -r mod; do
+find . -type f -name go.mod | cut -f2- -d'/' | sort | while read -r mod; do
   echo '  - package-ecosystem: "gomod"
     directory: "/'"$(dirname "$mod")"'"
     schedule:
