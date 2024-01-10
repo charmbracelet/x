@@ -96,9 +96,9 @@ func New(w int, h int, flags int) (c *ConPty, err error) {
 	return
 }
 
-// Handle returns the ConPty handle.
-func (p *ConPty) Handle() windows.Handle {
-	return *p.hpc
+// Fd returns the ConPty handle.
+func (p *ConPty) Fd() uintptr {
+	return uintptr(*p.hpc)
 }
 
 // Close closes the ConPty device.
@@ -116,9 +116,19 @@ func (p *ConPty) InPipe() *os.File {
 	return p.inPipe
 }
 
+// InPipeFd returns the ConPty input pipe file descriptor handle.
+func (p *ConPty) InPipeFd() uintptr {
+	return uintptr(p.inPipeFd)
+}
+
 // OutPipe returns the ConPty output pipe.
 func (p *ConPty) OutPipe() *os.File {
 	return p.outPipe
+}
+
+// OutPipeFd returns the ConPty output pipe file descriptor handle.
+func (p *ConPty) OutPipeFd() uintptr {
+	return uintptr(p.outPipeFd)
 }
 
 // Write safely writes bytes to the ConPty.
@@ -154,8 +164,8 @@ func (c *ConPty) Size() (w int, h int) {
 
 var zeroAttr syscall.ProcAttr
 
-// Spawn creates a new process attached to the pseudo-console.
-func (c *ConPty) Spawn(name string, args []string, attr *syscall.ProcAttr) (pid int, handle windows.Handle, err error) {
+// Spawn spawns a new process attached to the pseudo-console.
+func (c *ConPty) Spawn(name string, args []string, attr *syscall.ProcAttr) (pid int, handle uintptr, err error) {
 	if attr == nil {
 		attr = &zeroAttr
 	}
@@ -270,5 +280,5 @@ func (c *ConPty) Spawn(name string, args []string, attr *syscall.ProcAttr) (pid 
 
 	defer windows.CloseHandle(pi.Thread)
 
-	return int(pi.ProcessId), pi.Process, nil
+	return int(pi.ProcessId), uintptr(pi.Process), nil
 }
