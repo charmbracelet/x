@@ -31,6 +31,14 @@ func makeRaw(fd int) (*State, error) {
 	return &State{state{st}}, nil
 }
 
+func setState(fd int, state *State) error {
+	var mode uint32
+	if state != nil {
+		mode = state.Mode
+	}
+	return windows.SetConsoleMode(windows.Handle(fd), mode)
+}
+
 func getState(fd int) (*State, error) {
 	var st uint32
 	if err := windows.GetConsoleMode(windows.Handle(fd), &st); err != nil {

@@ -23,6 +23,11 @@ func GetState(fd int) (*State, error) {
 	return getState(fd)
 }
 
+// SetState sets the given state of the terminal.
+func SetState(fd int, state *State) error {
+	return setState(fd, state)
+}
+
 // Restore restores the terminal connected to the given file descriptor to a
 // previous state.
 func Restore(fd int, oldState *State) error {
