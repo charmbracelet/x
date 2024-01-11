@@ -7,5 +7,5 @@ use (
 	./exp/slice
 	./exp/strings
 	./exp/teatest
-	./term
+	./exp/term
 )
