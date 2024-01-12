@@ -11,13 +11,13 @@ type state struct {
 	unix.Termios
 }
 
-func isTerminal(fd int) bool {
-	_, err := unix.IoctlGetTermios(fd, ioctlReadTermios)
+func isTerminal(fd uintptr) bool {
+	_, err := unix.IoctlGetTermios(int(fd), ioctlReadTermios)
 	return err == nil
 }
 
-func makeRaw(fd int) (*State, error) {
-	termios, err := unix.IoctlGetTermios(fd, ioctlReadTermios)
+func makeRaw(fd uintptr) (*State, error) {
+	termios, err := unix.IoctlGetTermios(int(fd), ioctlReadTermios)
 	if err != nil {
 		return nil, err
 	}
@@ -33,23 +33,23 @@ func makeRaw(fd int) (*State, error) {
 	termios.Cflag |= unix.CS8
 	termios.Cc[unix.VMIN] = 1
 	termios.Cc[unix.VTIME] = 0
-	if err := unix.IoctlSetTermios(fd, ioctlWriteTermios, termios); err != nil {
+	if err := unix.IoctlSetTermios(int(fd), ioctlWriteTermios, termios); err != nil {
 		return nil, err
 	}
 
 	return &oldState, nil
 }
 
-func setState(fd int, state *State) error {
+func setState(fd uintptr, state *State) error {
 	var termios *unix.Termios
 	if state != nil {
 		termios = &state.Termios
 	}
-	return unix.IoctlSetTermios(fd, ioctlWriteTermios, termios)
+	return unix.IoctlSetTermios(int(fd), ioctlWriteTermios, termios)
 }
 
-func getState(fd int) (*State, error) {
-	termios, err := unix.IoctlGetTermios(fd, ioctlReadTermios)
+func getState(fd uintptr) (*State, error) {
+	termios, err := unix.IoctlGetTermios(int(fd), ioctlReadTermios)
 	if err != nil {
 		return nil, err
 	}
@@ -57,12 +57,12 @@ func getState(fd int) (*State, error) {
 	return &State{state{Termios: *termios}}, nil
 }
 
-func restore(fd int, state *State) error {
-	return unix.IoctlSetTermios(fd, ioctlWriteTermios, &state.Termios)
+func restore(fd uintptr, state *State) error {
+	return unix.IoctlSetTermios(int(fd), ioctlWriteTermios, &state.Termios)
 }
 
-func getSize(fd int) (width, height int, err error) {
-	ws, err := unix.IoctlGetWinsize(fd, unix.TIOCGWINSZ)
+func getSize(fd uintptr) (width, height int, err error) {
+	ws, err := unix.IoctlGetWinsize(int(fd), unix.TIOCGWINSZ)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -76,8 +76,8 @@ func (r passwordReader) Read(buf []byte) (int, error) {
 	return unix.Read(int(r), buf)
 }
 
-func readPassword(fd int) ([]byte, error) {
-	termios, err := unix.IoctlGetTermios(fd, ioctlReadTermios)
+func readPassword(fd uintptr) ([]byte, error) {
+	termios, err := unix.IoctlGetTermios(int(fd), ioctlReadTermios)
 	if err != nil {
 		return nil, err
 	}
@@ -86,11 +86,11 @@ func readPassword(fd int) ([]byte, error) {
 	newState.Lflag &^= unix.ECHO
 	newState.Lflag |= unix.ICANON | unix.ISIG
 	newState.Iflag |= unix.ICRNL
-	if err := unix.IoctlSetTermios(fd, ioctlWriteTermios, &newState); err != nil {
+	if err := unix.IoctlSetTermios(int(fd), ioctlWriteTermios, &newState); err != nil {
 		return nil, err
 	}
 
-	defer unix.IoctlSetTermios(fd, ioctlWriteTermios, termios)
+	defer unix.IoctlSetTermios(int(fd), ioctlWriteTermios, termios)
 
 	return readPasswordLine(passwordReader(fd))
 }

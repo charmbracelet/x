@@ -16,7 +16,7 @@ func TestIsTerminalTempFile(t *testing.T) {
 	defer os.Remove(file.Name())
 	defer file.Close()
 
-	if term.IsTerminal(int(file.Fd())) {
+	if term.IsTerminal(file.Fd()) {
 		t.Fatalf("IsTerminal unexpectedly returned true for temporary file %s", file.Name())
 	}
 }
@@ -31,7 +31,7 @@ func TestIsTerminalTerm(t *testing.T) {
 	}
 	defer file.Close()
 
-	if !term.IsTerminal(int(file.Fd())) {
+	if !term.IsTerminal(file.Fd()) {
 		t.Fatalf("IsTerminal unexpectedly returned false for terminal file %s", file.Name())
 	}
 }

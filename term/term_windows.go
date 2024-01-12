@@ -13,13 +13,13 @@ type state struct {
 	Mode uint32
 }
 
-func isTerminal(fd int) bool {
+func isTerminal(fd uintptr) bool {
 	var st uint32
 	err := windows.GetConsoleMode(windows.Handle(fd), &st)
 	return err == nil
 }
 
-func makeRaw(fd int) (*State, error) {
+func makeRaw(fd uintptr) (*State, error) {
 	var st uint32
 	if err := windows.GetConsoleMode(windows.Handle(fd), &st); err != nil {
 		return nil, err
@@ -31,7 +31,7 @@ func makeRaw(fd int) (*State, error) {
 	return &State{state{st}}, nil
 }
 
-func setState(fd int, state *State) error {
+func setState(fd uintptr, state *State) error {
 	var mode uint32
 	if state != nil {
 		mode = state.Mode
@@ -39,7 +39,7 @@ func setState(fd int, state *State) error {
 	return windows.SetConsoleMode(windows.Handle(fd), mode)
 }
 
-func getState(fd int) (*State, error) {
+func getState(fd uintptr) (*State, error) {
 	var st uint32
 	if err := windows.GetConsoleMode(windows.Handle(fd), &st); err != nil {
 		return nil, err
@@ -47,11 +47,11 @@ func getState(fd int) (*State, error) {
 	return &State{state{st}}, nil
 }
 
-func restore(fd int, state *State) error {
+func restore(fd uintptr, state *State) error {
 	return windows.SetConsoleMode(windows.Handle(fd), state.Mode)
 }
 
-func getSize(fd int) (width, height int, err error) {
+func getSize(fd uintptr) (width, height int, err error) {
 	var info windows.ConsoleScreenBufferInfo
 	if err := windows.GetConsoleScreenBufferInfo(windows.Handle(fd), &info); err != nil {
 		return 0, 0, err
@@ -59,7 +59,7 @@ func getSize(fd int) (width, height int, err error) {
 	return int(info.Window.Right - info.Window.Left + 1), int(info.Window.Bottom - info.Window.Top + 1), nil
 }
 
-func readPassword(fd int) ([]byte, error) {
+func readPassword(fd uintptr) ([]byte, error) {
 	var st uint32
 	if err := windows.GetConsoleMode(windows.Handle(fd), &st); err != nil {
 		return nil, err
