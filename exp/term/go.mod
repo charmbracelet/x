@@ -1,4 +1,4 @@
-module github.com/charmbracelet/x/term
+module github.com/charmbracelet/x/exp/term
 
 go 1.17
 
