@@ -4,13 +4,13 @@
 package conpty
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"os"
 	"syscall"
 	"unsafe"
 
+	"github.com/charmbracelet/x/errors"
 	"golang.org/x/sys/windows"
 )
 
