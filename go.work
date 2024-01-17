@@ -1,7 +1,8 @@
-go 1.21
+go 1.21.5
 
 use (
 	./editor
+	./errors
 	./exp/higherorder
 	./exp/ordered
 	./exp/slice

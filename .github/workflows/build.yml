@@ -123,3 +123,20 @@ jobs:
           cache-dependency-path: ./editor.sum
       - run: go build -v ./...
       - run: go test -race -v ./...
+  errors:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./errors
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./errors/go.mod
+          cache: true
+          cache-dependency-path: ./errors.sum
+      - run: go build -v ./...
+      - run: go test -race -v ./...

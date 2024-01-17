@@ -74,3 +74,12 @@ updates:
     commit-message:
       prefix: "feat"
       include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/errors"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "feat"
+      include: "scope"
