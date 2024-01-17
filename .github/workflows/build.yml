@@ -72,6 +72,23 @@ jobs:
           cache-dependency-path: ./exp/ordered.sum
       - run: go build -v ./...
       - run: go test -race -v ./...
+  term:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./exp/term
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./exp/term/go.mod
+          cache: true
+          cache-dependency-path: ./exp/term.sum
+      - run: go build -v ./...
+      - run: go test -race -v ./...
   higherorder:
     strategy:
       matrix:
