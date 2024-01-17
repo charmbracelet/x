@@ -5,7 +5,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/charmbracelet/x/term"
+	"github.com/charmbracelet/x/exp/term"
 )
 
 func TestIsTerminalTempFile(t *testing.T) {
