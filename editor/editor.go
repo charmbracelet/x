@@ -18,7 +18,7 @@ type Option func(editor, filename string) (args []string, pathInArgs bool)
 
 // OpenAtLine opens the file at the given line number in supported editors.
 func OpenAtLine(number uint) Option {
-	plusLineEditors := []string{"vi", "vim", "nvim", "nano"}
+	plusLineEditors := []string{"vi", "vim", "nvim", "nano", "emacs", "kak", "gedit"}
 	return func(editor, filename string) ([]string, bool) {
 		for _, e := range plusLineEditors {
 			if editor == e {
