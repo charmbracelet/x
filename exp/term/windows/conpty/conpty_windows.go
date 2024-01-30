@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"syscall"
 	"unsafe"
 
@@ -28,6 +29,7 @@ type ConPty struct {
 	inPipe, outPipe     *os.File
 	attrList            *windows.ProcThreadAttributeListContainer
 	size                windows.Coord
+	closeOnce           sync.Once
 }
 
 var (
@@ -106,8 +108,9 @@ func (p *ConPty) Close() error {
 	if p.attrList != nil {
 		p.attrList.Delete()
 	}
-
-	windows.ClosePseudoConsole(*p.hpc)
+	p.closeOnce.Do(func() {
+		windows.ClosePseudoConsole(*p.hpc)
+	})
 	return errors.Join(p.inPipe.Close(), p.outPipe.Close())
 }
 
