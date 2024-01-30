@@ -105,13 +105,15 @@ func (p *ConPty) Fd() uintptr {
 
 // Close closes the ConPty device.
 func (p *ConPty) Close() error {
-	if p.attrList != nil {
-		p.attrList.Delete()
-	}
+	var err error
 	p.closeOnce.Do(func() {
+		if p.attrList != nil {
+			p.attrList.Delete()
+		}
 		windows.ClosePseudoConsole(*p.hpc)
+		err = errors.Join(p.inPipe.Close(), p.outPipe.Close())
 	})
-	return errors.Join(p.inPipe.Close(), p.outPipe.Close())
+	return err
 }
 
 // InPipe returns the ConPty input pipe.
