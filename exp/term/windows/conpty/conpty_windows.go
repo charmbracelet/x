@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 	"syscall"
 	"unsafe"
 
@@ -28,6 +29,7 @@ type ConPty struct {
 	inPipe, outPipe     *os.File
 	attrList            *windows.ProcThreadAttributeListContainer
 	size                windows.Coord
+	closeOnce           sync.Once
 }
 
 var (
@@ -103,12 +105,15 @@ func (p *ConPty) Fd() uintptr {
 
 // Close closes the ConPty device.
 func (p *ConPty) Close() error {
-	if p.attrList != nil {
-		p.attrList.Delete()
-	}
-
-	windows.ClosePseudoConsole(*p.hpc)
-	return errors.Join(p.inPipe.Close(), p.outPipe.Close())
+	var err error
+	p.closeOnce.Do(func() {
+		if p.attrList != nil {
+			p.attrList.Delete()
+		}
+		windows.ClosePseudoConsole(*p.hpc)
+		err = errors.Join(p.inPipe.Close(), p.outPipe.Close())
+	})
+	return err
 }
 
 // InPipe returns the ConPty input pipe.
