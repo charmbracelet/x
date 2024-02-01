@@ -127,7 +127,7 @@ var allBoolOpts = map[string]*ioclBit{
 	"ixoff":   {I, syscall.IXOFF},
 	"imaxbel": {I, syscall.IMAXBEL},
 
-	"iutf8":   {L, syscall.IUTF8}, // XXX
+	"iutf8":   {L, syscall.IUTF8},
 	"isig":    {L, syscall.ISIG},
 	"icanon":  {L, syscall.ICANON},
 	"echo":    {L, syscall.ECHO},
@@ -149,7 +149,7 @@ var allBoolOpts = map[string]*ioclBit{
 	"onocr":  {O, syscall.ONOCR},
 	"onlret": {O, syscall.ONLRET},
 
-	"cs7":    {C, syscall.CS7}, // XXX
+	"cs7":    {C, syscall.CS7},
 	"cs8":    {C, syscall.CS8},
 	"parenb": {C, syscall.PARENB},
 	"parodd": {C, syscall.PARODD},
