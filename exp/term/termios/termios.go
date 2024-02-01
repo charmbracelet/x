@@ -112,6 +112,7 @@ const (
 	STATUS
 	SWTCH
 	DSUSP
+	FLUSH
 )
 
 // https://www.man7.org/linux/man-pages/man3/termios.3.html
