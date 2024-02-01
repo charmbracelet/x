@@ -109,6 +109,9 @@ const (
 	RPRNT
 	LNEXT
 	DISCARD
+	STATUS
+	SWTCH
+	DSUSP
 )
 
 // https://www.man7.org/linux/man-pages/man3/termios.3.html
@@ -128,11 +131,8 @@ var allCcOpts = map[CC]int{
 	LNEXT:   syscall.VLNEXT,
 	DISCARD: syscall.VDISCARD,
 
-	// XXX: these syscalls don't exist
-	// STATUS: syscall.VSTATUS,
-	// SWTCH:  syscall.VSWTCH,
+	// XXX: these syscalls don't exist for any OS
 	// FLUSH:  syscall.VFLUSH,
-	// DSUSP:  syscall.VDSUSP,
 }
 
 // Input Controls
@@ -165,8 +165,6 @@ var allInputOpts = map[I]uint32{
 	IXANY:   syscall.IXANY,
 	IXOFF:   syscall.IXOFF,
 	IMAXBEL: syscall.IMAXBEL,
-	// XXX:
-	// "iuclc":   {I, syscall.IUCLC},
 }
 
 // Line Controls.
@@ -202,9 +200,6 @@ var allLineOpts = map[L]uint32{
 	ECHOCTL: syscall.ECHOCTL,
 	ECHOKE:  syscall.ECHOKE,
 	PENDIN:  syscall.PENDIN,
-	// XXX:
-	// "iutf8":   {L, syscall.IUTF8},
-	// "xcase":   {L, syscall.XCASE},
 }
 
 // Output Controls
@@ -225,8 +220,6 @@ var allOutputOpts = map[O]uint32{
 	OCRNL:  syscall.OCRNL,
 	ONOCR:  syscall.ONOCR,
 	ONLRET: syscall.ONLRET,
-	// XXX:
-	// "olcuc":   {O, syscall.OLCUC},
 }
 
 // Control
