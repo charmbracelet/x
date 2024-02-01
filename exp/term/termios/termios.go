@@ -1,3 +1,6 @@
+//go:build darwin || netbsd || freebsd || openbsd || linux
+// +build darwin netbsd freebsd openbsd linux
+
 package termios
 
 import (
@@ -32,8 +35,8 @@ func SetTermios(
 	if err != nil {
 		return err
 	}
-	term.Ispeed = ispeed
-	term.Ospeed = ospeed
+	term.Ispeed = bit(ispeed)
+	term.Ospeed = bit(ospeed)
 
 	for name, value := range ccs {
 		call, ok := allCcOpts[name]
@@ -44,31 +47,31 @@ func SetTermios(
 	}
 
 	for name, value := range bools {
-		bit, ok := allBoolOpts[name]
+		iocl, ok := allBoolOpts[name]
 		if !ok {
 			continue
 		}
 		if value {
-			switch bit.flag {
+			switch iocl.flag {
 			case I:
-				term.Iflag |= bit.mask
+				term.Iflag |= bit(iocl.mask)
 			case O:
-				term.Oflag |= bit.mask
+				term.Oflag |= bit(iocl.mask)
 			case L:
-				term.Lflag |= bit.mask
+				term.Lflag |= bit(iocl.mask)
 			case C:
-				term.Cflag |= bit.mask
+				term.Cflag |= bit(iocl.mask)
 			}
 		} else {
-			switch bit.flag {
+			switch iocl.flag {
 			case I:
-				term.Iflag &= ^bit.mask
+				term.Iflag &= ^bit(iocl.mask)
 			case O:
-				term.Oflag &= ^bit.mask
+				term.Oflag &= ^bit(iocl.mask)
 			case L:
-				term.Lflag &= ^bit.mask
+				term.Lflag &= ^bit(iocl.mask)
 			case C:
-				term.Cflag &= ^bit.mask
+				term.Cflag &= ^bit(iocl.mask)
 			}
 		}
 	}
@@ -121,7 +124,6 @@ var allBoolOpts = map[string]*ioclBit{
 	"inlcr":   {I, syscall.INLCR},
 	"igncr":   {I, syscall.IGNCR},
 	"icrnl":   {I, syscall.ICRNL},
-	"iuclc":   {I, syscall.IUCLC},
 	"ixon":    {I, syscall.IXON},
 	"ixany":   {I, syscall.IXANY},
 	"ixoff":   {I, syscall.IXOFF},
@@ -140,10 +142,8 @@ var allBoolOpts = map[string]*ioclBit{
 	"echoctl": {L, syscall.ECHOCTL},
 	"echoke":  {L, syscall.ECHOKE},
 	"pendin":  {L, syscall.PENDIN},
-	"xcase":   {L, syscall.XCASE},
 
 	"opost":  {O, syscall.OPOST},
-	"olcuc":  {O, syscall.OLCUC},
 	"onlcr":  {O, syscall.ONLCR},
 	"ocrnl":  {O, syscall.OCRNL},
 	"onocr":  {O, syscall.ONOCR},
@@ -153,4 +153,9 @@ var allBoolOpts = map[string]*ioclBit{
 	"cs8":    {C, syscall.CS8},
 	"parenb": {C, syscall.PARENB},
 	"parodd": {C, syscall.PARODD},
+
+	// XXX: not available on some OSs
+	// "iuclc":   {I, syscall.IUCLC},
+	// "xcase":   {L, syscall.XCASE},
+	// "olcuc":   {O, syscall.OLCUC},
 }
