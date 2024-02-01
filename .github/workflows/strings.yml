@@ -7,8 +7,8 @@ on:
       - main
   pull_request:
     paths:
-      - ./exp/strings
-      - ./.github/workflows/strings.yml
+      - exp/strings
+      - .github/workflows/strings.yml
 
 jobs:
   build:
