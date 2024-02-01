@@ -9,6 +9,8 @@ name: $name
 
 on:
   push:
+    branches:
+      - main
   pull_request:
     paths:
       - $(dirname "$mod")

@@ -3,6 +3,8 @@ name: ordered
 
 on:
   push:
+    branches:
+      - main
   pull_request:
     paths:
       - ./exp/ordered

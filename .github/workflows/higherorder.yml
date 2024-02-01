@@ -3,6 +3,8 @@ name: higherorder
 
 on:
   push:
+    branches:
+      - main
   pull_request:
     paths:
       - ./exp/higherorder

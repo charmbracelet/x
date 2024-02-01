@@ -3,6 +3,8 @@ name: teatest
 
 on:
   push:
+    branches:
+      - main
   pull_request:
     paths:
       - ./exp/teatest
