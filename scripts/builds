@@ -13,7 +13,7 @@ on:
       - main
   pull_request:
     paths:
-      - $(dirname "$mod" | cut -f2- -d/)
+      - $(dirname "$mod" | cut -f2- -d/)/**
       - .github/workflows/${name}.yml
 
 jobs:
