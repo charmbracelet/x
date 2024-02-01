@@ -8,6 +8,6 @@ import "golang.org/x/sys/unix"
 const (
 	ioctlGets       = unix.TCGETS
 	ioctlSets       = unix.TCSETS
-	ioctSetWinSize  = unix.TIOCGWINSZ
+	ioctlGetWinSize = unix.TIOCGWINSZ
 	ioctlSetWinSize = unix.TIOCSWINSZ
 )

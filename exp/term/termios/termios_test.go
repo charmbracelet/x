@@ -32,8 +32,8 @@ func TestTermios(t *testing.T) {
 
 	if err := SetTermios(
 		fd,
-		term.Ispeed,
-		term.Ospeed,
+		uint32(term.Ispeed),
+		uint32(term.Ospeed),
 		map[string]uint8{
 			"erase": 1,
 		},
