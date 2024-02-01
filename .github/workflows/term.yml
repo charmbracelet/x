@@ -7,7 +7,7 @@ on:
       - main
   pull_request:
     paths:
-      - exp/term
+      - exp/term/**
       - .github/workflows/term.yml
 
 jobs:

@@ -7,7 +7,7 @@ on:
       - main
   pull_request:
     paths:
-      - editor
+      - editor/**
       - .github/workflows/editor.yml
 
 jobs:

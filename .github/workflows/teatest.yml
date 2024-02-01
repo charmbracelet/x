@@ -7,7 +7,7 @@ on:
       - main
   pull_request:
     paths:
-      - exp/teatest
+      - exp/teatest/**
       - .github/workflows/teatest.yml
 
 jobs:
