@@ -1,5 +1,5 @@
-//go:build darwin || netbsd || freebsd || openbsd || linux
-// +build darwin netbsd freebsd openbsd linux
+//go:build darwin || netbsd || freebsd || openbsd || linux || iox
+// +build darwin netbsd freebsd openbsd linux iox
 
 package termios
 
@@ -10,13 +10,13 @@ import (
 )
 
 // SetWinSize sets window size for an fd from a Winsize.
-func SetWinSize(fd uintptr, w *unix.Winsize) error {
-	return unix.IoctlSetWinsize(int(fd), setWinSize, w)
+func SetWinSize(fd int, w *unix.Winsize) error {
+	return unix.IoctlSetWinsize(fd, setWinSize, w)
 }
 
 // GetWinSize gets window size for an fd.
-func GetWinSize(fd uintptr, w *unix.Winsize) (*unix.Winsize, error) {
-	return unix.IoctlGetWinsize(int(fd), getWinSize)
+func GetWinSize(fd int) (*unix.Winsize, error) {
+	return unix.IoctlGetWinsize(fd, getWinSize)
 }
 
 // GetTermios gets the termios of the given fd.
@@ -129,7 +129,6 @@ var allBoolOpts = map[string]*ioclBit{
 	"ixoff":   {I, syscall.IXOFF},
 	"imaxbel": {I, syscall.IMAXBEL},
 
-	"iutf8":   {L, syscall.IUTF8},
 	"isig":    {L, syscall.ISIG},
 	"icanon":  {L, syscall.ICANON},
 	"echo":    {L, syscall.ECHO},
@@ -155,6 +154,7 @@ var allBoolOpts = map[string]*ioclBit{
 	"parodd": {C, syscall.PARODD},
 
 	// XXX: not available on some OSs
+	// "iutf8":   {L, syscall.IUTF8},
 	// "iuclc":   {I, syscall.IUCLC},
 	// "xcase":   {L, syscall.XCASE},
 	// "olcuc":   {O, syscall.OLCUC},
