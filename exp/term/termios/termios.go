@@ -49,7 +49,7 @@ func SetTermios(
 			continue
 		}
 		if value {
-			switch bit.word {
+			switch bit.flag {
 			case I:
 				term.Iflag |= bit.mask
 			case O:
@@ -60,7 +60,7 @@ func SetTermios(
 				term.Cflag |= bit.mask
 			}
 		} else {
-			switch bit.word {
+			switch bit.flag {
 			case I:
 				term.Iflag &= ^bit.mask
 			case O:
@@ -77,7 +77,7 @@ func SetTermios(
 }
 
 type ioclBit struct {
-	word int
+	flag int
 	mask uint32
 }
 
