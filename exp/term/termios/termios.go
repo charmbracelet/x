@@ -1,5 +1,5 @@
-//go:build darwin || netbsd || freebsd || openbsd || linux || iox
-// +build darwin netbsd freebsd openbsd linux iox
+//go:build darwin || netbsd || freebsd || openbsd || linux || aix
+// +build darwin netbsd freebsd openbsd linux aix
 
 package termios
 
