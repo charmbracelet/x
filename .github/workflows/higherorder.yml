@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - ./exp/higherorder
+      - ./.github/workflows/higherorder.yml
 
 jobs:
   build:

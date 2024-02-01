@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - ./exp/teatest
+      - ./.github/workflows/teatest.yml
 
 jobs:
   build:

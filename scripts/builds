@@ -12,6 +12,7 @@ on:
   pull_request:
     paths:
       - $(dirname "$mod")
+      - ./.github/workflows/${name}.yml
 
 jobs:
   build:

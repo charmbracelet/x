@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - ./errors
+      - ./.github/workflows/errors.yml
 
 jobs:
   build:

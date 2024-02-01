@@ -6,6 +6,7 @@ on:
   pull_request:
     paths:
       - ./exp/ordered
+      - ./.github/workflows/ordered.yml
 
 jobs:
   build:
