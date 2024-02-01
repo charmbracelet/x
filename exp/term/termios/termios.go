@@ -35,8 +35,8 @@ func SetTermios(
 	if err != nil {
 		return err
 	}
-	term.Ispeed = bit(ispeed)
-	term.Ospeed = bit(ospeed)
+	term.Ispeed = speed(ispeed)
+	term.Ospeed = speed(ospeed)
 
 	for name, value := range ccs {
 		call, ok := allCcOpts[name]
