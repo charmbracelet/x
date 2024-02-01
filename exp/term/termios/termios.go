@@ -3,7 +3,6 @@ package termios
 import (
 	"syscall"
 
-	"golang.org/x/crypto/ssh"
 	"golang.org/x/sys/unix"
 )
 
@@ -17,131 +16,69 @@ func GetWinSize(fd uintptr, w *unix.Winsize) (*unix.Winsize, error) {
 	return unix.IoctlGetWinsize(int(fd), getWinSize)
 }
 
-// SetTermios sets the termios according to the given ssh.TerminalModes.
-func SetTermios(fd int, modes ssh.TerminalModes) error {
+// GetTermios gets the termios of the given fd.
+func GetTermios(fd int) (*unix.Termios, error) {
+	return unix.IoctlGetTermios(fd, gets)
+}
+
+// SetTermios sets the given termios over the given fd's current termios.
+func SetTermios(
+	fd int,
+	ispeed, ospeed uint32,
+	ccs map[string]uint8,
+	bools map[string]bool,
+) error {
 	term, err := unix.IoctlGetTermios(fd, gets)
 	if err != nil {
 		return err
 	}
-	for c, v := range modes {
-		if c == ssh.TTY_OP_ISPEED {
-			term.Ispeed = v
+	term.Ispeed = ispeed
+	term.Ospeed = ospeed
+
+	for name, value := range ccs {
+		call, ok := allCcOpts[name]
+		if !ok {
 			continue
 		}
-		if c == ssh.TTY_OP_OSPEED {
-			term.Ospeed = v
+		term.Cc[call] = value
+	}
+
+	for name, value := range bools {
+		bit, ok := allBoolOpts[name]
+		if !ok {
 			continue
 		}
-		ccbit, ok := sshCcOpts[c]
-		if ok {
-			term.Cc[ccbit.value] = uint8(v)
-		}
-		bbit, ok := sshBoolOpts[c]
-		if ok {
-			if v != 0 {
-				switch bbit.word {
-				case I:
-					term.Iflag |= bbit.mask
-				case O:
-					term.Oflag |= bbit.mask
-				case L:
-					term.Lflag |= bbit.mask
-				case C:
-					term.Cflag |= bbit.mask
-				}
-			} else {
-				switch bbit.word {
-				case I:
-					term.Iflag &= ^bbit.mask
-				case O:
-					term.Oflag &= ^bbit.mask
-				case L:
-					term.Lflag &= ^bbit.mask
-				case C:
-					term.Cflag &= ^bbit.mask
-				}
+		if value {
+			switch bit.word {
+			case I:
+				term.Iflag |= bit.mask
+			case O:
+				term.Oflag |= bit.mask
+			case L:
+				term.Lflag |= bit.mask
+			case C:
+				term.Cflag |= bit.mask
+			}
+		} else {
+			switch bit.word {
+			case I:
+				term.Iflag &= ^bit.mask
+			case O:
+				term.Oflag &= ^bit.mask
+			case L:
+				term.Lflag &= ^bit.mask
+			case C:
+				term.Cflag &= ^bit.mask
 			}
 		}
 	}
+
 	return unix.IoctlSetTermios(fd, sets, term)
 }
 
 type ioclBit struct {
-	name string
 	word int
 	mask uint32
-}
-
-type ccBit struct {
-	name  string
-	value int
-}
-
-// https://www.man7.org/linux/man-pages/man3/termios.3.html
-var sshCcOpts = map[uint8]*ccBit{
-	ssh.VINTR:    {"intr", syscall.VINTR},
-	ssh.VQUIT:    {"quit", syscall.VQUIT},
-	ssh.VERASE:   {"erase", syscall.VERASE},
-	ssh.VKILL:    {"kill", syscall.VQUIT},
-	ssh.VEOF:     {"eof", syscall.VEOF},
-	ssh.VEOL:     {"eol", syscall.VEOL},
-	ssh.VEOL2:    {"eol2", syscall.VEOL2},
-	ssh.VSTART:   {"start", syscall.VSTART},
-	ssh.VSTOP:    {"stop", syscall.VSTOP},
-	ssh.VSUSP:    {"susp", syscall.VSUSP},
-	ssh.VWERASE:  {"werase", syscall.VWERASE},
-	ssh.VREPRINT: {"rprnt", syscall.VREPRINT},
-	ssh.VLNEXT:   {"lnext", syscall.VLNEXT},
-	ssh.VDISCARD: {"discard", syscall.VDISCARD},
-
-	// XXX: those syscall don't exist... not sure what to do.
-	// ssh.VSTATUS:  {"status", syscall.VSTATUS},
-	// ssh.VSWTCH:   {"swtch", syscall.VSWTCH},
-	// ssh.VFLUSH:   {"flush", syscall.VFLUSH},
-	// ssh.VDSUSP:   {"dsusp", syscall.VDSUSP},
-}
-
-// https://www.man7.org/linux/man-pages/man3/termios.3.html
-var sshBoolOpts = map[uint8]*ioclBit{
-	ssh.IGNPAR:  {"ignpar", I, syscall.IGNPAR},
-	ssh.PARMRK:  {"parmrk", I, syscall.PARMRK},
-	ssh.INPCK:   {"inpck", I, syscall.INPCK},
-	ssh.ISTRIP:  {"istrip", I, syscall.ISTRIP},
-	ssh.INLCR:   {"inlcr", I, syscall.INLCR},
-	ssh.IGNCR:   {"igncr", I, syscall.IGNCR},
-	ssh.ICRNL:   {"icrnl", I, syscall.ICRNL},
-	ssh.IUCLC:   {"iuclc", I, syscall.IUCLC},
-	ssh.IXON:    {"ixon", I, syscall.IXON},
-	ssh.IXANY:   {"ixany", I, syscall.IXANY},
-	ssh.IXOFF:   {"ixoff", I, syscall.IXOFF},
-	ssh.IMAXBEL: {"imaxbel", I, syscall.IMAXBEL},
-
-	ssh.IUTF8:   {"iutf8", L, syscall.IUTF8}, // XXX
-	ssh.ISIG:    {"isig", L, syscall.ISIG},
-	ssh.ICANON:  {"icanon", L, syscall.ICANON},
-	ssh.ECHO:    {"echo", L, syscall.ECHO},
-	ssh.ECHOE:   {"echoe", L, syscall.ECHOE},
-	ssh.ECHOK:   {"echok", L, syscall.ECHOK},
-	ssh.ECHONL:  {"echonl", L, syscall.ECHONL},
-	ssh.NOFLSH:  {"noflsh", L, syscall.NOFLSH},
-	ssh.TOSTOP:  {"tostop", L, syscall.TOSTOP},
-	ssh.IEXTEN:  {"iexten", L, syscall.IEXTEN},
-	ssh.ECHOCTL: {"echoctl", L, syscall.ECHOCTL},
-	ssh.ECHOKE:  {"echoke", L, syscall.ECHOKE},
-	ssh.PENDIN:  {"pendin", L, syscall.PENDIN},
-	ssh.XCASE:   {"xcase", L, syscall.XCASE},
-
-	ssh.OPOST:  {"opost", O, syscall.OPOST},
-	ssh.OLCUC:  {"olcuc", O, syscall.OLCUC},
-	ssh.ONLCR:  {"onlcr", O, syscall.ONLCR},
-	ssh.OCRNL:  {"ocrnl", O, syscall.OCRNL},
-	ssh.ONOCR:  {"onocr", O, syscall.ONOCR},
-	ssh.ONLRET: {"onlret", O, syscall.ONLRET},
-
-	ssh.CS7:    {"cs7", C, syscall.CS7}, // XXX
-	ssh.CS8:    {"cs8", C, syscall.CS8},
-	ssh.PARENB: {"parenb", C, syscall.PARENB},
-	ssh.PARODD: {"parodd", C, syscall.PARODD},
 }
 
 const (
@@ -150,3 +87,70 @@ const (
 	C        // Control
 	L        // Line control
 )
+
+// https://www.man7.org/linux/man-pages/man3/termios.3.html
+var allCcOpts = map[string]int{
+	"intr":    syscall.VINTR,
+	"quit":    syscall.VQUIT,
+	"erase":   syscall.VERASE,
+	"kill":    syscall.VQUIT,
+	"eof":     syscall.VEOF,
+	"eol":     syscall.VEOL,
+	"eol2":    syscall.VEOL2,
+	"start":   syscall.VSTART,
+	"stop":    syscall.VSTOP,
+	"susp":    syscall.VSUSP,
+	"werase":  syscall.VWERASE,
+	"rprnt":   syscall.VREPRINT,
+	"lnext":   syscall.VLNEXT,
+	"discard": syscall.VDISCARD,
+
+	// XXX: those syscall don't exist... not sure what to do.
+	// "status": syscall.VSTATUS,
+	// "swtch":  syscall.VSWTCH,
+	// "flush":  syscall.VFLUSH,
+	// "dsusp":  syscall.VDSUSP,
+}
+
+// https://www.man7.org/linux/man-pages/man3/termios.3.html
+var allBoolOpts = map[string]*ioclBit{
+	"ignpar":  {I, syscall.IGNPAR},
+	"parmrk":  {I, syscall.PARMRK},
+	"inpck":   {I, syscall.INPCK},
+	"istrip":  {I, syscall.ISTRIP},
+	"inlcr":   {I, syscall.INLCR},
+	"igncr":   {I, syscall.IGNCR},
+	"icrnl":   {I, syscall.ICRNL},
+	"iuclc":   {I, syscall.IUCLC},
+	"ixon":    {I, syscall.IXON},
+	"ixany":   {I, syscall.IXANY},
+	"ixoff":   {I, syscall.IXOFF},
+	"imaxbel": {I, syscall.IMAXBEL},
+
+	"iutf8":   {L, syscall.IUTF8}, // XXX
+	"isig":    {L, syscall.ISIG},
+	"icanon":  {L, syscall.ICANON},
+	"echo":    {L, syscall.ECHO},
+	"echoe":   {L, syscall.ECHOE},
+	"echok":   {L, syscall.ECHOK},
+	"echonl":  {L, syscall.ECHONL},
+	"noflsh":  {L, syscall.NOFLSH},
+	"tostop":  {L, syscall.TOSTOP},
+	"iexten":  {L, syscall.IEXTEN},
+	"echoctl": {L, syscall.ECHOCTL},
+	"echoke":  {L, syscall.ECHOKE},
+	"pendin":  {L, syscall.PENDIN},
+	"xcase":   {L, syscall.XCASE},
+
+	"opost":  {O, syscall.OPOST},
+	"olcuc":  {O, syscall.OLCUC},
+	"onlcr":  {O, syscall.ONLCR},
+	"ocrnl":  {O, syscall.OCRNL},
+	"onocr":  {O, syscall.ONOCR},
+	"onlret": {O, syscall.ONLRET},
+
+	"cs7":    {C, syscall.CS7}, // XXX
+	"cs8":    {C, syscall.CS8},
+	"parenb": {C, syscall.PARENB},
+	"parodd": {C, syscall.PARODD},
+}
