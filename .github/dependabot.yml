@@ -12,25 +12,7 @@ updates:
       prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/exp/slice"
-    schedule:
-      interval: "daily"
-    labels:
-      - "dependencies"
-    commit-message:
-      prefix: "feat"
-      include: "scope"
-  - package-ecosystem: "gomod"
-    directory: "/exp/teatest"
-    schedule:
-      interval: "daily"
-    labels:
-      - "dependencies"
-    commit-message:
-      prefix: "feat"
-      include: "scope"
-  - package-ecosystem: "gomod"
-    directory: "/exp/strings"
+    directory: "/editor"
     schedule:
       interval: "daily"
     labels:
@@ -48,7 +30,7 @@ updates:
       prefix: "feat"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/exp/term"
+    directory: "/exp/slice"
     schedule:
       interval: "daily"
     labels:
@@ -66,7 +48,25 @@ updates:
       prefix: "feat"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/editor"
+    directory: "/exp/term"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "feat"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/exp/strings"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "feat"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/exp/teatest"
     schedule:
       interval: "daily"
     labels:
