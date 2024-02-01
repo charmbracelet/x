@@ -7,8 +7,8 @@ on:
       - main
   pull_request:
     paths:
-      - ./errors
-      - ./.github/workflows/errors.yml
+      - errors
+      - .github/workflows/errors.yml
 
 jobs:
   build:
