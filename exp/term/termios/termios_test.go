@@ -34,12 +34,24 @@ func TestTermios(t *testing.T) {
 		fd,
 		uint32(term.Ispeed),
 		uint32(term.Ospeed),
-		map[string]uint8{
-			"erase": 1,
+		map[CC]uint8{
+			ERASE: 1,
 		},
-		map[string]bool{
-			"pendin": true,
-			"echoke": false,
+		map[I]bool{
+			IGNCR: true,
+			IXOFF: false,
+		},
+		map[O]bool{
+			OCRNL: true,
+			ONLCR: false,
+		},
+		map[C]bool{
+			CS7: true,
+			CS8: false,
+		},
+		map[L]bool{
+			ECHO:  true,
+			ECHOE: false,
 		},
 	); err != nil {
 		t.Error(err)

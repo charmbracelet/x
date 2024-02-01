@@ -28,8 +28,11 @@ func GetTermios(fd int) (*unix.Termios, error) {
 func SetTermios(
 	fd int,
 	ispeed, ospeed uint32,
-	ccs map[string]uint8,
-	bools map[string]bool,
+	ccs map[CC]uint8,
+	iflag map[I]bool,
+	oflag map[O]bool,
+	cflag map[C]bool,
+	lflag map[L]bool,
 ) error {
 	term, err := unix.IoctlGetTermios(fd, ioctlGets)
 	if err != nil {
@@ -38,124 +41,207 @@ func SetTermios(
 	term.Ispeed = speed(ispeed)
 	term.Ospeed = speed(ospeed)
 
-	for name, value := range ccs {
-		call, ok := allCcOpts[name]
+	for key, value := range ccs {
+		call, ok := allCcOpts[key]
 		if !ok {
 			continue
 		}
 		term.Cc[call] = value
 	}
 
-	for name, value := range bools {
-		iocl, ok := allBoolOpts[name]
-		if !ok {
-			continue
-		}
-		if value {
-			switch iocl.flag {
-			case I:
-				term.Iflag |= bit(iocl.mask)
-			case O:
-				term.Oflag |= bit(iocl.mask)
-			case L:
-				term.Lflag |= bit(iocl.mask)
-			case C:
-				term.Cflag |= bit(iocl.mask)
-			}
-		} else {
-			switch iocl.flag {
-			case I:
-				term.Iflag &= ^bit(iocl.mask)
-			case O:
-				term.Oflag &= ^bit(iocl.mask)
-			case L:
-				term.Lflag &= ^bit(iocl.mask)
-			case C:
-				term.Cflag &= ^bit(iocl.mask)
+	for key, value := range iflag {
+		mask, ok := allInputOpts[key]
+		if ok {
+			if value {
+				term.Iflag |= bit(mask)
+			} else {
+				term.Iflag &= ^bit(mask)
 			}
 		}
 	}
-
+	for key, value := range oflag {
+		mask, ok := allOutputOpts[key]
+		if ok {
+			if value {
+				term.Oflag |= bit(mask)
+			} else {
+				term.Oflag &= ^bit(mask)
+			}
+		}
+	}
+	for key, value := range cflag {
+		mask, ok := allControlOpts[key]
+		if ok {
+			if value {
+				term.Cflag |= bit(mask)
+			} else {
+				term.Cflag &= ^bit(mask)
+			}
+		}
+	}
+	for key, value := range lflag {
+		mask, ok := allLineOpts[key]
+		if ok {
+			if value {
+				term.Lflag |= bit(mask)
+			} else {
+				term.Lflag &= ^bit(mask)
+			}
+		}
+	}
 	return unix.IoctlSetTermios(fd, ioctlSets, term)
 }
 
-type ioclBit struct {
-	flag int
-	mask uint32
-}
+type CC uint8
 
 const (
-	I = iota // Input control
-	O        // Output control
-	C        // Control
-	L        // Line control
+	INTR CC = iota
+	QUIT
+	ERASE
+	KILL
+	EOF
+	EOL
+	EOL2
+	START
+	STOP
+	SUSP
+	WERASE
+	RPRNT
+	LNEXT
+	DISCARD
 )
 
 // https://www.man7.org/linux/man-pages/man3/termios.3.html
-var allCcOpts = map[string]int{
-	"intr":    syscall.VINTR,
-	"quit":    syscall.VQUIT,
-	"erase":   syscall.VERASE,
-	"kill":    syscall.VQUIT,
-	"eof":     syscall.VEOF,
-	"eol":     syscall.VEOL,
-	"eol2":    syscall.VEOL2,
-	"start":   syscall.VSTART,
-	"stop":    syscall.VSTOP,
-	"susp":    syscall.VSUSP,
-	"werase":  syscall.VWERASE,
-	"rprnt":   syscall.VREPRINT,
-	"lnext":   syscall.VLNEXT,
-	"discard": syscall.VDISCARD,
+var allCcOpts = map[CC]int{
+	INTR:    syscall.VINTR,
+	QUIT:    syscall.VQUIT,
+	ERASE:   syscall.VERASE,
+	KILL:    syscall.VQUIT,
+	EOF:     syscall.VEOF,
+	EOL:     syscall.VEOL,
+	EOL2:    syscall.VEOL2,
+	START:   syscall.VSTART,
+	STOP:    syscall.VSTOP,
+	SUSP:    syscall.VSUSP,
+	WERASE:  syscall.VWERASE,
+	RPRNT:   syscall.VREPRINT,
+	LNEXT:   syscall.VLNEXT,
+	DISCARD: syscall.VDISCARD,
 
-	// XXX: those syscall don't exist... not sure what to do.
-	// "status": syscall.VSTATUS,
-	// "swtch":  syscall.VSWTCH,
-	// "flush":  syscall.VFLUSH,
-	// "dsusp":  syscall.VDSUSP,
+	// XXX: these syscalls don't exist
+	// STATUS: syscall.VSTATUS,
+	// SWTCH:  syscall.VSWTCH,
+	// FLUSH:  syscall.VFLUSH,
+	// DSUSP:  syscall.VDSUSP,
 }
 
-// https://www.man7.org/linux/man-pages/man3/termios.3.html
-var allBoolOpts = map[string]*ioclBit{
-	"ignpar":  {I, syscall.IGNPAR},
-	"parmrk":  {I, syscall.PARMRK},
-	"inpck":   {I, syscall.INPCK},
-	"istrip":  {I, syscall.ISTRIP},
-	"inlcr":   {I, syscall.INLCR},
-	"igncr":   {I, syscall.IGNCR},
-	"icrnl":   {I, syscall.ICRNL},
-	"ixon":    {I, syscall.IXON},
-	"ixany":   {I, syscall.IXANY},
-	"ixoff":   {I, syscall.IXOFF},
-	"imaxbel": {I, syscall.IMAXBEL},
+// Input Controls
+type I uint8
 
-	"isig":    {L, syscall.ISIG},
-	"icanon":  {L, syscall.ICANON},
-	"echo":    {L, syscall.ECHO},
-	"echoe":   {L, syscall.ECHOE},
-	"echok":   {L, syscall.ECHOK},
-	"echonl":  {L, syscall.ECHONL},
-	"noflsh":  {L, syscall.NOFLSH},
-	"tostop":  {L, syscall.TOSTOP},
-	"iexten":  {L, syscall.IEXTEN},
-	"echoctl": {L, syscall.ECHOCTL},
-	"echoke":  {L, syscall.ECHOKE},
-	"pendin":  {L, syscall.PENDIN},
+const (
+	IGNPAR I = iota
+	PARMRK
+	INPCK
+	ISTRIP
+	INLCR
+	IGNCR
+	ICRNL
+	IXON
+	IXANY
+	IXOFF
+	IMAXBEL
+	IUCLC
+)
 
-	"opost":  {O, syscall.OPOST},
-	"onlcr":  {O, syscall.ONLCR},
-	"ocrnl":  {O, syscall.OCRNL},
-	"onocr":  {O, syscall.ONOCR},
-	"onlret": {O, syscall.ONLRET},
-
-	"cs7":    {C, syscall.CS7},
-	"cs8":    {C, syscall.CS8},
-	"parenb": {C, syscall.PARENB},
-	"parodd": {C, syscall.PARODD},
-
-	// XXX: not available on some OSs
-	// "iutf8":   {L, syscall.IUTF8},
+var allInputOpts = map[I]uint32{
+	IGNPAR:  syscall.IGNPAR,
+	PARMRK:  syscall.PARMRK,
+	INPCK:   syscall.INPCK,
+	ISTRIP:  syscall.ISTRIP,
+	INLCR:   syscall.INLCR,
+	IGNCR:   syscall.IGNCR,
+	ICRNL:   syscall.ICRNL,
+	IXON:    syscall.IXON,
+	IXANY:   syscall.IXANY,
+	IXOFF:   syscall.IXOFF,
+	IMAXBEL: syscall.IMAXBEL,
+	// XXX:
 	// "iuclc":   {I, syscall.IUCLC},
+}
+
+// Line Controls.
+type L uint8
+
+const (
+	ISIG L = iota
+	ICANON
+	ECHO
+	ECHOE
+	ECHOK
+	ECHONL
+	NOFLSH
+	TOSTOP
+	IEXTEN
+	ECHOCTL
+	ECHOKE
+	PENDIN
+	IUTF8
+	XCASE
+)
+
+var allLineOpts = map[L]uint32{
+	ISIG:    syscall.ISIG,
+	ICANON:  syscall.ICANON,
+	ECHO:    syscall.ECHO,
+	ECHOE:   syscall.ECHOE,
+	ECHOK:   syscall.ECHOK,
+	ECHONL:  syscall.ECHONL,
+	NOFLSH:  syscall.NOFLSH,
+	TOSTOP:  syscall.TOSTOP,
+	IEXTEN:  syscall.IEXTEN,
+	ECHOCTL: syscall.ECHOCTL,
+	ECHOKE:  syscall.ECHOKE,
+	PENDIN:  syscall.PENDIN,
+	// XXX:
+	// "iutf8":   {L, syscall.IUTF8},
 	// "xcase":   {L, syscall.XCASE},
+}
+
+// Output Controls
+type O uint8
+
+const (
+	OPOST O = iota
+	ONLCR
+	OCRNL
+	ONOCR
+	ONLRET
+	OLCUC
+)
+
+var allOutputOpts = map[O]uint32{
+	OPOST:  syscall.OPOST,
+	ONLCR:  syscall.ONLCR,
+	OCRNL:  syscall.OCRNL,
+	ONOCR:  syscall.ONOCR,
+	ONLRET: syscall.ONLRET,
+	// XXX:
 	// "olcuc":   {O, syscall.OLCUC},
+}
+
+// Control
+type C uint8
+
+const (
+	CS7 C = iota
+	CS8
+	PARENB
+	PARODD
+)
+
+var allControlOpts = map[C]uint32{
+	CS7:    syscall.CS7,
+	CS8:    syscall.CS8,
+	PARENB: syscall.PARENB,
+	PARODD: syscall.PARODD,
 }
