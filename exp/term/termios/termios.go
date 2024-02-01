@@ -1,5 +1,5 @@
-//go:build darwin || netbsd || freebsd || openbsd || linux || aix
-// +build darwin netbsd freebsd openbsd linux aix
+//go:build darwin || netbsd || freebsd || openbsd || linux || dragonfly
+// +build darwin netbsd freebsd openbsd linux dragonfly
 
 package termios
 
@@ -11,17 +11,17 @@ import (
 
 // SetWinSize sets window size for an fd from a Winsize.
 func SetWinSize(fd int, w *unix.Winsize) error {
-	return unix.IoctlSetWinsize(fd, setWinSize, w)
+	return unix.IoctlSetWinsize(fd, ioctlSetWinSize, w)
 }
 
 // GetWinSize gets window size for an fd.
 func GetWinSize(fd int) (*unix.Winsize, error) {
-	return unix.IoctlGetWinsize(fd, getWinSize)
+	return unix.IoctlGetWinsize(fd, ioctSetWinSize)
 }
 
 // GetTermios gets the termios of the given fd.
 func GetTermios(fd int) (*unix.Termios, error) {
-	return unix.IoctlGetTermios(fd, gets)
+	return unix.IoctlGetTermios(fd, ioctlGets)
 }
 
 // SetTermios sets the given termios over the given fd's current termios.
@@ -31,7 +31,7 @@ func SetTermios(
 	ccs map[string]uint8,
 	bools map[string]bool,
 ) error {
-	term, err := unix.IoctlGetTermios(fd, gets)
+	term, err := unix.IoctlGetTermios(fd, ioctlGets)
 	if err != nil {
 		return err
 	}
@@ -76,7 +76,7 @@ func SetTermios(
 		}
 	}
 
-	return unix.IoctlSetTermios(fd, sets, term)
+	return unix.IoctlSetTermios(fd, ioctlSets, term)
 }
 
 type ioclBit struct {
