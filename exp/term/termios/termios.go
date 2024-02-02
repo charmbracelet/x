@@ -27,8 +27,9 @@ func GetTermios(fd int) (*unix.Termios, error) {
 // SetTermios sets the given termios over the given fd's current termios.
 func SetTermios(
 	fd int,
-	ispeed, ospeed uint32,
-	ccs map[CC]uint8,
+	ispeed uint32,
+	ospeed uint32,
+	cc map[CC]uint8,
 	iflag map[I]bool,
 	oflag map[O]bool,
 	cflag map[C]bool,
@@ -41,7 +42,7 @@ func SetTermios(
 	term.Ispeed = speed(ispeed)
 	term.Ospeed = speed(ospeed)
 
-	for key, value := range ccs {
+	for key, value := range cc {
 		call, ok := allCcOpts[key]
 		if !ok {
 			continue
@@ -92,8 +93,12 @@ func SetTermios(
 	return unix.IoctlSetTermios(fd, ioctlSets, term)
 }
 
+// CC is the termios cc field.
+//
+// It stores an array of special characters related to terminal I/O.
 type CC uint8
 
+// CC possible values.
 const (
 	INTR CC = iota
 	QUIT
@@ -139,6 +144,7 @@ var allCcOpts = map[CC]int{
 // Input Controls
 type I uint8
 
+// Input possible values.
 const (
 	IGNPAR I = iota
 	PARMRK
@@ -168,9 +174,49 @@ var allInputOpts = map[I]uint32{
 	IMAXBEL: syscall.IMAXBEL,
 }
 
+// Output Controls
+type O uint8
+
+// Output possible values.
+const (
+	OPOST O = iota
+	ONLCR
+	OCRNL
+	ONOCR
+	ONLRET
+	OLCUC
+)
+
+var allOutputOpts = map[O]uint32{
+	OPOST:  syscall.OPOST,
+	ONLCR:  syscall.ONLCR,
+	OCRNL:  syscall.OCRNL,
+	ONOCR:  syscall.ONOCR,
+	ONLRET: syscall.ONLRET,
+}
+
+// Control
+type C uint8
+
+// Control possible values.
+const (
+	CS7 C = iota
+	CS8
+	PARENB
+	PARODD
+)
+
+var allControlOpts = map[C]uint32{
+	CS7:    syscall.CS7,
+	CS8:    syscall.CS8,
+	PARENB: syscall.PARENB,
+	PARODD: syscall.PARODD,
+}
+
 // Line Controls.
 type L uint8
 
+// Line possible values.
 const (
 	ISIG L = iota
 	ICANON
@@ -201,41 +247,4 @@ var allLineOpts = map[L]uint32{
 	ECHOCTL: syscall.ECHOCTL,
 	ECHOKE:  syscall.ECHOKE,
 	PENDIN:  syscall.PENDIN,
-}
-
-// Output Controls
-type O uint8
-
-const (
-	OPOST O = iota
-	ONLCR
-	OCRNL
-	ONOCR
-	ONLRET
-	OLCUC
-)
-
-var allOutputOpts = map[O]uint32{
-	OPOST:  syscall.OPOST,
-	ONLCR:  syscall.ONLCR,
-	OCRNL:  syscall.OCRNL,
-	ONOCR:  syscall.ONOCR,
-	ONLRET: syscall.ONLRET,
-}
-
-// Control
-type C uint8
-
-const (
-	CS7 C = iota
-	CS8
-	PARENB
-	PARODD
-)
-
-var allControlOpts = map[C]uint32{
-	CS7:    syscall.CS7,
-	CS8:    syscall.CS8,
-	PARENB: syscall.PARENB,
-	PARODD: syscall.PARODD,
 }

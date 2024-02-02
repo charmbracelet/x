@@ -1,12 +1,12 @@
-name: test-termios
+name: termios
 on:
   push:
   pull_request:
     paths:
-      - "exp/term/termios"
+      - "exp/term/termios/**"
 
 jobs:
-  term:
+  test:
     runs-on: ubuntu-latest
     defaults:
       run:
