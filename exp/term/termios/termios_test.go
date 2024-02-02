@@ -75,28 +75,28 @@ func TestTermios(t *testing.T) {
 	if v := term.Cc[allCcOpts[ERASE]]; v != 1 {
 		t.Errorf("Cc.ERROR should be 1, was %d", v)
 	}
-	if v := term.Iflag & allInputOpts[IGNCR]; v == 0 {
+	if v := term.Iflag & bit(allInputOpts[IGNCR]); v == 0 {
 		t.Errorf("I.IGNCR should be true, was %d", v)
 	}
-	if v := term.Iflag & allInputOpts[IXOFF]; v != 0 {
+	if v := term.Iflag & bit(allInputOpts[IXOFF]); v != 0 {
 		t.Errorf("I.IGNCR should be false, was %d", v)
 	}
-	if v := term.Oflag & allOutputOpts[OCRNL]; v == 0 {
+	if v := term.Oflag & bit(allOutputOpts[OCRNL]); v == 0 {
 		t.Errorf("O.OCRNL should be true, was %d", v)
 	}
-	if v := term.Oflag & allOutputOpts[ONLCR]; v != 0 {
+	if v := term.Oflag & bit(allOutputOpts[ONLCR]); v != 0 {
 		t.Errorf("O.ONLCR should be false, was %d", v)
 	}
-	if v := term.Cflag & allControlOpts[CS7]; v == 0 {
+	if v := term.Cflag & bit(allControlOpts[CS7]); v == 0 {
 		t.Errorf("C.CS7 should be true, was %d", v)
 	}
-	if v := term.Cflag & allControlOpts[PARODD]; v != 0 {
+	if v := term.Cflag & bit(allControlOpts[PARODD]); v != 0 {
 		t.Errorf("C.PARODD should be false, was %d", v)
 	}
-	if v := term.Lflag & allLineOpts[ECHO]; v == 0 {
+	if v := term.Lflag & bit(allLineOpts[ECHO]); v == 0 {
 		t.Errorf("L.ECHO should be true, was %d", v)
 	}
-	if v := term.Lflag & allLineOpts[ECHOE]; v != 0 {
+	if v := term.Lflag & bit(allLineOpts[ECHOE]); v != 0 {
 		t.Errorf("L.ECHOE should be false, was %d", v)
 	}
 }
