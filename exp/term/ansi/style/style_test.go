@@ -28,8 +28,8 @@ func TestSequence(t *testing.T) {
 	if style.Sequence(
 		style.Bold,
 		style.Underline,
-		style.ForegrondColor(style.ExtendedColor(255)),
+		style.ForegroundColor(style.ExtendedColor(255)),
 	) != "\x1b[1;4;38;5;255m" {
-		t.Errorf("Unexpected sequence: %s", style.Sequence(style.Bold, style.Underline, style.ForegrondColor(style.ExtendedColor(255))))
+		t.Errorf("Unexpected sequence: %s", style.Sequence(style.Bold, style.Underline, style.ForegroundColor(style.ExtendedColor(255))))
 	}
 }

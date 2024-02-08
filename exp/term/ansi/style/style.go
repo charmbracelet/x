@@ -52,7 +52,7 @@ func Sequence(attrs ...Attribute) string {
 }
 
 // Foreground returns the SGR attribute for the given foreground color.
-func ForegrondColor(c Color) Attribute {
+func ForegroundColor(c Color) Attribute {
 	switch c := c.(type) {
 	case BasicColor:
 		// 3-bit or 4-bit ANSI foreground
