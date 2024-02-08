@@ -18,16 +18,7 @@ updates:
     labels:
       - "dependencies"
     commit-message:
-      prefix: "feat"
-      include: "scope"
-  - package-ecosystem: "gomod"
-    directory: "/exp/term"
-    schedule:
-      interval: "daily"
-    labels:
-      - "dependencies"
-    commit-message:
-      prefix: "feat"
+      prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
     directory: "/exp/teatest"
@@ -36,16 +27,7 @@ updates:
     labels:
       - "dependencies"
     commit-message:
-      prefix: "feat"
-      include: "scope"
-  - package-ecosystem: "gomod"
-    directory: "/exp/ordered"
-    schedule:
-      interval: "daily"
-    labels:
-      - "dependencies"
-    commit-message:
-      prefix: "feat"
+      prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
     directory: "/exp/strings"
@@ -54,7 +36,25 @@ updates:
     labels:
       - "dependencies"
     commit-message:
-      prefix: "feat"
+      prefix: "chore"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/exp/ordered"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+  - package-ecosystem: "gomod"
+    directory: "/exp/term"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
     directory: "/exp/higherorder"
@@ -63,7 +63,7 @@ updates:
     labels:
       - "dependencies"
     commit-message:
-      prefix: "feat"
+      prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
     directory: "/editor"
@@ -72,7 +72,7 @@ updates:
     labels:
       - "dependencies"
     commit-message:
-      prefix: "feat"
+      prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
     directory: "/errors"
@@ -81,5 +81,5 @@ updates:
     labels:
       - "dependencies"
     commit-message:
-      prefix: "feat"
+      prefix: "chore"
       include: "scope"
