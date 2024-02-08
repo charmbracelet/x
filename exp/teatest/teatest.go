@@ -163,10 +163,6 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 	return tm
 }
 
-// GetProgram returns the underlying program.
-// This should be used only to test apps that talk to other apps.
-// func (tm *TestModel) GetProgram() *tea.Program { return tm.program }
-
 func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
 	tm.done.Do(func() {
 		fopts := FinalOpts{}
