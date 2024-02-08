@@ -21,7 +21,7 @@ updates:
       prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/exp/teatest"
+    directory: "/exp/term"
     schedule:
       interval: "daily"
     labels:
@@ -30,7 +30,7 @@ updates:
       prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/exp/strings"
+    directory: "/exp/teatest"
     schedule:
       interval: "daily"
     labels:
@@ -48,7 +48,7 @@ updates:
       prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/exp/term"
+    directory: "/exp/strings"
     schedule:
       interval: "daily"
     labels:
