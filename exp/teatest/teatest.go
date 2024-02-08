@@ -132,6 +132,7 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		tea.WithInput(tm.in),
 		tea.WithOutput(tm.out),
 		tea.WithoutSignals(),
+		tea.WithANSICompressor(), // this helps a bit to reduce drift between runs
 	)
 
 	interruptions := make(chan os.Signal, 1)
