@@ -148,7 +148,7 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		<-interruptions
 		signal.Stop(interruptions)
 		tb.Log("interrupted")
-		tm.program.Quit()
+		tm.program.Kill()
 	}()
 
 	var opts TestModelOptions
@@ -161,6 +161,10 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 	}
 	return tm
 }
+
+// GetProgram returns the underlying program.
+// This should be used only to test apps that talk to other apps.
+// func (tm *TestModel) GetProgram() *tea.Program { return tm.program }
 
 func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
 	tm.done.Do(func() {
@@ -244,7 +248,7 @@ func (tm *TestModel) Quit() error {
 // Type types the given text into the given program.
 func (tm *TestModel) Type(s string) {
 	for _, c := range []byte(s) {
-		tm.program.Send(tea.KeyMsg{
+		tm.Send(tea.KeyMsg{
 			Runes: []rune{rune(c)},
 			Type:  tea.KeyRunes,
 		})
