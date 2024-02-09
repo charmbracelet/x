@@ -132,6 +132,7 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		tea.WithInput(tm.in),
 		tea.WithOutput(tm.out),
 		tea.WithoutSignals(),
+		tea.WithANSICompressor(), // this helps a bit to reduce drift between runs
 	)
 
 	interruptions := make(chan os.Signal, 1)
@@ -148,7 +149,7 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		<-interruptions
 		signal.Stop(interruptions)
 		tb.Log("interrupted")
-		tm.program.Quit()
+		tm.program.Kill()
 	}()
 
 	var opts TestModelOptions
@@ -244,7 +245,7 @@ func (tm *TestModel) Quit() error {
 // Type types the given text into the given program.
 func (tm *TestModel) Type(s string) {
 	for _, c := range []byte(s) {
-		tm.program.Send(tea.KeyMsg{
+		tm.Send(tea.KeyMsg{
 			Runes: []rune{rune(c)},
 			Type:  tea.KeyRunes,
 		})
