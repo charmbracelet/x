@@ -19,40 +19,48 @@ func main() {
 
 	defer term.Restore(os.Stdin.Fd(), state)
 
-	// for {
-	// 	buf := [256]byte{}
-	// 	n, err := os.Stdout.Read(buf[:])
-	// 	if err != nil {
-	// 		log.Fatalf("error reading input: %v\r\n", err)
-	// 	}
+	// r := bufio.NewReader(strings.NewReader("\x00\x1ba\x1b[Z\x1b\x01\x1b[A"))
+	rd := ansi.NewDriver(bufio.NewReaderSize(os.Stdin, 256), os.Getenv("TERM"), ansi.Stdflags)
+
+	// p, err := d.PeekInput(2)
+	// if err != nil {
+	// 	log.Fatalf("error peeking input: %v\r\n", err)
+	// }
 	//
-	// 	log.Printf("read %d bytes: %q\r\n", n, buf[:n])
+	// for _, e := range p {
+	// 	log.Printf("event: %s (len: %d)\r\n\r\n", e, len(p))
 	// }
 
-	r := bufio.NewReader(os.Stdout)
-	d := ansi.NewDriver(r, ansi.Stdflags)
-	buf := [1]input.Event{}
+	// go func() {
+	// 	time.Sleep(2 * time.Second)
+	// 	io.WriteString(os.Stdout, "\x1b[?u\x1b[c\x1b]11;?\x07")
+	// }()
+
+	lastEv := input.Event(nil)
 	for {
-		n, ev, err := d.ReadInput()
+		n, err := rd.ReadInput()
 		if err != nil {
 			if errors.Is(err, input.ErrUnknownEvent) {
 				log.Printf("%v\r\n", err)
-				r.Discard(n)
 				continue
 			}
 			log.Fatalf("error reading input: %v\r\n", err)
 		}
 
 		// Gracefully exit on 'qq'
-		if buf[0] != nil {
-			k, ok1 := ev.(input.KeyEvent)
-			p, ok2 := buf[0].(input.KeyEvent)
+		if lastEv != nil {
+			k, ok1 := n[len(n)-1].(input.KeyEvent)
+			p, ok2 := lastEv.(input.KeyEvent)
 			if ok1 && ok2 && k.Rune == 'q' && p.Rune == 'q' {
 				break
 			}
 		}
 
-		log.Printf("event: %s (len: %d)\r\n", ev, n)
-		buf[0] = ev
+		for _, e := range n {
+			log.Printf("event: %s (len: %d)\r\n\r\n", e, len(n))
+		}
+		if len(n) > 0 {
+			lastEv = n[len(n)-1]
+		}
 	}
 }

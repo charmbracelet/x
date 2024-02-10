@@ -1,9 +1,16 @@
 package input
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// ErrUnknownEvent is returned when an unknown event is encountered.
-var ErrUnknownEvent = fmt.Errorf("unknown event")
+var (
+	// ErrUnknownEvent is returned when an unknown event is encountered.
+	ErrUnknownEvent = fmt.Errorf("unknown event")
+
+	// ErrEmpty is returned when the event buffer is empty.
+	ErrEmpty = fmt.Errorf("empty event buffer")
+)
 
 // Event represents a terminal input event.
 type Event interface {
@@ -16,34 +23,9 @@ type Event interface {
 // Driver represents a terminal input driver.
 type Driver interface {
 	// ReadInput reads input events from the terminal.
-	ReadInput() (int, Event, error)
+	ReadInput() ([]Event, error)
 
 	// PeekInput peeks at input events from the terminal without consuming
 	// them.
-	PeekInput() (int, Event, error)
-}
-
-// Mod represents modifier keys.
-type Mod uint16
-
-// Modifier keys.
-const (
-	Shift Mod = 1 << iota
-	Alt
-	Ctrl
-)
-
-// IsShift reports whether the Shift modifier is set.
-func (m Mod) IsShift() bool {
-	return m&Shift != 0
-}
-
-// IsAlt reports whether the Alt modifier is set.
-func (m Mod) IsAlt() bool {
-	return m&Alt != 0
-}
-
-// IsCtrl reports whether the Ctrl modifier is set.
-func (m Mod) IsCtrl() bool {
-	return m&Ctrl != 0
+	PeekInput() ([]Event, error)
 }
