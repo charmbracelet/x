@@ -25,7 +25,9 @@ const (
 	Ffindhome                 // treat find symbol as home
 	Fselectend                // treat select symbol as end
 
-	Stdflags = Ftabsym | Fentersym | Fescsym | Fspacesym | Fdelbackspace | Ffindhome | Fselectend
+	Fterminfo // use terminfo
+
+	Stdflags = Ftabsym | Fentersym | Fescsym | Fspacesym | Fdelbackspace | Ffindhome | Fselectend | Fterminfo
 )
 
 // driver represents a terminal ANSI input driver.
@@ -101,6 +103,11 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 		}
 	}
 
+	// Lookup table first
+	if k, ok := d.table[string(p)]; ok {
+		return len(p), []input.Event{k}, nil
+	}
+
 	peekedBytes := 0
 	i := 0 // index of the current byte
 
@@ -119,7 +126,7 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 		case ansi.ESC:
 			if bufferedBytes == 1 {
 				// Special case for Esc
-				addEvent(1, input.KeyEvent(d.table[esc]))
+				addEvent(1, d.table[esc])
 				continue
 			}
 
@@ -191,7 +198,7 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 
 		// Single byte control code or printable ASCII/UTF-8
 		if b <= ansi.US || b == ansi.DEL || b == ansi.SP {
-			k := input.KeyEvent(d.table[string(b)])
+			k := d.table[string(b)]
 			nb := 1
 			if alt {
 				k.Mod |= input.Alt
@@ -259,7 +266,7 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (n int, e input.Event, err 
 		if alt {
 			k.Mod |= input.Alt
 		}
-		return n, input.KeyEvent(k), nil
+		return n, k, nil
 	}
 
 	return n, csiSequence(seq), nil
@@ -289,7 +296,7 @@ func (d *driver) parseSs3(i int, p []byte, alt bool) (n int, e input.Event, err 
 		if alt {
 			k.Mod |= input.Alt
 		}
-		return n, input.KeyEvent(k), nil
+		return n, k, nil
 	}
 
 	return n, ss3Sequence(seq), nil

@@ -53,9 +53,9 @@ func (d *driver) registerKeys(flags int) {
 		find.Sym = input.KeyHome
 	}
 
-	select_ := input.KeyEvent{Sym: input.KeySelect}
+	sel := input.KeyEvent{Sym: input.KeySelect}
 	if flags&Fselectend != 0 {
-		select_.Sym = input.KeyEnd
+		sel.Sym = input.KeyEnd
 	}
 
 	// See: https://vt100.net/docs/vt100-ug/chapter3.html#S3.2
@@ -107,7 +107,7 @@ func (d *driver) registerKeys(flags int) {
 		"\x1b[1~": find,
 		"\x1b[2~": {Sym: input.KeyInsert},
 		"\x1b[3~": {Sym: input.KeyDelete},
-		"\x1b[4~": select_,
+		"\x1b[4~": sel,
 		"\x1b[5~": {Sym: input.KeyPgUp},
 		"\x1b[6~": {Sym: input.KeyPgDown},
 		"\x1b[7~": {Sym: input.KeyHome},
@@ -183,4 +183,13 @@ func (d *driver) registerKeys(flags int) {
 		"\x1b[33~": {Sym: input.KeyF19},
 		"\x1b[34~": {Sym: input.KeyF20},
 	}
+
+	// Register Alt + <key> combinations
+	for k, v := range d.table {
+		v.Mod |= input.Alt
+		d.table["\x1b"+k] = v
+	}
+
+	// Register terminfo keys
+	d.registerTerminfoKeys()
 }
