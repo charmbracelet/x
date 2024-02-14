@@ -78,6 +78,49 @@ const (
 	KeyF18
 	KeyF19
 	KeyF20
+	KeyF21
+	KeyF22
+	KeyF23
+	KeyF24
+	KeyF25
+	KeyF26
+	KeyF27
+	KeyF28
+	KeyF29
+	KeyF30
+	KeyF31
+	KeyF32
+	KeyF33
+	KeyF34
+	KeyF35
+	KeyF36
+	KeyF37
+	KeyF38
+	KeyF39
+	KeyF40
+	KeyF41
+	KeyF42
+	KeyF43
+	KeyF44
+	KeyF45
+	KeyF46
+	KeyF47
+	KeyF48
+	KeyF49
+	KeyF50
+	KeyF51
+	KeyF52
+	KeyF53
+	KeyF54
+	KeyF55
+	KeyF56
+	KeyF57
+	KeyF58
+	KeyF59
+	KeyF60
+	KeyF61
+	KeyF62
+	KeyF63
 )
 
 // KeyEvent is a keyboard key event.
@@ -182,4 +225,47 @@ var keySymString = map[KeySym]string{
 	KeyF18:       "f18",
 	KeyF19:       "f19",
 	KeyF20:       "f20",
+	KeyF21:       "f21",
+	KeyF22:       "f22",
+	KeyF23:       "f23",
+	KeyF24:       "f24",
+	KeyF25:       "f25",
+	KeyF26:       "f26",
+	KeyF27:       "f27",
+	KeyF28:       "f28",
+	KeyF29:       "f29",
+	KeyF30:       "f30",
+	KeyF31:       "f31",
+	KeyF32:       "f32",
+	KeyF33:       "f33",
+	KeyF34:       "f34",
+	KeyF35:       "f35",
+	KeyF36:       "f36",
+	KeyF37:       "f37",
+	KeyF38:       "f38",
+	KeyF39:       "f39",
+	KeyF40:       "f40",
+	KeyF41:       "f41",
+	KeyF42:       "f42",
+	KeyF43:       "f43",
+	KeyF44:       "f44",
+	KeyF45:       "f45",
+	KeyF46:       "f46",
+	KeyF47:       "f47",
+	KeyF48:       "f48",
+	KeyF49:       "f49",
+	KeyF50:       "f50",
+	KeyF51:       "f51",
+	KeyF52:       "f52",
+	KeyF53:       "f53",
+	KeyF54:       "f54",
+	KeyF55:       "f55",
+	KeyF56:       "f56",
+	KeyF57:       "f57",
+	KeyF58:       "f58",
+	KeyF59:       "f59",
+	KeyF60:       "f60",
+	KeyF61:       "f61",
+	KeyF62:       "f62",
+	KeyF63:       "f63",
 }
