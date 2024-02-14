@@ -30,7 +30,7 @@ const (
 
 // driver represents a terminal ANSI input driver.
 type driver struct {
-	table map[string]input.Key
+	table map[string]input.KeyEvent
 	rd    *bufio.Reader
 	term  string
 	flags int
@@ -247,12 +247,11 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (n int, e input.Event, err 
 	n++
 	seq += string(p[i])
 
-	// Handle X10 mouse
 	if seq == "\x1b[M" && i+3 < len(p) {
-		btn := int(p[i+1] - 32)
-		x := int(p[i+2] - 32)
-		y := int(p[i+3] - 32)
-		return n + 3, input.MouseEvent{X: x, Y: y, Btn: input.Button(btn)}, nil
+		// Handle X10 mouse
+		return n + 3, parseX10MouseEvent(append([]byte(seq), p[i+1:i+3]...)), nil
+	} else if seq[2] == '<' && (seq[len(seq)-1] == 'm' || seq[len(seq)-1] == 'M') {
+		return n, parseSGRMouseEvent([]byte(seq)), nil
 	}
 
 	k, ok := d.table[seq]

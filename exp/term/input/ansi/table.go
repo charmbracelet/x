@@ -6,62 +6,62 @@ import (
 )
 
 func (d *driver) registerKeys(flags int) {
-	nul := input.Key{Rune: '@', Mod: input.Ctrl} // ctrl+@ or ctrl+space
+	nul := input.KeyEvent{Rune: '@', Mod: input.Ctrl} // ctrl+@ or ctrl+space
 	if flags&Fctrlsp != 0 {
 		if flags&Fspacesym != 0 {
 			nul.Rune = 0
-			nul.Sym = input.Space
+			nul.Sym = input.KeySpace
 		} else {
 			nul.Rune = ' '
 		}
 	}
 
-	tab := input.Key{Rune: 'i', Mod: input.Ctrl} // ctrl+i or tab
+	tab := input.KeyEvent{Rune: 'i', Mod: input.Ctrl} // ctrl+i or tab
 	if flags&Ftabsym != 0 {
 		tab.Rune = 0
 		tab.Mod = 0
-		tab.Sym = input.Tab
+		tab.Sym = input.KeyTab
 	}
 
-	enter := input.Key{Rune: 'm', Mod: input.Ctrl} // ctrl+m or enter
+	enter := input.KeyEvent{Rune: 'm', Mod: input.Ctrl} // ctrl+m or enter
 	if flags&Fentersym != 0 {
 		enter.Rune = 0
 		enter.Mod = 0
-		enter.Sym = input.Enter
+		enter.Sym = input.KeyEnter
 	}
 
-	esc := input.Key{Rune: '[', Mod: input.Ctrl} // ctrl+[ or escape
+	esc := input.KeyEvent{Rune: '[', Mod: input.Ctrl} // ctrl+[ or escape
 	if flags&Fescsym != 0 {
 		esc.Rune = 0
 		esc.Mod = 0
-		esc.Sym = input.Escape
+		esc.Sym = input.KeyEscape
 	}
 
-	sp := input.Key{Rune: ' '}
+	sp := input.KeyEvent{Rune: ' '}
 	if flags&Fspacesym != 0 {
 		sp.Rune = 0
-		sp.Sym = input.Space
+		sp.Sym = input.KeySpace
 	}
 
-	del := input.Key{Sym: input.Delete}
+	del := input.KeyEvent{Sym: input.KeyDelete}
 	if flags&Fdelbackspace != 0 {
-		del.Sym = input.Backspace
+		del.Sym = input.KeyBackspace
 	}
 
-	find := input.Key{Sym: input.Find}
+	find := input.KeyEvent{Sym: input.KeyFind}
 	if flags&Ffindhome != 0 {
-		find.Sym = input.Home
+		find.Sym = input.KeyHome
 	}
 
-	select_ := input.Key{Sym: input.Select}
+	select_ := input.KeyEvent{Sym: input.KeySelect}
 	if flags&Fselectend != 0 {
-		select_.Sym = input.End
+		select_.Sym = input.KeyEnd
 	}
 
 	// See: https://vt100.net/docs/vt100-ug/chapter3.html#S3.2
 	// See: https://vt100.net/docs/vt220-rm/chapter3.html
 	// See: https://vt100.net/docs/vt510-rm/chapter8.html
-	d.table = map[string]input.Key{
+	d.table = map[string]input.KeyEvent{
 		// C0 control characters
 		string(ansi.NUL): nul,
 		string(ansi.SOH): {Rune: 'a', Mod: input.Ctrl},
@@ -102,85 +102,85 @@ func (d *driver) registerKeys(flags int) {
 
 		// Special keys
 
-		"\x1b[Z": {Sym: input.Tab, Mod: input.Shift},
+		"\x1b[Z": {Sym: input.KeyTab, Mod: input.Shift},
 
 		"\x1b[1~": find,
-		"\x1b[2~": {Sym: input.Insert},
-		"\x1b[3~": {Sym: input.Delete},
+		"\x1b[2~": {Sym: input.KeyInsert},
+		"\x1b[3~": {Sym: input.KeyDelete},
 		"\x1b[4~": select_,
-		"\x1b[5~": {Sym: input.PgUp},
-		"\x1b[6~": {Sym: input.PgDown},
-		"\x1b[7~": {Sym: input.Home},
-		"\x1b[8~": {Sym: input.End},
+		"\x1b[5~": {Sym: input.KeyPgUp},
+		"\x1b[6~": {Sym: input.KeyPgDown},
+		"\x1b[7~": {Sym: input.KeyHome},
+		"\x1b[8~": {Sym: input.KeyEnd},
 
 		// Normal mode
-		"\x1b[A": {Sym: input.Up},
-		"\x1b[B": {Sym: input.Down},
-		"\x1b[C": {Sym: input.Right},
-		"\x1b[D": {Sym: input.Left},
-		"\x1b[E": {Sym: input.Begin},
-		"\x1b[F": {Sym: input.End},
-		"\x1b[H": {Sym: input.Home},
-		"\x1b[P": {Sym: input.F1},
-		"\x1b[Q": {Sym: input.F2},
-		"\x1b[R": {Sym: input.F3},
-		"\x1b[S": {Sym: input.F4},
+		"\x1b[A": {Sym: input.KeyUp},
+		"\x1b[B": {Sym: input.KeyDown},
+		"\x1b[C": {Sym: input.KeyRight},
+		"\x1b[D": {Sym: input.KeyLeft},
+		"\x1b[E": {Sym: input.KeyBegin},
+		"\x1b[F": {Sym: input.KeyEnd},
+		"\x1b[H": {Sym: input.KeyHome},
+		"\x1b[P": {Sym: input.KeyF1},
+		"\x1b[Q": {Sym: input.KeyF2},
+		"\x1b[R": {Sym: input.KeyF3},
+		"\x1b[S": {Sym: input.KeyF4},
 
 		// Application Cursor Key Mode (DECCKM)
-		"\x1bOA": {Sym: input.Up},
-		"\x1bOB": {Sym: input.Down},
-		"\x1bOC": {Sym: input.Right},
-		"\x1bOD": {Sym: input.Left},
-		"\x1bOE": {Sym: input.Begin},
-		"\x1bOF": {Sym: input.End},
-		"\x1bOH": {Sym: input.Home},
-		"\x1bOP": {Sym: input.F1},
-		"\x1bOQ": {Sym: input.F2},
-		"\x1bOR": {Sym: input.F3},
-		"\x1bOS": {Sym: input.F4},
+		"\x1bOA": {Sym: input.KeyUp},
+		"\x1bOB": {Sym: input.KeyDown},
+		"\x1bOC": {Sym: input.KeyRight},
+		"\x1bOD": {Sym: input.KeyLeft},
+		"\x1bOE": {Sym: input.KeyBegin},
+		"\x1bOF": {Sym: input.KeyEnd},
+		"\x1bOH": {Sym: input.KeyHome},
+		"\x1bOP": {Sym: input.KeyF1},
+		"\x1bOQ": {Sym: input.KeyF2},
+		"\x1bOR": {Sym: input.KeyF3},
+		"\x1bOS": {Sym: input.KeyF4},
 
 		// Keypad Application Mode (DECKPAM)
 
-		"\x1bOM": {Sym: input.KpEnter},
-		"\x1bOX": {Sym: input.KpEqual},
-		"\x1bOj": {Sym: input.KpMul},
-		"\x1bOk": {Sym: input.KpPlus},
-		"\x1bOl": {Sym: input.KpComma},
-		"\x1bOm": {Sym: input.KpMinus},
-		"\x1bOn": {Sym: input.KpPeriod},
-		"\x1bOo": {Sym: input.KpDiv},
-		"\x1bOp": {Sym: input.Kp0},
-		"\x1bOq": {Sym: input.Kp1},
-		"\x1bOr": {Sym: input.Kp2},
-		"\x1bOs": {Sym: input.Kp3},
-		"\x1bOt": {Sym: input.Kp4},
-		"\x1bOu": {Sym: input.Kp5},
-		"\x1bOv": {Sym: input.Kp6},
-		"\x1bOw": {Sym: input.Kp7},
-		"\x1bOx": {Sym: input.Kp8},
-		"\x1bOy": {Sym: input.Kp9},
+		"\x1bOM": {Sym: input.KeyKpEnter},
+		"\x1bOX": {Sym: input.KeyKpEqual},
+		"\x1bOj": {Sym: input.KeyKpMul},
+		"\x1bOk": {Sym: input.KeyKpPlus},
+		"\x1bOl": {Sym: input.KeyKpComma},
+		"\x1bOm": {Sym: input.KeyKpMinus},
+		"\x1bOn": {Sym: input.KeyKpPeriod},
+		"\x1bOo": {Sym: input.KeyKpDiv},
+		"\x1bOp": {Sym: input.KeyKp0},
+		"\x1bOq": {Sym: input.KeyKp1},
+		"\x1bOr": {Sym: input.KeyKp2},
+		"\x1bOs": {Sym: input.KeyKp3},
+		"\x1bOt": {Sym: input.KeyKp4},
+		"\x1bOu": {Sym: input.KeyKp5},
+		"\x1bOv": {Sym: input.KeyKp6},
+		"\x1bOw": {Sym: input.KeyKp7},
+		"\x1bOx": {Sym: input.KeyKp8},
+		"\x1bOy": {Sym: input.KeyKp9},
 
 		// Function keys
 
-		"\x1b[11~": {Sym: input.F1},
-		"\x1b[12~": {Sym: input.F2},
-		"\x1b[13~": {Sym: input.F3},
-		"\x1b[14~": {Sym: input.F4},
-		"\x1b[15~": {Sym: input.F5},
-		"\x1b[17~": {Sym: input.F6},
-		"\x1b[18~": {Sym: input.F7},
-		"\x1b[19~": {Sym: input.F8},
-		"\x1b[20~": {Sym: input.F9},
-		"\x1b[21~": {Sym: input.F10},
-		"\x1b[23~": {Sym: input.F11},
-		"\x1b[24~": {Sym: input.F12},
-		"\x1b[25~": {Sym: input.F13},
-		"\x1b[26~": {Sym: input.F14},
-		"\x1b[28~": {Sym: input.F15},
-		"\x1b[29~": {Sym: input.F16},
-		"\x1b[31~": {Sym: input.F17},
-		"\x1b[32~": {Sym: input.F18},
-		"\x1b[33~": {Sym: input.F19},
-		"\x1b[34~": {Sym: input.F20},
+		"\x1b[11~": {Sym: input.KeyF1},
+		"\x1b[12~": {Sym: input.KeyF2},
+		"\x1b[13~": {Sym: input.KeyF3},
+		"\x1b[14~": {Sym: input.KeyF4},
+		"\x1b[15~": {Sym: input.KeyF5},
+		"\x1b[17~": {Sym: input.KeyF6},
+		"\x1b[18~": {Sym: input.KeyF7},
+		"\x1b[19~": {Sym: input.KeyF8},
+		"\x1b[20~": {Sym: input.KeyF9},
+		"\x1b[21~": {Sym: input.KeyF10},
+		"\x1b[23~": {Sym: input.KeyF11},
+		"\x1b[24~": {Sym: input.KeyF12},
+		"\x1b[25~": {Sym: input.KeyF13},
+		"\x1b[26~": {Sym: input.KeyF14},
+		"\x1b[28~": {Sym: input.KeyF15},
+		"\x1b[29~": {Sym: input.KeyF16},
+		"\x1b[31~": {Sym: input.KeyF17},
+		"\x1b[32~": {Sym: input.KeyF18},
+		"\x1b[33~": {Sym: input.KeyF19},
+		"\x1b[34~": {Sym: input.KeyF20},
 	}
 }
