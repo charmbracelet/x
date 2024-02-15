@@ -289,7 +289,7 @@ func (d *driver) parseSs3(i int, p []byte, alt bool) (n int, e input.Event, err 
 	// Scan a GL character
 	// A GL character is a single byte in the range 0x21-0x7E
 	// See https://vt100.net/docs/vt220-rm/chapter2.html#S2.3.2
-	if p[i] < 0x21 || p[i] > 0x7E {
+	if i >= len(p) || p[i] < 0x21 || p[i] > 0x7E {
 		return n, nil, fmt.Errorf("%w: invalid SS3 sequence: %q", input.ErrUnknownEvent, p[i])
 	}
 	n++
@@ -316,9 +316,13 @@ func (d *driver) parseOsc(i int, p []byte, _ bool) (n int, e input.Event, err er
 
 	// Scan a OSC sequence
 	// An OSC sequence is terminated by a BEL, ESC, or ST character
-	for ; p[i] != ansi.BEL && p[i] != ansi.ESC && p[i] != ansi.ST; i++ {
+	for ; i < len(p) && p[i] != ansi.BEL && p[i] != ansi.ESC && p[i] != ansi.ST; i++ {
 		n++
 		seq += string(p[i])
+	}
+
+	if i >= len(p) {
+		return n, nil, fmt.Errorf("%w: invalid OSC sequence: %q", input.ErrUnknownEvent, seq[2:])
 	}
 	n++
 	seq += string(p[i])
