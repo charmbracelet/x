@@ -58,9 +58,14 @@ func (d *driver) registerKeys(flags int) {
 		sel.Sym = input.KeyEnd
 	}
 
+	// The following is a table of key sequences and their corresponding key
+	// events based on the VT100/VT200 terminal specs.
+	//
 	// See: https://vt100.net/docs/vt100-ug/chapter3.html#S3.2
 	// See: https://vt100.net/docs/vt220-rm/chapter3.html
-	// See: https://vt100.net/docs/vt510-rm/chapter8.html
+	//
+	// XXX: These keys may be overwritten by other options like XTerm or
+	// Terminfo.
 	d.table = map[string]input.KeyEvent{
 		// C0 control characters
 		string(ansi.NUL): nul,
@@ -183,6 +188,155 @@ func (d *driver) registerKeys(flags int) {
 		"\x1b[33~": {Sym: input.KeyF19},
 		"\x1b[34~": {Sym: input.KeyF20},
 	}
+
+	// CSI function keys
+	csiFuncKeys := map[string]input.KeyEvent{
+		"A": {Sym: input.KeyUp}, "B": {Sym: input.KeyDown},
+		"C": {Sym: input.KeyRight}, "D": {Sym: input.KeyLeft},
+		"E": {Sym: input.KeyBegin}, "F": {Sym: input.KeyEnd},
+		"H": {Sym: input.KeyHome}, "P": {Sym: input.KeyF1},
+		"Q": {Sym: input.KeyF2}, "R": {Sym: input.KeyF3},
+		"S": {Sym: input.KeyF4},
+	}
+
+	// CSI ~ sequence keys
+	csiTildeKeys := map[string]input.KeyEvent{
+		"1": find, "2": {Sym: input.KeyInsert},
+		"3": {Sym: input.KeyDelete}, "4": sel,
+		"5": {Sym: input.KeyPgUp}, "6": {Sym: input.KeyPgDown},
+		"7": {Sym: input.KeyHome}, "8": {Sym: input.KeyEnd},
+		// There are no 9 and 10 keys
+		"11": {Sym: input.KeyF1}, "12": {Sym: input.KeyF2},
+		"13": {Sym: input.KeyF3}, "14": {Sym: input.KeyF4},
+		"15": {Sym: input.KeyF5}, "17": {Sym: input.KeyF6},
+		"18": {Sym: input.KeyF7}, "19": {Sym: input.KeyF8},
+		"20": {Sym: input.KeyF9}, "21": {Sym: input.KeyF10},
+		"23": {Sym: input.KeyF11}, "24": {Sym: input.KeyF12},
+		"25": {Sym: input.KeyF13}, "26": {Sym: input.KeyF14},
+		"28": {Sym: input.KeyF15}, "29": {Sym: input.KeyF16},
+		"31": {Sym: input.KeyF17}, "32": {Sym: input.KeyF18},
+		"33": {Sym: input.KeyF19}, "34": {Sym: input.KeyF20},
+	}
+
+	if flags&Fxterm != 0 {
+		// XTerm modifiers
+		// These are offset by 1 to be compatible with our Mod type.
+		// See https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-PC-Style-Function-Keys
+		for _, m := range []input.Mod{
+			input.Shift,                                       // 1
+			input.Alt,                                         // 2
+			input.Shift | input.Alt,                           // 3
+			input.Ctrl,                                        // 4
+			input.Shift | input.Ctrl,                          // 5
+			input.Alt | input.Ctrl,                            // 6
+			input.Shift | input.Alt | input.Ctrl,              // 7
+			input.Meta,                                        // 8
+			input.Meta | input.Shift,                          // 9
+			input.Meta | input.Alt,                            // 10
+			input.Meta | input.Shift | input.Alt,              // 11
+			input.Meta | input.Ctrl,                           // 12
+			input.Meta | input.Shift | input.Ctrl,             // 13
+			input.Meta | input.Alt | input.Ctrl,               // 14
+			input.Meta | input.Shift | input.Alt | input.Ctrl, // 15
+		} {
+			// XTerm modifier offset +1
+			xtermMod := string('0' + byte(m+1))
+
+			//  CSI 1 ; <modifier> <func>
+			for k, v := range csiFuncKeys {
+				// Functions always have a leading 1 param
+				seq := "\x1b[1;" + xtermMod + k
+				key := v
+				key.Mod = m
+				d.table[seq] = key
+			}
+			//  CSI <number> ; <modifier> ~
+			for k, v := range csiTildeKeys {
+				seq := "\x1b[" + k + ";" + xtermMod + "~"
+				key := v
+				key.Mod = m
+				d.table[seq] = key
+			}
+		}
+	}
+
+	// URxvt keys
+	// See https://manpages.ubuntu.com/manpages/trusty/man7/urxvt.7.html#key%20codes
+	d.table["\x1b[a"] = input.KeyEvent{Sym: input.KeyUp, Mod: input.Shift}
+	d.table["\x1b[b"] = input.KeyEvent{Sym: input.KeyDown, Mod: input.Shift}
+	d.table["\x1b[c"] = input.KeyEvent{Sym: input.KeyRight, Mod: input.Shift}
+	d.table["\x1b[d"] = input.KeyEvent{Sym: input.KeyLeft, Mod: input.Shift}
+	d.table["\x1bOa"] = input.KeyEvent{Sym: input.KeyUp, Mod: input.Ctrl}
+	d.table["\x1bOb"] = input.KeyEvent{Sym: input.KeyDown, Mod: input.Ctrl}
+	d.table["\x1bOc"] = input.KeyEvent{Sym: input.KeyRight, Mod: input.Ctrl}
+	d.table["\x1bOd"] = input.KeyEvent{Sym: input.KeyLeft, Mod: input.Ctrl}
+	// TODO: invistigate if shift-ctrl arrow keys collide with DECCKM keys i.e.
+	// "\x1bOA", "\x1bOB", "\x1bOC", "\x1bOD"
+
+	// URxvt modifier CSI ~ keys
+	for k, v := range csiTildeKeys {
+		key := v
+		// Normal (no modifier) already defined part of VT100/VT200
+		// Shift modifier
+		key.Mod = input.Shift
+		d.table["\x1b["+k+"$"] = key
+		// Ctrl modifier
+		key.Mod = input.Ctrl
+		d.table["\x1b["+k+"^"] = key
+		// Shift-Ctrl modifier
+		key.Mod = input.Shift | input.Ctrl
+		d.table["\x1b["+k+"@"] = key
+	}
+
+	// URxvt F keys
+	// Note: Shift + F1-F10 generates F11-F20.
+	// This means Shift + F1 and Shift + F2 will generate F11 and F12, the same
+	// applies to Ctrl + Shift F1 & F2.
+	//
+	// P.S. Don't like this? Blame URxvt, configure your terminal to use
+	// different escapes like XTerm, or switch to a better terminal ¯\_(ツ)_/¯
+	//
+	// See https://manpages.ubuntu.com/manpages/trusty/man7/urxvt.7.html#key%20codes
+	d.table["\x1b[23$"] = input.KeyEvent{Sym: input.KeyF11, Mod: input.Shift}
+	d.table["\x1b[24$"] = input.KeyEvent{Sym: input.KeyF12, Mod: input.Shift}
+	d.table["\x1b[25$"] = input.KeyEvent{Sym: input.KeyF13, Mod: input.Shift}
+	d.table["\x1b[26$"] = input.KeyEvent{Sym: input.KeyF14, Mod: input.Shift}
+	d.table["\x1b[28$"] = input.KeyEvent{Sym: input.KeyF15, Mod: input.Shift}
+	d.table["\x1b[29$"] = input.KeyEvent{Sym: input.KeyF16, Mod: input.Shift}
+	d.table["\x1b[31$"] = input.KeyEvent{Sym: input.KeyF17, Mod: input.Shift}
+	d.table["\x1b[32$"] = input.KeyEvent{Sym: input.KeyF18, Mod: input.Shift}
+	d.table["\x1b[33$"] = input.KeyEvent{Sym: input.KeyF19, Mod: input.Shift}
+	d.table["\x1b[34$"] = input.KeyEvent{Sym: input.KeyF20, Mod: input.Shift}
+	d.table["\x1b[11^"] = input.KeyEvent{Sym: input.KeyF1, Mod: input.Ctrl}
+	d.table["\x1b[12^"] = input.KeyEvent{Sym: input.KeyF2, Mod: input.Ctrl}
+	d.table["\x1b[13^"] = input.KeyEvent{Sym: input.KeyF3, Mod: input.Ctrl}
+	d.table["\x1b[14^"] = input.KeyEvent{Sym: input.KeyF4, Mod: input.Ctrl}
+	d.table["\x1b[15^"] = input.KeyEvent{Sym: input.KeyF5, Mod: input.Ctrl}
+	d.table["\x1b[17^"] = input.KeyEvent{Sym: input.KeyF6, Mod: input.Ctrl}
+	d.table["\x1b[18^"] = input.KeyEvent{Sym: input.KeyF7, Mod: input.Ctrl}
+	d.table["\x1b[19^"] = input.KeyEvent{Sym: input.KeyF8, Mod: input.Ctrl}
+	d.table["\x1b[20^"] = input.KeyEvent{Sym: input.KeyF9, Mod: input.Ctrl}
+	d.table["\x1b[21^"] = input.KeyEvent{Sym: input.KeyF10, Mod: input.Ctrl}
+	d.table["\x1b[23^"] = input.KeyEvent{Sym: input.KeyF11, Mod: input.Ctrl}
+	d.table["\x1b[24^"] = input.KeyEvent{Sym: input.KeyF12, Mod: input.Ctrl}
+	d.table["\x1b[25^"] = input.KeyEvent{Sym: input.KeyF13, Mod: input.Ctrl}
+	d.table["\x1b[26^"] = input.KeyEvent{Sym: input.KeyF14, Mod: input.Ctrl}
+	d.table["\x1b[28^"] = input.KeyEvent{Sym: input.KeyF15, Mod: input.Ctrl}
+	d.table["\x1b[29^"] = input.KeyEvent{Sym: input.KeyF16, Mod: input.Ctrl}
+	d.table["\x1b[31^"] = input.KeyEvent{Sym: input.KeyF17, Mod: input.Ctrl}
+	d.table["\x1b[32^"] = input.KeyEvent{Sym: input.KeyF18, Mod: input.Ctrl}
+	d.table["\x1b[33^"] = input.KeyEvent{Sym: input.KeyF19, Mod: input.Ctrl}
+	d.table["\x1b[34^"] = input.KeyEvent{Sym: input.KeyF20, Mod: input.Ctrl}
+	d.table["\x1b[23@"] = input.KeyEvent{Sym: input.KeyF11, Mod: input.Shift | input.Ctrl}
+	d.table["\x1b[24@"] = input.KeyEvent{Sym: input.KeyF12, Mod: input.Shift | input.Ctrl}
+	d.table["\x1b[25@"] = input.KeyEvent{Sym: input.KeyF13, Mod: input.Shift | input.Ctrl}
+	d.table["\x1b[26@"] = input.KeyEvent{Sym: input.KeyF14, Mod: input.Shift | input.Ctrl}
+	d.table["\x1b[28@"] = input.KeyEvent{Sym: input.KeyF15, Mod: input.Shift | input.Ctrl}
+	d.table["\x1b[29@"] = input.KeyEvent{Sym: input.KeyF16, Mod: input.Shift | input.Ctrl}
+	d.table["\x1b[31@"] = input.KeyEvent{Sym: input.KeyF17, Mod: input.Shift | input.Ctrl}
+	d.table["\x1b[32@"] = input.KeyEvent{Sym: input.KeyF18, Mod: input.Shift | input.Ctrl}
+	d.table["\x1b[33@"] = input.KeyEvent{Sym: input.KeyF19, Mod: input.Shift | input.Ctrl}
+	d.table["\x1b[34@"] = input.KeyEvent{Sym: input.KeyF20, Mod: input.Shift | input.Ctrl}
 
 	// Register Alt + <key> combinations
 	for k, v := range d.table {

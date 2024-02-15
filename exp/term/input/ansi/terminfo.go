@@ -1,6 +1,7 @@
 package ansi
 
 import (
+	"log"
 	"strings"
 
 	"github.com/charmbracelet/x/exp/term/input"
@@ -13,26 +14,30 @@ func (d *driver) registerTerminfoKeys() {
 		return
 	}
 
-	tiTable := defaultTerminfoKeys()
+	log.Printf("Found terminfo database for %q: %#v\r\n", d.term, ti.Names)
+
+	tiTable := defaultTerminfoKeys(d.flags)
 
 	// Default keys
 	for name, seq := range ti.StringCapsShort() {
-		if !strings.HasPrefix(name, "k") {
+		if !strings.HasPrefix(name, "k") || len(seq) == 0 {
 			continue
 		}
 
 		if k, ok := tiTable[name]; ok {
+			log.Printf("registering terminfo key %q: %q as %q\r\n", seq, name, k)
 			d.table[string(seq)] = k
 		}
 	}
 
 	// Extended keys
 	for name, seq := range ti.ExtStringCapsShort() {
-		if !strings.HasPrefix(name, "k") {
+		if !strings.HasPrefix(name, "k") || len(seq) == 0 {
 			continue
 		}
 
 		if k, ok := tiTable[name]; ok {
+			log.Printf("registering terminfo key %q: %q as %q\r\n", seq, name, k)
 			d.table[string(seq)] = k
 		}
 	}
@@ -52,7 +57,7 @@ func (d *driver) registerTerminfoKeys() {
 //
 // See https://man7.org/linux/man-pages/man5/terminfo.5.html
 // See https://github.com/mirror/ncurses/blob/master/include/Caps-ncurses
-func defaultTerminfoKeys() map[string]input.KeyEvent {
+func defaultTerminfoKeys(flags int) map[string]input.KeyEvent {
 	keys := map[string]input.KeyEvent{
 		"kcuu1": {Sym: input.KeyUp},
 		"kUP":   {Sym: input.KeyUp, Mod: input.Shift},
@@ -214,5 +219,62 @@ func defaultTerminfoKeys() map[string]input.KeyEvent {
 		"kf62": {Sym: input.KeyF2, Mod: input.Shift | input.Alt},
 		"kf63": {Sym: input.KeyF3, Mod: input.Shift | input.Alt},
 	}
+
+	// Preserve F keys from F13 to F63 instead of using them for F-keys
+	// modifiers.
+	if flags&FFKeys != 0 {
+		keys["kf13"] = input.KeyEvent{Sym: input.KeyF13}
+		keys["kf14"] = input.KeyEvent{Sym: input.KeyF14}
+		keys["kf15"] = input.KeyEvent{Sym: input.KeyF15}
+		keys["kf16"] = input.KeyEvent{Sym: input.KeyF16}
+		keys["kf17"] = input.KeyEvent{Sym: input.KeyF17}
+		keys["kf18"] = input.KeyEvent{Sym: input.KeyF18}
+		keys["kf19"] = input.KeyEvent{Sym: input.KeyF19}
+		keys["kf20"] = input.KeyEvent{Sym: input.KeyF20}
+		keys["kf21"] = input.KeyEvent{Sym: input.KeyF21}
+		keys["kf22"] = input.KeyEvent{Sym: input.KeyF22}
+		keys["kf23"] = input.KeyEvent{Sym: input.KeyF23}
+		keys["kf24"] = input.KeyEvent{Sym: input.KeyF24}
+		keys["kf25"] = input.KeyEvent{Sym: input.KeyF25}
+		keys["kf26"] = input.KeyEvent{Sym: input.KeyF26}
+		keys["kf27"] = input.KeyEvent{Sym: input.KeyF27}
+		keys["kf28"] = input.KeyEvent{Sym: input.KeyF28}
+		keys["kf29"] = input.KeyEvent{Sym: input.KeyF29}
+		keys["kf30"] = input.KeyEvent{Sym: input.KeyF30}
+		keys["kf31"] = input.KeyEvent{Sym: input.KeyF31}
+		keys["kf32"] = input.KeyEvent{Sym: input.KeyF32}
+		keys["kf33"] = input.KeyEvent{Sym: input.KeyF33}
+		keys["kf34"] = input.KeyEvent{Sym: input.KeyF34}
+		keys["kf35"] = input.KeyEvent{Sym: input.KeyF35}
+		keys["kf36"] = input.KeyEvent{Sym: input.KeyF36}
+		keys["kf37"] = input.KeyEvent{Sym: input.KeyF37}
+		keys["kf38"] = input.KeyEvent{Sym: input.KeyF38}
+		keys["kf39"] = input.KeyEvent{Sym: input.KeyF39}
+		keys["kf40"] = input.KeyEvent{Sym: input.KeyF40}
+		keys["kf41"] = input.KeyEvent{Sym: input.KeyF41}
+		keys["kf42"] = input.KeyEvent{Sym: input.KeyF42}
+		keys["kf43"] = input.KeyEvent{Sym: input.KeyF43}
+		keys["kf44"] = input.KeyEvent{Sym: input.KeyF44}
+		keys["kf45"] = input.KeyEvent{Sym: input.KeyF45}
+		keys["kf46"] = input.KeyEvent{Sym: input.KeyF46}
+		keys["kf47"] = input.KeyEvent{Sym: input.KeyF47}
+		keys["kf48"] = input.KeyEvent{Sym: input.KeyF48}
+		keys["kf49"] = input.KeyEvent{Sym: input.KeyF49}
+		keys["kf50"] = input.KeyEvent{Sym: input.KeyF50}
+		keys["kf51"] = input.KeyEvent{Sym: input.KeyF51}
+		keys["kf52"] = input.KeyEvent{Sym: input.KeyF52}
+		keys["kf53"] = input.KeyEvent{Sym: input.KeyF53}
+		keys["kf54"] = input.KeyEvent{Sym: input.KeyF54}
+		keys["kf55"] = input.KeyEvent{Sym: input.KeyF55}
+		keys["kf56"] = input.KeyEvent{Sym: input.KeyF56}
+		keys["kf57"] = input.KeyEvent{Sym: input.KeyF57}
+		keys["kf58"] = input.KeyEvent{Sym: input.KeyF58}
+		keys["kf59"] = input.KeyEvent{Sym: input.KeyF59}
+		keys["kf60"] = input.KeyEvent{Sym: input.KeyF60}
+		keys["kf61"] = input.KeyEvent{Sym: input.KeyF61}
+		keys["kf62"] = input.KeyEvent{Sym: input.KeyF62}
+		keys["kf63"] = input.KeyEvent{Sym: input.KeyF63}
+	}
+
 	return keys
 }
