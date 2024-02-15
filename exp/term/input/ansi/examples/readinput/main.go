@@ -20,7 +20,7 @@ func main() {
 	defer term.Restore(os.Stdin.Fd(), state)
 
 	// r := bufio.NewReader(strings.NewReader("\x00\x1ba\x1b[Z\x1b\x01\x1b[A"))
-	rd := ansi.NewDriver(bufio.NewReaderSize(os.Stdin, 256), os.Getenv("TERM"), ansi.Stdflags)
+	rd := ansi.NewDriver(bufio.NewReaderSize(os.Stdin, 256), os.Getenv("TERM"), 0)
 
 	// p, err := d.PeekInput(2)
 	// if err != nil {

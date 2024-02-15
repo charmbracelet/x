@@ -4,32 +4,93 @@ import (
 	"bufio"
 	"fmt"
 	"io"
-	"os"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/charmbracelet/x/exp/term/input"
 )
 
-// ErrUnsupportedReader is returned when the reader is not a *bufio.Reader.
-var ErrUnsupportedReader = fmt.Errorf("unsupported reader")
-
 // Flags to control the behavior of the driver.
 const (
-	Fctrlsp       = 1 << iota // treat NUL as ctrl+space, otherwise ctrl+@
-	Ftabsym                   // treat tab as a symbol
-	Fentersym                 // treat enter as a symbol
-	Fescsym                   // treat escape as a symbol
-	Fspacesym                 // treat space as a symbol
-	Fdelbackspace             // treat DEL as a symbol
-	Ffindhome                 // treat find symbol as home
-	Fselectend                // treat select symbol as end
+	// When this flag is set, the driver will treat both Ctrl+Space and Ctrl+@
+	// as the same key sequence.
+	//
+	// Historically, the ANSI specs generate NUL (0x00) on both the Ctrl+Space
+	// and Ctrl+@ key sequences. This flag allows the driver to treat both as
+	// the same key sequence.
+	FlagCtrlAt = 1 << iota
 
-	Fxterm    // register xterm keys
-	Fterminfo // use terminfo
-	FFKeys    // preserve function keys
+	// When this flag is set, the driver will treat the Tab key and Ctrl+I as
+	// the same key sequence.
+	//
+	// Historically, the ANSI specs generate HT (0x09) on both the Tab key and
+	// Ctrl+I. This flag allows the driver to treat both as the same key
+	// sequence.
+	FlagCtrlI
 
-	Stdflags = Ftabsym | Fentersym | Fescsym | Fspacesym | Fdelbackspace | Ffindhome | Fselectend | Fterminfo | Fxterm
+	// When this flag is set, the driver will treat the Enter key and Ctrl+M as
+	// the same key sequence.
+	//
+	// Historically, the ANSI specs generate CR (0x0D) on both the Enter key
+	// and Ctrl+M. This flag allows the driver to treat both as the same key
+	FlagCtrlM
+
+	// When this flag is set, the driver will treat Escape and Ctrl+[ as
+	// the same key sequence.
+	//
+	// Historically, the ANSI specs generate ESC (0x1B) on both the Escape key
+	// and Ctrl+[. This flag allows the driver to treat both as the same key
+	// sequence.
+	FlagCtrlOpenBracket
+
+	// When this flag is set, the driver will treat space as a key rune instead
+	// of a key symbol.
+	FlagSpace
+
+	// When this flag is set, the driver will send a BS (0x08 byte) character
+	// instead of a DEL (0x7F byte) character when the Backspace key is
+	// pressed.
+	//
+	// The VT100 terminal has both a Backspace and a Delete key. The VT220
+	// terminal dropped the Backspace key and replaced it with the Delete key.
+	// Both terminals send a DEL character when the Delete key is pressed.
+	// Modern terminals and PCs later readded the Delete key but used a
+	// different key sequence, and the Backspace key was standardized to send a
+	// DEL character.
+	FlagBackspace
+
+	// When this flag is set, the driver will recognize the Find key instead of
+	// treating it as a Home key.
+	//
+	// The Find key was part of the VT220 keyboard, and is no longer used in
+	// modern day PCs.
+	FlagFind
+
+	// When this flag is set, the driver will recognize the Select key instead
+	// of treating it as a End key.
+	//
+	// The Symbol key was part of the VT220 keyboard, and is no longer used in
+	// modern day PCs.
+	FlagSelect
+
+	// When this flag is set, the driver won't register XTerm key sequences.
+	//
+	// Most modern terminals are compatible with XTerm, so this flag is
+	// generally not needed.
+	FlagNoXTerm
+
+	// When this flag is set, the driver won't use Terminfo databases to
+	// overwrite the default key sequences.
+	FlagNoTerminfo
+
+	// When this flag is set, the driver will preserve function keys (F13-F63)
+	// as symbols.
+	//
+	// Since these keys are not part of today's standard 20th century keyboard,
+	// we treat them as F1-F12 modifier keys i.e. ctrl/shift/alt + Fn combos.
+	// Key definitions come from Terminfo, this flag is only useful when
+	// FlagTerminfo is not set.
+	FlagFKeys
 )
 
 // driver represents a terminal ANSI input driver.
@@ -47,12 +108,6 @@ var _ input.Driver = &driver{}
 // and XTerm. It supports reading Terminfo databases to overwrite the default
 // key sequences.
 func NewDriver(r io.Reader, term string, flags int) input.Driver {
-	if r == nil {
-		r = os.Stdin
-	}
-	if term == "" {
-		term = os.Getenv("TERM")
-	}
 	d := &driver{
 		rd:    bufio.NewReaderSize(r, 256),
 		flags: flags,
