@@ -6,56 +6,47 @@ import (
 )
 
 func (d *driver) registerKeys(flags int) {
-	nul := input.KeyEvent{Rune: '@', Mod: input.Ctrl} // ctrl+@ or ctrl+space
-	if flags&Fctrlsp != 0 {
-		if flags&Fspacesym != 0 {
-			nul.Rune = 0
-			nul.Sym = input.KeySpace
-		} else {
-			nul.Rune = ' '
-		}
+	nul := input.KeyEvent{Sym: input.KeySpace, Mod: input.Ctrl} // ctrl+@ or ctrl+space
+	if flags&FlagSpace != 0 {
+		nul = input.KeyEvent{Rune: ' ', Mod: input.Ctrl}
+	}
+	if flags&FlagCtrlAt != 0 {
+		nul = input.KeyEvent{Rune: '@', Mod: input.Ctrl}
 	}
 
-	tab := input.KeyEvent{Rune: 'i', Mod: input.Ctrl} // ctrl+i or tab
-	if flags&Ftabsym != 0 {
-		tab.Rune = 0
-		tab.Mod = 0
-		tab.Sym = input.KeyTab
+	tab := input.KeyEvent{Sym: input.KeyTab} // ctrl+i or tab
+	if flags&FlagCtrlI != 0 {
+		tab = input.KeyEvent{Rune: 'i', Mod: input.Ctrl}
 	}
 
-	enter := input.KeyEvent{Rune: 'm', Mod: input.Ctrl} // ctrl+m or enter
-	if flags&Fentersym != 0 {
-		enter.Rune = 0
-		enter.Mod = 0
-		enter.Sym = input.KeyEnter
+	enter := input.KeyEvent{Sym: input.KeyEnter} // ctrl+m or enter
+	if flags&FlagCtrlM != 0 {
+		enter = input.KeyEvent{Rune: 'm', Mod: input.Ctrl}
 	}
 
-	esc := input.KeyEvent{Rune: '[', Mod: input.Ctrl} // ctrl+[ or escape
-	if flags&Fescsym != 0 {
-		esc.Rune = 0
-		esc.Mod = 0
-		esc.Sym = input.KeyEscape
+	esc := input.KeyEvent{Sym: input.KeyEscape} // ctrl+[ or escape
+	if flags&FlagCtrlOpenBracket != 0 {
+		esc = input.KeyEvent{Rune: '[', Mod: input.Ctrl} // ctrl+[ or escape
 	}
 
-	sp := input.KeyEvent{Rune: ' '}
-	if flags&Fspacesym != 0 {
-		sp.Rune = 0
-		sp.Sym = input.KeySpace
+	sp := input.KeyEvent{Sym: input.KeySpace}
+	if flags&FlagSpace != 0 {
+		sp = input.KeyEvent{Rune: ' '}
 	}
 
-	del := input.KeyEvent{Sym: input.KeyDelete}
-	if flags&Fdelbackspace != 0 {
-		del.Sym = input.KeyBackspace
+	del := input.KeyEvent{Sym: input.KeyBackspace}
+	if flags&FlagBackspace != 0 {
+		del.Sym = input.KeyDelete
 	}
 
-	find := input.KeyEvent{Sym: input.KeyFind}
-	if flags&Ffindhome != 0 {
-		find.Sym = input.KeyHome
+	find := input.KeyEvent{Sym: input.KeyHome}
+	if flags&FlagFind != 0 {
+		find.Sym = input.KeyFind
 	}
 
-	sel := input.KeyEvent{Sym: input.KeySelect}
-	if flags&Fselectend != 0 {
-		sel.Sym = input.KeyEnd
+	sel := input.KeyEvent{Sym: input.KeyEnd}
+	if flags&FlagSelect != 0 {
+		sel.Sym = input.KeySelect
 	}
 
 	// The following is a table of key sequences and their corresponding key
@@ -218,7 +209,7 @@ func (d *driver) registerKeys(flags int) {
 		"33": {Sym: input.KeyF19}, "34": {Sym: input.KeyF20},
 	}
 
-	if flags&Fxterm != 0 {
+	if flags&FlagNoXTerm == 0 {
 		// XTerm modifiers
 		// These are offset by 1 to be compatible with our Mod type.
 		// See https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-PC-Style-Function-Keys
@@ -345,5 +336,7 @@ func (d *driver) registerKeys(flags int) {
 	}
 
 	// Register terminfo keys
-	d.registerTerminfoKeys()
+	if flags&FlagNoTerminfo == 0 {
+		d.registerTerminfoKeys()
+	}
 }

@@ -9,12 +9,14 @@ import (
 )
 
 func (d *driver) registerTerminfoKeys() {
+	if d.term == "" {
+		return
+	}
+
 	ti, _ := terminfo.Load(d.term)
 	if ti == nil {
 		return
 	}
-
-	log.Printf("Found terminfo database for %q: %#v\r\n", d.term, ti.Names)
 
 	tiTable := defaultTerminfoKeys(d.flags)
 
@@ -222,7 +224,7 @@ func defaultTerminfoKeys(flags int) map[string]input.KeyEvent {
 
 	// Preserve F keys from F13 to F63 instead of using them for F-keys
 	// modifiers.
-	if flags&FFKeys != 0 {
+	if flags&FlagFKeys != 0 {
 		keys["kf13"] = input.KeyEvent{Sym: input.KeyF13}
 		keys["kf14"] = input.KeyEvent{Sym: input.KeyF14}
 		keys["kf15"] = input.KeyEvent{Sym: input.KeyF15}
