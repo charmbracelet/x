@@ -25,9 +25,11 @@ const (
 	Ffindhome                 // treat find symbol as home
 	Fselectend                // treat select symbol as end
 
+	Fxterm    // register xterm keys
 	Fterminfo // use terminfo
+	FFKeys    // preserve function keys
 
-	Stdflags = Ftabsym | Fentersym | Fescsym | Fspacesym | Fdelbackspace | Ffindhome | Fselectend | Fterminfo
+	Stdflags = Ftabsym | Fentersym | Fescsym | Fspacesym | Fdelbackspace | Ffindhome | Fselectend | Fterminfo | Fxterm
 )
 
 // driver represents a terminal ANSI input driver.
@@ -41,7 +43,9 @@ type driver struct {
 var _ input.Driver = &driver{}
 
 // NewDriver returns a new ANSI input driver.
-// This driver uses ANSI control codes compatible with VT100/VT200 terminals.
+// This driver uses ANSI control codes compatible with VT100/VT200 terminals,
+// and XTerm. It supports reading Terminfo databases to overwrite the default
+// key sequences.
 func NewDriver(r io.Reader, term string, flags int) input.Driver {
 	if r == nil {
 		r = os.Stdin
@@ -238,17 +242,17 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (n int, e input.Event, err 
 	seq := "\x1b["
 
 	// Scan parameter bytes in the range 0x30-0x3F
-	for ; p[i] >= 0x30 && p[i] <= 0x3F; i++ {
+	for ; i < len(p) && p[i] >= 0x30 && p[i] <= 0x3F; i++ {
 		n++
 		seq += string(p[i])
 	}
 	// Scan intermediate bytes in the range 0x20-0x2F
-	for ; p[i] >= 0x20 && p[i] <= 0x2F; i++ {
+	for ; i < len(p) && p[i] >= 0x20 && p[i] <= 0x2F; i++ {
 		n++
 		seq += string(p[i])
 	}
 	// Scan final byte in the range 0x40-0x7E
-	if p[i] < 0x40 || p[i] > 0x7E {
+	if i >= len(p) || p[i] < 0x40 || p[i] > 0x7E {
 		return n, nil, fmt.Errorf("%w: invalid CSI sequence: %q", input.ErrUnknownEvent, seq[2:])
 	}
 	n++
