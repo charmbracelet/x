@@ -1,7 +1,6 @@
 package ansi
 
 import (
-	"log"
 	"strings"
 
 	"github.com/charmbracelet/x/exp/term/input"
@@ -27,7 +26,6 @@ func (d *driver) registerTerminfoKeys() {
 		}
 
 		if k, ok := tiTable[name]; ok {
-			log.Printf("registering terminfo key %q: %q as %q\r\n", seq, name, k)
 			d.table[string(seq)] = k
 		}
 	}
@@ -39,7 +37,6 @@ func (d *driver) registerTerminfoKeys() {
 		}
 
 		if k, ok := tiTable[name]; ok {
-			log.Printf("registering terminfo key %q: %q as %q\r\n", seq, name, k)
 			d.table[string(seq)] = k
 		}
 	}
