@@ -10,6 +10,7 @@ import (
 
 	"github.com/charmbracelet/x/exp/term"
 	"github.com/charmbracelet/x/exp/term/ansi/kitty"
+	"github.com/charmbracelet/x/exp/term/ansi/mode"
 	"github.com/charmbracelet/x/exp/term/ansi/sys"
 	"github.com/charmbracelet/x/exp/term/input"
 	"github.com/charmbracelet/x/exp/term/input/ansi"
@@ -23,6 +24,7 @@ func main() {
 
 	defer term.Restore(os.Stdin.Fd(), state)
 	defer io.WriteString(os.Stdout, "\x1b[>0u") // Disable Kitty keyboard
+	defer disableMouse()
 
 	var in io.Reader = os.Stdin
 	if !term.IsTerminal(os.Stdin.Fd()) {
@@ -37,7 +39,15 @@ func main() {
 
 	printHelp()
 
-	var kittyFlags int
+	var (
+		kittyFlags int
+
+		mouse       bool
+		mouseHilite bool
+		mouseCell   bool
+		mouseAll    bool
+		mouseExt    bool
+	)
 	last := input.Event(nil)
 OUT:
 	for {
@@ -119,6 +129,46 @@ OUT:
 						// DA1 (Primary Device Attributes)
 						execute("\x1b[c")
 					}
+				case prev.Rune == 'm':
+					switch cur.Rune {
+					case '0':
+						disableMouse()
+					case '1':
+						if mouse {
+							execute(mode.DisableMouseTracking)
+						} else {
+							execute(mode.EnableMouseTracking)
+						}
+						mouse = !mouse
+					case '2':
+						if mouseHilite {
+							execute(mode.DisableHiliteMouseTracking)
+						} else {
+							execute(mode.EnableHiliteMouseTracking)
+						}
+						mouseHilite = !mouseHilite
+					case '3':
+						if mouseCell {
+							execute(mode.DisableCellMotionMouseTracking)
+						} else {
+							execute(mode.EnableCellMotionMouseTracking)
+						}
+						mouseCell = !mouseCell
+					case '4':
+						if mouseAll {
+							execute(mode.DisableAllMouseTracking)
+						} else {
+							execute(mode.EnableAllMouseTracking)
+						}
+						mouseAll = !mouseAll
+					case '5':
+						if mouseExt {
+							execute(mode.DisableSgrMouseExt)
+						} else {
+							execute(mode.EnableSgrMouseExt)
+						}
+						mouseExt = !mouseExt
+					}
 				}
 			}
 		}
@@ -141,6 +191,14 @@ func execute(s string) {
 	io.WriteString(os.Stdout, s) // nolint: errcheck
 }
 
+func disableMouse() {
+	execute(mode.DisableSgrMouseExt)
+	execute(mode.DisableAllMouseTracking)
+	execute(mode.DisableCellMotionMouseTracking)
+	execute(mode.DisableHiliteMouseTracking)
+	execute(mode.DisableMouseTracking)
+}
+
 func printHelp() {
 	fmt.Fprintf(os.Stdout, "Welcome to input demo!\r\n\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'qq' to quit.\r\n")
@@ -152,6 +210,14 @@ func printHelp() {
 	fmt.Fprintf(os.Stdout, "  4: ReportAllKeys\r\n")
 	fmt.Fprintf(os.Stdout, "  5: ReportAssociatedKeys\r\n")
 	fmt.Fprintf(os.Stdout, "  0: Disable all flags\r\n")
+	fmt.Fprintf(os.Stdout, "\r\n")
+	fmt.Fprintf(os.Stdout, "Press 'm' followed by a number to toggle mouse events.\r\n")
+	fmt.Fprintf(os.Stdout, "  0: Disable all mouse events\r\n")
+	fmt.Fprintf(os.Stdout, "  1: Enable mouse events\r\n")
+	fmt.Fprintf(os.Stdout, "  2: Enable mouse events with highlighting\r\n")
+	fmt.Fprintf(os.Stdout, "  3: Enable mouse events with cell motion\r\n")
+	fmt.Fprintf(os.Stdout, "  4: Enable all mouse events\r\n")
+	fmt.Fprintf(os.Stdout, "  5: Enable extended mouse events (SGR)\r\n")
 	fmt.Fprintf(os.Stdout, "\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'r' followed by a letter to request a terminal capability.\r\n")
 	fmt.Fprintf(os.Stdout, "  k: Kitty keyboard protocol flags\r\n")
