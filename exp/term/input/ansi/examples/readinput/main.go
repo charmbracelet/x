@@ -1,12 +1,16 @@
 package main
 
 import (
-	"bufio"
+	"bytes"
 	"errors"
+	"fmt"
+	"io"
 	"log"
 	"os"
 
 	"github.com/charmbracelet/x/exp/term"
+	"github.com/charmbracelet/x/exp/term/ansi/kitty"
+	"github.com/charmbracelet/x/exp/term/ansi/sys"
 	"github.com/charmbracelet/x/exp/term/input"
 	"github.com/charmbracelet/x/exp/term/input/ansi"
 )
@@ -18,25 +22,24 @@ func main() {
 	}
 
 	defer term.Restore(os.Stdin.Fd(), state)
+	defer io.WriteString(os.Stdout, "\x1b[>0u") // Disable Kitty keyboard
 
-	// r := bufio.NewReader(strings.NewReader("\x00\x1ba\x1b[Z\x1b\x01\x1b[A"))
-	rd := ansi.NewDriver(bufio.NewReaderSize(os.Stdin, 256), os.Getenv("TERM"), 0)
+	var in io.Reader = os.Stdin
+	if !term.IsTerminal(os.Stdin.Fd()) {
+		bts, err := io.ReadAll(os.Stdin)
+		if err != nil {
+			log.Fatalf("error reading from stdin: %v\r\n", err)
+		}
 
-	// p, err := d.PeekInput(2)
-	// if err != nil {
-	// 	log.Fatalf("error peeking input: %v\r\n", err)
-	// }
-	//
-	// for _, e := range p {
-	// 	log.Printf("event: %s (len: %d)\r\n\r\n", e, len(p))
-	// }
+		in = bytes.NewReader(bts)
+	}
+	rd := ansi.NewDriver(in, os.Getenv("TERM"), 0)
 
-	// go func() {
-	// 	time.Sleep(2 * time.Second)
-	// 	io.WriteString(os.Stdout, "\x1b[?u\x1b[c\x1b]11;?\x07")
-	// }()
+	printHelp()
 
-	lastEv := input.Event(nil)
+	var kittyFlags int
+	last := input.Event(nil)
+OUT:
 	for {
 		n, err := rd.ReadInput()
 		if err != nil {
@@ -47,20 +50,114 @@ func main() {
 			log.Fatalf("error reading input: %v\r\n", err)
 		}
 
-		// Gracefully exit on 'qq'
-		if lastEv != nil {
-			k, ok1 := n[len(n)-1].(input.KeyEvent)
-			p, ok2 := lastEv.(input.KeyEvent)
-			if ok1 && ok2 && k.Rune == 'q' && p.Rune == 'q' {
-				break
+		if last != nil {
+			cur, ok1 := n[len(n)-1].(input.KeyEvent)
+			prev, ok2 := last.(input.KeyEvent)
+			if ok1 && ok2 && cur.Sym == 0 && prev.Sym == 0 && cur.Action == 0 && prev.Action == 0 {
+				switch {
+				case prev.Rune == 'q' && cur.Rune == 'q':
+					break OUT
+				case prev.Rune == 'h' && cur.Rune == 'h':
+					printHelp()
+				case prev.Rune == 'k':
+					switch cur.Rune {
+					case '0':
+						kittyFlags = 0
+						execute(kitty.Disable(kittyFlags))
+					case '1':
+						if kittyFlags&kitty.DisambiguateEscapeCodes == 0 {
+							kittyFlags |= kitty.DisambiguateEscapeCodes
+							execute(kitty.Enable(kittyFlags))
+						} else {
+							kittyFlags &^= kitty.DisambiguateEscapeCodes
+							execute(kitty.Disable(kittyFlags))
+						}
+					case '2':
+						if kittyFlags&kitty.ReportEventTypes == 0 {
+							kittyFlags |= kitty.ReportEventTypes
+							execute(kitty.Enable(kittyFlags))
+						} else {
+							kittyFlags &^= kitty.ReportEventTypes
+							execute(kitty.Disable(kittyFlags))
+						}
+					case '3':
+						if kittyFlags&kitty.ReportAlternateKeys == 0 {
+							kittyFlags |= kitty.ReportAlternateKeys
+							execute(kitty.Enable(kittyFlags))
+						} else {
+							kittyFlags &^= kitty.ReportAlternateKeys
+							execute(kitty.Disable(kittyFlags))
+						}
+					case '4':
+						if kittyFlags&kitty.ReportAllKeys == 0 {
+							kittyFlags |= kitty.ReportAllKeys
+							execute(kitty.Enable(kittyFlags))
+						} else {
+							kittyFlags &^= kitty.ReportAllKeys
+							execute(kitty.Disable(kittyFlags))
+						}
+					case '5':
+						if kittyFlags&kitty.ReportAssociatedKeys == 0 {
+							kittyFlags |= kitty.ReportAssociatedKeys
+							execute(kitty.Enable(kittyFlags))
+						} else {
+							kittyFlags &^= kitty.ReportAssociatedKeys
+							execute(kitty.Disable(kittyFlags))
+						}
+					}
+				case prev.Rune == 'r':
+					switch cur.Rune {
+					case 'k':
+						execute(kitty.Request)
+					case 'b':
+						execute(sys.RequestBackgroundColor)
+					case 'f':
+						execute(sys.RequestForegroundColor)
+					case 'c':
+						execute(sys.RequestCursorColor)
+					case 'd':
+						// DA1 (Primary Device Attributes)
+						execute("\x1b[c")
+					}
+				}
 			}
 		}
 
 		for _, e := range n {
-			log.Printf("event: %s (len: %d)\r\n\r\n", e, len(n))
+			log.Printf("event: %s\r\n\r\n", e)
 		}
+
+		// Store last keypress
 		if len(n) > 0 {
-			lastEv = n[len(n)-1]
+			key, ok := n[len(n)-1].(input.KeyEvent)
+			if ok && key.Action == 0 {
+				last = key
+			}
 		}
 	}
+}
+
+func execute(s string) {
+	io.WriteString(os.Stdout, s) // nolint: errcheck
+}
+
+func printHelp() {
+	fmt.Fprintf(os.Stdout, "Welcome to input demo!\r\n\r\n")
+	fmt.Fprintf(os.Stdout, "Press 'qq' to quit.\r\n")
+	fmt.Fprintf(os.Stdout, "Press 'hh' to print this help again.\r\n")
+	fmt.Fprintf(os.Stdout, "Press 'k' followed by a number to toggle Kitty keyboard protocol flags.\r\n")
+	fmt.Fprintf(os.Stdout, "  1: DisambiguateEscapeCodes\r\n")
+	fmt.Fprintf(os.Stdout, "  2: ReportEventTypes\r\n")
+	fmt.Fprintf(os.Stdout, "  3: ReportAlternateKeys\r\n")
+	fmt.Fprintf(os.Stdout, "  4: ReportAllKeys\r\n")
+	fmt.Fprintf(os.Stdout, "  5: ReportAssociatedKeys\r\n")
+	fmt.Fprintf(os.Stdout, "  0: Disable all flags\r\n")
+	fmt.Fprintf(os.Stdout, "\r\n")
+	fmt.Fprintf(os.Stdout, "Press 'r' followed by a letter to request a terminal capability.\r\n")
+	fmt.Fprintf(os.Stdout, "  k: Kitty keyboard protocol flags\r\n")
+	fmt.Fprintf(os.Stdout, "  b: Background color\r\n")
+	fmt.Fprintf(os.Stdout, "  f: Foreground color\r\n")
+	fmt.Fprintf(os.Stdout, "  c: Cursor color\r\n")
+	fmt.Fprintf(os.Stdout, "  d: Primary Device Attributes\r\n")
+	fmt.Fprintf(os.Stdout, "\r\n")
 }

@@ -313,11 +313,48 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (n int, e input.Event, err 
 	n++
 	seq += string(p[i])
 
-	if seq == "\x1b[M" && i+3 < len(p) {
+	csi := ansi.CsiSequence(seq)
+	initial := csi.Initial()
+	cmd := csi.Command()
+	switch {
+	case seq == "\x1b[M" && i+3 < len(p):
 		// Handle X10 mouse
 		return n + 3, parseX10MouseEvent(append([]byte(seq), p[i+1:i+3]...)), nil
-	} else if seq[2] == '<' && (seq[len(seq)-1] == 'm' || seq[len(seq)-1] == 'M') {
+	case initial == '<' && (cmd == 'm' || cmd == 'M'):
 		return n, parseSGRMouseEvent([]byte(seq)), nil
+	case initial == 0 && cmd == 'u':
+		// Kitty keyboard protocol
+		params := ansi.Params(csi.Params())
+		key := input.KeyEvent{}
+		if len(params) > 0 {
+			code := int(params[0][0])
+			if sym, ok := kittyKeyMap[code]; ok {
+				key.Sym = sym
+			} else {
+				key.Rune = rune(code)
+				// TODO: support alternate keys
+			}
+		}
+		if len(params) > 1 {
+			mod := int(params[1][0])
+			if mod > 1 {
+				key.Mod = fromKittyMod(int(params[1][0] - 1))
+			}
+			if len(params[1]) > 1 {
+				switch int(params[1][1]) {
+				case 0, 1:
+					key.Action = input.KeyPress
+				case 2:
+					key.Action = input.KeyRepeat
+				case 3:
+					key.Action = input.KeyRelease
+				}
+			}
+		}
+		if len(params) > 2 {
+			key.Rune = rune(params[2][0])
+		}
+		return n, key, nil
 	}
 
 	k, ok := d.table[seq]
