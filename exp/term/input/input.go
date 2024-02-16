@@ -29,3 +29,29 @@ type Driver interface {
 	// them.
 	PeekInput() ([]Event, error)
 }
+
+// UnknownEvent represents an unknown event.
+type UnknownEvent struct {
+	Any any
+}
+
+var _ Event = UnknownEvent{}
+
+// String implements Event.
+func (e UnknownEvent) String() string {
+	var s string
+	switch v := e.Any.(type) {
+	case string:
+		s = v
+	case fmt.Stringer:
+		s = v.String()
+	default:
+		s = fmt.Sprintf("%v", v)
+	}
+	return fmt.Sprintf("unknown event: %q", s)
+}
+
+// Type implements Event.
+func (UnknownEvent) Type() string {
+	return "Unknown"
+}
