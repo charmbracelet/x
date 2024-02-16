@@ -64,6 +64,10 @@ func (c CsiSequence) Initial() byte {
 		}
 	}
 
+	if i >= len(c) {
+		return 0
+	}
+
 	init := c[i]
 	if init < 0x3C || init > 0x3F {
 		return 0
