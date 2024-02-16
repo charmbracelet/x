@@ -167,14 +167,7 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 		return len(p), []input.Event{k}, nil
 	}
 
-	peekedBytes := 0
 	i := 0 // index of the current byte
-
-	addEvent := func(n int, e input.Event) {
-		peekedBytes += n
-		i += n
-		ev = append(ev, e)
-	}
 
 	for i < len(p) {
 		var alt bool
@@ -185,7 +178,8 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 		case ansi.ESC:
 			if bufferedBytes == 1 {
 				// Special case for Esc
-				addEvent(1, d.table[esc])
+				i++
+				ev = append(ev, d.table[esc])
 				continue
 			}
 
@@ -194,64 +188,32 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 				break
 			}
 
-			i++ // we know there's at least one more byte
-			peekedBytes++
-			switch p[i] {
+			switch p[i+1] {
 			case 'O': // Esc-prefixed SS3
-				nb, e, err := d.parseSs3(i, p, alt)
-				if err != nil {
-					return peekedBytes, ev, err
-				}
-
-				addEvent(nb, e)
+				d.handleSeq(d.parseSs3, i, p, alt, &i, &ev)
 				continue
 			case 'P': // Esc-prefixed DCS
 			case '[': // Esc-prefixed CSI
-				nb, e, err := d.parseCsi(i, p, alt)
-				if err != nil {
-					return peekedBytes, ev, err
-				}
-
-				addEvent(nb, e)
+				d.handleSeq(d.parseCsi, i, p, alt, &i, &ev)
 				continue
 			case ']': // Esc-prefixed OSC
-				nb, e, err := d.parseOsc(i, p, alt)
-				if err != nil {
-					return peekedBytes, ev, err
-				}
-
-				addEvent(nb, e)
+				d.handleSeq(d.parseOsc, i, p, alt, &i, &ev)
 				continue
 			}
 
 			alt = true
-			b = p[i]
+			b = p[i+1]
 
 			goto begin
 		case ansi.SS3:
-			nb, e, err := d.parseSs3(i, p, alt)
-			if err != nil {
-				return peekedBytes, ev, err
-			}
-
-			addEvent(nb, e)
+			d.handleSeq(d.parseSs3, i, p, alt, &i, &ev)
 			continue
 		case ansi.DCS:
 		case ansi.CSI:
-			nb, e, err := d.parseCsi(i, p, alt)
-			if err != nil {
-				return peekedBytes, ev, err
-			}
-
-			addEvent(nb, e)
+			d.handleSeq(d.parseCsi, i, p, alt, &i, &ev)
 			continue
 		case ansi.OSC:
-			nb, e, err := d.parseOsc(i, p, alt)
-			if err != nil {
-				return peekedBytes, ev, err
-			}
-
-			addEvent(nb, e)
+			d.handleSeq(d.parseOsc, i, p, alt, &i, &ev)
 			continue
 		}
 
@@ -262,12 +224,13 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 			if alt {
 				k.Mod |= input.Alt
 			}
-			addEvent(nb, k)
+			i += nb
+			ev = append(ev, k)
 			continue
 		} else if utf8.RuneStart(b) { // Printable ASCII/UTF-8
 			nb := utf8ByteLen(b)
 			if nb == -1 || nb > bufferedBytes {
-				return peekedBytes, ev, fmt.Errorf("invalid UTF-8 sequence: %x", p)
+				return i, ev, fmt.Errorf("invalid UTF-8 sequence: %x", p)
 			}
 
 			r := rune(b)
@@ -280,48 +243,55 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 				k.Mod |= input.Alt
 			}
 
-			addEvent(nb, k)
+			i += nb
+			ev = append(ev, k)
 			continue
 		}
 	}
 
-	return peekedBytes, ev, nil
+	return i, ev, nil
 }
 
-func (d *driver) parseCsi(i int, p []byte, alt bool) (n int, e input.Event, err error) {
-	if p[i] == '[' {
-		n++
+func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
+	var seq string
+	if p[i] == ansi.CSI || p[i] == ansi.ESC {
+		seq += string(p[i])
+		i++
 	}
-
-	i++
-	seq := "\x1b["
+	if i < len(p) && p[i-1] == ansi.ESC && p[i] == '[' {
+		seq += string(p[i])
+		i++
+	}
 
 	// Scan parameter bytes in the range 0x30-0x3F
 	for ; i < len(p) && p[i] >= 0x30 && p[i] <= 0x3F; i++ {
-		n++
 		seq += string(p[i])
 	}
 	// Scan intermediate bytes in the range 0x20-0x2F
 	for ; i < len(p) && p[i] >= 0x20 && p[i] <= 0x2F; i++ {
-		n++
 		seq += string(p[i])
 	}
 	// Scan final byte in the range 0x40-0x7E
 	if i >= len(p) || p[i] < 0x40 || p[i] > 0x7E {
-		return n, nil, fmt.Errorf("%w: invalid CSI sequence: %q", input.ErrUnknownEvent, seq[2:])
+		if key, ok := d.table[seq]; ok {
+			if alt {
+				key.Mod |= input.Alt
+			}
+			return len(seq), key
+		}
+		return len(seq), input.UnknownEvent{string(seq)}
 	}
-	n++
-	seq += string(p[i])
 
+	seq += string(p[i])
 	csi := ansi.CsiSequence(seq)
 	initial := csi.Initial()
 	cmd := csi.Command()
 	switch {
 	case seq == "\x1b[M" && i+3 < len(p):
 		// Handle X10 mouse
-		return n + 3, parseX10MouseEvent(append([]byte(seq), p[i+1:i+3]...)), nil
+		return len(seq) + 3, parseX10MouseEvent(append([]byte(seq), p[i+1:i+3]...))
 	case initial == '<' && (cmd == 'm' || cmd == 'M'):
-		return n, parseSGRMouseEvent([]byte(seq)), nil
+		return len(seq), parseSGRMouseEvent([]byte(seq))
 	case initial == 0 && cmd == 'u':
 		// Kitty keyboard protocol
 		params := ansi.Params(csi.Params())
@@ -354,37 +324,42 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (n int, e input.Event, err 
 		if len(params) > 2 {
 			key.Rune = rune(params[2][0])
 		}
-		return n, key, nil
+		return len(seq), key
 	}
 
 	k, ok := d.table[seq]
 	if ok {
-		if alt {
-			k.Mod |= input.Alt
-		}
-		return n, k, nil
+		return len(seq), k
 	}
 
-	return n, csiSequence(seq), nil
+	return len(seq), csiSequence(seq)
 }
 
 // parseSs3 parses a SS3 sequence.
 // See https://vt100.net/docs/vt220-rm/chapter4.html#S4.4.4.2
-func (d *driver) parseSs3(i int, p []byte, alt bool) (n int, e input.Event, err error) {
-	if p[i] == 'O' {
-		n++
+func (d *driver) parseSs3(i int, p []byte, alt bool) (int, input.Event) {
+	var seq string
+	if p[i] == ansi.SS3 || p[i] == ansi.ESC {
+		seq += string(p[i])
+		i++
 	}
-
-	i++
-	seq := "\x1bO"
+	if i < len(p) && p[i-1] == ansi.ESC && p[i] == 'O' {
+		seq += string(p[i])
+		i++
+	}
 
 	// Scan a GL character
 	// A GL character is a single byte in the range 0x21-0x7E
 	// See https://vt100.net/docs/vt220-rm/chapter2.html#S2.3.2
 	if i >= len(p) || p[i] < 0x21 || p[i] > 0x7E {
-		return n, nil, fmt.Errorf("%w: invalid SS3 sequence: %q", input.ErrUnknownEvent, p[i])
+		if key, ok := d.table[seq]; ok {
+			if alt {
+				key.Mod |= input.Alt
+			}
+			return len(seq), key
+		}
+		return len(seq), input.UnknownEvent{string(seq)}
 	}
-	n++
 	seq += string(p[i])
 
 	k, ok := d.table[seq]
@@ -392,40 +367,51 @@ func (d *driver) parseSs3(i int, p []byte, alt bool) (n int, e input.Event, err 
 		if alt {
 			k.Mod |= input.Alt
 		}
-		return n, k, nil
+		return len(seq), k
 	}
 
-	return n, ss3Sequence(seq), nil
+	return len(seq), ss3Sequence(seq)
 }
 
-func (d *driver) parseOsc(i int, p []byte, _ bool) (n int, e input.Event, err error) {
-	if p[i] == ']' {
-		n++
-	}
+func (d *driver) handleSeq(
+	seqFn func(int, []byte, bool) (int, input.Event),
+	i int, p []byte, alt bool,
+	np *int, ne *[]input.Event,
+) {
+	n, e := seqFn(i, p, alt)
+	*np += n
+	*ne = append(*ne, e)
+}
 
-	i++
-	seq := "\x1b]"
+func (d *driver) parseOsc(i int, p []byte, _ bool) (int, input.Event) {
+	var seq string
+	if p[i] == ansi.OSC || p[i] == ansi.ESC {
+		seq += string(p[i])
+		i++
+	}
+	if i < len(p) && p[i-1] == ansi.ESC && p[i] == ']' {
+		seq += string(p[i])
+		i++
+	}
 
 	// Scan a OSC sequence
 	// An OSC sequence is terminated by a BEL, ESC, or ST character
 	for ; i < len(p) && p[i] != ansi.BEL && p[i] != ansi.ESC && p[i] != ansi.ST; i++ {
-		n++
 		seq += string(p[i])
 	}
 
 	if i >= len(p) {
-		return n, nil, fmt.Errorf("%w: invalid OSC sequence: %q", input.ErrUnknownEvent, seq[2:])
+		return len(seq), input.UnknownEvent{string(seq)}
 	}
-	n++
 	seq += string(p[i])
 
 	// Check 7-bit ST (string terminator) character
 	if len(p) > i+1 && p[i] == ansi.ESC && p[i+1] == '\\' {
-		seq += string(p[i+1])
-		n++
+		i++
+		seq += string(p[i])
 	}
 
-	return n, oscSequence(seq), nil
+	return len(seq), oscSequence(seq)
 }
 
 func utf8ByteLen(b byte) int {
