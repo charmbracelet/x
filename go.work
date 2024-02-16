@@ -3,6 +3,7 @@ go 1.21
 use (
 	./editor
 	./errors
+	./exp/golden
 	./exp/higherorder
 	./exp/ordered
 	./exp/slice
