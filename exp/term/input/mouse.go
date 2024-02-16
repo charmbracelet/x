@@ -1,5 +1,7 @@
 package input
 
+import "fmt"
+
 // MouseButton represents the button that was pressed during a mouse event.
 type MouseButton int
 
@@ -111,6 +113,7 @@ func (m MouseEvent) String() (s string) {
 			s += " " + act
 		}
 	}
+	s += fmt.Sprintf(" at (%d, %d)", m.X, m.Y)
 
 	return s
 }
