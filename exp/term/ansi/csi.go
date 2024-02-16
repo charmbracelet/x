@@ -48,7 +48,7 @@ func (c CsiSequence) IsValid() bool {
 // This indicater a private sequence.
 func (c CsiSequence) HasInitial() bool {
 	i := c.Initial()
-	return i != 0
+	return i >= 0x3C && i <= 0x3F
 }
 
 // Initial returns the initial byte of the control sequence.
@@ -57,14 +57,19 @@ func (c CsiSequence) Initial() byte {
 		return 0
 	}
 
-	i := strings.IndexFunc(string(c), func(r rune) bool {
-		return r >= 0x3C && r <= 0x3F
-	})
-	if i == -1 {
+	var i int
+	for i = 0; i < len(c); i++ {
+		if c[i] >= 0x30 && c[i] <= 0x3F {
+			break
+		}
+	}
+
+	init := c[i]
+	if init < 0x3C || init > 0x3F {
 		return 0
 	}
 
-	return c[i]
+	return init
 }
 
 // Params returns the parameters of the control sequence.
