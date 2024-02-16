@@ -17,15 +17,6 @@ import (
 )
 
 func main() {
-	state, err := term.MakeRaw(os.Stdin.Fd())
-	if err != nil {
-		log.Fatalf("error making raw: %v", err)
-	}
-
-	defer term.Restore(os.Stdin.Fd(), state)
-	defer io.WriteString(os.Stdout, "\x1b[>0u") // Disable Kitty keyboard
-	defer disableMouse()
-
 	var in io.Reader = os.Stdin
 	if !term.IsTerminal(os.Stdin.Fd()) {
 		bts, err := io.ReadAll(os.Stdin)
@@ -34,7 +25,18 @@ func main() {
 		}
 
 		in = bytes.NewReader(bts)
+	} else {
+		state, err := term.MakeRaw(os.Stdin.Fd())
+		if err != nil {
+			log.Fatalf("error making raw: %v", err)
+		}
+
+		defer term.Restore(os.Stdin.Fd(), state)
 	}
+
+	defer io.WriteString(os.Stdout, kitty.Disable(kitty.AllFlags)) // Disable Kitty keyboard
+	defer disableMouse()
+
 	rd := ansi.NewDriver(in, os.Getenv("TERM"), 0)
 
 	printHelp()
@@ -52,6 +54,9 @@ func main() {
 OUT:
 	for {
 		n, err := rd.ReadInput()
+		if err == io.EOF {
+			break
+		}
 		if err != nil {
 			if errors.Is(err, input.ErrUnknownEvent) {
 				log.Printf("%v\r\n", err)
