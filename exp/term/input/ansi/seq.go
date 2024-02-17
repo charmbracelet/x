@@ -6,44 +6,44 @@ import (
 	"github.com/charmbracelet/x/exp/term/input"
 )
 
-type csiSequence string
+type UnknownCsiEvent string
 
-var _ input.Event = csiSequence("")
+var _ input.Event = UnknownCsiEvent("")
 
 // String implements input.Event.
-func (s csiSequence) String() string {
-	return fmt.Sprintf("CSI sequence: %q", string(s))
+func (s UnknownCsiEvent) String() string {
+	return fmt.Sprintf("Unknown CSI sequence: %q", string(s))
 }
 
 // Type implements input.Event.
-func (s csiSequence) Type() string {
+func (s UnknownCsiEvent) Type() string {
 	return "CSI"
 }
 
-type ss3Sequence string
+type UnknownSs3Event string
 
-var _ input.Event = ss3Sequence("")
+var _ input.Event = UnknownSs3Event("")
 
 // String implements input.Event.
-func (s ss3Sequence) String() string {
-	return fmt.Sprintf("SS3 sequence: %q", string(s))
+func (s UnknownSs3Event) String() string {
+	return fmt.Sprintf("Unknown SS3 sequence: %q", string(s))
 }
 
 // Type implements input.Event.
-func (ss3Sequence) Type() string {
+func (UnknownSs3Event) Type() string {
 	return "SS3"
 }
 
-type oscSequence string
+type UnknownOscEvent string
 
-var _ input.Event = oscSequence("")
+var _ input.Event = UnknownOscEvent("")
 
 // String implements input.Event.
-func (s oscSequence) String() string {
-	return fmt.Sprintf("OSC sequence: %q", string(s))
+func (s UnknownOscEvent) String() string {
+	return fmt.Sprintf("Unknown OSC sequence: %q", string(s))
 }
 
 // Type implements input.Event.
-func (oscSequence) Type() string {
+func (UnknownOscEvent) Type() string {
 	return "OSC"
 }
