@@ -189,6 +189,11 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 			}
 
 			switch p[i+1] {
+			case ansi.ESC:
+				alt = true
+				b = p[i+1]
+				// Start over with the next byte
+				goto begin
 			case 'O': // Esc-prefixed SS3
 				d.handleSeq(d.parseSs3, i, p, alt, &i, &ev)
 				continue
@@ -200,11 +205,6 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 				d.handleSeq(d.parseOsc, i, p, alt, &i, &ev)
 				continue
 			}
-
-			alt = true
-			b = p[i+1]
-
-			goto begin
 		case ansi.SS3:
 			d.handleSeq(d.parseSs3, i, p, alt, &i, &ev)
 			continue
@@ -215,6 +215,8 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 		case ansi.OSC:
 			d.handleSeq(d.parseOsc, i, p, alt, &i, &ev)
 			continue
+		default:
+			// Unknown sequence
 		}
 
 		// Single byte control code or printable ASCII/UTF-8
@@ -250,6 +252,17 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 	}
 
 	return i, ev, nil
+}
+
+// helper function to handle adding events and the number of bytes consumed.
+func (d *driver) handleSeq(
+	seqFn func(int, []byte, bool) (int, input.Event),
+	i int, p []byte, alt bool,
+	np *int, ne *[]input.Event,
+) {
+	n, e := seqFn(i, p, alt)
+	*np += n
+	*ne = append(*ne, e)
 }
 
 func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
@@ -332,7 +345,7 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 		return len(seq), k
 	}
 
-	return len(seq), csiSequence(seq)
+	return len(seq), UnknownCsiEvent(seq)
 }
 
 // parseSs3 parses a SS3 sequence.
@@ -370,17 +383,7 @@ func (d *driver) parseSs3(i int, p []byte, alt bool) (int, input.Event) {
 		return len(seq), k
 	}
 
-	return len(seq), ss3Sequence(seq)
-}
-
-func (d *driver) handleSeq(
-	seqFn func(int, []byte, bool) (int, input.Event),
-	i int, p []byte, alt bool,
-	np *int, ne *[]input.Event,
-) {
-	n, e := seqFn(i, p, alt)
-	*np += n
-	*ne = append(*ne, e)
+	return len(seq), UnknownSs3Event(seq)
 }
 
 func (d *driver) parseOsc(i int, p []byte, _ bool) (int, input.Event) {
@@ -411,7 +414,17 @@ func (d *driver) parseOsc(i int, p []byte, _ bool) (int, input.Event) {
 		seq += string(p[i])
 	}
 
-	return len(seq), oscSequence(seq)
+	osc := ansi.OscSequence(seq)
+	switch osc.Identifier() {
+	case "10":
+		return len(seq), FgColorEvent{xParseColor(osc.Data())}
+	case "11":
+		return len(seq), BgColorEvent{xParseColor(osc.Data())}
+	case "12":
+		return len(seq), CursorColorEvent{xParseColor(osc.Data())}
+	}
+
+	return len(seq), UnknownOscEvent(seq)
 }
 
 func utf8ByteLen(b byte) int {
