@@ -44,6 +44,8 @@ func main() {
 	var (
 		kittyFlags int
 
+		paste bool
+
 		mouse       bool
 		mouseHilite bool
 		mouseCell   bool
@@ -66,16 +68,25 @@ OUT:
 		}
 
 		if last != nil {
-			cur, ok1 := n[len(n)-1].(input.KeyEvent)
-			prev, ok2 := last.(input.KeyEvent)
-			if ok1 && ok2 && cur.Sym == 0 && prev.Sym == 0 && cur.Action == 0 && prev.Action == 0 {
+			currKey, ok1 := n[len(n)-1].(input.KeyEvent)
+			prevKey, ok2 := last.(input.KeyEvent)
+			if ok1 && ok2 && currKey.Sym == 0 && prevKey.Sym == 0 && currKey.Action == 0 && prevKey.Action == 0 {
+				prev := string(prevKey.Runes)
+				curr := string(currKey.Runes)
 				switch {
-				case string(prev.Runes) == "q" && string(cur.Runes) == "q":
+				case prev == "q" && curr == "q":
 					break OUT
-				case string(prev.Runes) == "h" && string(cur.Runes) == "h":
+				case prev == "h" && curr == "h":
 					printHelp()
-				case string(prev.Runes) == "k":
-					switch string(cur.Runes) {
+				case prev == "p" && curr == "p":
+					if paste {
+						execute(mode.DisableBracketedPaste)
+					} else {
+						execute(mode.EnableBracketedPaste)
+					}
+					paste = !paste
+				case prev == "k":
+					switch curr {
 					case "0":
 						kittyFlags = 0
 						execute(kitty.Disable(kittyFlags))
@@ -120,8 +131,8 @@ OUT:
 							execute(kitty.Disable(kittyFlags))
 						}
 					}
-				case string(prev.Runes) == "r":
-					switch string(cur.Runes) {
+				case prev == "r":
+					switch curr {
 					case "k":
 						execute(kitty.Request)
 					case "b":
@@ -134,8 +145,8 @@ OUT:
 						// DA1 (Primary Device Attributes)
 						execute("\x1b[c")
 					}
-				case string(prev.Runes) == "m":
-					switch string(cur.Runes) {
+				case prev == "m":
+					switch string(currKey.Runes) {
 					case "0":
 						disableMouse()
 					case "1":
@@ -208,6 +219,7 @@ func printHelp() {
 	fmt.Fprintf(os.Stdout, "Welcome to input demo!\r\n\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'qq' to quit.\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'hh' to print this help again.\r\n")
+	fmt.Fprintf(os.Stdout, "Press 'pp' to toggle bracketed paste mode.\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'k' followed by a number to toggle Kitty keyboard protocol flags.\r\n")
 	fmt.Fprintf(os.Stdout, "  1: DisambiguateEscapeCodes\r\n")
 	fmt.Fprintf(os.Stdout, "  2: ReportEventTypes\r\n")

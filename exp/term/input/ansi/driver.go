@@ -97,6 +97,12 @@ type driver struct {
 	table map[string]input.KeyEvent
 	rd    *bufio.Reader
 	term  string
+
+	// paste is the bracketed paste mode buffer.
+	// When nil, bracketed paste mode is disabled.
+	paste []byte
+
+	// flags to control the behavior of the driver.
 	flags int
 }
 
@@ -175,7 +181,7 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 	begin:
 		switch b {
 		case ansi.ESC:
-			if bufferedBytes == 1 {
+			if len(p) == 1 {
 				// Special case for Esc
 				i++
 				ev = append(ev, d.table[esc])
@@ -224,8 +230,13 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 		case ansi.APC:
 			d.handleSeq(d.parseApc, i, p, alt, &i, &ev)
 			continue
-		default:
-			// Unknown sequence
+		}
+
+		if d.paste != nil {
+			// Handle bracketed-paste
+			d.paste = append(d.paste, b)
+			i++
+			continue
 		}
 
 		if b <= ansi.US || b == ansi.DEL || b == ansi.SP {
@@ -271,6 +282,43 @@ func (d *driver) handleSeq(
 ) {
 	n, e := seqFn(i, p, alt)
 	*np += n
+
+	switch e := e.(type) {
+	case UnknownCsiEvent:
+		initial := e.Initial()
+		switch e.Command() {
+		case '~':
+			if initial != 0 {
+				break
+			}
+
+			params := ansi.Params(e.Params())
+			if len(params) == 0 {
+				break
+			}
+
+			switch params[0][0] {
+			case 200:
+				// bracketed-paste start
+				d.paste = []byte{}
+				return
+			case 201:
+				// bracketed-paste end
+				var paste []rune
+				for len(d.paste) > 0 {
+					r, w := utf8.DecodeRune(d.paste)
+					if r != utf8.RuneError {
+						d.paste = d.paste[w:]
+					}
+					paste = append(paste, r)
+				}
+				*ne = append(*ne, PasteEvent(paste))
+				d.paste = nil
+				return
+			}
+		}
+	}
+
 	*ne = append(*ne, e)
 }
 
@@ -374,7 +422,7 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 		return len(seq), key
 	}
 
-	return len(seq), input.UnknownEvent(seq)
+	return len(seq), UnknownCsiEvent{csi}
 }
 
 // parseSs3 parses a SS3 sequence.
@@ -455,7 +503,7 @@ func (d *driver) parseOsc(i int, p []byte, _ bool) (int, input.Event) {
 		return len(seq), CursorColorEvent{xParseColor(osc.Data())}
 	}
 
-	return len(seq), input.UnknownEvent(seq)
+	return len(seq), UnknownOscEvent{osc}
 }
 
 // parseCtrl parses a control sequence that gets terminated by a ST character.
