@@ -241,6 +241,9 @@ func (k KeyEvent) String() string {
 			s += sym
 		}
 	}
+	if len(k.AltRunes) > 0 && string(k.Runes) != string(k.AltRunes) {
+		s += " [" + string(k.AltRunes) + "]"
+	}
 	switch k.Action {
 	case KeyRepeat:
 		s += " (repeat)"
