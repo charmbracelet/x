@@ -132,7 +132,7 @@ func (d *driver) ReadInput() ([]input.Event, error) {
 	return ne, nil
 }
 
-const esc = string(ansi.ESC)
+const esc = string(byte(ansi.ESC))
 
 // PeekInput implements input.Driver.
 func (d *driver) PeekInput() ([]input.Event, error) {
@@ -245,7 +245,7 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 			for rw := 0; i < len(p); i += rw {
 				var r rune
 				r, rw = utf8.DecodeRune(p[i:])
-				if r == utf8.RuneError {
+				if r == utf8.RuneError || r <= ansi.US || r == ansi.DEL || r == ansi.SP {
 					break
 				}
 				k.Runes = append(k.Runes, r)
