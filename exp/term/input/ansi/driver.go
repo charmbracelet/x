@@ -2,8 +2,8 @@ package ansi
 
 import (
 	"bufio"
-	"fmt"
 	"io"
+	"log"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
@@ -162,6 +162,8 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 		}
 	}
 
+	log.Printf("lookup: %q\r\n", string(p))
+
 	// Lookup table first
 	if k, ok := d.table[string(p)]; ok {
 		return len(p), []input.Event{k}, nil
@@ -189,11 +191,6 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 			}
 
 			switch p[i+1] {
-			case ansi.ESC:
-				alt = true
-				b = p[i+1]
-				// Start over with the next byte
-				goto begin
 			case 'O': // Esc-prefixed SS3
 				d.handleSeq(d.parseSs3, i, p, alt, &i, &ev)
 				continue
@@ -204,6 +201,12 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 			case ']': // Esc-prefixed OSC
 				d.handleSeq(d.parseOsc, i, p, alt, &i, &ev)
 				continue
+			default:
+				alt = true
+				b = p[i+1]
+				i++
+				// Start over with the next byte
+				goto begin
 			}
 		case ansi.SS3:
 			d.handleSeq(d.parseSs3, i, p, alt, &i, &ev)
@@ -219,8 +222,8 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 			// Unknown sequence
 		}
 
-		// Single byte control code or printable ASCII/UTF-8
 		if b <= ansi.US || b == ansi.DEL || b == ansi.SP {
+			// Single byte control code or printable ASCII/UTF-8
 			k := d.table[string(b)]
 			nb := 1
 			if alt {
@@ -229,23 +232,23 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 			i += nb
 			ev = append(ev, k)
 			continue
-		} else if utf8.RuneStart(b) { // Printable ASCII/UTF-8
-			nb := utf8ByteLen(b)
-			if nb == -1 || nb > bufferedBytes {
-				return i, ev, fmt.Errorf("invalid UTF-8 sequence: %x", p)
+		} else if utf8.RuneStart(b) {
+			// Collect UTF-8 sequences into a slice of runes.
+			// We need to do this for multi-rune emojis to work.
+			var k input.KeyEvent
+			for rw := 0; i < len(p); i += rw {
+				var r rune
+				r, rw = utf8.DecodeRune(p[i:])
+				if r == utf8.RuneError {
+					break
+				}
+				k.Runes = append(k.Runes, r)
 			}
 
-			r := rune(b)
-			if nb > 1 {
-				r, _ = utf8.DecodeRune(p[i : i+nb])
-			}
-
-			k := input.KeyEvent{Rune: r}
 			if alt {
 				k.Mod |= input.Alt
 			}
 
-			i += nb
 			ev = append(ev, k)
 			continue
 		}
@@ -314,7 +317,7 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 			if sym, ok := kittyKeyMap[code]; ok {
 				key.Sym = sym
 			} else {
-				key.Rune = rune(code)
+				key.Runes = []rune{rune(code)}
 				// TODO: support alternate keys
 			}
 		}
@@ -335,7 +338,7 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 			}
 		}
 		if len(params) > 2 {
-			key.Rune = rune(params[2][0])
+			key.Runes = []rune{rune(params[2][0])}
 		}
 		return len(seq), key
 	}

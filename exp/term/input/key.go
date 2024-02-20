@@ -190,10 +190,11 @@ const (
 
 // KeyEvent is a keyboard key event.
 type KeyEvent struct {
-	Sym    KeySym
-	Rune   rune
-	Mod    Mod
-	Action KeyAction
+	Runes    []rune
+	AltRunes []rune
+	Sym      KeySym
+	Action   KeyAction
+	Mod      Mod
 }
 
 var _ Event = KeyEvent{}
@@ -225,12 +226,12 @@ func (k KeyEvent) String() string {
 	if k.Mod.IsNumLock() && k.Sym != KeyNumLock {
 		s += "numlock+"
 	}
-	if k.Rune != 0 {
+	if len(k.Runes) != 0 {
 		// Space is the only invisible printable character.
-		if k.Rune == ' ' {
+		if string(k.Runes) == " " {
 			s += "space"
 		} else {
-			s += string(k.Rune)
+			s += string(k.Runes)
 		}
 	} else {
 		sym, ok := keySymString[k.Sym]

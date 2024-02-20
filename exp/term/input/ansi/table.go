@@ -10,30 +10,30 @@ import (
 func (d *driver) registerKeys(flags int) {
 	nul := input.KeyEvent{Sym: input.KeySpace, Mod: input.Ctrl} // ctrl+@ or ctrl+space
 	if flags&FlagSpace != 0 {
-		nul = input.KeyEvent{Rune: ' ', Mod: input.Ctrl}
+		nul = input.KeyEvent{Runes: []rune{' '}, Mod: input.Ctrl}
 	}
 	if flags&FlagCtrlAt != 0 {
-		nul = input.KeyEvent{Rune: '@', Mod: input.Ctrl}
+		nul = input.KeyEvent{Runes: []rune{'@'}, Mod: input.Ctrl}
 	}
 
 	tab := input.KeyEvent{Sym: input.KeyTab} // ctrl+i or tab
 	if flags&FlagCtrlI != 0 {
-		tab = input.KeyEvent{Rune: 'i', Mod: input.Ctrl}
+		tab = input.KeyEvent{Runes: []rune{'i'}, Mod: input.Ctrl}
 	}
 
 	enter := input.KeyEvent{Sym: input.KeyEnter} // ctrl+m or enter
 	if flags&FlagCtrlM != 0 {
-		enter = input.KeyEvent{Rune: 'm', Mod: input.Ctrl}
+		enter = input.KeyEvent{Runes: []rune{'m'}, Mod: input.Ctrl}
 	}
 
 	esc := input.KeyEvent{Sym: input.KeyEscape} // ctrl+[ or escape
 	if flags&FlagCtrlOpenBracket != 0 {
-		esc = input.KeyEvent{Rune: '[', Mod: input.Ctrl} // ctrl+[ or escape
+		esc = input.KeyEvent{Runes: []rune{'['}, Mod: input.Ctrl} // ctrl+[ or escape
 	}
 
 	sp := input.KeyEvent{Sym: input.KeySpace}
 	if flags&FlagSpace != 0 {
-		sp = input.KeyEvent{Rune: ' '}
+		sp = input.KeyEvent{Runes: []rune{' '}}
 	}
 
 	del := input.KeyEvent{Sym: input.KeyBackspace}
@@ -62,37 +62,37 @@ func (d *driver) registerKeys(flags int) {
 	d.table = map[string]input.KeyEvent{
 		// C0 control characters
 		string(ansi.NUL): nul,
-		string(ansi.SOH): {Rune: 'a', Mod: input.Ctrl},
-		string(ansi.STX): {Rune: 'b', Mod: input.Ctrl},
-		string(ansi.ETX): {Rune: 'c', Mod: input.Ctrl},
-		string(ansi.EOT): {Rune: 'd', Mod: input.Ctrl},
-		string(ansi.ENQ): {Rune: 'e', Mod: input.Ctrl},
-		string(ansi.ACK): {Rune: 'f', Mod: input.Ctrl},
-		string(ansi.BEL): {Rune: 'g', Mod: input.Ctrl},
-		string(ansi.BS):  {Rune: 'h', Mod: input.Ctrl},
+		string(ansi.SOH): {Runes: []rune{'a'}, Mod: input.Ctrl},
+		string(ansi.STX): {Runes: []rune{'b'}, Mod: input.Ctrl},
+		string(ansi.ETX): {Runes: []rune{'c'}, Mod: input.Ctrl},
+		string(ansi.EOT): {Runes: []rune{'d'}, Mod: input.Ctrl},
+		string(ansi.ENQ): {Runes: []rune{'e'}, Mod: input.Ctrl},
+		string(ansi.ACK): {Runes: []rune{'f'}, Mod: input.Ctrl},
+		string(ansi.BEL): {Runes: []rune{'g'}, Mod: input.Ctrl},
+		string(ansi.BS):  {Runes: []rune{'h'}, Mod: input.Ctrl},
 		string(ansi.HT):  tab,
-		string(ansi.LF):  {Rune: 'j', Mod: input.Ctrl},
-		string(ansi.VT):  {Rune: 'k', Mod: input.Ctrl},
-		string(ansi.FF):  {Rune: 'l', Mod: input.Ctrl},
+		string(ansi.LF):  {Runes: []rune{'j'}, Mod: input.Ctrl},
+		string(ansi.VT):  {Runes: []rune{'k'}, Mod: input.Ctrl},
+		string(ansi.FF):  {Runes: []rune{'l'}, Mod: input.Ctrl},
 		string(ansi.CR):  enter,
-		string(ansi.SO):  {Rune: 'n', Mod: input.Ctrl},
-		string(ansi.SI):  {Rune: 'o', Mod: input.Ctrl},
-		string(ansi.DLE): {Rune: 'p', Mod: input.Ctrl},
-		string(ansi.DC1): {Rune: 'q', Mod: input.Ctrl},
-		string(ansi.DC2): {Rune: 'r', Mod: input.Ctrl},
-		string(ansi.DC3): {Rune: 's', Mod: input.Ctrl},
-		string(ansi.DC4): {Rune: 't', Mod: input.Ctrl},
-		string(ansi.NAK): {Rune: 'u', Mod: input.Ctrl},
-		string(ansi.SYN): {Rune: 'v', Mod: input.Ctrl},
-		string(ansi.ETB): {Rune: 'w', Mod: input.Ctrl},
-		string(ansi.CAN): {Rune: 'x', Mod: input.Ctrl},
-		string(ansi.EM):  {Rune: 'y', Mod: input.Ctrl},
-		string(ansi.SUB): {Rune: 'z', Mod: input.Ctrl},
+		string(ansi.SO):  {Runes: []rune{'n'}, Mod: input.Ctrl},
+		string(ansi.SI):  {Runes: []rune{'o'}, Mod: input.Ctrl},
+		string(ansi.DLE): {Runes: []rune{'p'}, Mod: input.Ctrl},
+		string(ansi.DC1): {Runes: []rune{'q'}, Mod: input.Ctrl},
+		string(ansi.DC2): {Runes: []rune{'r'}, Mod: input.Ctrl},
+		string(ansi.DC3): {Runes: []rune{'s'}, Mod: input.Ctrl},
+		string(ansi.DC4): {Runes: []rune{'t'}, Mod: input.Ctrl},
+		string(ansi.NAK): {Runes: []rune{'u'}, Mod: input.Ctrl},
+		string(ansi.SYN): {Runes: []rune{'v'}, Mod: input.Ctrl},
+		string(ansi.ETB): {Runes: []rune{'w'}, Mod: input.Ctrl},
+		string(ansi.CAN): {Runes: []rune{'x'}, Mod: input.Ctrl},
+		string(ansi.EM):  {Runes: []rune{'y'}, Mod: input.Ctrl},
+		string(ansi.SUB): {Runes: []rune{'z'}, Mod: input.Ctrl},
 		string(ansi.ESC): esc,
-		string(ansi.FS):  {Rune: '\\', Mod: input.Ctrl},
-		string(ansi.GS):  {Rune: ']', Mod: input.Ctrl},
-		string(ansi.RS):  {Rune: '^', Mod: input.Ctrl},
-		string(ansi.US):  {Rune: '_', Mod: input.Ctrl},
+		string(ansi.FS):  {Runes: []rune{'\\'}, Mod: input.Ctrl},
+		string(ansi.GS):  {Runes: []rune{']'}, Mod: input.Ctrl},
+		string(ansi.RS):  {Runes: []rune{'^'}, Mod: input.Ctrl},
+		string(ansi.US):  {Runes: []rune{'_'}, Mod: input.Ctrl},
 
 		// Special keys in G0
 		string(ansi.SP):  sp,
