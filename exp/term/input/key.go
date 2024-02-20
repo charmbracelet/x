@@ -197,6 +197,26 @@ type KeyEvent struct {
 	Mod      Mod
 }
 
+// Rune returns the first rune of the event.
+// This is a convenience method for the common case where the event only
+// contains a single rune.
+func (k KeyEvent) Rune() rune {
+	if len(k.Runes) == 0 {
+		return 0
+	}
+	return k.Runes[0]
+}
+
+// AltRune returns the first alternate rune of the event.
+// This is a convenience method for the common case where the event only
+// contains a single alternate rune.
+func (k KeyEvent) AltRune() rune {
+	if len(k.AltRunes) == 0 {
+		return 0
+	}
+	return k.AltRunes[0]
+}
+
 var _ Event = KeyEvent{}
 
 // String implements Event.
@@ -240,9 +260,6 @@ func (k KeyEvent) String() string {
 		} else {
 			s += sym
 		}
-	}
-	if len(k.AltRunes) > 0 && string(k.Runes) != string(k.AltRunes) {
-		s += " [" + string(k.AltRunes) + "]"
 	}
 	switch k.Action {
 	case KeyRepeat:
