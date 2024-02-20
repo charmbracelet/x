@@ -299,6 +299,7 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 	}
 
 	seq += string(p[i])
+	log.Printf("csi seq: %q\r\n", seq)
 	csi := ansi.CsiSequence(seq)
 	initial := csi.Initial()
 	cmd := csi.Command()
@@ -317,8 +318,17 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 			if sym, ok := kittyKeyMap[code]; ok {
 				key.Sym = sym
 			} else {
-				key.Runes = []rune{rune(code)}
-				// TODO: support alternate keys
+				r := rune(code)
+				if !utf8.ValidRune(r) {
+					r = utf8.RuneError
+				}
+				key.Runes = []rune{r}
+				if len(params[0]) > 1 {
+					al := rune(params[0][1])
+					if utf8.ValidRune(al) {
+						key.AltRunes = []rune{al}
+					}
+				}
 			}
 		}
 		if len(params) > 1 {
@@ -338,7 +348,11 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 			}
 		}
 		if len(params) > 2 {
-			key.Runes = []rune{rune(params[2][0])}
+			r := rune(params[2][0])
+			if !utf8.ValidRune(r) {
+				r = utf8.RuneError
+			}
+			key.AltRunes = []rune{r}
 		}
 		return len(seq), key
 	}
