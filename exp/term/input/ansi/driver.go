@@ -3,7 +3,6 @@ package ansi
 import (
 	"bufio"
 	"io"
-	"log"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
@@ -162,8 +161,6 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 		}
 	}
 
-	log.Printf("lookup: %q\r\n", string(p))
-
 	// Lookup table first
 	if k, ok := d.table[string(p)]; ok {
 		return len(p), []input.Event{k}, nil
@@ -295,11 +292,10 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 			}
 			return len(seq), key
 		}
-		return len(seq), input.UnknownEvent{string(seq)}
+		return len(seq), input.UnknownEvent(seq)
 	}
 
 	seq += string(p[i])
-	log.Printf("csi seq: %q\r\n", seq)
 	csi := ansi.CsiSequence(seq)
 	initial := csi.Initial()
 	cmd := csi.Command()
@@ -362,7 +358,7 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 		return len(seq), k
 	}
 
-	return len(seq), UnknownCsiEvent(seq)
+	return len(seq), input.UnknownEvent(seq)
 }
 
 // parseSs3 parses a SS3 sequence.
@@ -388,7 +384,7 @@ func (d *driver) parseSs3(i int, p []byte, alt bool) (int, input.Event) {
 			}
 			return len(seq), key
 		}
-		return len(seq), input.UnknownEvent{string(seq)}
+		return len(seq), input.UnknownEvent(seq)
 	}
 	seq += string(p[i])
 
@@ -400,7 +396,7 @@ func (d *driver) parseSs3(i int, p []byte, alt bool) (int, input.Event) {
 		return len(seq), k
 	}
 
-	return len(seq), UnknownSs3Event(seq)
+	return len(seq), input.UnknownEvent(seq)
 }
 
 func (d *driver) parseOsc(i int, p []byte, _ bool) (int, input.Event) {
@@ -421,7 +417,7 @@ func (d *driver) parseOsc(i int, p []byte, _ bool) (int, input.Event) {
 	}
 
 	if i >= len(p) {
-		return len(seq), input.UnknownEvent{string(seq)}
+		return len(seq), input.UnknownEvent(seq)
 	}
 	seq += string(p[i])
 
@@ -441,18 +437,5 @@ func (d *driver) parseOsc(i int, p []byte, _ bool) (int, input.Event) {
 		return len(seq), CursorColorEvent{xParseColor(osc.Data())}
 	}
 
-	return len(seq), UnknownOscEvent(seq)
-}
-
-func utf8ByteLen(b byte) int {
-	if b <= 0b0111_1111 { // 0x00-0x7F
-		return 1
-	} else if b >= 0b1100_0000 && b <= 0b1101_1111 { // 0xC0-0xDF
-		return 2
-	} else if b >= 0b1110_0000 && b <= 0b1110_1111 { // 0xE0-0xEF
-		return 3
-	} else if b >= 0b1111_0000 && b <= 0b1111_0111 { // 0xF0-0xF7
-		return 4
-	}
-	return -1
+	return len(seq), input.UnknownEvent(seq)
 }
