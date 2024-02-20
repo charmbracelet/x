@@ -70,16 +70,16 @@ OUT:
 			prev, ok2 := last.(input.KeyEvent)
 			if ok1 && ok2 && cur.Sym == 0 && prev.Sym == 0 && cur.Action == 0 && prev.Action == 0 {
 				switch {
-				case prev.Rune == 'q' && cur.Rune == 'q':
+				case string(prev.Runes) == "q" && string(cur.Runes) == "q":
 					break OUT
-				case prev.Rune == 'h' && cur.Rune == 'h':
+				case string(prev.Runes) == "h" && string(cur.Runes) == "h":
 					printHelp()
-				case prev.Rune == 'k':
-					switch cur.Rune {
-					case '0':
+				case string(prev.Runes) == "k":
+					switch string(cur.Runes) {
+					case "0":
 						kittyFlags = 0
 						execute(kitty.Disable(kittyFlags))
-					case '1':
+					case "1":
 						if kittyFlags&kitty.DisambiguateEscapeCodes == 0 {
 							kittyFlags |= kitty.DisambiguateEscapeCodes
 							execute(kitty.Enable(kittyFlags))
@@ -87,7 +87,7 @@ OUT:
 							kittyFlags &^= kitty.DisambiguateEscapeCodes
 							execute(kitty.Disable(kittyFlags))
 						}
-					case '2':
+					case "2":
 						if kittyFlags&kitty.ReportEventTypes == 0 {
 							kittyFlags |= kitty.ReportEventTypes
 							execute(kitty.Enable(kittyFlags))
@@ -95,7 +95,7 @@ OUT:
 							kittyFlags &^= kitty.ReportEventTypes
 							execute(kitty.Disable(kittyFlags))
 						}
-					case '3':
+					case "3":
 						if kittyFlags&kitty.ReportAlternateKeys == 0 {
 							kittyFlags |= kitty.ReportAlternateKeys
 							execute(kitty.Enable(kittyFlags))
@@ -103,7 +103,7 @@ OUT:
 							kittyFlags &^= kitty.ReportAlternateKeys
 							execute(kitty.Disable(kittyFlags))
 						}
-					case '4':
+					case "4":
 						if kittyFlags&kitty.ReportAllKeys == 0 {
 							kittyFlags |= kitty.ReportAllKeys
 							execute(kitty.Enable(kittyFlags))
@@ -111,7 +111,7 @@ OUT:
 							kittyFlags &^= kitty.ReportAllKeys
 							execute(kitty.Disable(kittyFlags))
 						}
-					case '5':
+					case "5":
 						if kittyFlags&kitty.ReportAssociatedKeys == 0 {
 							kittyFlags |= kitty.ReportAssociatedKeys
 							execute(kitty.Enable(kittyFlags))
@@ -120,53 +120,53 @@ OUT:
 							execute(kitty.Disable(kittyFlags))
 						}
 					}
-				case prev.Rune == 'r':
-					switch cur.Rune {
-					case 'k':
+				case string(prev.Runes) == "r":
+					switch string(cur.Runes) {
+					case "k":
 						execute(kitty.Request)
-					case 'b':
+					case "b":
 						execute(sys.RequestBackgroundColor)
-					case 'f':
+					case "f":
 						execute(sys.RequestForegroundColor)
-					case 'c':
+					case "c":
 						execute(sys.RequestCursorColor)
-					case 'd':
+					case "d":
 						// DA1 (Primary Device Attributes)
 						execute("\x1b[c")
 					}
-				case prev.Rune == 'm':
-					switch cur.Rune {
-					case '0':
+				case string(prev.Runes) == "m":
+					switch string(cur.Runes) {
+					case "0":
 						disableMouse()
-					case '1':
+					case "1":
 						if mouse {
 							execute(mode.DisableMouseTracking)
 						} else {
 							execute(mode.EnableMouseTracking)
 						}
 						mouse = !mouse
-					case '2':
+					case "2":
 						if mouseHilite {
 							execute(mode.DisableHiliteMouseTracking)
 						} else {
 							execute(mode.EnableHiliteMouseTracking)
 						}
 						mouseHilite = !mouseHilite
-					case '3':
+					case "3":
 						if mouseCell {
 							execute(mode.DisableCellMotionMouseTracking)
 						} else {
 							execute(mode.EnableCellMotionMouseTracking)
 						}
 						mouseCell = !mouseCell
-					case '4':
+					case "4":
 						if mouseAll {
 							execute(mode.DisableAllMouseTracking)
 						} else {
 							execute(mode.EnableAllMouseTracking)
 						}
 						mouseAll = !mouseAll
-					case '5':
+					case "5":
 						if mouseExt {
 							execute(mode.DisableSgrMouseExt)
 						} else {
