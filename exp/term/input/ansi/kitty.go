@@ -1,6 +1,9 @@
 package ansi
 
 import (
+	"unicode/utf8"
+
+	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/charmbracelet/x/exp/term/input"
 )
 
@@ -162,4 +165,52 @@ func fromKittyMod(mod int) input.Mod {
 		m |= input.NumLock
 	}
 	return m
+}
+
+func parseKittyKeyboard(p []byte) input.KeyEvent {
+	csi := ansi.CsiSequence(p)
+	params := ansi.Params(csi.Params())
+	key := input.KeyEvent{}
+	if len(params) > 0 {
+		code := int(params[0][0])
+		if sym, ok := kittyKeyMap[code]; ok {
+			key.Sym = sym
+		} else {
+			r := rune(code)
+			if !utf8.ValidRune(r) {
+				r = utf8.RuneError
+			}
+			key.Runes = []rune{r}
+			if len(params[0]) > 1 {
+				al := rune(params[0][1])
+				if utf8.ValidRune(al) {
+					key.AltRunes = []rune{al}
+				}
+			}
+		}
+	}
+	if len(params) > 1 {
+		mod := int(params[1][0])
+		if mod > 1 {
+			key.Mod = fromKittyMod(int(params[1][0] - 1))
+		}
+		if len(params[1]) > 1 {
+			switch int(params[1][1]) {
+			case 0, 1:
+				key.Action = input.KeyPress
+			case 2:
+				key.Action = input.KeyRepeat
+			case 3:
+				key.Action = input.KeyRelease
+			}
+		}
+	}
+	if len(params) > 2 {
+		r := rune(params[2][0])
+		if !utf8.ValidRune(r) {
+			r = utf8.RuneError
+		}
+		key.AltRunes = []rune{r}
+	}
+	return key
 }
