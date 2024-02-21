@@ -138,8 +138,6 @@ func (d *driver) ReadInput() ([]input.Event, error) {
 	return ne, nil
 }
 
-const esc = string(byte(ansi.ESC))
-
 // PeekInput implements input.Driver.
 func (d *driver) PeekInput() ([]input.Event, error) {
 	_, ne, err := d.peekInput()
@@ -173,136 +171,16 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 	}
 
 	i := 0 // index of the current byte
-
 	for i < len(p) {
-		var alt bool
-		b := p[i]
-
-	begin:
-		switch b {
-		case ansi.ESC:
-			if len(p) == 1 {
-				// Special case for Esc
-				i++
-				ev = append(ev, d.table[esc])
-				continue
-			}
-
-			if i+1 >= len(p) {
-				// Not enough bytes to peek
-				break
-			}
-
-			switch p[i+1] {
-			case 'O': // Esc-prefixed SS3
-				d.handleSeq(d.parseSs3, i, p, alt, &i, &ev)
-				continue
-			case 'P': // Esc-prefixed DCS
-				d.handleSeq(d.parseDcs, i, p, alt, &i, &ev)
-				continue
-			case '[': // Esc-prefixed CSI
-				d.handleSeq(d.parseCsi, i, p, alt, &i, &ev)
-				continue
-			case ']': // Esc-prefixed OSC
-				d.handleSeq(d.parseOsc, i, p, alt, &i, &ev)
-				continue
-			case '_': // Esc-prefixed APC
-				d.handleSeq(d.parseApc, i, p, alt, &i, &ev)
-				continue
-			default:
-				alt = true
-				b = p[i+1]
-				i++
-				// Start over with the next byte
-				goto begin
-			}
-		case ansi.SS3:
-			d.handleSeq(d.parseSs3, i, p, alt, &i, &ev)
-			continue
-		case ansi.DCS:
-			d.handleSeq(d.parseDcs, i, p, alt, &i, &ev)
-		case ansi.CSI:
-			d.handleSeq(d.parseCsi, i, p, alt, &i, &ev)
-			continue
-		case ansi.OSC:
-			d.handleSeq(d.parseOsc, i, p, alt, &i, &ev)
-			continue
-		case ansi.APC:
-			d.handleSeq(d.parseApc, i, p, alt, &i, &ev)
-			continue
-		}
-
-		if d.paste != nil {
-			// Handle bracketed-paste
-			d.paste = append(d.paste, b)
-			i++
-			continue
-		}
-
-		if b <= ansi.US || b == ansi.DEL || b == ansi.SP {
-			// Single byte control code or printable ASCII/UTF-8
-			k := d.table[string(b)]
-			nb := 1
-			if alt {
-				k.Mod |= input.Alt
-			}
-			i += nb
-			ev = append(ev, k)
-			continue
-		} else if utf8.RuneStart(b) {
-			// Collect UTF-8 sequences into a slice of runes.
-			// We need to do this for multi-rune emojis to work.
-			var k input.KeyEvent
-			for rw := 0; i < len(p); i += rw {
-				var r rune
-				r, rw = utf8.DecodeRune(p[i:])
-				if r == utf8.RuneError || r <= ansi.US || r == ansi.DEL || r == ansi.SP {
-					break
-				}
-				k.Runes = append(k.Runes, r)
-			}
-
-			if alt {
-				k.Mod |= input.Alt
-			}
-
-			ev = append(ev, k)
-			continue
-		}
-	}
-
-	return i, ev, nil
-}
-
-// helper function to handle adding events and the number of bytes consumed.
-func (d *driver) handleSeq(
-	seqFn func(int, []byte, bool) (int, input.Event),
-	i int, p []byte, alt bool,
-	np *int, ne *[]input.Event,
-) {
-	n, e := seqFn(i, p, alt)
-	*np += n
-
-	switch e := e.(type) {
-	case UnknownCsiEvent:
-		initial := e.Initial()
-		switch e.Command() {
-		case '~':
-			if initial != 0 {
-				break
-			}
-
-			params := ansi.Params(e.Params())
-			if len(params) == 0 {
-				break
-			}
-
-			switch params[0][0] {
-			case 200:
+		nb, e := d.peekOne(p[i:])
+		switch event := e.(type) {
+		case UnknownCsiEvent:
+			switch string(event.CsiSequence) {
+			case "\x1b[200~":
 				// bracketed-paste start
 				d.paste = []byte{}
-				return
-			case 201:
+				e = nil
+			case "\x1b[201~":
 				// bracketed-paste end
 				var paste []rune
 				for len(d.paste) > 0 {
@@ -312,14 +190,111 @@ func (d *driver) handleSeq(
 					}
 					paste = append(paste, r)
 				}
-				*ne = append(*ne, PasteEvent(paste))
+				e = PasteEvent(paste)
 				d.paste = nil
-				return
 			}
 		}
+		if e != nil {
+			ev = append(ev, e)
+		}
+		i += nb
 	}
 
-	*ne = append(*ne, e)
+	return i, ev, nil
+}
+
+func (d *driver) peekOne(p []byte) (int, input.Event) {
+	if len(p) == 0 {
+		return 0, nil
+	}
+
+	var (
+		alt = false
+		i   = 0
+	)
+
+begin:
+	b := p[i]
+	switch b {
+	case ansi.ESC:
+		if i+1 >= len(p) {
+			break
+		}
+
+		var parser func(int, []byte, bool) (int, input.Event)
+		switch p[i+1] {
+		case 'O': // Esc-prefixed SS3
+			parser = d.parseSs3
+		case 'P': // Esc-prefixed DCS
+			parser = d.parseDcs
+		case '[': // Esc-prefixed CSI
+			parser = d.parseCsi
+		case ']': // Esc-prefixed OSC
+			parser = d.parseOsc
+		case '_': // Esc-prefixed APC
+			parser = d.parseApc
+		}
+
+		if parser != nil {
+			n, e := parser(i, p, alt)
+			i += n
+			return i, e
+		}
+
+		if alt {
+			break
+		}
+
+		alt = true
+		i++
+		goto begin
+	case ansi.SS3:
+		return d.parseSs3(i, p, alt)
+	case ansi.DCS:
+		return d.parseDcs(i, p, alt)
+	case ansi.CSI:
+		return d.parseCsi(i, p, alt)
+	case ansi.OSC:
+		return d.parseOsc(i, p, alt)
+	case ansi.APC:
+		return d.parseApc(i, p, alt)
+	}
+
+	if d.paste != nil {
+		// Handle bracketed-paste
+		d.paste = append(d.paste, b)
+		return 1, nil
+	}
+
+	if b <= ansi.US || b == ansi.DEL || b == ansi.SP {
+		// Single byte control code or printable ASCII/UTF-8
+		k := d.table[string(b)]
+		if alt {
+			k.Mod |= input.Alt
+		}
+		i++
+		return i, k
+	} else if utf8.RuneStart(b) {
+		// Collect UTF-8 sequences into a slice of runes.
+		// We need to do this for multi-rune emojis to work.
+		var k input.KeyEvent
+		for rw := 0; i < len(p); i += rw {
+			var r rune
+			r, rw = utf8.DecodeRune(p[i:])
+			if r == utf8.RuneError || r <= ansi.US || r == ansi.DEL || r == ansi.SP {
+				break
+			}
+			k.Runes = append(k.Runes, r)
+		}
+
+		if alt {
+			k.Mod |= input.Alt
+		}
+
+		return i, k
+	}
+
+	return 1, input.UnknownEvent(string(p[0]))
 }
 
 func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
@@ -361,6 +336,9 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 	seq += string(p[i])
 	k, ok := d.table[seq]
 	if ok {
+		if alt {
+			k.Mod |= input.Alt
+		}
 		return len(seq), k
 	}
 
@@ -418,6 +396,9 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 				r = utf8.RuneError
 			}
 			key.AltRunes = []rune{r}
+		}
+		if alt {
+			key.Mod |= input.Alt
 		}
 		return len(seq), key
 	}

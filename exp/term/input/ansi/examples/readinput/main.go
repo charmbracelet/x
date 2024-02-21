@@ -67,7 +67,7 @@ OUT:
 			log.Fatalf("error reading input: %v\r\n", err)
 		}
 
-		if last != nil {
+		if last != nil && len(n) > 0 {
 			currKey, ok1 := n[len(n)-1].(input.KeyEvent)
 			prevKey, ok2 := last.(input.KeyEvent)
 			if ok1 && ok2 && currKey.Sym == 0 && prevKey.Sym == 0 && currKey.Action == 0 && prevKey.Action == 0 {
