@@ -3,7 +3,6 @@ package ansi
 import (
 	"bufio"
 	"io"
-	"log"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
@@ -174,28 +173,6 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 	i := 0 // index of the current byte
 	for i < len(p) {
 		nb, e := d.peekOne(p[i:])
-		log.Printf("next: %q\r\n", p[i:i+nb])
-		switch event := e.(type) {
-		case UnknownCsiEvent:
-			switch string(event.CsiSequence) {
-			case "\x1b[200~":
-				// bracketed-paste start
-				d.paste = []byte{}
-				e = nil
-			case "\x1b[201~":
-				// bracketed-paste end
-				var paste []rune
-				for len(d.paste) > 0 {
-					r, w := utf8.DecodeRune(d.paste)
-					if r != utf8.RuneError {
-						d.paste = d.paste[w:]
-					}
-					paste = append(paste, r)
-				}
-				e = PasteEvent(paste)
-				d.paste = nil
-			}
-		}
 		if e != nil {
 			ev = append(ev, e)
 		}
@@ -205,6 +182,8 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 	return i, ev, nil
 }
 
+// peekOne peeks a single event from the input buffer.
+// This may return a nil event.
 func (d *driver) peekOne(p []byte) (int, input.Event) {
 	if len(p) == 0 {
 		return 0, nil
@@ -345,7 +324,6 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 		return len(seq), k
 	}
 
-	// TODO: cleanup this mess
 	csi := ansi.CsiSequence(seq)
 	initial := csi.Initial()
 	cmd := csi.Command()
@@ -358,53 +336,10 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 		return len(seq), parseSGRMouseEvent(seq)
 	case initial == 0 && cmd == 'u':
 		// Kitty keyboard protocol
-		params := ansi.Params(csi.Params())
-		key := input.KeyEvent{}
-		if len(params) > 0 {
-			code := int(params[0][0])
-			if sym, ok := kittyKeyMap[code]; ok {
-				key.Sym = sym
-			} else {
-				r := rune(code)
-				if !utf8.ValidRune(r) {
-					r = utf8.RuneError
-				}
-				key.Runes = []rune{r}
-				if len(params[0]) > 1 {
-					al := rune(params[0][1])
-					if utf8.ValidRune(al) {
-						key.AltRunes = []rune{al}
-					}
-				}
-			}
-		}
-		if len(params) > 1 {
-			mod := int(params[1][0])
-			if mod > 1 {
-				key.Mod = fromKittyMod(int(params[1][0] - 1))
-			}
-			if len(params[1]) > 1 {
-				switch int(params[1][1]) {
-				case 0, 1:
-					key.Action = input.KeyPress
-				case 2:
-					key.Action = input.KeyRepeat
-				case 3:
-					key.Action = input.KeyRelease
-				}
-			}
-		}
-		if len(params) > 2 {
-			r := rune(params[2][0])
-			if !utf8.ValidRune(r) {
-				r = utf8.RuneError
-			}
-			key.AltRunes = []rune{r}
-		}
-		if alt {
-			key.Mod |= input.Alt
-		}
-		return len(seq), key
+		return len(seq), parseKittyKeyboard(seq)
+	case string(seq) == "\x1b[200~" || string(seq) == "\x1b[201~":
+		// bracketed-paste
+		return len(seq), parseBracketedPaste(seq, &d.paste)
 	}
 
 	return len(seq), UnknownCsiEvent{csi}
