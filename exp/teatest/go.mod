@@ -2,10 +2,14 @@ module github.com/charmbracelet/x/exp/teatest
 
 go 1.19
 
-require github.com/charmbracelet/bubbletea v0.25.0
+require (
+	github.com/charmbracelet/bubbletea v0.25.0
+	github.com/charmbracelet/x/exp/golden v0.0.0-20240222125807-0344fda748f8
+)
 
 require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
+	github.com/aymanbagabas/go-udiff v0.2.0 // indirect
 	github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.18 // indirect
