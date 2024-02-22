@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/x/exp/term"
+	"github.com/charmbracelet/x/exp/term/ansi/ctrl"
 	"github.com/charmbracelet/x/exp/term/ansi/kitty"
 	"github.com/charmbracelet/x/exp/term/ansi/mode"
 	"github.com/charmbracelet/x/exp/term/ansi/sys"
@@ -142,8 +143,9 @@ OUT:
 					case "c":
 						execute(sys.RequestCursorColor)
 					case "d":
-						// DA1 (Primary Device Attributes)
-						execute("\x1b[c")
+						execute(ctrl.RequestPrimaryDeviceAttributes)
+					case "x":
+						execute(ctrl.RequestXTVersion)
 					}
 				case prev == "m":
 					switch string(currKey.Runes) {
@@ -242,5 +244,6 @@ func printHelp() {
 	fmt.Fprintf(os.Stdout, "  f: Foreground color\r\n")
 	fmt.Fprintf(os.Stdout, "  c: Cursor color\r\n")
 	fmt.Fprintf(os.Stdout, "  d: Primary Device Attributes\r\n")
+	fmt.Fprintf(os.Stdout, "  x: XTVERSION\r\n")
 	fmt.Fprintf(os.Stdout, "\r\n")
 }
