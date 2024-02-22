@@ -5,7 +5,6 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-	"runtime"
 	"testing"
 
 	"github.com/aymanbagabas/go-udiff"
@@ -32,14 +31,6 @@ func RequireEqual(tb testing.TB, out []byte) {
 		}
 	}
 
-	path := filepath.Join(tb.TempDir(), tb.Name()+".out")
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil { //nolint: gomnd
-		tb.Fatal(err)
-	}
-	if err := os.WriteFile(path, out, 0o600); err != nil { //nolint: gomnd
-		tb.Fatal(err)
-	}
-
 	goldenBts, err := os.ReadFile(golden)
 	if err != nil {
 		tb.Fatal(err)
@@ -53,8 +44,5 @@ func RequireEqual(tb testing.TB, out []byte) {
 }
 
 func fixLineEndings(in []byte) []byte {
-	if runtime.GOOS != "windows" {
-		return in
-	}
 	return bytes.ReplaceAll(in, []byte("\r\n"), []byte{'\n'})
 }
