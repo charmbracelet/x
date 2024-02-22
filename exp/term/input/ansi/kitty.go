@@ -4,8 +4,68 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
+	"github.com/charmbracelet/x/exp/term/ansi/kitty"
 	"github.com/charmbracelet/x/exp/term/input"
 )
+
+// KittyKeyboardEvent represents Kitty keyboard progressive enhancement flags.
+type KittyKeyboardEvent int
+
+var _ input.Event = KittyKeyboardEvent(0)
+
+// IsDisambiguateEscapeCodes returns true if the DisambiguateEscapeCodes flag is set.
+func (e KittyKeyboardEvent) IsDisambiguateEscapeCodes() bool {
+	return e&kitty.DisambiguateEscapeCodes != 0
+}
+
+// IsReportEventTypes returns true if the ReportEventTypes flag is set.
+func (e KittyKeyboardEvent) IsReportEventTypes() bool {
+	return e&kitty.ReportEventTypes != 0
+}
+
+// IsReportAlternateKeys returns true if the ReportAlternateKeys flag is set.
+func (e KittyKeyboardEvent) IsReportAlternateKeys() bool {
+	return e&kitty.ReportAlternateKeys != 0
+}
+
+// IsReportAllKeys returns true if the ReportAllKeys flag is set.
+func (e KittyKeyboardEvent) IsReportAllKeys() bool {
+	return e&kitty.ReportAllKeys != 0
+}
+
+// IsReportAssociatedKeys returns true if the ReportAssociatedKeys flag is set.
+func (e KittyKeyboardEvent) IsReportAssociatedKeys() bool {
+	return e&kitty.ReportAssociatedKeys != 0
+}
+
+// String implements input.Event.
+func (e KittyKeyboardEvent) String() string {
+	s := "Kitty keyboard:"
+	if e == 0 {
+		return s + " none"
+	}
+	if e.IsDisambiguateEscapeCodes() {
+		s += " DisambiguateEscapeCodes"
+	}
+	if e.IsReportEventTypes() {
+		s += " ReportEventTypes"
+	}
+	if e.IsReportAlternateKeys() {
+		s += " ReportAlternateKeys"
+	}
+	if e.IsReportAllKeys() {
+		s += " ReportAllKeys"
+	}
+	if e.IsReportAssociatedKeys() {
+		s += " ReportAssociatedKeys"
+	}
+	return s
+}
+
+// Type implements input.Event.
+func (KittyKeyboardEvent) Type() string {
+	return "Kitty Keyboard"
+}
 
 // Kitty Clipboard Control Sequences
 var kittyKeyMap = map[int]input.KeySym{

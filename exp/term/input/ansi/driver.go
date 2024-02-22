@@ -327,6 +327,7 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 	csi := ansi.CsiSequence(seq)
 	initial := csi.Initial()
 	cmd := csi.Command()
+	params := ansi.Params(csi.Params())
 	switch {
 	case string(seq) == "\x1b[M" && i+3 < len(p):
 		// Handle X10 mouse
@@ -337,6 +338,16 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 	case initial == 0 && cmd == 'u':
 		// Kitty keyboard protocol
 		return len(seq), parseKittyKeyboard(seq)
+	case initial == '?' && cmd == 'u' && len(params) > 0:
+		// Kitty keyboard flags
+		return len(seq), KittyKeyboardEvent(params[0][0])
+	case initial == '?' && cmd == 'c':
+		// Primary Device Attributes
+		da1 := make([]uint, len(params))
+		for i, p := range params {
+			da1[i] = p[0]
+		}
+		return len(seq), PrimaryDeviceAttributesEvent(da1)
 	case string(seq) == "\x1b[200~" || string(seq) == "\x1b[201~":
 		// bracketed-paste
 		return len(seq), parseBracketedPaste(seq, &d.paste)
