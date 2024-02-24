@@ -233,7 +233,7 @@ func (d *driver) registerKeys(flags int) {
 			input.Meta | input.Shift | input.Alt | input.Ctrl, // 15
 		} {
 			// XTerm modifier offset +1
-			xtermMod := strconv.Itoa(int(m + 1))
+			xtermMod := strconv.Itoa(int(m) + 1)
 
 			//  CSI 1 ; <modifier> <func>
 			for k, v := range csiFuncKeys {

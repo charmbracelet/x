@@ -69,10 +69,10 @@ func (KittyKeyboardEvent) Type() string {
 
 // Kitty Clipboard Control Sequences
 var kittyKeyMap = map[int]input.KeySym{
-	9:   input.KeyTab,
-	13:  input.KeyEnter,
-	27:  input.KeyEscape,
-	127: input.KeyBackspace,
+	ansi.HT:  input.KeyTab,
+	ansi.CR:  input.KeyEnter,
+	ansi.ESC: input.KeyEscape,
+	ansi.DEL: input.KeyBackspace,
 
 	57344: input.KeyEscape,
 	57345: input.KeyEnter,
