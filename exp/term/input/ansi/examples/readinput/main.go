@@ -35,7 +35,7 @@ func main() {
 		defer term.Restore(os.Stdin.Fd(), state)
 	}
 
-	defer io.WriteString(os.Stdout, kitty.Disable(kitty.AllFlags)) // Disable Kitty keyboard
+	defer io.WriteString(os.Stdout, kitty.Pop(kitty.AllFlags)) // Disable Kitty keyboard
 	defer disableMouse()
 
 	rd := ansi.NewDriver(in, os.Getenv("TERM"), 0)
@@ -90,46 +90,46 @@ OUT:
 					switch curr {
 					case "0":
 						kittyFlags = 0
-						execute(kitty.Disable(kittyFlags))
+						execute(kitty.Pop(kittyFlags))
 					case "1":
 						if kittyFlags&kitty.DisambiguateEscapeCodes == 0 {
 							kittyFlags |= kitty.DisambiguateEscapeCodes
-							execute(kitty.Enable(kittyFlags))
+							execute(kitty.Push(kittyFlags))
 						} else {
 							kittyFlags &^= kitty.DisambiguateEscapeCodes
-							execute(kitty.Disable(kittyFlags))
+							execute(kitty.Pop(kittyFlags))
 						}
 					case "2":
 						if kittyFlags&kitty.ReportEventTypes == 0 {
 							kittyFlags |= kitty.ReportEventTypes
-							execute(kitty.Enable(kittyFlags))
+							execute(kitty.Push(kittyFlags))
 						} else {
 							kittyFlags &^= kitty.ReportEventTypes
-							execute(kitty.Disable(kittyFlags))
+							execute(kitty.Pop(kittyFlags))
 						}
 					case "3":
 						if kittyFlags&kitty.ReportAlternateKeys == 0 {
 							kittyFlags |= kitty.ReportAlternateKeys
-							execute(kitty.Enable(kittyFlags))
+							execute(kitty.Push(kittyFlags))
 						} else {
 							kittyFlags &^= kitty.ReportAlternateKeys
-							execute(kitty.Disable(kittyFlags))
+							execute(kitty.Pop(kittyFlags))
 						}
 					case "4":
 						if kittyFlags&kitty.ReportAllKeys == 0 {
 							kittyFlags |= kitty.ReportAllKeys
-							execute(kitty.Enable(kittyFlags))
+							execute(kitty.Push(kittyFlags))
 						} else {
 							kittyFlags &^= kitty.ReportAllKeys
-							execute(kitty.Disable(kittyFlags))
+							execute(kitty.Pop(kittyFlags))
 						}
 					case "5":
 						if kittyFlags&kitty.ReportAssociatedKeys == 0 {
 							kittyFlags |= kitty.ReportAssociatedKeys
-							execute(kitty.Enable(kittyFlags))
+							execute(kitty.Push(kittyFlags))
 						} else {
 							kittyFlags &^= kitty.ReportAssociatedKeys
-							execute(kitty.Disable(kittyFlags))
+							execute(kitty.Pop(kittyFlags))
 						}
 					}
 				case prev == "r":
