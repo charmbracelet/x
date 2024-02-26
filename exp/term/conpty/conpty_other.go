@@ -1,3 +1,6 @@
+//go:build !windows
+// +build !windows
+
 package conpty
 
 // ConPty represents a Windows Console Pseudo-terminal.
