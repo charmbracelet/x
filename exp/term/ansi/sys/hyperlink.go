@@ -21,6 +21,8 @@ func SetHyperlink(uri string, params ...string) string {
 // ResetHyperlink returns a sequence for resetting the hyperlink.
 //
 // This is equivalent to SetHyperlink("", params...).
+//
+// See: https://gist.github.com/egmontkob/eb114294efbcd5adb1944c9f3cb5feda
 func ResetHyperlink(params ...string) string {
 	return SetHyperlink("", params...)
 }
