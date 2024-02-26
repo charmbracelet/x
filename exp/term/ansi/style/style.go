@@ -11,9 +11,11 @@ type Attribute = string
 
 // ResetSequence is a SGR (Select Graphic Rendition) style sequence that resets
 // all attributes.
+// See: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 const ResetSequence = "\x1b[m"
 
 // SGR (Select Graphic Rendition) style attributes.
+// See: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 const (
 	Reset                  Attribute = "0"
 	Bold                   Attribute = "1"
@@ -44,6 +46,8 @@ const (
 // Sequence creates a SGR (Select Graphic Rendition) style sequence with the
 // given attributes.
 // If no attributes are given, it will return a reset sequence.
+//
+// See: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 func Sequence(attrs ...Attribute) string {
 	if len(attrs) == 0 {
 		return ResetSequence
@@ -52,6 +56,7 @@ func Sequence(attrs ...Attribute) string {
 }
 
 // Foreground returns the SGR attribute for the given foreground color.
+// See: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 func ForegroundColor(c Color) Attribute {
 	switch c := c.(type) {
 	case BasicColor:
@@ -79,6 +84,7 @@ func ForegroundColor(c Color) Attribute {
 }
 
 // BackgroundColor returns the SGR attribute for the given background color.
+// See: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 func BackgroundColor(c Color) Attribute {
 	switch c := c.(type) {
 	case BasicColor:
@@ -106,6 +112,7 @@ func BackgroundColor(c Color) Attribute {
 }
 
 // UnderlineColor returns the SGR attribute for the given underline color.
+// See: https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_(Select_Graphic_Rendition)_parameters
 func UnderlineColor(c Color) Attribute {
 	switch c := c.(type) {
 	// NOTE: we can't use 3-bit and 4-bit ANSI color codes with underline
