@@ -5,7 +5,7 @@ import (
 
 	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/charmbracelet/x/exp/term/ansi/kitty"
-	"github.com/charmbracelet/x/exp/term/input"
+	"github.com/charmbracelet/x/exp/console/input"
 )
 
 // KittyKeyboardEvent represents Kitty keyboard progressive enhancement flags.

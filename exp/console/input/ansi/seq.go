@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
-	"github.com/charmbracelet/x/exp/term/input"
+	"github.com/charmbracelet/x/exp/console/input"
 )
 
 // UnknownCsiEvent represents an unknown CSI sequence event.
