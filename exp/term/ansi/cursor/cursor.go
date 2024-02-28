@@ -92,13 +92,13 @@ func PreviousLine(n int) string {
 	return "\x1b" + "[" + s + "F"
 }
 
-// Position (CUP) returns a sequence for positioning the cursor to the given
-// row and column.
+// Move (CUP) returns a sequence for moving the cursor to the given row and
+// column.
 //
 //	CSI n ; m H
 //
 // See: https://vt100.net/docs/vt510-rm/CUP.html
-func Position(row, col int) string {
+func Move(row, col int) string {
 	var r, c string
 	if row > 1 {
 		r = strconv.Itoa(row)
