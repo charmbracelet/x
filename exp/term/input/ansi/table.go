@@ -248,15 +248,6 @@ func (d *driver) registerKeys(flags int) {
 		"33": {Sym: input.KeyF19}, "34": {Sym: input.KeyF20},
 	}
 
-	// CSI ~ keys defined in XTerm modifyOtherKeys
-	modifyOtherKeys := map[int]input.KeyEvent{
-		ansi.BS:  {Sym: input.KeyBackspace},
-		ansi.HT:  {Sym: input.KeyTab},
-		ansi.CR:  {Sym: input.KeyEnter},
-		ansi.ESC: {Sym: input.KeyEscape},
-		ansi.DEL: del,
-	}
-
 	if flags&FlagNoXTerm == 0 {
 		for _, m := range modifiers {
 			// XTerm modifier offset +1
