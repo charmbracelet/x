@@ -31,7 +31,7 @@ func (d *driver) registerKeys(flags int) {
 		esc = input.KeyEvent{Runes: []rune{'['}, Mod: input.Ctrl} // ctrl+[ or escape
 	}
 
-	sp := input.KeyEvent{Sym: input.KeySpace}
+	sp := input.KeyEvent{Sym: input.KeySpace, Runes: []rune{' '}}
 	if flags&FlagSpace != 0 {
 		sp = input.KeyEvent{Runes: []rune{' '}}
 	}

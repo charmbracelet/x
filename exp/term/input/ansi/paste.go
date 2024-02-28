@@ -1,42 +1,36 @@
 package ansi
 
 import (
-	"fmt"
-	"unicode/utf8"
-
 	"github.com/charmbracelet/x/exp/term/input"
 )
 
-// PasteEvent represents a bracketed paste event.
-type PasteEvent string
+// PasteStartEvent is an event that is emitted when a terminal enters
+// bracketed-paste mode.
+type PasteStartEvent struct{}
 
-var _ input.Event = PasteEvent("")
+var _ input.Event = PasteStartEvent{}
 
-// String implements Event.
-func (e PasteEvent) String() string {
-	return fmt.Sprintf("paste: %q", string(e))
+// String implements input.Event.
+func (e PasteStartEvent) String() string {
+	return "paste start"
 }
 
-// Type implements Event.
-func (PasteEvent) Type() string {
-	return "Paste"
+// Type implements input.Event.
+func (PasteStartEvent) Type() string {
+	return "PasteStart"
 }
 
-func parseBracketedPaste(p []byte, buf *[]byte) input.Event {
-	switch string(p) {
-	case "\x1b[200~":
-		*buf = []byte{}
-	case "\x1b[201~":
-		var paste []rune
-		for len(*buf) > 0 {
-			r, w := utf8.DecodeRune(*buf)
-			if r != utf8.RuneError {
-				*buf = (*buf)[w:]
-			}
-			paste = append(paste, r)
-		}
-		*buf = nil
-		return PasteEvent(paste)
-	}
-	return nil
+// PasteEvent is an event that is emitted when a terminal receives pasted text.
+type PasteEndEvent struct{}
+
+var _ input.Event = PasteEndEvent{}
+
+// String implements input.Event.
+func (e PasteEndEvent) String() string {
+	return "paste end"
+}
+
+// Type implements input.Event.
+func (PasteEndEvent) Type() string {
+	return "PasteEnd"
 }
