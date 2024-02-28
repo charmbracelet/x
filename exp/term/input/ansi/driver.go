@@ -174,6 +174,22 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 	for i < len(p) {
 		nb, e := d.peekOne(p[i:])
 		if e != nil {
+			switch e.(type) {
+			case PasteStartEvent:
+				d.paste = []byte{}
+			case PasteEndEvent:
+				// Decode the captured data into runes.
+				var paste []rune
+				for len(d.paste) > 0 {
+					r, w := utf8.DecodeRune(d.paste)
+					if r != utf8.RuneError {
+						d.paste = d.paste[w:]
+					}
+					paste = append(paste, r)
+				}
+				d.paste = nil // reset the buffer
+				ev = append(ev, input.KeyEvent{Runes: paste})
+			}
 			ev = append(ev, e)
 		}
 		i += nb
@@ -238,12 +254,20 @@ begin:
 
 	if parser != nil {
 		n, e := parser(i, p, alt)
+		if d.paste != nil {
+			if _, ok := e.(PasteEndEvent); !ok {
+				// Not a valid sequence. We collect bytes until we reach a
+				// bracketed-paste end sequence (ESC [ 201 ~).
+				d.paste = append(d.paste, b)
+				return 1, nil
+			}
+		}
 		i += n
 		return i, e
 	}
 
 	if d.paste != nil {
-		// Handle bracketed-paste
+		// Collect bytes until we reach a bracketed-paste end sequence.
 		d.paste = append(d.paste, b)
 		return 1, nil
 	}
@@ -273,7 +297,10 @@ begin:
 			k.Mod |= input.Alt
 		}
 
-		return i, k
+		// Zero runes means we didn't find a valid UTF-8 sequence.
+		if len(k.Runes) > 0 {
+			return i, k
+		}
 	}
 
 	return 1, input.UnknownEvent(string(p[0]))
@@ -348,9 +375,12 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 			da1[i] = p[0]
 		}
 		return len(seq), PrimaryDeviceAttributesEvent(da1)
-	case string(seq) == "\x1b[200~" || string(seq) == "\x1b[201~":
-		// bracketed-paste
-		return len(seq), parseBracketedPaste(seq, &d.paste)
+	case string(seq) == "\x1b[200~":
+		// bracketed-paste start
+		return len(seq), PasteStartEvent{}
+	case string(seq) == "\x1b[201~":
+		// bracketed-paste end
+		return len(seq), PasteEndEvent{}
 	}
 
 	return len(seq), UnknownCsiEvent{csi}
