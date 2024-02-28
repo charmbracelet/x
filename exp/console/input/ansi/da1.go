@@ -3,7 +3,7 @@ package ansi
 import (
 	"fmt"
 
-	"github.com/charmbracelet/x/exp/term/input"
+	"github.com/charmbracelet/x/exp/console/input"
 )
 
 // PrimaryDeviceAttributesEvent represents a primary device attributes event.

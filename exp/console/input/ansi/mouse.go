@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/charmbracelet/x/exp/term/input"
+	"github.com/charmbracelet/x/exp/console/input"
 )
 
 var mouseSGRRegex = regexp.MustCompile(`(\d+);(\d+);(\d+)([Mm])`)

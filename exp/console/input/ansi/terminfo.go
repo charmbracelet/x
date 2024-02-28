@@ -3,7 +3,7 @@ package ansi
 import (
 	"strings"
 
-	"github.com/charmbracelet/x/exp/term/input"
+	"github.com/charmbracelet/x/exp/console/input"
 	"github.com/xo/terminfo"
 )
 

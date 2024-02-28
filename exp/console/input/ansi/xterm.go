@@ -2,7 +2,7 @@ package ansi
 
 import (
 	"github.com/charmbracelet/x/exp/term/ansi"
-	"github.com/charmbracelet/x/exp/term/input"
+	"github.com/charmbracelet/x/exp/console/input"
 )
 
 func parseXTermModifyOtherKeys(seq []byte) input.Event {

@@ -6,7 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
-	"github.com/charmbracelet/x/exp/term/input"
+	"github.com/charmbracelet/x/exp/console/input"
 )
 
 // Flags to control the behavior of the driver.
