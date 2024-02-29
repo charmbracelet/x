@@ -1,4 +1,4 @@
-package ansi
+package input
 
 import (
 	"bufio"
@@ -6,7 +6,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
-	"github.com/charmbracelet/x/exp/term/input"
 	"github.com/muesli/cancelreader"
 )
 
@@ -95,7 +94,7 @@ const (
 
 // driver represents a terminal ANSI input driver.
 type driver struct {
-	table map[string]input.KeyEvent
+	table map[string]KeyEvent
 	rd    *bufio.Reader
 	cr    cancelreader.CancelReader
 	term  string
@@ -108,13 +107,13 @@ type driver struct {
 	flags int
 }
 
-var _ input.Driver = &driver{}
+var _ Driver = &driver{}
 
 // NewDriver returns a new ANSI input driver.
 // This driver uses ANSI control codes compatible with VT100/VT200 terminals,
 // and XTerm. It supports reading Terminfo databases to overwrite the default
 // key sequences.
-func NewDriver(r io.Reader, term string, flags int) input.Driver {
+func NewDriver(r io.Reader, term string, flags int) Driver {
 	d := new(driver)
 	cr, err := cancelreader.NewReader(r)
 	if err == nil {
@@ -145,8 +144,8 @@ func (d *driver) Close() error {
 	return nil
 }
 
-// ReadInput implements input.Driver.
-func (d *driver) ReadInput() ([]input.Event, error) {
+// ReadInput implements Driver.
+func (d *driver) ReadInput() ([]Event, error) {
 	nb, ne, err := d.peekInput()
 	if err != nil {
 		return nil, err
@@ -160,8 +159,8 @@ func (d *driver) ReadInput() ([]input.Event, error) {
 	return ne, nil
 }
 
-// PeekInput implements input.Driver.
-func (d *driver) PeekInput() ([]input.Event, error) {
+// PeekInput implements Driver.
+func (d *driver) PeekInput() ([]Event, error) {
 	_, ne, err := d.peekInput()
 	if err != nil {
 		return nil, err
@@ -170,8 +169,8 @@ func (d *driver) PeekInput() ([]input.Event, error) {
 	return ne, err
 }
 
-func (d *driver) peekInput() (int, []input.Event, error) {
-	ev := make([]input.Event, 0)
+func (d *driver) peekInput() (int, []Event, error) {
+	ev := make([]Event, 0)
 	p, err := d.rd.Peek(1)
 	if err != nil {
 		return 0, nil, err
@@ -189,7 +188,7 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 
 	// Lookup table first
 	if k, ok := d.table[string(p)]; ok {
-		return len(p), []input.Event{k}, nil
+		return len(p), []Event{k}, nil
 	}
 
 	i := 0 // index of the current byte
@@ -210,7 +209,7 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 					paste = append(paste, r)
 				}
 				d.paste = nil // reset the buffer
-				ev = append(ev, input.KeyEvent{Runes: paste})
+				ev = append(ev, KeyEvent{Runes: paste})
 			}
 			ev = append(ev, e)
 		}
@@ -222,7 +221,7 @@ func (d *driver) peekInput() (int, []input.Event, error) {
 
 // peekOne peeks a single event from the input buffer.
 // This may return a nil event.
-func (d *driver) peekOne(p []byte) (int, input.Event) {
+func (d *driver) peekOne(p []byte) (int, Event) {
 	if len(p) == 0 {
 		return 0, nil
 	}
@@ -232,7 +231,7 @@ func (d *driver) peekOne(p []byte) (int, input.Event) {
 		i   = 0
 	)
 
-	var parser func(int, []byte, bool) (int, input.Event)
+	var parser func(int, []byte, bool) (int, Event)
 
 begin:
 	b := p[i]
@@ -298,14 +297,14 @@ begin:
 		// Single byte control code or printable ASCII/UTF-8
 		k := d.table[string(b)]
 		if alt {
-			k.Mod |= input.Alt
+			k.Mod |= Alt
 		}
 		i++
 		return i, k
 	} else if utf8.RuneStart(b) {
 		// Collect UTF-8 sequences into a slice of runes.
 		// We need to do this for multi-rune emojis to work.
-		var k input.KeyEvent
+		var k KeyEvent
 		for rw := 0; i < len(p); i += rw {
 			var r rune
 			r, rw = utf8.DecodeRune(p[i:])
@@ -316,7 +315,7 @@ begin:
 		}
 
 		if alt {
-			k.Mod |= input.Alt
+			k.Mod |= Alt
 		}
 
 		// Zero runes means we didn't find a valid UTF-8 sequence.
@@ -325,10 +324,10 @@ begin:
 		}
 	}
 
-	return 1, input.UnknownEvent(string(p[0]))
+	return 1, UnknownEvent(string(p[0]))
 }
 
-func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
+func (d *driver) parseCsi(i int, p []byte, alt bool) (int, Event) {
 	var seq []byte
 	if p[i] == ansi.CSI || p[i] == ansi.ESC {
 		seq = append(seq, p[i])
@@ -353,10 +352,10 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 		// events such as shift modified keys (\x1b [ <func> $). We try to
 		// lookup the sequence in the table and return it as a key event if it
 		// exists. Otherwise, we report an unknown event.
-		var e input.Event = input.UnknownEvent(seq)
+		var e Event = UnknownEvent(seq)
 		if key, ok := d.table[string(seq)]; ok {
 			if alt {
-				key.Mod |= input.Alt
+				key.Mod |= Alt
 			}
 			e = key
 		}
@@ -368,7 +367,7 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 	k, ok := d.table[string(seq)]
 	if ok {
 		if alt {
-			k.Mod |= input.Alt
+			k.Mod |= Alt
 		}
 		return len(seq), k
 	}
@@ -413,7 +412,7 @@ func (d *driver) parseCsi(i int, p []byte, alt bool) (int, input.Event) {
 
 // parseSs3 parses a SS3 sequence.
 // See https://vt100.net/docs/vt220-rm/chapter4.html#S4.4.4.2
-func (d *driver) parseSs3(i int, p []byte, alt bool) (int, input.Event) {
+func (d *driver) parseSs3(i int, p []byte, alt bool) (int, Event) {
 	var seq []byte
 	if p[i] == ansi.SS3 || p[i] == ansi.ESC {
 		seq = append(seq, p[i])
@@ -428,10 +427,10 @@ func (d *driver) parseSs3(i int, p []byte, alt bool) (int, input.Event) {
 	// A GL character is a single byte in the range 0x21-0x7E
 	// See https://vt100.net/docs/vt220-rm/chapter2.html#S2.3.2
 	if i >= len(p) || p[i] < 0x21 || p[i] > 0x7E {
-		var e input.Event = input.UnknownEvent(seq)
+		var e Event = UnknownEvent(seq)
 		if key, ok := d.table[string(seq)]; ok {
 			if alt {
-				key.Mod |= input.Alt
+				key.Mod |= Alt
 			}
 			e = key
 		}
@@ -443,15 +442,15 @@ func (d *driver) parseSs3(i int, p []byte, alt bool) (int, input.Event) {
 	k, ok := d.table[string(seq)]
 	if ok {
 		if alt {
-			k.Mod |= input.Alt
+			k.Mod |= Alt
 		}
 		return len(seq), k
 	}
 
-	return len(seq), input.UnknownEvent(seq)
+	return len(seq), UnknownEvent(seq)
 }
 
-func (d *driver) parseOsc(i int, p []byte, _ bool) (int, input.Event) {
+func (d *driver) parseOsc(i int, p []byte, _ bool) (int, Event) {
 	var seq []byte
 	if p[i] == ansi.OSC || p[i] == ansi.ESC {
 		seq = append(seq, p[i])
@@ -469,7 +468,7 @@ func (d *driver) parseOsc(i int, p []byte, _ bool) (int, input.Event) {
 	}
 
 	if i >= len(p) {
-		return len(seq), input.UnknownEvent(seq)
+		return len(seq), UnknownEvent(seq)
 	}
 	seq = append(seq, p[i])
 
@@ -493,8 +492,8 @@ func (d *driver) parseOsc(i int, p []byte, _ bool) (int, input.Event) {
 }
 
 // parseCtrl parses a control sequence that gets terminated by a ST character.
-func (d *driver) parseCtrl(intro8, intro7 byte) func(int, []byte, bool) (int, input.Event) {
-	return func(i int, p []byte, _ bool) (int, input.Event) {
+func (d *driver) parseCtrl(intro8, intro7 byte) func(int, []byte, bool) (int, Event) {
+	return func(i int, p []byte, _ bool) (int, Event) {
 		var seq []byte
 		if p[i] == intro8 || p[i] == ansi.ESC {
 			seq = append(seq, p[i])
@@ -513,7 +512,7 @@ func (d *driver) parseCtrl(intro8, intro7 byte) func(int, []byte, bool) (int, in
 		}
 
 		if i >= len(p) {
-			return len(seq), input.UnknownEvent(seq)
+			return len(seq), UnknownEvent(seq)
 		}
 		seq = append(seq, p[i])
 
@@ -523,16 +522,16 @@ func (d *driver) parseCtrl(intro8, intro7 byte) func(int, []byte, bool) (int, in
 			seq = append(seq, p[i])
 		}
 
-		return len(seq), input.UnknownEvent(seq)
+		return len(seq), UnknownEvent(seq)
 	}
 }
 
-func (d *driver) parseDcs(i int, p []byte, alt bool) (int, input.Event) {
+func (d *driver) parseDcs(i int, p []byte, alt bool) (int, Event) {
 	// DCS sequences are introduced by DCS (0x90) or ESC P (0x1b 0x50)
 	return d.parseCtrl(ansi.DCS, 'P')(i, p, alt)
 }
 
-func (d *driver) parseApc(i int, p []byte, alt bool) (int, input.Event) {
+func (d *driver) parseApc(i int, p []byte, alt bool) (int, Event) {
 	// APC sequences are introduced by APC (0x9f) or ESC _ (0x1b 0x5f)
 	return d.parseCtrl(ansi.APC, '_')(i, p, alt)
 }

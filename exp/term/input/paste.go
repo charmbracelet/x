@@ -1,21 +1,17 @@
-package ansi
-
-import (
-	"github.com/charmbracelet/x/exp/term/input"
-)
+package input
 
 // PasteStartEvent is an event that is emitted when a terminal enters
 // bracketed-paste mode.
 type PasteStartEvent struct{}
 
-var _ input.Event = PasteStartEvent{}
+var _ Event = PasteStartEvent{}
 
-// String implements input.Event.
+// String implements Event.
 func (e PasteStartEvent) String() string {
 	return "paste start"
 }
 
-// Type implements input.Event.
+// Type implements Event.
 func (PasteStartEvent) Type() string {
 	return "PasteStart"
 }
@@ -23,14 +19,14 @@ func (PasteStartEvent) Type() string {
 // PasteEvent is an event that is emitted when a terminal receives pasted text.
 type PasteEndEvent struct{}
 
-var _ input.Event = PasteEndEvent{}
+var _ Event = PasteEndEvent{}
 
-// String implements input.Event.
+// String implements Event.
 func (e PasteEndEvent) String() string {
 	return "paste end"
 }
 
-// Type implements input.Event.
+// Type implements Event.
 func (PasteEndEvent) Type() string {
 	return "PasteEnd"
 }

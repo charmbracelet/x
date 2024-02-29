@@ -1,11 +1,10 @@
-package ansi
+package input
 
 import (
 	"github.com/charmbracelet/x/exp/term/ansi"
-	"github.com/charmbracelet/x/exp/term/input"
 )
 
-func parseXTermModifyOtherKeys(seq []byte) input.Event {
+func parseXTermModifyOtherKeys(seq []byte) Event {
 	csi := ansi.CsiSequence(seq)
 	params := ansi.Params(csi.Params())
 
@@ -14,7 +13,7 @@ func parseXTermModifyOtherKeys(seq []byte) input.Event {
 		return UnknownCsiEvent{csi}
 	}
 
-	mod := input.Mod(params[1][0] - 1)
+	mod := Mod(params[1][0] - 1)
 	r := rune(params[2][0])
 	k, ok := modifyOtherKeys[int(r)]
 	if ok {
@@ -22,17 +21,17 @@ func parseXTermModifyOtherKeys(seq []byte) input.Event {
 		return k
 	}
 
-	return input.KeyEvent{
+	return KeyEvent{
 		Mod:   mod,
 		Runes: []rune{r},
 	}
 }
 
 // CSI 27 ; <modifier> ; <code> ~ keys defined in XTerm modifyOtherKeys
-var modifyOtherKeys = map[int]input.KeyEvent{
-	ansi.BS:  {Sym: input.KeyBackspace},
-	ansi.HT:  {Sym: input.KeyTab},
-	ansi.CR:  {Sym: input.KeyEnter},
-	ansi.ESC: {Sym: input.KeyEscape},
-	ansi.DEL: {Sym: input.KeyBackspace},
+var modifyOtherKeys = map[int]KeyEvent{
+	ansi.BS:  {Sym: KeyBackspace},
+	ansi.HT:  {Sym: KeyTab},
+	ansi.CR:  {Sym: KeyEnter},
+	ansi.ESC: {Sym: KeyEscape},
+	ansi.DEL: {Sym: KeyBackspace},
 }

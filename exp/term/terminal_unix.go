@@ -11,7 +11,6 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi/kitty"
 	"github.com/charmbracelet/x/exp/term/ansi/sys"
 	"github.com/charmbracelet/x/exp/term/input"
-	"github.com/charmbracelet/x/exp/term/input/ansi"
 	"github.com/muesli/cancelreader"
 )
 
@@ -139,7 +138,7 @@ func (c *terminal) initInputHandler() {
 	if c.inputHandler != nil {
 		return
 	}
-	c.inputHandler = ansi.NewDriver(c.input, os.Getenv("TERM"), 0)
+	c.inputHandler = input.NewDriver(c.input, os.Getenv("TERM"), 0)
 }
 
 // SupportsKittyKeyboard implements Terminal.
@@ -193,15 +192,15 @@ loop:
 			break loop
 		case e := <-evc:
 			switch e := e.(type) {
-			case ansi.KittyKeyboardEvent:
+			case input.KittyKeyboardEvent:
 				c.kittyFlags = int(e)
-			case ansi.BgColorEvent:
+			case input.BgColorEvent:
 				c.bgColor = e.Color
-			case ansi.FgColorEvent:
+			case input.FgColorEvent:
 				c.fgColor = e.Color
-			case ansi.CursorColorEvent:
+			case input.CursorColorEvent:
 				c.curColor = e.Color
-			case ansi.PrimaryDeviceAttributesEvent:
+			case input.PrimaryDeviceAttributesEvent:
 				if c.bgColor == nil {
 					c.bgColor = color.Black
 				}
