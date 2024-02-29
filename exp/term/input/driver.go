@@ -382,13 +382,6 @@ func (d *Driver) parseCsi(i int, p []byte, alt bool) (int, Event) {
 	cmd := csi.Command()
 	params := ansi.Params(csi.Params())
 	switch {
-	// Bracketed-paste must come before XTerm modifyOtherKeys
-	case string(seq) == "\x1b[200~":
-		// bracketed-paste start
-		return len(seq), PasteStartEvent{}
-	case string(seq) == "\x1b[201~":
-		// bracketed-paste end
-		return len(seq), PasteEndEvent{}
 	case string(seq) == "\x1b[M" && i+3 < len(p):
 		// Handle X10 mouse
 		return len(seq) + 3, parseX10MouseEvent(append(seq, p[i+1:i+3]...))
@@ -401,6 +394,13 @@ func (d *Driver) parseCsi(i int, p []byte, alt bool) (int, Event) {
 	case initial == '?' && cmd == 'u' && len(params) > 0:
 		// Kitty keyboard flags
 		return len(seq), KittyKeyboardEvent(params[0][0])
+	// Bracketed-paste must come before XTerm modifyOtherKeys
+	case string(seq) == "\x1b[200~":
+		// bracketed-paste start
+		return len(seq), PasteStartEvent{}
+	case string(seq) == "\x1b[201~":
+		// bracketed-paste end
+		return len(seq), PasteEndEvent{}
 	case initial == 0 && cmd == '~':
 		// XTerm modifyOtherKeys 2
 		return len(seq), parseXTermModifyOtherKeys(seq)
