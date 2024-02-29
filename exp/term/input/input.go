@@ -2,6 +2,7 @@ package input
 
 import (
 	"fmt"
+	"io"
 )
 
 var (
@@ -28,6 +29,9 @@ type Driver interface {
 	// PeekInput peeks at input events from the terminal without consuming
 	// them.
 	PeekInput() ([]Event, error)
+
+	io.Closer
+	Cancel() bool
 }
 
 // UnknownEvent represents an unknown event.

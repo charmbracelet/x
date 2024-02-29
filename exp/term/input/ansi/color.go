@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/charmbracelet/x/exp/console/input"
+	"github.com/charmbracelet/x/exp/term/input"
 )
 
 // FgColorEvent represents a foreground color change event.

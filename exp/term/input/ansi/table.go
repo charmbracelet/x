@@ -4,7 +4,7 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
-	"github.com/charmbracelet/x/exp/console/input"
+	"github.com/charmbracelet/x/exp/term/input"
 )
 
 func (d *driver) registerKeys(flags int) {

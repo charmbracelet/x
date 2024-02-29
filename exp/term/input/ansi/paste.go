@@ -1,7 +1,7 @@
 package ansi
 
 import (
-	"github.com/charmbracelet/x/exp/console/input"
+	"github.com/charmbracelet/x/exp/term/input"
 )
 
 // PasteStartEvent is an event that is emitted when a terminal enters
