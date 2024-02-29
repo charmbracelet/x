@@ -1,0 +1,12 @@
+/scripts @caarlos0
+/term/ansi @aymanbagabas
+/term/conpty @aymanbagabas
+/term/termios @caarlos0
+/editor @caarlos0
+/errors @caarlos0
+/exp/golden @caarlos0
+/exp/higherorder @meowgorithm
+/exp/ordered @meowgorithm
+/exp/slice @meowgorithm
+/exp/strings @meowgorithm
+/exp/teatest @caarlos0
