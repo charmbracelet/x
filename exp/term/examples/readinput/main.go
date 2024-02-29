@@ -14,7 +14,6 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi/mode"
 	"github.com/charmbracelet/x/exp/term/ansi/sys"
 	"github.com/charmbracelet/x/exp/term/input"
-	"github.com/charmbracelet/x/exp/term/input/ansi"
 )
 
 func main() {
@@ -38,7 +37,7 @@ func main() {
 	defer io.WriteString(os.Stdout, kitty.Pop(kitty.AllFlags)) // Disable Kitty keyboard
 	defer disableMouse()
 
-	rd := ansi.NewDriver(in, os.Getenv("TERM"), 0)
+	rd := input.NewDriver(in, os.Getenv("TERM"), 0)
 
 	printHelp()
 

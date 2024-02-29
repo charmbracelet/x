@@ -1,17 +1,15 @@
-package ansi
+package input
 
 import (
 	"fmt"
-
-	"github.com/charmbracelet/x/exp/term/input"
 )
 
 // PrimaryDeviceAttributesEvent represents a primary device attributes event.
 type PrimaryDeviceAttributesEvent []uint
 
-var _ input.Event = PrimaryDeviceAttributesEvent{}
+var _ Event = PrimaryDeviceAttributesEvent{}
 
-// String implements input.Event.
+// String implements Event.
 func (e PrimaryDeviceAttributesEvent) String() string {
 	s := "DA1"
 	if len(e) > 0 {
@@ -20,7 +18,7 @@ func (e PrimaryDeviceAttributesEvent) String() string {
 	return s
 }
 
-// Type implements input.Event.
+// Type implements Event.
 func (PrimaryDeviceAttributesEvent) Type() string {
 	return "PrimaryDeviceAttributesEvent"
 }
