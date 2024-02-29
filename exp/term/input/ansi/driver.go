@@ -6,7 +6,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
-	"github.com/charmbracelet/x/exp/console/input"
+	"github.com/charmbracelet/x/exp/term/input"
+	"github.com/muesli/cancelreader"
 )
 
 // Flags to control the behavior of the driver.
@@ -96,6 +97,7 @@ const (
 type driver struct {
 	table map[string]input.KeyEvent
 	rd    *bufio.Reader
+	cr    cancelreader.CancelReader
 	term  string
 
 	// paste is the bracketed paste mode buffer.
@@ -113,14 +115,34 @@ var _ input.Driver = &driver{}
 // and XTerm. It supports reading Terminfo databases to overwrite the default
 // key sequences.
 func NewDriver(r io.Reader, term string, flags int) input.Driver {
-	d := &driver{
-		rd:    bufio.NewReaderSize(r, 256),
-		flags: flags,
-		term:  term,
+	d := new(driver)
+	cr, err := cancelreader.NewReader(r)
+	if err == nil {
+		d.cr = cr
+		r = cr
 	}
+	d.rd = bufio.NewReaderSize(r, 256)
+	d.flags = flags
+	d.term = term
 	// Populate the key sequences table.
 	d.registerKeys(flags)
 	return d
+}
+
+// Cancel cancels the underlying reader.
+func (d *driver) Cancel() bool {
+	if d.cr != nil {
+		return d.cr.Cancel()
+	}
+	return false
+}
+
+// Close closes the underlying reader.
+func (d *driver) Close() error {
+	if d.cr != nil {
+		return d.cr.Close()
+	}
+	return nil
 }
 
 // ReadInput implements input.Driver.

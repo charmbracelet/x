@@ -13,8 +13,8 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi/kitty"
 	"github.com/charmbracelet/x/exp/term/ansi/mode"
 	"github.com/charmbracelet/x/exp/term/ansi/sys"
-	"github.com/charmbracelet/x/exp/console/input"
-	"github.com/charmbracelet/x/exp/console/input/ansi"
+	"github.com/charmbracelet/x/exp/term/input"
+	"github.com/charmbracelet/x/exp/term/input/ansi"
 )
 
 func main() {
