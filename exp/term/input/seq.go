@@ -11,16 +11,9 @@ type UnknownCsiEvent struct {
 	ansi.CsiSequence
 }
 
-var _ Event = UnknownCsiEvent{}
-
-// String implements Event.
+// String implements fmt.Stringer.
 func (e UnknownCsiEvent) String() string {
-	return fmt.Sprintf("unknown CSI sequence: %q", e.CsiSequence)
-}
-
-// Type implements Event.
-func (UnknownCsiEvent) Type() string {
-	return "Unknown CSI Sequence"
+	return fmt.Sprintf("%q", e.CsiSequence)
 }
 
 // UnknownOscEvent represents an unknown OSC sequence event.
@@ -28,14 +21,23 @@ type UnknownOscEvent struct {
 	ansi.OscSequence
 }
 
-var _ Event = UnknownOscEvent{}
-
-// String implements Event.
+// String implements fmt.Stringer.
 func (e UnknownOscEvent) String() string {
-	return fmt.Sprintf("unknown OSC sequence: %q", e.OscSequence)
+	return fmt.Sprintf("%q", e.OscSequence)
 }
 
-// Type implements Event.
-func (UnknownOscEvent) Type() string {
-	return "Unknown OSC Sequence"
+// UnknownDcsEvent represents an unknown DCS sequence event.
+type UnknownDcsEvent string
+
+// String implements fmt.Stringer.
+func (e UnknownDcsEvent) String() string {
+	return fmt.Sprintf("%q", string(e))
+}
+
+// UnknownApcEvent represents an unknown APC sequence event.
+type UnknownApcEvent string
+
+// String implements fmt.Stringer.
+func (e UnknownApcEvent) String() string {
+	return fmt.Sprintf("%q", string(e))
 }

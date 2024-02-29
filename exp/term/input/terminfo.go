@@ -6,7 +6,7 @@ import (
 	"github.com/xo/terminfo"
 )
 
-func (d *driver) registerTerminfoKeys() {
+func (d *Driver) registerTerminfoKeys() {
 	if d.term == "" {
 		return
 	}
