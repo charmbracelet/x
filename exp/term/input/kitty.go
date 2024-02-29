@@ -10,8 +10,6 @@ import (
 // KittyKeyboardEvent represents Kitty keyboard progressive enhancement flags.
 type KittyKeyboardEvent int
 
-var _ Event = KittyKeyboardEvent(0)
-
 // IsDisambiguateEscapeCodes returns true if the DisambiguateEscapeCodes flag is set.
 func (e KittyKeyboardEvent) IsDisambiguateEscapeCodes() bool {
 	return e&kitty.DisambiguateEscapeCodes != 0
@@ -37,9 +35,9 @@ func (e KittyKeyboardEvent) IsReportAssociatedKeys() bool {
 	return e&kitty.ReportAssociatedKeys != 0
 }
 
-// String implements Event.
+// String implements fmt.Stringer.
 func (e KittyKeyboardEvent) String() string {
-	s := "Kitty keyboard:"
+	s := "Flags:"
 	if e == 0 {
 		return s + " none"
 	}
@@ -59,11 +57,6 @@ func (e KittyKeyboardEvent) String() string {
 		s += " ReportAssociatedKeys"
 	}
 	return s
-}
-
-// Type implements Event.
-func (KittyKeyboardEvent) Type() string {
-	return "Kitty Keyboard"
 }
 
 // Kitty Clipboard Control Sequences

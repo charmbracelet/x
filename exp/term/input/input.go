@@ -2,7 +2,6 @@ package input
 
 import (
 	"fmt"
-	"io"
 )
 
 var (
@@ -14,37 +13,12 @@ var (
 )
 
 // Event represents a terminal input event.
-type Event interface {
-	fmt.Stringer
-
-	// Type returns the type of the event.
-	Type() string
-}
-
-// Driver represents a terminal input driver.
-type Driver interface {
-	// ReadInput reads input events from the terminal.
-	ReadInput() ([]Event, error)
-
-	// PeekInput peeks at input events from the terminal without consuming
-	// them.
-	PeekInput() ([]Event, error)
-
-	io.Closer
-	Cancel() bool
-}
+type Event interface{}
 
 // UnknownEvent represents an unknown event.
 type UnknownEvent string
 
-var _ Event = UnknownEvent("")
-
-// String implements Event.
+// String implements fmt.Stringer.
 func (e UnknownEvent) String() string {
-	return fmt.Sprintf("unknown event: %q", string(e))
-}
-
-// Type implements Event.
-func (UnknownEvent) Type() string {
-	return "Unknown"
+	return fmt.Sprintf("%q", string(e))
 }

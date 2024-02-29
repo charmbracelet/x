@@ -7,64 +7,36 @@ import (
 	"strings"
 )
 
-// FgColorEvent represents a foreground color change event.
-type FgColorEvent struct{ color.Color }
+// ForegroundColorEvent represents a foreground color change event.
+type ForegroundColorEvent struct{ color.Color }
 
-var _ Event = FgColorEvent{}
-
-// String implements Event.
-func (e FgColorEvent) String() string {
-	r, g, b, a := e.RGBA()
-	r >>= 8
-	g >>= 8
-	b >>= 8
-	a >>= 8
-	return fmt.Sprintf("FgColor: [%02x]#%02x%02x%02x", a, r, g, b)
+// String implements fmt.Stringer.
+func (e ForegroundColorEvent) String() string {
+	return colorToHex(e)
 }
 
-// Type implements Event.
-func (FgColorEvent) Type() string {
-	return "FgColor"
-}
+// BackgroundColorEvent represents a background color change event.
+type BackgroundColorEvent struct{ color.Color }
 
-// BgColorEvent represents a background color change event.
-type BgColorEvent struct{ color.Color }
-
-var _ Event = BgColorEvent{}
-
-// String implements Event.
-func (e BgColorEvent) String() string {
-	r, g, b, a := e.RGBA()
-	r >>= 8
-	g >>= 8
-	b >>= 8
-	a >>= 8
-	return fmt.Sprintf("BgColor: [%02x]#%02x%02x%02x", a, r, g, b)
-}
-
-// Type implements Event.
-func (BgColorEvent) Type() string {
-	return "BgColor"
+// String implements fmt.Stringer.
+func (e BackgroundColorEvent) String() string {
+	return colorToHex(e)
 }
 
 // CursorColorEvent represents a cursor color change event.
 type CursorColorEvent struct{ color.Color }
 
-var _ Event = CursorColorEvent{}
-
-// String implements Event.
+// String implements fmt.Stringer.
 func (e CursorColorEvent) String() string {
-	r, g, b, a := e.RGBA()
+	return colorToHex(e)
+}
+
+func colorToHex(c color.Color) string {
+	r, g, b, _ := c.RGBA()
 	r >>= 8
 	g >>= 8
 	b >>= 8
-	a >>= 8
-	return fmt.Sprintf("CursorColor: [%02x]#%02x%02x%02x", a, r, g, b)
-}
-
-// Type implements Event.
-func (CursorColorEvent) Type() string {
-	return "CursorColor"
+	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
 }
 
 func xParseColor(s string) color.Color {

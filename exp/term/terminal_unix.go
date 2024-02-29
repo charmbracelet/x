@@ -18,21 +18,22 @@ type terminal struct {
 	input  io.Reader
 	output io.Writer
 
+	curColor color.Color
+	fgColor  color.Color
+	bgColor  color.Color
+
+	inputHandler *input.Driver
+
 	inFile  *os.File
 	outFile *os.File
 
-	inIstty  bool
-	outIstty bool
-
-	isRaw     bool
 	prevState *State
 
-	inputHandler input.Driver
-
 	kittyFlags int
-	bgColor    color.Color
-	fgColor    color.Color
-	curColor   color.Color
+
+	isRaw    bool
+	outIstty bool
+	inIstty  bool
 }
 
 var _ Terminal = &terminal{}
@@ -194,9 +195,9 @@ loop:
 			switch e := e.(type) {
 			case input.KittyKeyboardEvent:
 				c.kittyFlags = int(e)
-			case input.BgColorEvent:
+			case input.BackgroundColorEvent:
 				c.bgColor = e.Color
-			case input.FgColorEvent:
+			case input.ForegroundColorEvent:
 				c.fgColor = e.Color
 			case input.CursorColorEvent:
 				c.curColor = e.Color

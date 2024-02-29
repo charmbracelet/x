@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi"
 )
 
-func (d *driver) registerKeys(flags int) {
+func (d *Driver) registerKeys(flags int) {
 	nul := KeyEvent{Sym: KeySpace, Mod: Ctrl} // ctrl+@ or ctrl+space
 	if flags&FlagSpace != 0 {
 		nul = KeyEvent{Runes: []rune{' '}, Mod: Ctrl}

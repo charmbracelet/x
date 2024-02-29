@@ -16,6 +16,11 @@ import (
 	"github.com/charmbracelet/x/exp/term/input"
 )
 
+func init() {
+	// suppress logger time prefix
+	log.SetFlags(0)
+}
+
 func main() {
 	var in io.Reader = os.Stdin
 	if !term.IsTerminal(os.Stdin.Fd()) {
@@ -191,7 +196,11 @@ OUT:
 		}
 
 		for _, e := range n {
-			log.Printf("event: %s\r\n\r\n", e)
+			if _, ok := e.(fmt.Stringer); ok {
+				log.Printf("=== %T: %s\r\n\r\n", e, e)
+			} else {
+				log.Printf("=== %T\r\n\r\n", e)
+			}
 		}
 
 		// Store last keypress

@@ -87,7 +87,7 @@ func (m MouseEvent) IsWheel() bool {
 
 var _ Event = MouseEvent{}
 
-// String implements Event.
+// String implements fmt.Stringer.
 func (m MouseEvent) String() (s string) {
 	if m.Mod.IsCtrl() {
 		s += "ctrl+"
@@ -120,11 +120,6 @@ func (m MouseEvent) String() (s string) {
 	s += fmt.Sprintf(" at (%d, %d)", m.X, m.Y)
 
 	return s
-}
-
-// Type implements Event.
-func (MouseEvent) Type() string {
-	return "Mouse"
 }
 
 var mouseSGRRegex = regexp.MustCompile(`(\d+);(\d+);(\d+)([Mm])`)

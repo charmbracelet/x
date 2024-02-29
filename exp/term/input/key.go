@@ -219,7 +219,7 @@ func (k KeyEvent) AltRune() rune {
 
 var _ Event = KeyEvent{}
 
-// String implements Event.
+// String implements fmt.Stringer.
 func (k KeyEvent) String() string {
 	var s string
 	if k.Mod.IsCtrl() && k.Sym != KeyLeftCtrl && k.Sym != KeyRightCtrl {
