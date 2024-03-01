@@ -220,9 +220,7 @@ func fromKittyMod(mod int) Mod {
 	return m
 }
 
-func parseKittyKeyboard(p []byte) KeyEvent {
-	csi := ansi.CsiSequence(p)
-	params := ansi.Params(csi.Params())
+func parseKittyKeyboard(params [][]uint) KeyEvent {
 	key := KeyEvent{}
 	if len(params) > 0 {
 		code := int(params[0][0])
@@ -233,11 +231,11 @@ func parseKittyKeyboard(p []byte) KeyEvent {
 			if !utf8.ValidRune(r) {
 				r = utf8.RuneError
 			}
-			key.Runes = []rune{r}
+			key.Rune = r
 			if len(params[0]) > 1 {
 				al := rune(params[0][1])
 				if utf8.ValidRune(al) {
-					key.AltRunes = []rune{al}
+					key.AltRune = al
 				}
 			}
 		}
@@ -263,7 +261,7 @@ func parseKittyKeyboard(p []byte) KeyEvent {
 		if !utf8.ValidRune(r) {
 			r = utf8.RuneError
 		}
-		key.AltRunes = []rune{r}
+		key.AltRune = r
 	}
 	return key
 }

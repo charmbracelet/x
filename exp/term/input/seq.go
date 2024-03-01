@@ -2,28 +2,22 @@ package input
 
 import (
 	"fmt"
-
-	"github.com/charmbracelet/x/exp/term/ansi"
 )
 
 // UnknownCsiEvent represents an unknown CSI sequence event.
-type UnknownCsiEvent struct {
-	ansi.CsiSequence
-}
+type UnknownCsiEvent string
 
 // String implements fmt.Stringer.
 func (e UnknownCsiEvent) String() string {
-	return fmt.Sprintf("%q", e.CsiSequence)
+	return fmt.Sprintf("%q", string(e))
 }
 
 // UnknownOscEvent represents an unknown OSC sequence event.
-type UnknownOscEvent struct {
-	ansi.OscSequence
-}
+type UnknownOscEvent string
 
 // String implements fmt.Stringer.
 func (e UnknownOscEvent) String() string {
-	return fmt.Sprintf("%q", e.OscSequence)
+	return fmt.Sprintf("%q", string(e))
 }
 
 // UnknownDcsEvent represents an unknown DCS sequence event.
@@ -39,5 +33,13 @@ type UnknownApcEvent string
 
 // String implements fmt.Stringer.
 func (e UnknownApcEvent) String() string {
+	return fmt.Sprintf("%q", string(e))
+}
+
+// UnknownSs3Event represents an unknown SS3 sequence event.
+type UnknownSs3Event string
+
+// String implements fmt.Stringer.
+func (e UnknownSs3Event) String() string {
 	return fmt.Sprintf("%q", string(e))
 }

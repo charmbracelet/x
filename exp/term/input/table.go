@@ -9,30 +9,30 @@ import (
 func (d *Driver) registerKeys(flags int) {
 	nul := KeyEvent{Sym: KeySpace, Mod: Ctrl} // ctrl+@ or ctrl+space
 	if flags&FlagSpace != 0 {
-		nul = KeyEvent{Runes: []rune{' '}, Mod: Ctrl}
+		nul = KeyEvent{Rune: ' ', Mod: Ctrl}
 	}
 	if flags&FlagCtrlAt != 0 {
-		nul = KeyEvent{Runes: []rune{'@'}, Mod: Ctrl}
+		nul = KeyEvent{Rune: '@', Mod: Ctrl}
 	}
 
 	tab := KeyEvent{Sym: KeyTab} // ctrl+i or tab
 	if flags&FlagCtrlI != 0 {
-		tab = KeyEvent{Runes: []rune{'i'}, Mod: Ctrl}
+		tab = KeyEvent{Rune: 'i', Mod: Ctrl}
 	}
 
 	enter := KeyEvent{Sym: KeyEnter} // ctrl+m or enter
 	if flags&FlagCtrlM != 0 {
-		enter = KeyEvent{Runes: []rune{'m'}, Mod: Ctrl}
+		enter = KeyEvent{Rune: 'm', Mod: Ctrl}
 	}
 
 	esc := KeyEvent{Sym: KeyEscape} // ctrl+[ or escape
 	if flags&FlagCtrlOpenBracket != 0 {
-		esc = KeyEvent{Runes: []rune{'['}, Mod: Ctrl} // ctrl+[ or escape
+		esc = KeyEvent{Rune: '[', Mod: Ctrl} // ctrl+[ or escape
 	}
 
-	sp := KeyEvent{Sym: KeySpace, Runes: []rune{' '}}
+	sp := KeyEvent{Sym: KeySpace, Rune: ' '}
 	if flags&FlagSpace != 0 {
-		sp = KeyEvent{Runes: []rune{' '}}
+		sp = KeyEvent{Rune: ' '}
 	}
 
 	del := KeyEvent{Sym: KeyBackspace}
@@ -61,37 +61,37 @@ func (d *Driver) registerKeys(flags int) {
 	d.table = map[string]KeyEvent{
 		// C0 control characters
 		string(byte(ansi.NUL)): nul,
-		string(byte(ansi.SOH)): {Runes: []rune{'a'}, Mod: Ctrl},
-		string(byte(ansi.STX)): {Runes: []rune{'b'}, Mod: Ctrl},
-		string(byte(ansi.ETX)): {Runes: []rune{'c'}, Mod: Ctrl},
-		string(byte(ansi.EOT)): {Runes: []rune{'d'}, Mod: Ctrl},
-		string(byte(ansi.ENQ)): {Runes: []rune{'e'}, Mod: Ctrl},
-		string(byte(ansi.ACK)): {Runes: []rune{'f'}, Mod: Ctrl},
-		string(byte(ansi.BEL)): {Runes: []rune{'g'}, Mod: Ctrl},
-		string(byte(ansi.BS)):  {Runes: []rune{'h'}, Mod: Ctrl},
+		string(byte(ansi.SOH)): {Rune: 'a', Mod: Ctrl},
+		string(byte(ansi.STX)): {Rune: 'b', Mod: Ctrl},
+		string(byte(ansi.ETX)): {Rune: 'c', Mod: Ctrl},
+		string(byte(ansi.EOT)): {Rune: 'd', Mod: Ctrl},
+		string(byte(ansi.ENQ)): {Rune: 'e', Mod: Ctrl},
+		string(byte(ansi.ACK)): {Rune: 'f', Mod: Ctrl},
+		string(byte(ansi.BEL)): {Rune: 'g', Mod: Ctrl},
+		string(byte(ansi.BS)):  {Rune: 'h', Mod: Ctrl},
 		string(byte(ansi.HT)):  tab,
-		string(byte(ansi.LF)):  {Runes: []rune{'j'}, Mod: Ctrl},
-		string(byte(ansi.VT)):  {Runes: []rune{'k'}, Mod: Ctrl},
-		string(byte(ansi.FF)):  {Runes: []rune{'l'}, Mod: Ctrl},
+		string(byte(ansi.LF)):  {Rune: 'j', Mod: Ctrl},
+		string(byte(ansi.VT)):  {Rune: 'k', Mod: Ctrl},
+		string(byte(ansi.FF)):  {Rune: 'l', Mod: Ctrl},
 		string(byte(ansi.CR)):  enter,
-		string(byte(ansi.SO)):  {Runes: []rune{'n'}, Mod: Ctrl},
-		string(byte(ansi.SI)):  {Runes: []rune{'o'}, Mod: Ctrl},
-		string(byte(ansi.DLE)): {Runes: []rune{'p'}, Mod: Ctrl},
-		string(byte(ansi.DC1)): {Runes: []rune{'q'}, Mod: Ctrl},
-		string(byte(ansi.DC2)): {Runes: []rune{'r'}, Mod: Ctrl},
-		string(byte(ansi.DC3)): {Runes: []rune{'s'}, Mod: Ctrl},
-		string(byte(ansi.DC4)): {Runes: []rune{'t'}, Mod: Ctrl},
-		string(byte(ansi.NAK)): {Runes: []rune{'u'}, Mod: Ctrl},
-		string(byte(ansi.SYN)): {Runes: []rune{'v'}, Mod: Ctrl},
-		string(byte(ansi.ETB)): {Runes: []rune{'w'}, Mod: Ctrl},
-		string(byte(ansi.CAN)): {Runes: []rune{'x'}, Mod: Ctrl},
-		string(byte(ansi.EM)):  {Runes: []rune{'y'}, Mod: Ctrl},
-		string(byte(ansi.SUB)): {Runes: []rune{'z'}, Mod: Ctrl},
+		string(byte(ansi.SO)):  {Rune: 'n', Mod: Ctrl},
+		string(byte(ansi.SI)):  {Rune: 'o', Mod: Ctrl},
+		string(byte(ansi.DLE)): {Rune: 'p', Mod: Ctrl},
+		string(byte(ansi.DC1)): {Rune: 'q', Mod: Ctrl},
+		string(byte(ansi.DC2)): {Rune: 'r', Mod: Ctrl},
+		string(byte(ansi.DC3)): {Rune: 's', Mod: Ctrl},
+		string(byte(ansi.DC4)): {Rune: 't', Mod: Ctrl},
+		string(byte(ansi.NAK)): {Rune: 'u', Mod: Ctrl},
+		string(byte(ansi.SYN)): {Rune: 'v', Mod: Ctrl},
+		string(byte(ansi.ETB)): {Rune: 'w', Mod: Ctrl},
+		string(byte(ansi.CAN)): {Rune: 'x', Mod: Ctrl},
+		string(byte(ansi.EM)):  {Rune: 'y', Mod: Ctrl},
+		string(byte(ansi.SUB)): {Rune: 'z', Mod: Ctrl},
 		string(byte(ansi.ESC)): esc,
-		string(byte(ansi.FS)):  {Runes: []rune{'\\'}, Mod: Ctrl},
-		string(byte(ansi.GS)):  {Runes: []rune{']'}, Mod: Ctrl},
-		string(byte(ansi.RS)):  {Runes: []rune{'^'}, Mod: Ctrl},
-		string(byte(ansi.US)):  {Runes: []rune{'_'}, Mod: Ctrl},
+		string(byte(ansi.FS)):  {Rune: '\\', Mod: Ctrl},
+		string(byte(ansi.GS)):  {Rune: ']', Mod: Ctrl},
+		string(byte(ansi.RS)):  {Rune: '^', Mod: Ctrl},
+		string(byte(ansi.US)):  {Rune: '_', Mod: Ctrl},
 
 		// Special keys in G0
 		string(byte(ansi.SP)):  sp,

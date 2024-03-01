@@ -1,5 +1,11 @@
 package input
 
+import (
+	"unicode/utf8"
+
+	"github.com/charmbracelet/x/exp/term/ansi"
+)
+
 // KeySym is a keyboard symbol.
 type KeySym int
 
@@ -190,31 +196,11 @@ const (
 
 // KeyEvent is a keyboard key event.
 type KeyEvent struct {
-	Runes    []rune
-	AltRunes []rune
-	Sym      KeySym
-	Action   KeyAction
-	Mod      Mod
-}
-
-// Rune returns the first rune of the event.
-// This is a convenience method for the common case where the event only
-// contains a single rune.
-func (k KeyEvent) Rune() rune {
-	if len(k.Runes) == 0 {
-		return 0
-	}
-	return k.Runes[0]
-}
-
-// AltRune returns the first alternate rune of the event.
-// This is a convenience method for the common case where the event only
-// contains a single alternate rune.
-func (k KeyEvent) AltRune() rune {
-	if len(k.AltRunes) == 0 {
-		return 0
-	}
-	return k.AltRunes[0]
+	Rune    rune
+	AltRune rune
+	Sym     KeySym
+	Action  KeyAction
+	Mod
 }
 
 var _ Event = KeyEvent{}
@@ -246,12 +232,12 @@ func (k KeyEvent) String() string {
 	if k.Mod.IsNumLock() && k.Sym != KeyNumLock {
 		s += "numlock+"
 	}
-	if len(k.Runes) != 0 {
+	if k.Rune > ansi.US && k.Rune != ansi.DEL && utf8.ValidRune(k.Rune) {
 		// Space is the only invisible printable character.
-		if string(k.Runes) == " " {
+		if k.Rune == ' ' {
 			s += "space"
 		} else {
-			s += string(k.Runes)
+			s += string(k.Rune)
 		}
 	} else {
 		sym, ok := keySymString[k.Sym]
