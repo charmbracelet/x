@@ -1,7 +1,6 @@
 package input
 
 import (
-	"bufio"
 	"io"
 	"unicode/utf8"
 
@@ -96,9 +95,12 @@ const (
 // buffer.
 type Driver struct {
 	table map[string]KeyEvent
-	rd    *bufio.Reader
 	cr    cancelreader.CancelReader
-	term  string
+
+	buf            [256]byte // do we need a larger buffer?
+	internalEvents []Event   // holds peeked events
+
+	term string
 
 	// paste is the bracketed paste mode buffer.
 	// When nil, bracketed paste mode is disabled.
@@ -114,13 +116,14 @@ type Driver struct {
 // key sequences.
 func NewDriver(r io.Reader, term string, flags int) *Driver {
 	d := new(Driver)
+	d.internalEvents = make([]Event, 0, 10) // initial size of 10
+
 	// TODO: implement cancelable reader
 	cr, err := cancelreader.NewReader(r)
 	if err == nil {
 		d.cr = cr
 		r = cr
 	}
-	d.rd = bufio.NewReaderSize(r, 256)
 	d.flags = flags
 	d.term = term
 	// Populate the key sequences table.
@@ -145,71 +148,85 @@ func (d *Driver) Close() error {
 }
 
 // ReadInput reads input events from the terminal.
-func (d *Driver) ReadInput() ([]Event, error) {
-	nb, ne, err := d.peekInput()
-	if err != nil {
-		return nil, err
+//
+// It reads up to len(e) events into e and returns the number of events read
+// and an error, if any.
+func (d *Driver) ReadInput(e []Event) (n int, err error) {
+	if len(e) == 0 {
+		return 0, nil
 	}
 
-	// Consume the event
-	if _, err := d.rd.Discard(nb); err != nil {
-		return nil, err
+	// If there are any peeked events, return them first.
+	if len(d.internalEvents) > 0 {
+		n = copy(e, d.internalEvents)
+		d.internalEvents = d.internalEvents[n:]
 	}
 
-	return ne, nil
-}
-
-// PeekInput peeks at input events from the terminal without consuming
-// them.
-func (d *Driver) PeekInput() ([]Event, error) {
-	_, ne, err := d.peekInput()
-	if err != nil {
-		return nil, err
-	}
-
-	return ne, err
-}
-
-func (d *Driver) peekInput() (int, []Event, error) {
-	ev := make([]Event, 0)
-	p, err := d.rd.Peek(1)
-	if err != nil {
-		return 0, nil, err
-	}
-
-	// The number of bytes buffered.
-	bufferedBytes := d.rd.Buffered()
-	// Peek more bytes if needed.
-	if bufferedBytes > len(p) {
-		p, err = d.rd.Peek(bufferedBytes)
+	// Read new events
+	if n < len(e) {
+		ev, err := d.PeekInput(len(e) - n)
 		if err != nil {
-			return 0, nil, err
+			return n, err
 		}
+		nl := copy(e[n:], ev)
+		n += nl
+
+		// Consume the events from the internalEvents buffer.
+		d.internalEvents = d.internalEvents[nl:]
 	}
+
+	return
+}
+
+// PeekInput peeks at input events from the terminal without consuming them.
+//
+// If the number of events requested is greater than the number of events
+// available in the buffer, the number of available events will be returned.
+func (d *Driver) PeekInput(n int) ([]Event, error) {
+	if n <= 0 {
+		return []Event{}, nil
+	}
+
+	// Peek events from the internalEvents buffer first.
+	if len(d.internalEvents) > 0 {
+		if len(d.internalEvents) >= n {
+			return d.internalEvents[:n], nil
+		}
+		n -= len(d.internalEvents)
+	}
+
+	// Peek new events
+	nb, err := d.cr.Read(d.buf[:])
+	if err != nil {
+		return nil, err
+	}
+
+	buf := d.buf[:nb]
 
 	// Lookup table first
-	if k, ok := d.table[string(p)]; ok {
-		return len(p), []Event{k}, nil
+	if k, ok := d.table[string(buf)]; ok {
+		d.internalEvents = append(d.internalEvents, k)
+		return d.PeekInput(n)
 	}
 
-	i := 0 // index of the current byte
-	for i < len(p) {
-		nb, e := ParseSequence(p[i:])
+	var i int
+	for i = 0; i < len(buf); {
+		nb, ev := ParseSequence(buf[i:])
 
 		// Handle bracketed-paste
 		if d.paste != nil {
-			if _, ok := e.(PasteEndEvent); !ok {
-				d.paste = append(d.paste, p[i])
+			if _, ok := ev.(PasteEndEvent); !ok {
+				d.paste = append(d.paste, buf[i])
 				i++
 				continue
 			}
 		}
 
-		switch e.(type) {
+		switch ev.(type) {
 		case UnknownCsiEvent, UnknownSs3Event, UnknownEvent:
 			// If the sequence is not recognized by the parser, try looking it up.
-			if k, ok := d.table[string(p[i:i+nb])]; ok {
-				e = k
+			if k, ok := d.table[string(buf[i:i+nb])]; ok {
+				ev = k
 			}
 		case PasteStartEvent:
 			d.paste = []byte{}
@@ -224,24 +241,19 @@ func (d *Driver) peekInput() (int, []Event, error) {
 				paste = append(paste, r)
 			}
 			d.paste = nil // reset the buffer
-			ev = append(ev, PasteEvent(paste))
+			d.internalEvents = append(d.internalEvents, PasteEvent(paste))
 		case nil:
 			i++
 			continue
 		}
 
-		ev = append(ev, e)
+		d.internalEvents = append(d.internalEvents, ev)
 		i += nb
 	}
 
-	return i, ev, nil
-}
-
-func parsePrimaryDevAttrs(params [][]uint) Event {
-	// Primary Device Attributes
-	da1 := make([]uint, len(params))
-	for i, p := range params {
-		da1[i] = p[0]
+	if len(d.internalEvents) >= n {
+		return d.internalEvents[:n], nil
 	}
-	return PrimaryDeviceAttributesEvent(da1)
+
+	return d.internalEvents, nil
 }

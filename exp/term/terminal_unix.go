@@ -170,15 +170,16 @@ func (c *terminal) queryTerminal() {
 
 	evc := make(chan input.Event)
 	go func() {
+		var buf [16]input.Event
 		for {
-			ev, err := c.inputHandler.ReadInput()
+			_, err := c.inputHandler.ReadInput(buf[:])
 			if errors.Is(err, cancelreader.ErrCanceled) {
 				return
 			}
 			if err != nil {
 				return
 			}
-			for _, e := range ev {
+			for _, e := range buf {
 				evc <- e
 			}
 		}
