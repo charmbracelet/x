@@ -4,15 +4,8 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi"
 )
 
-func parseXTermModifyOtherKeys(seq []byte) Event {
-	csi := ansi.CsiSequence(seq)
-	params := ansi.Params(csi.Params())
-
+func parseXTermModifyOtherKeys(params [][]uint) Event {
 	// XTerm modify other keys starts with ESC [ 27 ; <modifier> ; <code> ~
-	if len(params) != 3 || params[0][0] != 27 {
-		return UnknownCsiEvent{csi}
-	}
-
 	mod := Mod(params[1][0] - 1)
 	r := rune(params[2][0])
 	k, ok := modifyOtherKeys[int(r)]
@@ -22,8 +15,8 @@ func parseXTermModifyOtherKeys(seq []byte) Event {
 	}
 
 	return KeyEvent{
-		Mod:   mod,
-		Runes: []rune{r},
+		Mod:  mod,
+		Rune: r,
 	}
 }
 

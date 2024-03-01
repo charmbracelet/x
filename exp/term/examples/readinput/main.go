@@ -76,8 +76,8 @@ OUT:
 			currKey, ok1 := n[len(n)-1].(input.KeyEvent)
 			prevKey, ok2 := last.(input.KeyEvent)
 			if ok1 && ok2 && currKey.Sym == 0 && prevKey.Sym == 0 && currKey.Action == 0 && prevKey.Action == 0 {
-				prev := string(prevKey.Runes)
-				curr := string(currKey.Runes)
+				prev := string(prevKey.Rune)
+				curr := string(currKey.Rune)
 				switch {
 				case prev == "q" && curr == "q":
 					break OUT
@@ -152,7 +152,7 @@ OUT:
 						execute(ctrl.RequestXTVersion)
 					}
 				case prev == "m":
-					switch string(currKey.Runes) {
+					switch string(currKey.Rune) {
 					case "0":
 						disableMouse()
 					case "1":
