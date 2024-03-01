@@ -58,9 +58,10 @@ func main() {
 		mouseExt    bool
 	)
 	last := input.Event(nil)
+	var buffer [1]input.Event
 OUT:
 	for {
-		n, err := rd.ReadInput()
+		n, err := rd.ReadInput(buffer[:])
 		if err == io.EOF {
 			break
 		}
@@ -72,8 +73,9 @@ OUT:
 			log.Fatalf("error reading input: %v\r\n", err)
 		}
 
-		if last != nil && len(n) > 0 {
-			currKey, ok1 := n[len(n)-1].(input.KeyEvent)
+		buf := buffer[:n]
+		if last != nil && len(buf) > 0 {
+			currKey, ok1 := buf[len(buf)-1].(input.KeyEvent)
 			prevKey, ok2 := last.(input.KeyEvent)
 			if ok1 && ok2 && currKey.Sym == 0 && prevKey.Sym == 0 && currKey.Action == 0 && prevKey.Action == 0 {
 				prev := string(prevKey.Rune)
@@ -195,7 +197,7 @@ OUT:
 			}
 		}
 
-		for _, e := range n {
+		for _, e := range buf {
 			if _, ok := e.(fmt.Stringer); ok {
 				log.Printf("=== %T: %s\r\n\r\n", e, e)
 			} else {
@@ -204,8 +206,8 @@ OUT:
 		}
 
 		// Store last keypress
-		if len(n) > 0 {
-			key, ok := n[len(n)-1].(input.KeyEvent)
+		if len(buf) > 0 {
+			key, ok := buf[len(buf)-1].(input.KeyEvent)
 			if ok && key.Action == 0 {
 				last = key
 			}
