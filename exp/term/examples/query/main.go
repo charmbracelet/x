@@ -5,11 +5,11 @@ import (
 	"image/color"
 	"log"
 
-	"github.com/charmbracelet/x/exp/term"
+	"github.com/charmbracelet/x/exp/term/terminal"
 )
 
 func main() {
-	t := term.Current()
+	t := terminal.Current()
 	width, height, err := t.GetSize()
 	if err != nil {
 		log.Fatalf("error getting terminal size: %v", err)

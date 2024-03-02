@@ -94,17 +94,17 @@ const (
 // It reads input events and parses ANSI sequences from the terminal input
 // buffer.
 type Driver struct {
+	rd    cancelreader.CancelReader
 	table map[string]KeyEvent
-	cr    cancelreader.CancelReader
 
-	buf            [256]byte // do we need a larger buffer?
-	internalEvents []Event   // holds peeked events
-
-	term string
+	term string // the $TERM name to use
 
 	// paste is the bracketed paste mode buffer.
 	// When nil, bracketed paste mode is disabled.
 	paste []byte
+
+	internalEvents []Event   // holds peeked events
+	buf            [256]byte // do we need a larger buffer?
 
 	// flags to control the behavior of the driver.
 	flags int
@@ -114,37 +114,31 @@ type Driver struct {
 // This driver uses ANSI control codes compatible with VT100/VT200 terminals,
 // and XTerm. It supports reading Terminfo databases to overwrite the default
 // key sequences.
-func NewDriver(r io.Reader, term string, flags int) *Driver {
+func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
 	d := new(Driver)
 	d.internalEvents = make([]Event, 0, 10) // initial size of 10
 
-	// TODO: implement cancelable reader
 	cr, err := cancelreader.NewReader(r)
-	if err == nil {
-		d.cr = cr
-		r = cr
+	if err != nil {
+		return nil, err
 	}
+
+	d.rd = cr
 	d.flags = flags
 	d.term = term
 	// Populate the key sequences table.
 	d.registerKeys(flags)
-	return d
+	return d, nil
 }
 
 // Cancel cancels the underlying reader.
 func (d *Driver) Cancel() bool {
-	if d.cr != nil {
-		return d.cr.Cancel()
-	}
-	return false
+	return d.rd.Cancel()
 }
 
 // Close closes the underlying reader.
 func (d *Driver) Close() error {
-	if d.cr != nil {
-		return d.cr.Close()
-	}
-	return nil
+	return d.rd.Close()
 }
 
 // ReadInput reads input events from the terminal.
@@ -152,6 +146,10 @@ func (d *Driver) Close() error {
 // It reads up to len(e) events into e and returns the number of events read
 // and an error, if any.
 func (d *Driver) ReadInput(e []Event) (n int, err error) {
+	return d.readInput(e)
+}
+
+func (d *Driver) readInput(e []Event) (n int, err error) {
 	if len(e) == 0 {
 		return 0, nil
 	}
@@ -183,6 +181,10 @@ func (d *Driver) ReadInput(e []Event) (n int, err error) {
 // If the number of events requested is greater than the number of events
 // available in the buffer, the number of available events will be returned.
 func (d *Driver) PeekInput(n int) ([]Event, error) {
+	return d.peekInput(n)
+}
+
+func (d *Driver) peekInput(n int) ([]Event, error) {
 	if n <= 0 {
 		return []Event{}, nil
 	}
@@ -196,7 +198,7 @@ func (d *Driver) PeekInput(n int) ([]Event, error) {
 	}
 
 	// Peek new events
-	nb, err := d.cr.Read(d.buf[:])
+	nb, err := d.rd.Read(d.buf[:])
 	if err != nil {
 		return nil, err
 	}

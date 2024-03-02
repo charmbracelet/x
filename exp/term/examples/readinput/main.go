@@ -42,7 +42,14 @@ func main() {
 	defer io.WriteString(os.Stdout, kitty.Pop(kitty.AllFlags)) // Disable Kitty keyboard
 	defer disableMouse()
 
-	rd := input.NewDriver(in, os.Getenv("TERM"), 0)
+	rd, err := input.NewDriver(in, os.Getenv("TERM"), 0)
+	if err != nil {
+		log.Printf("error creating driver: %v\r\n", err)
+		return
+	}
+
+	defer rd.Cancel()
+	defer rd.Close()
 
 	printHelp()
 
@@ -58,7 +65,7 @@ func main() {
 		mouseExt    bool
 	)
 	last := input.Event(nil)
-	var buffer [1]input.Event
+	var buffer [16]input.Event
 OUT:
 	for {
 		n, err := rd.ReadInput(buffer[:])
