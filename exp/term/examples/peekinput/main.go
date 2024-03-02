@@ -28,7 +28,11 @@ func main() {
 		defer term.Restore(os.Stdin.Fd(), state)
 	}
 
-	rd := input.NewDriver(in, os.Getenv("TERM"), 0)
+	rd, err := input.NewDriver(in, os.Getenv("TERM"), 0)
+	if err != nil {
+		log.Printf("error creating driver: %v\r\n", err)
+		return
+	}
 
 	evs, err := rd.PeekInput(10)
 	if err != nil {

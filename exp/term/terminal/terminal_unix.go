@@ -1,4 +1,4 @@
-package term
+package terminal
 
 import (
 	"errors"
@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/charmbracelet/x/exp/term"
 	"github.com/charmbracelet/x/exp/term/ansi/ctrl"
 	"github.com/charmbracelet/x/exp/term/ansi/kitty"
 	"github.com/charmbracelet/x/exp/term/ansi/sys"
@@ -27,7 +28,7 @@ type terminal struct {
 	inFile  *os.File
 	outFile *os.File
 
-	prevState *State
+	prevState *term.State
 
 	kittyFlags int
 
@@ -62,11 +63,11 @@ func (c *terminal) initTerminal() {
 	}
 	if inFile, ok := c.input.(*os.File); ok {
 		c.inFile = inFile
-		c.inIstty = IsTerminal(inFile.Fd())
+		c.inIstty = term.IsTerminal(inFile.Fd())
 	}
 	if outFile, ok := c.output.(*os.File); ok {
 		c.outFile = outFile
-		c.outIstty = IsTerminal(outFile.Fd())
+		c.outIstty = term.IsTerminal(outFile.Fd())
 	}
 }
 
@@ -86,7 +87,7 @@ func (c *terminal) MakeRaw() (rErr error) {
 		c.isRaw = rErr == nil
 	}()
 	if err := control(c.inFile, func(fd uintptr) {
-		c.prevState, rErr = MakeRaw(fd)
+		c.prevState, rErr = term.MakeRaw(fd)
 	}); err != nil {
 		return err
 	}
@@ -105,7 +106,7 @@ func (c *terminal) Restore() (rErr error) {
 		}
 	}()
 	if err := control(c.inFile, func(fd uintptr) {
-		rErr = Restore(fd, c.prevState)
+		rErr = term.Restore(fd, c.prevState)
 	}); err != nil {
 		return err
 	}
@@ -119,7 +120,7 @@ func (c *terminal) GetSize() (w int, h int, rErr error) {
 		return 0, 0, ErrNotTerminal
 	}
 	if err := control(c.inFile, func(fd uintptr) {
-		w, h, rErr = GetSize(fd)
+		w, h, rErr = term.GetSize(fd)
 	}); err != nil {
 		return 0, 0, err
 	}
@@ -139,7 +140,7 @@ func (c *terminal) initInputHandler() {
 	if c.inputHandler != nil {
 		return
 	}
-	c.inputHandler = input.NewDriver(c.input, os.Getenv("TERM"), 0)
+	c.inputHandler, _ = input.NewDriver(c.input, os.Getenv("TERM"), 0)
 }
 
 // SupportsKittyKeyboard implements Terminal.

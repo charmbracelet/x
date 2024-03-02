@@ -124,12 +124,16 @@ func parseCsi(p []byte) (int, Event) {
 				return len(seq), UnknownCsiEvent(seq)
 			}
 			return len(seq), KittyKeyboardEvent(params[0][0])
+		default:
+			return len(seq), UnknownCsiEvent(seq)
 		}
 	case '<':
 		switch final {
 		case 'm', 'M':
 			// Handle SGR mouse
 			return len(seq), parseSGRMouseEvent(seq)
+		default:
+			return len(seq), UnknownCsiEvent(seq)
 		}
 	case '=', '>':
 		// We don't support any of these yet
@@ -256,10 +260,12 @@ func parseCsi(p []byte) (int, Event) {
 		case 201:
 			// bracketed-paste end
 			return len(seq), PasteEndEvent{}
+		default:
+			return len(seq), UnknownCsiEvent(seq)
 		}
+	default:
+		return len(seq), UnknownCsiEvent(seq)
 	}
-
-	return len(seq), UnknownCsiEvent(seq)
 }
 
 // parseSs3 parses a SS3 sequence.
@@ -351,9 +357,9 @@ func parseSs3(p []byte) (int, Event) {
 		return len(seq), KeyEvent{Sym: KeyKp8}
 	case 'y':
 		return len(seq), KeyEvent{Sym: KeyKp9}
+	default:
+		return len(seq), UnknownSs3Event(seq)
 	}
-
-	return len(seq), UnknownSs3Event(seq)
 }
 
 func parseOsc(p []byte) (int, Event) {
@@ -410,9 +416,9 @@ func parseOsc(p []byte) (int, Event) {
 		return len(seq), BackgroundColorEvent{xParseColor(data)}
 	case "12":
 		return len(seq), CursorColorEvent{xParseColor(data)}
+	default:
+		return len(seq), UnknownOscEvent(seq)
 	}
-
-	return len(seq), UnknownOscEvent(seq)
 }
 
 // parseCtrl parses a control sequence that gets terminated by a ST character.

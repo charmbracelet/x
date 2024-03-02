@@ -1,4 +1,4 @@
-package term
+package terminal
 
 import (
 	"errors"
