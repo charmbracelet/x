@@ -118,7 +118,7 @@ func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
 	d := new(Driver)
 	d.internalEvents = make([]Event, 0, 10) // initial size of 10
 
-	cr, err := cancelreader.NewReader(r)
+	cr, err := newCancelreader(r)
 	if err != nil {
 		return nil, err
 	}
@@ -139,14 +139,6 @@ func (d *Driver) Cancel() bool {
 // Close closes the underlying reader.
 func (d *Driver) Close() error {
 	return d.rd.Close()
-}
-
-// ReadInput reads input events from the terminal.
-//
-// It reads up to len(e) events into e and returns the number of events read
-// and an error, if any.
-func (d *Driver) ReadInput(e []Event) (n int, err error) {
-	return d.readInput(e)
 }
 
 func (d *Driver) readInput(e []Event) (n int, err error) {
@@ -176,14 +168,6 @@ func (d *Driver) readInput(e []Event) (n int, err error) {
 	return
 }
 
-// PeekInput peeks at input events from the terminal without consuming them.
-//
-// If the number of events requested is greater than the number of events
-// available in the buffer, the number of available events will be returned.
-func (d *Driver) PeekInput(n int) ([]Event, error) {
-	return d.peekInput(n)
-}
-
 func (d *Driver) peekInput(n int) ([]Event, error) {
 	if n <= 0 {
 		return []Event{}, nil
@@ -208,7 +192,7 @@ func (d *Driver) peekInput(n int) ([]Event, error) {
 	// Lookup table first
 	if k, ok := d.table[string(buf)]; ok {
 		d.internalEvents = append(d.internalEvents, k)
-		return d.PeekInput(n)
+		return d.peekInput(n)
 	}
 
 	var i int

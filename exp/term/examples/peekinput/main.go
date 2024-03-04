@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"time"
 
 	"github.com/charmbracelet/x/exp/term"
 	"github.com/charmbracelet/x/exp/term/input"
@@ -33,6 +34,8 @@ func main() {
 		log.Printf("error creating driver: %v\r\n", err)
 		return
 	}
+
+	time.Sleep(5 * time.Second)
 
 	evs, err := rd.PeekInput(10)
 	if err != nil {
