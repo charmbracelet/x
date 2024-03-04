@@ -4,6 +4,7 @@
 package input
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
@@ -17,6 +18,9 @@ import (
 // and an error, if any.
 func (d *Driver) ReadInput(e []Event) (n int, err error) {
 	events, err := d.handleConInput(coninput.ReadConsoleInput)
+	if errors.Is(err, errNotConInputReader) {
+		return d.readInput(e)
+	}
 	if err != nil {
 		return 0, err
 	}
@@ -25,12 +29,17 @@ func (d *Driver) ReadInput(e []Event) (n int, err error) {
 	return ne, nil
 }
 
+var errNotConInputReader = fmt.Errorf("handleConInput: not a conInputReader")
+
 // PeekInput peeks at input events from the terminal without consuming them.
 //
 // If the number of events requested is greater than the number of events
 // available in the buffer, the number of available events will be returned.
 func (d *Driver) PeekInput(n int) ([]Event, error) {
 	events, err := d.handleConInput(coninput.PeekConsoleInput)
+	if errors.Is(err, errNotConInputReader) {
+		return d.peekInput(n)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +56,7 @@ func (d *Driver) handleConInput(
 ) ([]Event, error) {
 	cc, ok := d.rd.(*conInputReader)
 	if !ok {
-		return nil, fmt.Errorf("handleConInput: not a conInputReader")
+		return nil, errNotConInputReader
 	}
 
 	// read up to 256 events, this is to allow for sequences events reported as
