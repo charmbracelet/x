@@ -24,12 +24,6 @@ type conInputReader struct {
 
 	originalMode uint32
 
-	// inputEvent holds the input event that was read in order to avoid
-	// unneccessary allocations. This re-use is possible because
-	// InputRecord.Unwarp which is called inparseInputMsgFromInputRecord
-	// returns an data structure that is independent of the passed InputRecord.
-	inputEvent []coninput.InputRecord
-
 	// blockingReadSignal is used to signal that a blocking read is in progress.
 	blockingReadSignal chan struct{}
 }
