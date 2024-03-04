@@ -2,6 +2,7 @@ package input
 
 import (
 	"fmt"
+	"strings"
 )
 
 var (
@@ -31,4 +32,16 @@ type WindowSizeEvent struct {
 // String implements fmt.Stringer.
 func (e WindowSizeEvent) String() string {
 	return fmt.Sprintf("resize: %dx%d", e.Width, e.Height)
+}
+
+// MultiEvent represents multiple events.
+type MultiEvent []Event
+
+// String implements fmt.Stringer.
+func (e MultiEvent) String() string {
+	var sb strings.Builder
+	for _, ev := range e {
+		sb.WriteString(fmt.Sprintf("%v\n", ev))
+	}
+	return sb.String()
 }
