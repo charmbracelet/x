@@ -139,7 +139,7 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) []
 		isCtrl := e.ControlKeyState.Contains(coninput.LEFT_CTRL_PRESSED | coninput.RIGHT_CTRL_PRESSED)
 		k, ok := vkKeyEvent[e.VirtualKeyCode]
 		if !ok && isCtrl {
-			k = vkCtrlRune(keyType(e), e)
+			k = vkCtrlRune(k, e)
 		} else if !ok {
 			k = KeyEvent{Rune: e.Char}
 		}
@@ -408,114 +408,4 @@ func vkCtrlRune(k KeyEvent, e coninput.KeyEventRecord) KeyEvent {
 	}
 
 	return k
-}
-
-func keyType(e coninput.KeyEventRecord) KeyEvent {
-	code := e.VirtualKeyCode
-
-	switch code {
-	case coninput.VK_RETURN:
-		return KeyEvent{Sym: KeyEnter}
-	case coninput.VK_BACK:
-		return KeyEvent{Sym: KeyBackspace}
-	case coninput.VK_TAB:
-		return KeyEvent{Sym: KeyTab}
-	case coninput.VK_SPACE:
-		return KeyEvent{Sym: KeySpace, Rune: ' '}
-	case coninput.VK_ESCAPE:
-		return KeyEvent{Sym: KeyEscape}
-	case coninput.VK_UP:
-		return KeyEvent{Sym: KeyUp}
-	case coninput.VK_DOWN:
-		return KeyEvent{Sym: KeyDown}
-	case coninput.VK_RIGHT:
-		return KeyEvent{Sym: KeyRight}
-	case coninput.VK_LEFT:
-		return KeyEvent{Sym: KeyLeft}
-	case coninput.VK_HOME:
-		return KeyEvent{Sym: KeyHome}
-	case coninput.VK_END:
-		return KeyEvent{Sym: KeyEnd}
-	case coninput.VK_PRIOR:
-		return KeyEvent{Sym: KeyPgUp}
-	case coninput.VK_NEXT:
-		return KeyEvent{Sym: KeyPgDown}
-	case coninput.VK_DELETE:
-		return KeyEvent{Sym: KeyDelete}
-	default:
-		if e.ControlKeyState&(coninput.LEFT_CTRL_PRESSED|coninput.RIGHT_CTRL_PRESSED) == 0 {
-			return KeyEvent{Rune: e.Char}
-		}
-
-		k := KeyEvent{Mod: Ctrl}
-		switch e.Char {
-		case '@':
-			k.Rune = '@'
-		case '\x01':
-			k.Rune = 'a'
-		case '\x02':
-			k.Rune = 'b'
-		case '\x03':
-			k.Rune = 'c'
-		case '\x04':
-			k.Rune = 'd'
-		case '\x05':
-			k.Rune = 'e'
-		case '\x06':
-			k.Rune = 'f'
-		case '\a':
-			k.Rune = 'g'
-		case '\b':
-			k.Rune = 'h'
-		case '\t':
-			k.Rune = 'i'
-		case '\n':
-			k.Rune = 'j'
-		case '\v':
-			k.Rune = 'k'
-		case '\f':
-			k.Rune = 'l'
-		case '\r':
-			k.Rune = 'm'
-		case '\x0e':
-			k.Rune = 'n'
-		case '\x0f':
-			k.Rune = 'o'
-		case '\x10':
-			k.Rune = 'p'
-		case '\x11':
-			k.Rune = 'q'
-		case '\x12':
-			k.Rune = 'r'
-		case '\x13':
-			k.Rune = 's'
-		case '\x14':
-			k.Rune = 't'
-		case '\x15':
-			k.Rune = 'u'
-		case '\x16':
-			k.Rune = 'v'
-		case '\x17':
-			k.Rune = 'w'
-		case '\x18':
-			k.Rune = 'x'
-		case '\x19':
-			k.Rune = 'y'
-		case '\x1a':
-			k.Rune = 'z'
-		case '\x1b':
-			k.Rune = ']'
-		case '\x1c':
-			k.Rune = '\\'
-		case '\x1f':
-			k.Rune = '_'
-		}
-
-		switch code {
-		case coninput.VK_OEM_4:
-			k.Rune = '['
-		}
-
-		return k
-	}
 }
