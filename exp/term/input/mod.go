@@ -18,6 +18,7 @@ const (
 	Super // Windows/Command keys
 	CapsLock
 	NumLock
+	ScrollLock // Defined in Windows API only
 )
 
 // IsShift reports whether the Shift modifier is set.
@@ -58,4 +59,9 @@ func (m Mod) IsCapsLock() bool {
 // IsNumLock reports whether the NumLock modifier is set.
 func (m Mod) IsNumLock() bool {
 	return m&NumLock != 0
+}
+
+// IsScrollLock reports whether the ScrollLock modifier is set.
+func (m Mod) IsScrollLock() bool {
+	return m&ScrollLock != 0
 }

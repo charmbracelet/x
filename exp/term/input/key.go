@@ -256,11 +256,6 @@ func (k KeyEvent) String() string {
 	return s
 }
 
-// Type implements Event.
-func (KeyEvent) Type() string {
-	return "Key"
-}
-
 var keySymString = map[KeySym]string{
 	KeyEnter:     "enter",
 	KeyTab:       "tab",

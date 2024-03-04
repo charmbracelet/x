@@ -22,3 +22,13 @@ type UnknownEvent string
 func (e UnknownEvent) String() string {
 	return fmt.Sprintf("%q", string(e))
 }
+
+// WindowSizeEvent represents a window resize event.
+type WindowSizeEvent struct {
+	Width, Height int
+}
+
+// String implements fmt.Stringer.
+func (e WindowSizeEvent) String() string {
+	return fmt.Sprintf("resize: %dx%d", e.Width, e.Height)
+}
