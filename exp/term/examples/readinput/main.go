@@ -41,6 +41,7 @@ func main() {
 
 	defer io.WriteString(os.Stdout, kitty.Pop(kitty.AllFlags)) // Disable Kitty keyboard
 	defer disableMouse()
+	defer execute(mode.DisableWin32Input)
 
 	rd, err := input.NewDriver(in, os.Getenv("TERM"), 0)
 	if err != nil {
@@ -63,6 +64,8 @@ func main() {
 		mouseCell   bool
 		mouseAll    bool
 		mouseExt    bool
+
+		win32Input bool
 	)
 	last := input.Event(nil)
 	var buffer [16]input.Event
@@ -99,6 +102,13 @@ OUT:
 						execute(mode.EnableBracketedPaste)
 					}
 					paste = !paste
+				case prev == "w" && curr == "m":
+					if win32Input {
+						execute(mode.DisableWin32Input)
+					} else {
+						execute(mode.EnableWin32Input)
+					}
+					win32Input = !win32Input
 				case prev == "k":
 					switch curr {
 					case "0":
@@ -239,6 +249,7 @@ func printHelp() {
 	fmt.Fprintf(os.Stdout, "Press 'qq' to quit.\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'hh' to print this help again.\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'pp' to toggle bracketed paste mode.\r\n")
+	fmt.Fprintf(os.Stdout, "Press 'wm' to toggle Win32 input mode.\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'k' followed by a number to toggle Kitty keyboard protocol flags.\r\n")
 	fmt.Fprintf(os.Stdout, "  1: DisambiguateEscapeCodes\r\n")
 	fmt.Fprintf(os.Stdout, "  2: ReportEventTypes\r\n")

@@ -4,6 +4,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
+	"github.com/erikgeiser/coninput"
 )
 
 // ParseSequence finds the first recognized event sequence and returns it along
@@ -186,6 +187,32 @@ func parseCsi(p []byte) (int, Event) {
 			return len(seq), UnknownCsiEvent(seq)
 		}
 		return len(seq), parseKittyKeyboard(params)
+	case '_':
+		// Win32 Input Mode
+		params := ansi.Params(p[start:end])
+		if len(params) != 6 {
+			return len(seq), UnknownCsiEvent(seq)
+		}
+
+		rc := uint16(params[5][0])
+		if rc == 0 {
+			rc = 1
+		}
+
+		event := parseWin32InputKeyEvent(
+			coninput.VirtualKeyCode(params[0][0]),  // Vk wVirtualKeyCode
+			coninput.VirtualKeyCode(params[1][0]),  // Sc wVirtualScanCode
+			rune(params[2][0]),                     // Uc UnicodeChar
+			params[3][0] == 1,                      // Kd bKeyDown
+			coninput.ControlKeyState(params[4][0]), // Cs dwControlKeyState
+			rc,                                     // Rc wRepeatCount
+		)
+
+		if event == nil {
+			return len(seq), UnknownCsiEvent(seq)
+		}
+
+		return len(seq), event
 	case '~':
 		params := ansi.Params(p[start:end])
 		if len(params) == 0 {

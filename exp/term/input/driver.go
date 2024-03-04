@@ -233,7 +233,11 @@ func (d *Driver) peekInput(n int) ([]Event, error) {
 			continue
 		}
 
-		d.internalEvents = append(d.internalEvents, ev)
+		if mevs, ok := ev.(MultiEvent); ok {
+			d.internalEvents = append(d.internalEvents, []Event(mevs)...)
+		} else {
+			d.internalEvents = append(d.internalEvents, ev)
+		}
 		i += nb
 	}
 
