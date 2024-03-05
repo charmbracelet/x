@@ -192,11 +192,11 @@ func (d *Driver) peekInput(n int) ([]Event, error) {
 	// Lookup table first
 	if k, ok := d.table[string(buf)]; ok {
 		d.internalEvents = append(d.internalEvents, k)
-		return d.peekInput(n)
+		return d.internalEvents, nil
 	}
 
 	var i int
-	for i = 0; i < len(buf); {
+	for i < len(buf) {
 		nb, ev := ParseSequence(buf[i:])
 
 		// Handle bracketed-paste
@@ -222,9 +222,9 @@ func (d *Driver) peekInput(n int) ([]Event, error) {
 			for len(d.paste) > 0 {
 				r, w := utf8.DecodeRune(d.paste)
 				if r != utf8.RuneError {
-					d.paste = d.paste[w:]
+					paste = append(paste, r)
 				}
-				paste = append(paste, r)
+				d.paste = d.paste[w:]
 			}
 			d.paste = nil // reset the buffer
 			d.internalEvents = append(d.internalEvents, PasteEvent(paste))
