@@ -240,18 +240,22 @@ func (k KeyEvent) String() string {
 			s += string(k.Rune)
 		}
 	} else {
-		sym, ok := keySymString[k.Sym]
-		if !ok {
-			s += "unknown"
-		} else {
-			s += sym
-		}
+		s += k.Sym.String()
 	}
 	switch k.Action {
 	case KeyRepeat:
 		s += " (repeat)"
 	case KeyRelease:
 		s += " (release)"
+	}
+	return s
+}
+
+// String implements fmt.Stringer.
+func (k KeySym) String() string {
+	s, ok := keySymString[k]
+	if !ok {
+		return "unknown"
 	}
 	return s
 }
