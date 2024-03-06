@@ -24,7 +24,7 @@ func EraseDisplay(n int) string {
 const (
 	EraseDisplayRight  = "\x1b[0J"
 	EraseDisplayLeft   = "\x1b[1J"
-	EraseEntierDisplay = "\x1b[2J"
+	EraseEntireDisplay = "\x1b[2J"
 )
 
 // EraseLine (EL) clears the current line or parts of the line. Possible values:
