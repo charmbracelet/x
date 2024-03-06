@@ -136,7 +136,20 @@ func parseCsi(p []byte) (int, Event) {
 		default:
 			return len(seq), UnknownCsiEvent(seq)
 		}
-	case '=', '>':
+	case '>':
+		switch final {
+		case 'm':
+			// XTerm modifyOtherKeys
+			params := ansi.Params(p[start:end])
+			if len(params) != 2 || params[0][0] != 4 {
+				return len(seq), UnknownCsiEvent(seq)
+			}
+
+			return len(seq), ModifyOtherKeysEvent(params[1][0])
+		default:
+			return len(seq), UnknownCsiEvent(seq)
+		}
+	case '=':
 		// We don't support any of these yet
 		return len(seq), UnknownCsiEvent(seq)
 	}
