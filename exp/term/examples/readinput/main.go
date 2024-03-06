@@ -9,10 +9,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/x/exp/term"
-	"github.com/charmbracelet/x/exp/term/ansi/ctrl"
-	"github.com/charmbracelet/x/exp/term/ansi/kitty"
-	"github.com/charmbracelet/x/exp/term/ansi/mode"
-	"github.com/charmbracelet/x/exp/term/ansi/sys"
+	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/charmbracelet/x/exp/term/input"
 )
 
@@ -39,9 +36,9 @@ func main() {
 		defer term.Restore(os.Stdin.Fd(), state)
 	}
 
-	defer io.WriteString(os.Stdout, kitty.Pop(kitty.AllFlags)) // Disable Kitty keyboard
+	defer io.WriteString(os.Stdout, ansi.PopKittyKeyboard(ansi.KittyAllFlags)) // Disable Kitty keyboard
 	defer disableMouse()
-	defer execute(mode.DisableWin32Input)
+	defer execute(ansi.DisableWin32Input)
 
 	rd, err := input.NewDriver(in, os.Getenv("TERM"), 0)
 	if err != nil {
@@ -97,78 +94,78 @@ OUT:
 					printHelp()
 				case prev == "p" && curr == "p":
 					if paste {
-						execute(mode.DisableBracketedPaste)
+						execute(ansi.DisableBracketedPaste)
 					} else {
-						execute(mode.EnableBracketedPaste)
+						execute(ansi.EnableBracketedPaste)
 					}
 					paste = !paste
 				case prev == "w" && curr == "m":
 					if win32Input {
-						execute(mode.DisableWin32Input)
+						execute(ansi.DisableWin32Input)
 					} else {
-						execute(mode.EnableWin32Input)
+						execute(ansi.EnableWin32Input)
 					}
 					win32Input = !win32Input
 				case prev == "k":
 					switch curr {
 					case "0":
 						kittyFlags = 0
-						execute(kitty.Pop(kittyFlags))
+						execute(ansi.PopKittyKeyboard(kittyFlags))
 					case "1":
-						if kittyFlags&kitty.DisambiguateEscapeCodes == 0 {
-							kittyFlags |= kitty.DisambiguateEscapeCodes
-							execute(kitty.Push(kittyFlags))
+						if kittyFlags&ansi.KittyDisambiguateEscapeCodes == 0 {
+							kittyFlags |= ansi.KittyDisambiguateEscapeCodes
+							execute(ansi.PushKittyKeyboard(kittyFlags))
 						} else {
-							kittyFlags &^= kitty.DisambiguateEscapeCodes
-							execute(kitty.Pop(kittyFlags))
+							kittyFlags &^= ansi.KittyDisambiguateEscapeCodes
+							execute(ansi.PopKittyKeyboard(kittyFlags))
 						}
 					case "2":
-						if kittyFlags&kitty.ReportEventTypes == 0 {
-							kittyFlags |= kitty.ReportEventTypes
-							execute(kitty.Push(kittyFlags))
+						if kittyFlags&ansi.KittyReportEventTypes == 0 {
+							kittyFlags |= ansi.KittyReportEventTypes
+							execute(ansi.PushKittyKeyboard(kittyFlags))
 						} else {
-							kittyFlags &^= kitty.ReportEventTypes
-							execute(kitty.Pop(kittyFlags))
+							kittyFlags &^= ansi.KittyReportEventTypes
+							execute(ansi.PopKittyKeyboard(kittyFlags))
 						}
 					case "3":
-						if kittyFlags&kitty.ReportAlternateKeys == 0 {
-							kittyFlags |= kitty.ReportAlternateKeys
-							execute(kitty.Push(kittyFlags))
+						if kittyFlags&ansi.KittyReportAlternateKeys == 0 {
+							kittyFlags |= ansi.KittyReportAlternateKeys
+							execute(ansi.PushKittyKeyboard(kittyFlags))
 						} else {
-							kittyFlags &^= kitty.ReportAlternateKeys
-							execute(kitty.Pop(kittyFlags))
+							kittyFlags &^= ansi.KittyReportAlternateKeys
+							execute(ansi.PopKittyKeyboard(kittyFlags))
 						}
 					case "4":
-						if kittyFlags&kitty.ReportAllKeys == 0 {
-							kittyFlags |= kitty.ReportAllKeys
-							execute(kitty.Push(kittyFlags))
+						if kittyFlags&ansi.KittyReportAllKeys == 0 {
+							kittyFlags |= ansi.KittyReportAllKeys
+							execute(ansi.PushKittyKeyboard(kittyFlags))
 						} else {
-							kittyFlags &^= kitty.ReportAllKeys
-							execute(kitty.Pop(kittyFlags))
+							kittyFlags &^= ansi.KittyReportAllKeys
+							execute(ansi.PopKittyKeyboard(kittyFlags))
 						}
 					case "5":
-						if kittyFlags&kitty.ReportAssociatedKeys == 0 {
-							kittyFlags |= kitty.ReportAssociatedKeys
-							execute(kitty.Push(kittyFlags))
+						if kittyFlags&ansi.KittyReportAssociatedKeys == 0 {
+							kittyFlags |= ansi.KittyReportAssociatedKeys
+							execute(ansi.PushKittyKeyboard(kittyFlags))
 						} else {
-							kittyFlags &^= kitty.ReportAssociatedKeys
-							execute(kitty.Pop(kittyFlags))
+							kittyFlags &^= ansi.KittyReportAssociatedKeys
+							execute(ansi.PopKittyKeyboard(kittyFlags))
 						}
 					}
 				case prev == "r":
 					switch curr {
 					case "k":
-						execute(kitty.Request)
+						execute(ansi.RequestKittyKeyboard)
 					case "b":
-						execute(sys.RequestBackgroundColor)
+						execute(ansi.RequestBackgroundColor)
 					case "f":
-						execute(sys.RequestForegroundColor)
+						execute(ansi.RequestForegroundColor)
 					case "c":
-						execute(sys.RequestCursorColor)
+						execute(ansi.RequestCursorColor)
 					case "d":
-						execute(ctrl.RequestPrimaryDeviceAttributes)
+						execute(ansi.RequestPrimaryDeviceAttributes)
 					case "x":
-						execute(ctrl.RequestXTVersion)
+						execute(ansi.RequestXTVersion)
 					}
 				case prev == "m":
 					switch string(currKey.Rune) {
@@ -176,37 +173,37 @@ OUT:
 						disableMouse()
 					case "1":
 						if mouse {
-							execute(mode.DisableMouseTracking)
+							execute(ansi.DisableMouse)
 						} else {
-							execute(mode.EnableMouseTracking)
+							execute(ansi.EnableMouse)
 						}
 						mouse = !mouse
 					case "2":
 						if mouseHilite {
-							execute(mode.DisableHiliteMouseTracking)
+							execute(ansi.DisableMouseHilite)
 						} else {
-							execute(mode.EnableHiliteMouseTracking)
+							execute(ansi.EnableMouseHilite)
 						}
 						mouseHilite = !mouseHilite
 					case "3":
 						if mouseCell {
-							execute(mode.DisableCellMotionMouseTracking)
+							execute(ansi.DisableMouseCellMotion)
 						} else {
-							execute(mode.EnableCellMotionMouseTracking)
+							execute(ansi.EnableMouseCellMotion)
 						}
 						mouseCell = !mouseCell
 					case "4":
 						if mouseAll {
-							execute(mode.DisableAllMouseTracking)
+							execute(ansi.DisableMouseAllMotion)
 						} else {
-							execute(mode.EnableAllMouseTracking)
+							execute(ansi.EnableMouseAllMotion)
 						}
 						mouseAll = !mouseAll
 					case "5":
 						if mouseExt {
-							execute(mode.DisableSgrMouseExt)
+							execute(ansi.DisableMouseSgrExt)
 						} else {
-							execute(mode.EnableSgrMouseExt)
+							execute(ansi.EnableMouseSgrExt)
 						}
 						mouseExt = !mouseExt
 					}
@@ -237,11 +234,11 @@ func execute(s string) {
 }
 
 func disableMouse() {
-	execute(mode.DisableSgrMouseExt)
-	execute(mode.DisableAllMouseTracking)
-	execute(mode.DisableCellMotionMouseTracking)
-	execute(mode.DisableHiliteMouseTracking)
-	execute(mode.DisableMouseTracking)
+	execute(ansi.DisableMouseSgrExt)
+	execute(ansi.DisableMouseAllMotion)
+	execute(ansi.DisableMouseCellMotion)
+	execute(ansi.DisableMouseHilite)
+	execute(ansi.DisableMouse)
 }
 
 func printHelp() {
