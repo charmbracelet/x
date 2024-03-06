@@ -23,7 +23,7 @@ const (
 	// Special names in G0
 
 	KeySpace
-	KeyDel
+	KeyDelete
 
 	// Special keys
 
@@ -34,7 +34,6 @@ const (
 	KeyBegin
 	KeyFind
 	KeyInsert
-	KeyDelete
 	KeySelect
 	KeyPgUp
 	KeyPgDown
@@ -262,9 +261,8 @@ var keySymString = map[KeySym]string{
 	KeyEnter:     "enter",
 	KeyTab:       "tab",
 	KeyBackspace: "backspace",
-	KeyEscape:    "escape",
+	KeyEscape:    "esc",
 	KeySpace:     "space",
-	KeyDel:       "del",
 	KeyUp:        "up",
 	KeyDown:      "down",
 	KeyLeft:      "left",
