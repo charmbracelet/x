@@ -95,7 +95,7 @@ const (
 // buffer.
 type Driver struct {
 	rd    cancelreader.CancelReader
-	table map[string]KeyEvent
+	table map[string]KeyDownEvent
 
 	term string // the $TERM name to use
 

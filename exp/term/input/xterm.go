@@ -14,14 +14,14 @@ func parseXTermModifyOtherKeys(params [][]uint) Event {
 		return k
 	}
 
-	return KeyEvent{
+	return KeyDownEvent{
 		Mod:  mod,
 		Rune: r,
 	}
 }
 
 // CSI 27 ; <modifier> ; <code> ~ keys defined in XTerm modifyOtherKeys
-var modifyOtherKeys = map[int]KeyEvent{
+var modifyOtherKeys = map[int]KeyDownEvent{
 	ansi.BS:  {Sym: KeyBackspace},
 	ansi.HT:  {Sym: KeyTab},
 	ansi.CR:  {Sym: KeyEnter},

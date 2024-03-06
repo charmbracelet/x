@@ -82,9 +82,9 @@ OUT:
 
 		buf := buffer[:n]
 		if last != nil && len(buf) > 0 {
-			currKey, ok1 := buf[len(buf)-1].(input.KeyEvent)
-			prevKey, ok2 := last.(input.KeyEvent)
-			if ok1 && ok2 && currKey.Sym == 0 && prevKey.Sym == 0 && currKey.Action == 0 && prevKey.Action == 0 {
+			currKey, ok1 := buf[len(buf)-1].(input.KeyDownEvent)
+			prevKey, ok2 := last.(input.KeyDownEvent)
+			if ok1 && ok2 && currKey.Sym == 0 && prevKey.Sym == 0 {
 				prev := string(prevKey.Rune)
 				curr := string(currKey.Rune)
 				switch {
@@ -221,8 +221,8 @@ OUT:
 
 		// Store last keypress
 		if len(buf) > 0 {
-			key, ok := buf[len(buf)-1].(input.KeyEvent)
-			if ok && key.Action == 0 {
+			key, ok := buf[len(buf)-1].(input.KeyDownEvent)
+			if ok {
 				last = key
 			}
 		}

@@ -7,45 +7,45 @@ import (
 )
 
 func (d *Driver) registerKeys(flags int) {
-	nul := KeyEvent{Sym: KeySpace, Mod: Ctrl} // ctrl+@ or ctrl+space
+	nul := KeyDownEvent{Sym: KeySpace, Mod: Ctrl} // ctrl+@ or ctrl+space
 	if flags&FlagSpace != 0 {
-		nul = KeyEvent{Rune: ' ', Mod: Ctrl}
+		nul = KeyDownEvent{Rune: ' ', Mod: Ctrl}
 	}
 	if flags&FlagCtrlAt != 0 {
-		nul = KeyEvent{Rune: '@', Mod: Ctrl}
+		nul = KeyDownEvent{Rune: '@', Mod: Ctrl}
 	}
 
-	tab := KeyEvent{Sym: KeyTab} // ctrl+i or tab
+	tab := KeyDownEvent{Sym: KeyTab} // ctrl+i or tab
 	if flags&FlagCtrlI != 0 {
-		tab = KeyEvent{Rune: 'i', Mod: Ctrl}
+		tab = KeyDownEvent{Rune: 'i', Mod: Ctrl}
 	}
 
-	enter := KeyEvent{Sym: KeyEnter} // ctrl+m or enter
+	enter := KeyDownEvent{Sym: KeyEnter} // ctrl+m or enter
 	if flags&FlagCtrlM != 0 {
-		enter = KeyEvent{Rune: 'm', Mod: Ctrl}
+		enter = KeyDownEvent{Rune: 'm', Mod: Ctrl}
 	}
 
-	esc := KeyEvent{Sym: KeyEscape} // ctrl+[ or escape
+	esc := KeyDownEvent{Sym: KeyEscape} // ctrl+[ or escape
 	if flags&FlagCtrlOpenBracket != 0 {
-		esc = KeyEvent{Rune: '[', Mod: Ctrl} // ctrl+[ or escape
+		esc = KeyDownEvent{Rune: '[', Mod: Ctrl} // ctrl+[ or escape
 	}
 
-	sp := KeyEvent{Sym: KeySpace, Rune: ' '}
+	sp := KeyDownEvent{Sym: KeySpace, Rune: ' '}
 	if flags&FlagSpace != 0 {
-		sp = KeyEvent{Rune: ' '}
+		sp = KeyDownEvent{Rune: ' '}
 	}
 
-	del := KeyEvent{Sym: KeyBackspace}
+	del := KeyDownEvent{Sym: KeyBackspace}
 	if flags&FlagBackspace != 0 {
 		del.Sym = KeyDelete
 	}
 
-	find := KeyEvent{Sym: KeyHome}
+	find := KeyDownEvent{Sym: KeyHome}
 	if flags&FlagFind != 0 {
 		find.Sym = KeyFind
 	}
 
-	sel := KeyEvent{Sym: KeyEnd}
+	sel := KeyDownEvent{Sym: KeyEnd}
 	if flags&FlagSelect != 0 {
 		sel.Sym = KeySelect
 	}
@@ -58,7 +58,7 @@ func (d *Driver) registerKeys(flags int) {
 	//
 	// XXX: These keys may be overwritten by other options like XTerm or
 	// Terminfo.
-	d.table = map[string]KeyEvent{
+	d.table = map[string]KeyDownEvent{
 		// C0 control characters
 		string(byte(ansi.NUL)): nul,
 		string(byte(ansi.SOH)): {Rune: 'a', Mod: Ctrl},
@@ -203,7 +203,7 @@ func (d *Driver) registerKeys(flags int) {
 	}
 
 	// CSI function keys
-	csiFuncKeys := map[string]KeyEvent{
+	csiFuncKeys := map[string]KeyDownEvent{
 		"A": {Sym: KeyUp}, "B": {Sym: KeyDown},
 		"C": {Sym: KeyRight}, "D": {Sym: KeyLeft},
 		"E": {Sym: KeyBegin}, "F": {Sym: KeyEnd},
@@ -213,7 +213,7 @@ func (d *Driver) registerKeys(flags int) {
 	}
 
 	// SS3 keypad function keys
-	ss3FuncKeys := map[string]KeyEvent{
+	ss3FuncKeys := map[string]KeyDownEvent{
 		// These are defined in XTerm
 		// Taken from Foot keymap.h and XTerm modifyOtherKeys
 		// https://codeberg.org/dnkl/foot/src/branch/master/keymap.h
@@ -229,7 +229,7 @@ func (d *Driver) registerKeys(flags int) {
 	}
 
 	// CSI ~ sequence keys
-	csiTildeKeys := map[string]KeyEvent{
+	csiTildeKeys := map[string]KeyDownEvent{
 		"1": find, "2": {Sym: KeyInsert},
 		"3": {Sym: KeyDelete}, "4": sel,
 		"5": {Sym: KeyPgUp}, "6": {Sym: KeyPgDown},
@@ -287,14 +287,14 @@ func (d *Driver) registerKeys(flags int) {
 
 	// URxvt keys
 	// See https://manpages.ubuntu.com/manpages/trusty/man7/urxvt.7.html#key%20codes
-	d.table["\x1b[a"] = KeyEvent{Sym: KeyUp, Mod: Shift}
-	d.table["\x1b[b"] = KeyEvent{Sym: KeyDown, Mod: Shift}
-	d.table["\x1b[c"] = KeyEvent{Sym: KeyRight, Mod: Shift}
-	d.table["\x1b[d"] = KeyEvent{Sym: KeyLeft, Mod: Shift}
-	d.table["\x1bOa"] = KeyEvent{Sym: KeyUp, Mod: Ctrl}
-	d.table["\x1bOb"] = KeyEvent{Sym: KeyDown, Mod: Ctrl}
-	d.table["\x1bOc"] = KeyEvent{Sym: KeyRight, Mod: Ctrl}
-	d.table["\x1bOd"] = KeyEvent{Sym: KeyLeft, Mod: Ctrl}
+	d.table["\x1b[a"] = KeyDownEvent{Sym: KeyUp, Mod: Shift}
+	d.table["\x1b[b"] = KeyDownEvent{Sym: KeyDown, Mod: Shift}
+	d.table["\x1b[c"] = KeyDownEvent{Sym: KeyRight, Mod: Shift}
+	d.table["\x1b[d"] = KeyDownEvent{Sym: KeyLeft, Mod: Shift}
+	d.table["\x1bOa"] = KeyDownEvent{Sym: KeyUp, Mod: Ctrl}
+	d.table["\x1bOb"] = KeyDownEvent{Sym: KeyDown, Mod: Ctrl}
+	d.table["\x1bOc"] = KeyDownEvent{Sym: KeyRight, Mod: Ctrl}
+	d.table["\x1bOd"] = KeyDownEvent{Sym: KeyLeft, Mod: Ctrl}
 	// TODO: invistigate if shift-ctrl arrow keys collide with DECCKM keys i.e.
 	// "\x1bOA", "\x1bOB", "\x1bOC", "\x1bOD"
 
@@ -322,46 +322,46 @@ func (d *Driver) registerKeys(flags int) {
 	// different escapes like XTerm, or switch to a better terminal ¯\_(ツ)_/¯
 	//
 	// See https://manpages.ubuntu.com/manpages/trusty/man7/urxvt.7.html#key%20codes
-	d.table["\x1b[23$"] = KeyEvent{Sym: KeyF11, Mod: Shift}
-	d.table["\x1b[24$"] = KeyEvent{Sym: KeyF12, Mod: Shift}
-	d.table["\x1b[25$"] = KeyEvent{Sym: KeyF13, Mod: Shift}
-	d.table["\x1b[26$"] = KeyEvent{Sym: KeyF14, Mod: Shift}
-	d.table["\x1b[28$"] = KeyEvent{Sym: KeyF15, Mod: Shift}
-	d.table["\x1b[29$"] = KeyEvent{Sym: KeyF16, Mod: Shift}
-	d.table["\x1b[31$"] = KeyEvent{Sym: KeyF17, Mod: Shift}
-	d.table["\x1b[32$"] = KeyEvent{Sym: KeyF18, Mod: Shift}
-	d.table["\x1b[33$"] = KeyEvent{Sym: KeyF19, Mod: Shift}
-	d.table["\x1b[34$"] = KeyEvent{Sym: KeyF20, Mod: Shift}
-	d.table["\x1b[11^"] = KeyEvent{Sym: KeyF1, Mod: Ctrl}
-	d.table["\x1b[12^"] = KeyEvent{Sym: KeyF2, Mod: Ctrl}
-	d.table["\x1b[13^"] = KeyEvent{Sym: KeyF3, Mod: Ctrl}
-	d.table["\x1b[14^"] = KeyEvent{Sym: KeyF4, Mod: Ctrl}
-	d.table["\x1b[15^"] = KeyEvent{Sym: KeyF5, Mod: Ctrl}
-	d.table["\x1b[17^"] = KeyEvent{Sym: KeyF6, Mod: Ctrl}
-	d.table["\x1b[18^"] = KeyEvent{Sym: KeyF7, Mod: Ctrl}
-	d.table["\x1b[19^"] = KeyEvent{Sym: KeyF8, Mod: Ctrl}
-	d.table["\x1b[20^"] = KeyEvent{Sym: KeyF9, Mod: Ctrl}
-	d.table["\x1b[21^"] = KeyEvent{Sym: KeyF10, Mod: Ctrl}
-	d.table["\x1b[23^"] = KeyEvent{Sym: KeyF11, Mod: Ctrl}
-	d.table["\x1b[24^"] = KeyEvent{Sym: KeyF12, Mod: Ctrl}
-	d.table["\x1b[25^"] = KeyEvent{Sym: KeyF13, Mod: Ctrl}
-	d.table["\x1b[26^"] = KeyEvent{Sym: KeyF14, Mod: Ctrl}
-	d.table["\x1b[28^"] = KeyEvent{Sym: KeyF15, Mod: Ctrl}
-	d.table["\x1b[29^"] = KeyEvent{Sym: KeyF16, Mod: Ctrl}
-	d.table["\x1b[31^"] = KeyEvent{Sym: KeyF17, Mod: Ctrl}
-	d.table["\x1b[32^"] = KeyEvent{Sym: KeyF18, Mod: Ctrl}
-	d.table["\x1b[33^"] = KeyEvent{Sym: KeyF19, Mod: Ctrl}
-	d.table["\x1b[34^"] = KeyEvent{Sym: KeyF20, Mod: Ctrl}
-	d.table["\x1b[23@"] = KeyEvent{Sym: KeyF11, Mod: Shift | Ctrl}
-	d.table["\x1b[24@"] = KeyEvent{Sym: KeyF12, Mod: Shift | Ctrl}
-	d.table["\x1b[25@"] = KeyEvent{Sym: KeyF13, Mod: Shift | Ctrl}
-	d.table["\x1b[26@"] = KeyEvent{Sym: KeyF14, Mod: Shift | Ctrl}
-	d.table["\x1b[28@"] = KeyEvent{Sym: KeyF15, Mod: Shift | Ctrl}
-	d.table["\x1b[29@"] = KeyEvent{Sym: KeyF16, Mod: Shift | Ctrl}
-	d.table["\x1b[31@"] = KeyEvent{Sym: KeyF17, Mod: Shift | Ctrl}
-	d.table["\x1b[32@"] = KeyEvent{Sym: KeyF18, Mod: Shift | Ctrl}
-	d.table["\x1b[33@"] = KeyEvent{Sym: KeyF19, Mod: Shift | Ctrl}
-	d.table["\x1b[34@"] = KeyEvent{Sym: KeyF20, Mod: Shift | Ctrl}
+	d.table["\x1b[23$"] = KeyDownEvent{Sym: KeyF11, Mod: Shift}
+	d.table["\x1b[24$"] = KeyDownEvent{Sym: KeyF12, Mod: Shift}
+	d.table["\x1b[25$"] = KeyDownEvent{Sym: KeyF13, Mod: Shift}
+	d.table["\x1b[26$"] = KeyDownEvent{Sym: KeyF14, Mod: Shift}
+	d.table["\x1b[28$"] = KeyDownEvent{Sym: KeyF15, Mod: Shift}
+	d.table["\x1b[29$"] = KeyDownEvent{Sym: KeyF16, Mod: Shift}
+	d.table["\x1b[31$"] = KeyDownEvent{Sym: KeyF17, Mod: Shift}
+	d.table["\x1b[32$"] = KeyDownEvent{Sym: KeyF18, Mod: Shift}
+	d.table["\x1b[33$"] = KeyDownEvent{Sym: KeyF19, Mod: Shift}
+	d.table["\x1b[34$"] = KeyDownEvent{Sym: KeyF20, Mod: Shift}
+	d.table["\x1b[11^"] = KeyDownEvent{Sym: KeyF1, Mod: Ctrl}
+	d.table["\x1b[12^"] = KeyDownEvent{Sym: KeyF2, Mod: Ctrl}
+	d.table["\x1b[13^"] = KeyDownEvent{Sym: KeyF3, Mod: Ctrl}
+	d.table["\x1b[14^"] = KeyDownEvent{Sym: KeyF4, Mod: Ctrl}
+	d.table["\x1b[15^"] = KeyDownEvent{Sym: KeyF5, Mod: Ctrl}
+	d.table["\x1b[17^"] = KeyDownEvent{Sym: KeyF6, Mod: Ctrl}
+	d.table["\x1b[18^"] = KeyDownEvent{Sym: KeyF7, Mod: Ctrl}
+	d.table["\x1b[19^"] = KeyDownEvent{Sym: KeyF8, Mod: Ctrl}
+	d.table["\x1b[20^"] = KeyDownEvent{Sym: KeyF9, Mod: Ctrl}
+	d.table["\x1b[21^"] = KeyDownEvent{Sym: KeyF10, Mod: Ctrl}
+	d.table["\x1b[23^"] = KeyDownEvent{Sym: KeyF11, Mod: Ctrl}
+	d.table["\x1b[24^"] = KeyDownEvent{Sym: KeyF12, Mod: Ctrl}
+	d.table["\x1b[25^"] = KeyDownEvent{Sym: KeyF13, Mod: Ctrl}
+	d.table["\x1b[26^"] = KeyDownEvent{Sym: KeyF14, Mod: Ctrl}
+	d.table["\x1b[28^"] = KeyDownEvent{Sym: KeyF15, Mod: Ctrl}
+	d.table["\x1b[29^"] = KeyDownEvent{Sym: KeyF16, Mod: Ctrl}
+	d.table["\x1b[31^"] = KeyDownEvent{Sym: KeyF17, Mod: Ctrl}
+	d.table["\x1b[32^"] = KeyDownEvent{Sym: KeyF18, Mod: Ctrl}
+	d.table["\x1b[33^"] = KeyDownEvent{Sym: KeyF19, Mod: Ctrl}
+	d.table["\x1b[34^"] = KeyDownEvent{Sym: KeyF20, Mod: Ctrl}
+	d.table["\x1b[23@"] = KeyDownEvent{Sym: KeyF11, Mod: Shift | Ctrl}
+	d.table["\x1b[24@"] = KeyDownEvent{Sym: KeyF12, Mod: Shift | Ctrl}
+	d.table["\x1b[25@"] = KeyDownEvent{Sym: KeyF13, Mod: Shift | Ctrl}
+	d.table["\x1b[26@"] = KeyDownEvent{Sym: KeyF14, Mod: Shift | Ctrl}
+	d.table["\x1b[28@"] = KeyDownEvent{Sym: KeyF15, Mod: Shift | Ctrl}
+	d.table["\x1b[29@"] = KeyDownEvent{Sym: KeyF16, Mod: Shift | Ctrl}
+	d.table["\x1b[31@"] = KeyDownEvent{Sym: KeyF17, Mod: Shift | Ctrl}
+	d.table["\x1b[32@"] = KeyDownEvent{Sym: KeyF18, Mod: Shift | Ctrl}
+	d.table["\x1b[33@"] = KeyDownEvent{Sym: KeyF19, Mod: Shift | Ctrl}
+	d.table["\x1b[34@"] = KeyDownEvent{Sym: KeyF20, Mod: Shift | Ctrl}
 
 	// Register Alt + <key> combinations
 	for k, v := range d.table {

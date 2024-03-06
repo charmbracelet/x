@@ -184,29 +184,33 @@ const (
 	KeyIsoLevel5Shift
 )
 
-// KeyAction is a keyboard key action.
-type KeyAction int
-
-// Key action constants.
-const (
-	KeyPress KeyAction = iota
-	KeyRepeat
-	KeyRelease
-)
-
-// KeyEvent is a keyboard key event.
-type KeyEvent struct {
-	Rune    rune
-	AltRune rune
-	Sym     KeySym
-	Action  KeyAction
+// key represents a key event.
+type key struct {
+	Rune     rune
+	AltRune  rune
+	Sym      KeySym
+	IsRepeat bool
 	Mod
 }
 
-var _ Event = KeyEvent{}
+// KeyDownEvent represents a key down event.
+type KeyDownEvent key
 
 // String implements fmt.Stringer.
-func (k KeyEvent) String() string {
+func (k KeyDownEvent) String() string {
+	return keyString(key(k))
+}
+
+// KeyUpEvent represents a key up event.
+type KeyUpEvent key
+
+// String implements fmt.Stringer.
+func (k KeyUpEvent) String() string {
+	return keyString(key(k))
+}
+
+// String implements fmt.Stringer.
+func keyString(k key) string {
 	var s string
 	if k.Mod.IsCtrl() && k.Sym != KeyLeftCtrl && k.Sym != KeyRightCtrl {
 		s += "ctrl+"
@@ -241,12 +245,6 @@ func (k KeyEvent) String() string {
 		}
 	} else {
 		s += k.Sym.String()
-	}
-	switch k.Action {
-	case KeyRepeat:
-		s += " (repeat)"
-	case KeyRelease:
-		s += " (release)"
 	}
 	return s
 }

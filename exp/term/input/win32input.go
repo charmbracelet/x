@@ -9,7 +9,7 @@ func parseWin32InputKeyEvent(vkc coninput.VirtualKeyCode, _ coninput.VirtualKeyC
 	if !ok && isCtrl {
 		k = vkCtrlRune(k, r, vkc)
 	} else if !ok {
-		k = KeyEvent{Rune: r}
+		k = KeyDownEvent{Rune: r}
 	}
 	if isCtrl {
 		k.Mod |= Ctrl
@@ -27,25 +27,25 @@ func parseWin32InputKeyEvent(vkc coninput.VirtualKeyCode, _ coninput.VirtualKeyC
 		return nil
 	}
 
-	if repeatCount > 1 {
-		k.Action = KeyRepeat
-	} else if !keyDown {
-		k.Action = KeyRelease
+	var e Event = KeyDownEvent(k)
+	k.IsRepeat = repeatCount > 1
+	if !keyDown {
+		e = KeyUpEvent(k)
 	}
 
 	if repeatCount <= 1 {
-		return k
+		return e
 	}
 
 	var kevents []Event
 	for i := 0; i < int(repeatCount); i++ {
-		kevents = append(kevents, k)
+		kevents = append(kevents, e)
 	}
 
 	return MultiEvent(kevents)
 }
 
-var vkKeyEvent = map[coninput.VirtualKeyCode]KeyEvent{
+var vkKeyEvent = map[coninput.VirtualKeyCode]KeyDownEvent{
 	coninput.VK_RETURN:    {Sym: KeyEnter},
 	coninput.VK_BACK:      {Sym: KeyBackspace},
 	coninput.VK_TAB:       {Sym: KeyTab},
@@ -118,7 +118,7 @@ var vkKeyEvent = map[coninput.VirtualKeyCode]KeyEvent{
 	// TODO: add more keys
 }
 
-func vkCtrlRune(k KeyEvent, r rune, kc coninput.VirtualKeyCode) KeyEvent {
+func vkCtrlRune(k KeyDownEvent, r rune, kc coninput.VirtualKeyCode) KeyDownEvent {
 	switch r {
 	case '@':
 		k.Rune = '@'

@@ -219,8 +219,9 @@ func fromKittyMod(mod int) Mod {
 	return m
 }
 
-func parseKittyKeyboard(params [][]uint) KeyEvent {
-	key := KeyEvent{}
+func parseKittyKeyboard(params [][]uint) Event {
+	var isRelease bool
+	key := key{}
 	if len(params) > 0 {
 		code := int(params[0][0])
 		if sym, ok := kittyKeyMap[code]; ok {
@@ -246,12 +247,10 @@ func parseKittyKeyboard(params [][]uint) KeyEvent {
 		}
 		if len(params[1]) > 1 {
 			switch int(params[1][1]) {
-			case 0, 1:
-				key.Action = KeyPress
 			case 2:
-				key.Action = KeyRepeat
+				key.IsRepeat = true
 			case 3:
-				key.Action = KeyRelease
+				isRelease = true
 			}
 		}
 	}
@@ -262,5 +261,8 @@ func parseKittyKeyboard(params [][]uint) KeyEvent {
 		}
 		key.AltRune = r
 	}
-	return key
+	if isRelease {
+		return KeyUpEvent(key)
+	}
+	return KeyDownEvent(key)
 }

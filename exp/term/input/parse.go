@@ -21,7 +21,7 @@ func ParseSequence(buf []byte) (n int, e Event) {
 	case ansi.ESC:
 		if len(buf) == 1 {
 			// Escape key
-			return 1, KeyEvent{Sym: KeyEscape}
+			return 1, KeyDownEvent{Sym: KeyEscape}
 		}
 
 		switch b := buf[1]; b {
@@ -38,12 +38,12 @@ func ParseSequence(buf []byte) (n int, e Event) {
 		case ansi.ESC:
 			if len(buf) == 2 {
 				// Double escape key
-				return 2, KeyEvent{Sym: KeyEscape, Mod: Alt}
+				return 2, KeyDownEvent{Sym: KeyEscape, Mod: Alt}
 			}
 			fallthrough
 		default:
 			n, e := ParseSequence(buf[1:])
-			if k, ok := e.(KeyEvent); ok {
+			if k, ok := e.(KeyDownEvent); ok {
 				k.Mod |= Alt
 				return n + 1, k
 			}
@@ -143,37 +143,37 @@ func parseCsi(p []byte) (int, Event) {
 
 	switch final {
 	case 'a':
-		return len(seq), KeyEvent{Sym: KeyUp, Mod: Shift}
+		return len(seq), KeyDownEvent{Sym: KeyUp, Mod: Shift}
 	case 'b':
-		return len(seq), KeyEvent{Sym: KeyDown, Mod: Shift}
+		return len(seq), KeyDownEvent{Sym: KeyDown, Mod: Shift}
 	case 'c':
-		return len(seq), KeyEvent{Sym: KeyRight, Mod: Shift}
+		return len(seq), KeyDownEvent{Sym: KeyRight, Mod: Shift}
 	case 'd':
-		return len(seq), KeyEvent{Sym: KeyLeft, Mod: Shift}
+		return len(seq), KeyDownEvent{Sym: KeyLeft, Mod: Shift}
 	case 'A':
-		return len(seq), KeyEvent{Sym: KeyUp}
+		return len(seq), KeyDownEvent{Sym: KeyUp}
 	case 'B':
-		return len(seq), KeyEvent{Sym: KeyDown}
+		return len(seq), KeyDownEvent{Sym: KeyDown}
 	case 'C':
-		return len(seq), KeyEvent{Sym: KeyRight}
+		return len(seq), KeyDownEvent{Sym: KeyRight}
 	case 'D':
-		return len(seq), KeyEvent{Sym: KeyLeft}
+		return len(seq), KeyDownEvent{Sym: KeyLeft}
 	case 'E':
-		return len(seq), KeyEvent{Sym: KeyBegin}
+		return len(seq), KeyDownEvent{Sym: KeyBegin}
 	case 'F':
-		return len(seq), KeyEvent{Sym: KeyEnd}
+		return len(seq), KeyDownEvent{Sym: KeyEnd}
 	case 'H':
-		return len(seq), KeyEvent{Sym: KeyHome}
+		return len(seq), KeyDownEvent{Sym: KeyHome}
 	case 'P':
-		return len(seq), KeyEvent{Sym: KeyF1}
+		return len(seq), KeyDownEvent{Sym: KeyF1}
 	case 'Q':
-		return len(seq), KeyEvent{Sym: KeyF2}
+		return len(seq), KeyDownEvent{Sym: KeyF2}
 	case 'R':
-		return len(seq), KeyEvent{Sym: KeyF3}
+		return len(seq), KeyDownEvent{Sym: KeyF3}
 	case 'S':
-		return len(seq), KeyEvent{Sym: KeyF4}
+		return len(seq), KeyDownEvent{Sym: KeyF4}
 	case 'Z':
-		return len(seq), KeyEvent{Sym: KeyTab, Mod: Shift}
+		return len(seq), KeyDownEvent{Sym: KeyTab, Mod: Shift}
 	case 'M':
 		// Handle X10 mouse
 		if i+3 >= len(p) {
@@ -220,61 +220,61 @@ func parseCsi(p []byte) (int, Event) {
 		}
 		switch params[0][0] {
 		case 1:
-			return len(seq), KeyEvent{Sym: KeyHome}
+			return len(seq), KeyDownEvent{Sym: KeyHome}
 		case 2:
-			return len(seq), KeyEvent{Sym: KeyInsert}
+			return len(seq), KeyDownEvent{Sym: KeyInsert}
 		case 3:
-			return len(seq), KeyEvent{Sym: KeyDelete}
+			return len(seq), KeyDownEvent{Sym: KeyDelete}
 		case 4:
-			return len(seq), KeyEvent{Sym: KeyEnd}
+			return len(seq), KeyDownEvent{Sym: KeyEnd}
 		case 5:
-			return len(seq), KeyEvent{Sym: KeyPgUp}
+			return len(seq), KeyDownEvent{Sym: KeyPgUp}
 		case 6:
-			return len(seq), KeyEvent{Sym: KeyPgDown}
+			return len(seq), KeyDownEvent{Sym: KeyPgDown}
 		case 7:
-			return len(seq), KeyEvent{Sym: KeyHome}
+			return len(seq), KeyDownEvent{Sym: KeyHome}
 		case 8:
-			return len(seq), KeyEvent{Sym: KeyEnd}
+			return len(seq), KeyDownEvent{Sym: KeyEnd}
 		case 11:
-			return len(seq), KeyEvent{Sym: KeyF1}
+			return len(seq), KeyDownEvent{Sym: KeyF1}
 		case 12:
-			return len(seq), KeyEvent{Sym: KeyF2}
+			return len(seq), KeyDownEvent{Sym: KeyF2}
 		case 13:
-			return len(seq), KeyEvent{Sym: KeyF3}
+			return len(seq), KeyDownEvent{Sym: KeyF3}
 		case 14:
-			return len(seq), KeyEvent{Sym: KeyF4}
+			return len(seq), KeyDownEvent{Sym: KeyF4}
 		case 15:
-			return len(seq), KeyEvent{Sym: KeyF5}
+			return len(seq), KeyDownEvent{Sym: KeyF5}
 		case 17:
-			return len(seq), KeyEvent{Sym: KeyF6}
+			return len(seq), KeyDownEvent{Sym: KeyF6}
 		case 18:
-			return len(seq), KeyEvent{Sym: KeyF7}
+			return len(seq), KeyDownEvent{Sym: KeyF7}
 		case 19:
-			return len(seq), KeyEvent{Sym: KeyF8}
+			return len(seq), KeyDownEvent{Sym: KeyF8}
 		case 20:
-			return len(seq), KeyEvent{Sym: KeyF9}
+			return len(seq), KeyDownEvent{Sym: KeyF9}
 		case 21:
-			return len(seq), KeyEvent{Sym: KeyF10}
+			return len(seq), KeyDownEvent{Sym: KeyF10}
 		case 23:
-			return len(seq), KeyEvent{Sym: KeyF11}
+			return len(seq), KeyDownEvent{Sym: KeyF11}
 		case 24:
-			return len(seq), KeyEvent{Sym: KeyF12}
+			return len(seq), KeyDownEvent{Sym: KeyF12}
 		case 25:
-			return len(seq), KeyEvent{Sym: KeyF13}
+			return len(seq), KeyDownEvent{Sym: KeyF13}
 		case 26:
-			return len(seq), KeyEvent{Sym: KeyF14}
+			return len(seq), KeyDownEvent{Sym: KeyF14}
 		case 28:
-			return len(seq), KeyEvent{Sym: KeyF15}
+			return len(seq), KeyDownEvent{Sym: KeyF15}
 		case 29:
-			return len(seq), KeyEvent{Sym: KeyF16}
+			return len(seq), KeyDownEvent{Sym: KeyF16}
 		case 31:
-			return len(seq), KeyEvent{Sym: KeyF17}
+			return len(seq), KeyDownEvent{Sym: KeyF17}
 		case 32:
-			return len(seq), KeyEvent{Sym: KeyF18}
+			return len(seq), KeyDownEvent{Sym: KeyF18}
 		case 33:
-			return len(seq), KeyEvent{Sym: KeyF19}
+			return len(seq), KeyDownEvent{Sym: KeyF19}
 		case 34:
-			return len(seq), KeyEvent{Sym: KeyF20}
+			return len(seq), KeyDownEvent{Sym: KeyF20}
 		case 27:
 			// XTerm modifyOtherKeys 2
 			if len(params) != 3 {
@@ -321,69 +321,69 @@ func parseSs3(p []byte) (int, Event) {
 
 	switch p[i] {
 	case 'A':
-		return len(seq), KeyEvent{Sym: KeyUp}
+		return len(seq), KeyDownEvent{Sym: KeyUp}
 	case 'B':
-		return len(seq), KeyEvent{Sym: KeyDown}
+		return len(seq), KeyDownEvent{Sym: KeyDown}
 	case 'C':
-		return len(seq), KeyEvent{Sym: KeyRight}
+		return len(seq), KeyDownEvent{Sym: KeyRight}
 	case 'D':
-		return len(seq), KeyEvent{Sym: KeyLeft}
+		return len(seq), KeyDownEvent{Sym: KeyLeft}
 	case 'F':
-		return len(seq), KeyEvent{Sym: KeyEnd}
+		return len(seq), KeyDownEvent{Sym: KeyEnd}
 	case 'H':
-		return len(seq), KeyEvent{Sym: KeyHome}
+		return len(seq), KeyDownEvent{Sym: KeyHome}
 	case 'P':
-		return len(seq), KeyEvent{Sym: KeyF1}
+		return len(seq), KeyDownEvent{Sym: KeyF1}
 	case 'Q':
-		return len(seq), KeyEvent{Sym: KeyF2}
+		return len(seq), KeyDownEvent{Sym: KeyF2}
 	case 'R':
-		return len(seq), KeyEvent{Sym: KeyF3}
+		return len(seq), KeyDownEvent{Sym: KeyF3}
 	case 'S':
-		return len(seq), KeyEvent{Sym: KeyF4}
+		return len(seq), KeyDownEvent{Sym: KeyF4}
 	case 'a':
-		return len(seq), KeyEvent{Sym: KeyUp, Mod: Shift}
+		return len(seq), KeyDownEvent{Sym: KeyUp, Mod: Shift}
 	case 'b':
-		return len(seq), KeyEvent{Sym: KeyDown, Mod: Shift}
+		return len(seq), KeyDownEvent{Sym: KeyDown, Mod: Shift}
 	case 'c':
-		return len(seq), KeyEvent{Sym: KeyRight, Mod: Shift}
+		return len(seq), KeyDownEvent{Sym: KeyRight, Mod: Shift}
 	case 'd':
-		return len(seq), KeyEvent{Sym: KeyLeft, Mod: Shift}
+		return len(seq), KeyDownEvent{Sym: KeyLeft, Mod: Shift}
 	case 'M':
-		return len(seq), KeyEvent{Sym: KeyKpEnter}
+		return len(seq), KeyDownEvent{Sym: KeyKpEnter}
 	case 'X':
-		return len(seq), KeyEvent{Sym: KeyKpEqual}
+		return len(seq), KeyDownEvent{Sym: KeyKpEqual}
 	case 'j':
-		return len(seq), KeyEvent{Sym: KeyKpMul}
+		return len(seq), KeyDownEvent{Sym: KeyKpMul}
 	case 'k':
-		return len(seq), KeyEvent{Sym: KeyKpPlus}
+		return len(seq), KeyDownEvent{Sym: KeyKpPlus}
 	case 'l':
-		return len(seq), KeyEvent{Sym: KeyKpComma}
+		return len(seq), KeyDownEvent{Sym: KeyKpComma}
 	case 'm':
-		return len(seq), KeyEvent{Sym: KeyKpMinus}
+		return len(seq), KeyDownEvent{Sym: KeyKpMinus}
 	case 'n':
-		return len(seq), KeyEvent{Sym: KeyKpPeriod}
+		return len(seq), KeyDownEvent{Sym: KeyKpPeriod}
 	case 'o':
-		return len(seq), KeyEvent{Sym: KeyKpDiv}
+		return len(seq), KeyDownEvent{Sym: KeyKpDiv}
 	case 'p':
-		return len(seq), KeyEvent{Sym: KeyKp0}
+		return len(seq), KeyDownEvent{Sym: KeyKp0}
 	case 'q':
-		return len(seq), KeyEvent{Sym: KeyKp1}
+		return len(seq), KeyDownEvent{Sym: KeyKp1}
 	case 'r':
-		return len(seq), KeyEvent{Sym: KeyKp2}
+		return len(seq), KeyDownEvent{Sym: KeyKp2}
 	case 's':
-		return len(seq), KeyEvent{Sym: KeyKp3}
+		return len(seq), KeyDownEvent{Sym: KeyKp3}
 	case 't':
-		return len(seq), KeyEvent{Sym: KeyKp4}
+		return len(seq), KeyDownEvent{Sym: KeyKp4}
 	case 'u':
-		return len(seq), KeyEvent{Sym: KeyKp5}
+		return len(seq), KeyDownEvent{Sym: KeyKp5}
 	case 'v':
-		return len(seq), KeyEvent{Sym: KeyKp6}
+		return len(seq), KeyDownEvent{Sym: KeyKp6}
 	case 'w':
-		return len(seq), KeyEvent{Sym: KeyKp7}
+		return len(seq), KeyDownEvent{Sym: KeyKp7}
 	case 'x':
-		return len(seq), KeyEvent{Sym: KeyKp8}
+		return len(seq), KeyDownEvent{Sym: KeyKp8}
 	case 'y':
-		return len(seq), KeyEvent{Sym: KeyKp9}
+		return len(seq), KeyDownEvent{Sym: KeyKp9}
 	default:
 		return len(seq), UnknownSs3Event(seq)
 	}
@@ -513,79 +513,79 @@ func parseUtf8(p []byte) (int, Event) {
 	if r == utf8.RuneError || r <= ansi.US || r == ansi.DEL || r == ansi.SP {
 		return 0, nil
 	}
-	return rw, KeyEvent{Rune: r}
+	return rw, KeyDownEvent{Rune: r}
 }
 
 func parseCtrl0(b byte) Event {
 	switch b {
 	case ansi.NUL:
-		return KeyEvent{Sym: KeySpace, Mod: Ctrl}
+		return KeyDownEvent{Sym: KeySpace, Mod: Ctrl}
 	case ansi.SOH:
-		return KeyEvent{Rune: 'a', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'a', Mod: Ctrl}
 	case ansi.STX:
-		return KeyEvent{Rune: 'b', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'b', Mod: Ctrl}
 	case ansi.ETX:
-		return KeyEvent{Rune: 'c', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'c', Mod: Ctrl}
 	case ansi.EOT:
-		return KeyEvent{Rune: 'd', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'd', Mod: Ctrl}
 	case ansi.ENQ:
-		return KeyEvent{Rune: 'e', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'e', Mod: Ctrl}
 	case ansi.ACK:
-		return KeyEvent{Rune: 'f', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'f', Mod: Ctrl}
 	case ansi.BEL:
-		return KeyEvent{Rune: 'g', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'g', Mod: Ctrl}
 	case ansi.BS:
-		return KeyEvent{Rune: 'h', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'h', Mod: Ctrl}
 	case ansi.HT:
-		return KeyEvent{Sym: KeyTab}
+		return KeyDownEvent{Sym: KeyTab}
 	case ansi.LF:
-		return KeyEvent{Rune: 'j', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'j', Mod: Ctrl}
 	case ansi.VT:
-		return KeyEvent{Rune: 'k', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'k', Mod: Ctrl}
 	case ansi.FF:
-		return KeyEvent{Rune: 'l', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'l', Mod: Ctrl}
 	case ansi.CR:
-		return KeyEvent{Sym: KeyEnter}
+		return KeyDownEvent{Sym: KeyEnter}
 	case ansi.SO:
-		return KeyEvent{Rune: 'n', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'n', Mod: Ctrl}
 	case ansi.SI:
-		return KeyEvent{Rune: 'o', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'o', Mod: Ctrl}
 	case ansi.DLE:
-		return KeyEvent{Rune: 'p', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'p', Mod: Ctrl}
 	case ansi.DC1:
-		return KeyEvent{Rune: 'q', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'q', Mod: Ctrl}
 	case ansi.DC2:
-		return KeyEvent{Rune: 'r', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'r', Mod: Ctrl}
 	case ansi.DC3:
-		return KeyEvent{Rune: 's', Mod: Ctrl}
+		return KeyDownEvent{Rune: 's', Mod: Ctrl}
 	case ansi.DC4:
-		return KeyEvent{Rune: 't', Mod: Ctrl}
+		return KeyDownEvent{Rune: 't', Mod: Ctrl}
 	case ansi.NAK:
-		return KeyEvent{Rune: 'u', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'u', Mod: Ctrl}
 	case ansi.SYN:
-		return KeyEvent{Rune: 'v', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'v', Mod: Ctrl}
 	case ansi.ETB:
-		return KeyEvent{Rune: 'w', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'w', Mod: Ctrl}
 	case ansi.CAN:
-		return KeyEvent{Rune: 'x', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'x', Mod: Ctrl}
 	case ansi.EM:
-		return KeyEvent{Rune: 'y', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'y', Mod: Ctrl}
 	case ansi.SUB:
-		return KeyEvent{Rune: 'z', Mod: Ctrl}
+		return KeyDownEvent{Rune: 'z', Mod: Ctrl}
 	case ansi.ESC:
-		return KeyEvent{Sym: KeyEscape}
+		return KeyDownEvent{Sym: KeyEscape}
 	case ansi.FS:
-		return KeyEvent{Rune: '\\', Mod: Ctrl}
+		return KeyDownEvent{Rune: '\\', Mod: Ctrl}
 	case ansi.GS:
-		return KeyEvent{Rune: ']', Mod: Ctrl}
+		return KeyDownEvent{Rune: ']', Mod: Ctrl}
 	case ansi.RS:
-		return KeyEvent{Rune: '^', Mod: Ctrl}
+		return KeyDownEvent{Rune: '^', Mod: Ctrl}
 	case ansi.US:
-		return KeyEvent{Rune: '_', Mod: Ctrl}
+		return KeyDownEvent{Rune: '_', Mod: Ctrl}
 	case ansi.SP:
-		return KeyEvent{Sym: KeySpace, Rune: ' '}
+		return KeyDownEvent{Sym: KeySpace, Rune: ' '}
 	case ansi.DEL:
-		return KeyEvent{Sym: KeyBackspace}
+		return KeyDownEvent{Sym: KeyBackspace}
 	default:
 		return UnknownEvent(string(b))
 	}
