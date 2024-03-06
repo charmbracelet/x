@@ -31,9 +31,9 @@ const (
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
 const (
-	EnableMouseTracking  = "\x1b[?1000h"
-	DisableMouseTracking = "\x1b[?1000l"
-	RequestMouseTracking = "\x1b[?1000$p"
+	EnableMouse  = "\x1b[?1000h"
+	DisableMouse = "\x1b[?1000l"
+	RequestMouse = "\x1b[?1000$p"
 )
 
 // VT Hilite Mouse Tracking is a mode that determines whether the mouse reports on
@@ -41,9 +41,9 @@ const (
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
 const (
-	EnableHiliteMouseTracking  = "\x1b[?1001h"
-	DisableHiliteMouseTracking = "\x1b[?1001l"
-	RequestHiliteMouseTracking = "\x1b[?1001$p"
+	EnableMouseHilite  = "\x1b[?1001h"
+	DisableMouseHilite = "\x1b[?1001l"
+	RequestMouseHilite = "\x1b[?1001$p"
 )
 
 // Cell Motion Mouse Tracking is a mode that determines whether the mouse
@@ -51,9 +51,9 @@ const (
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
 const (
-	EnableCellMotionMouseTracking  = "\x1b[?1002h"
-	DisableCellMotionMouseTracking = "\x1b[?1002l"
-	RequestCellMotionMouseTracking = "\x1b[?1002$p"
+	EnableMouseCellMotion  = "\x1b[?1002h"
+	DisableMouseCellMotion = "\x1b[?1002l"
+	RequestMouseCellMotion = "\x1b[?1002$p"
 )
 
 // All Mouse Tracking is a mode that determines whether the mouse reports on
@@ -61,9 +61,9 @@ const (
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
 const (
-	EnableAllMouseTracking  = "\x1b[?1003h"
-	DisableAllMouseTracking = "\x1b[?1003l"
-	RequestAllMouseTracking = "\x1b[?1003$p"
+	EnableMouseAllMotion  = "\x1b[?1003h"
+	DisableMouseAllMotion = "\x1b[?1003l"
+	RequestMouseAllMotion = "\x1b[?1003$p"
 )
 
 // SGR Mouse Extension is a mode that determines whether the mouse reports events
@@ -71,9 +71,9 @@ const (
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
 const (
-	EnableSgrMouseExt  = "\x1b[?1006h"
-	DisableSgrMouseExt = "\x1b[?1006l"
-	RequestSgrMouseExt = "\x1b[?1006$p"
+	EnableMouseSgrExt  = "\x1b[?1006h"
+	DisableMouseSgrExt = "\x1b[?1006l"
+	RequestMouseSgrExt = "\x1b[?1006$p"
 )
 
 // Alternate Screen Buffer is a mode that determines whether the alternate screen
