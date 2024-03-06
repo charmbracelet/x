@@ -21,9 +21,9 @@ func colorToHexString(c color.Color) string {
 	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
 }
 
-// RgbToHex converts red, green, and blue values to a hexadecimal value.
+// rgbToHex converts red, green, and blue values to a hexadecimal value.
 //
-//	hex := RgbToHex(0, 0, 255) // 0x0000FF
-func RgbToHex(r, g, b uint32) uint32 {
+//	hex := rgbToHex(0, 0, 255) // 0x0000FF
+func rgbToHex(r, g, b uint32) uint32 {
 	return r<<16 + g<<8 + b
 }
