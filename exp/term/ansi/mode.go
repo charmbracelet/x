@@ -116,13 +116,3 @@ const (
 	DisableWin32Input = "\x1b[?9001l"
 	RequestWin32Input = "\x1b[?9001$p"
 )
-
-// Win32Input is a mode that determines whether input is processed by the
-// Win32 console and Conpty.
-//
-// See: https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md
-const (
-	EnableWin32Input  = "\x1b" + "[" + "?" + "9001" + "h"
-	DisableWin32Input = "\x1b" + "[" + "?" + "9001" + "l"
-	RequestWin32Input = "\x1b" + "[" + "?" + "9001" + "$" + "p"
-)

@@ -8,9 +8,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/exp/term"
-	"github.com/charmbracelet/x/exp/term/ansi/ctrl"
-	"github.com/charmbracelet/x/exp/term/ansi/kitty"
-	"github.com/charmbracelet/x/exp/term/ansi/sys"
+	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/charmbracelet/x/exp/term/input"
 	"github.com/muesli/cancelreader"
 )
@@ -163,11 +161,11 @@ func (c *terminal) SupportsKittyKeyboard() bool {
 
 func (c *terminal) queryTerminal() {
 	c.initInputHandler()
-	const query = sys.RequestBackgroundColor +
-		sys.RequestForegroundColor +
-		sys.RequestCursorColor +
-		kitty.Request +
-		ctrl.RequestPrimaryDeviceAttributes
+	const query = ansi.RequestBackgroundColor +
+		ansi.RequestForegroundColor +
+		ansi.RequestCursorColor +
+		ansi.RequestKittyKeyboard +
+		ansi.RequestPrimaryDeviceAttributes
 
 	evc := make(chan input.Event)
 	go func() {

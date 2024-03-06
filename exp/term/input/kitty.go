@@ -4,7 +4,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
-	"github.com/charmbracelet/x/exp/term/ansi/kitty"
 )
 
 // KittyKeyboardEvent represents Kitty keyboard progressive enhancement flags.
@@ -12,27 +11,27 @@ type KittyKeyboardEvent int
 
 // IsDisambiguateEscapeCodes returns true if the DisambiguateEscapeCodes flag is set.
 func (e KittyKeyboardEvent) IsDisambiguateEscapeCodes() bool {
-	return e&kitty.DisambiguateEscapeCodes != 0
+	return e&ansi.KittyDisambiguateEscapeCodes != 0
 }
 
 // IsReportEventTypes returns true if the ReportEventTypes flag is set.
 func (e KittyKeyboardEvent) IsReportEventTypes() bool {
-	return e&kitty.ReportEventTypes != 0
+	return e&ansi.KittyReportEventTypes != 0
 }
 
 // IsReportAlternateKeys returns true if the ReportAlternateKeys flag is set.
 func (e KittyKeyboardEvent) IsReportAlternateKeys() bool {
-	return e&kitty.ReportAlternateKeys != 0
+	return e&ansi.KittyReportAlternateKeys != 0
 }
 
 // IsReportAllKeys returns true if the ReportAllKeys flag is set.
 func (e KittyKeyboardEvent) IsReportAllKeys() bool {
-	return e&kitty.ReportAllKeys != 0
+	return e&ansi.KittyReportAllKeys != 0
 }
 
 // IsReportAssociatedKeys returns true if the ReportAssociatedKeys flag is set.
 func (e KittyKeyboardEvent) IsReportAssociatedKeys() bool {
-	return e&kitty.ReportAssociatedKeys != 0
+	return e&ansi.KittyReportAssociatedKeys != 0
 }
 
 // String implements fmt.Stringer.
