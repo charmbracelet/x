@@ -1,4 +1,4 @@
-package sys
+package ansi
 
 import "encoding/base64"
 
@@ -21,7 +21,7 @@ func SetClipboard(c byte, d string) string {
 	if d != "" {
 		d = base64.StdEncoding.EncodeToString([]byte(d))
 	}
-	return "\x1b" + "]" + "52;" + string(c) + ";" + d + "\x07"
+	return "\x1b]52;" + string(c) + ";" + d + "\x07"
 }
 
 // ResetClipboard returns a sequence for resetting the clipboard.
@@ -37,5 +37,5 @@ func ResetClipboard(c byte) string {
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
 func RequestClipboard(c byte) string {
-	return "\x1b" + "]" + "52;" + string(c) + ";" + "?" + "\x07"
+	return "\x1b]52;" + string(c) + ";?\x07"
 }

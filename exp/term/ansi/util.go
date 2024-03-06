@@ -1,16 +1,23 @@
-package internal
+package ansi
 
 import (
 	"fmt"
 	"image/color"
 )
 
-// ColorToHexString returns a hex string representation of a color.
-func ColorToHexString(c color.Color) string {
+// colorToHexString returns a hex string representation of a color.
+func colorToHexString(c color.Color) string {
 	if c == nil {
 		return ""
 	}
+	shift := func(v uint32) uint32 {
+		if v > 0xff {
+			return v >> 8
+		}
+		return v
+	}
 	r, g, b, _ := c.RGBA()
+	r, g, b = shift(r), shift(g), shift(b)
 	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
 }
 

@@ -1,4 +1,4 @@
-package sys
+package ansi
 
 // SetIconNameWindowTitle returns a sequence for setting the icon name and
 // window title.
@@ -8,7 +8,7 @@ package sys
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Operating-System-Commands
 func SetIconNameWindowTitle(s string) string {
-	return "\x1b" + "]" + "0;" + s + "\x07"
+	return "\x1b]0;" + s + "\x07"
 }
 
 // SetIconName returns a sequence for setting the icon name.
@@ -18,7 +18,7 @@ func SetIconNameWindowTitle(s string) string {
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Operating-System-Commands
 func SetIconName(s string) string {
-	return "\x1b" + "]" + "1;" + s + "\x07"
+	return "\x1b]1;" + s + "\x07"
 }
 
 // SetWindowTitle returns a sequence for setting the window title.
@@ -28,5 +28,5 @@ func SetIconName(s string) string {
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Operating-System-Commands
 func SetWindowTitle(s string) string {
-	return "\x1b" + "]" + "2;" + s + "\x07"
+	return "\x1b]2;" + s + "\x07"
 }

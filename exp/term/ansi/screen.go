@@ -1,4 +1,4 @@
-package screen
+package ansi
 
 import "strconv"
 
@@ -16,8 +16,16 @@ func EraseDisplay(n int) string {
 	if n < 0 {
 		n = 0
 	}
-	return "\x1b" + "[" + strconv.Itoa(n) + "J"
+	return "\x1b[" + strconv.Itoa(n) + "J"
 }
+
+// EraseDisplay constants.
+// These are the possible values for the EraseDisplay function.
+const (
+	EraseDisplayRight  = "\x1b[0J"
+	EraseDisplayLeft   = "\x1b[1J"
+	EraseEntierDisplay = "\x1b[2J"
+)
 
 // EraseLine (EL) clears the current line or parts of the line. Possible values:
 //
@@ -34,8 +42,16 @@ func EraseLine(n int) string {
 	if n < 0 {
 		n = 0
 	}
-	return "\x1b" + "[" + strconv.Itoa(n) + "K"
+	return "\x1b[" + strconv.Itoa(n) + "K"
 }
+
+// EraseLine constants.
+// These are the possible values for the EraseLine function.
+const (
+	EraseLineRight  = "\x1b[0K"
+	EraseLineLeft   = "\x1b[1K"
+	EraseEntireLine = "\x1b[2K"
+)
 
 // ScrollUp (SU) scrolls the screen up n lines. New lines are added at the
 // bottom of the screen.
@@ -48,7 +64,7 @@ func ScrollUp(n int) string {
 	if n > 1 {
 		s = strconv.Itoa(n)
 	}
-	return "\x1b" + "[" + s + "S"
+	return "\x1b[" + s + "S"
 }
 
 // ScrollDown (SD) scrolls the screen down n lines. New lines are added at the
@@ -62,7 +78,7 @@ func ScrollDown(n int) string {
 	if n > 1 {
 		s = strconv.Itoa(n)
 	}
-	return "\x1b" + "[" + s + "T"
+	return "\x1b[" + s + "T"
 }
 
 // InsertLine (IL) inserts n blank lines at the current cursor position.
@@ -76,7 +92,7 @@ func InsertLine(n int) string {
 	if n > 1 {
 		s = strconv.Itoa(n)
 	}
-	return "\x1b" + "[" + s + "L"
+	return "\x1b[" + s + "L"
 }
 
 // DeleteLine (DL) deletes n lines at the current cursor position. Existing
@@ -90,13 +106,13 @@ func DeleteLine(n int) string {
 	if n > 1 {
 		s = strconv.Itoa(n)
 	}
-	return "\x1b" + "[" + s + "M"
+	return "\x1b[" + s + "M"
 }
 
 // SetScrollingRegion (DECSTBM) sets the top and bottom margins for the scrolling
 // region. The default is the entire screen.
 //
-//	CSI <top>;<bottom>r
+//	CSI <top> ; <bottom> r
 //
 // See: https://vt100.net/docs/vt510-rm/DECSTBM.html
 func SetScrollingRegion(t, b int) string {
@@ -107,5 +123,5 @@ func SetScrollingRegion(t, b int) string {
 	if b > 1 {
 		bs = strconv.Itoa(b)
 	}
-	return "\x1b" + "[" + ts + ";" + bs + "r"
+	return "\x1b[" + ts + ";" + bs + "r"
 }

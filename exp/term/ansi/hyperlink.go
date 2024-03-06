@@ -1,4 +1,4 @@
-package sys
+package ansi
 
 import "strings"
 
@@ -15,7 +15,7 @@ func SetHyperlink(uri string, params ...string) string {
 	if len(params) > 0 {
 		p = strings.Join(params, ":")
 	}
-	return "\x1b" + "]" + "8;" + p + ";" + uri + "\x07"
+	return "\x1b]8;" + p + ";" + uri + "\x07"
 }
 
 // ResetHyperlink returns a sequence for resetting the hyperlink.

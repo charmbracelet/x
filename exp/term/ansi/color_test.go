@@ -1,10 +1,8 @@
-package style
+package ansi
 
 import (
 	"image/color"
 	"testing"
-
-	"github.com/charmbracelet/x/exp/term/ansi/internal"
 )
 
 func TestRGBAToHex(t *testing.T) {
@@ -37,7 +35,7 @@ func TestColorToHexString(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		got := internal.ColorToHexString(c.color)
+		got := colorToHexString(c.color)
 		if got != c.want {
 			t.Errorf("colorToHexString(%v): got %v, want %v", c.color, got, c.want)
 		}

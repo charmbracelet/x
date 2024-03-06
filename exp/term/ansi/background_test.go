@@ -1,23 +1,22 @@
-package sys_test
+package ansi_test
 
 import (
 	"testing"
 
-	"github.com/charmbracelet/x/exp/term/ansi/style"
-	"github.com/charmbracelet/x/exp/term/ansi/sys"
+	"github.com/charmbracelet/x/exp/term/ansi"
 )
 
 func TestSetForegroundColorNil(t *testing.T) {
-	s := sys.SetForegroundColor(nil)
+	s := ansi.SetForegroundColor(nil)
 	if s != "\x1b]10;\x07" {
 		t.Errorf("Unexpected string for SetForegroundColor: got %q", s)
 	}
 }
 
 func TestStringImplementations(t *testing.T) {
-	foregroundColor := sys.SetForegroundColor(style.BrightMagenta)
-	backgroundColor := sys.SetBackgroundColor(style.ExtendedColor(255))
-	cursorColor := sys.SetCursorColor(style.TrueColor(0xffeeaa))
+	foregroundColor := ansi.SetForegroundColor(ansi.BrightMagenta)
+	backgroundColor := ansi.SetBackgroundColor(ansi.ExtendedColor(255))
+	cursorColor := ansi.SetCursorColor(ansi.TrueColor(0xffeeaa))
 
 	if foregroundColor != "\x1b]10;#ff00ff\x07" {
 		t.Errorf("Unexpected string for SetForegroundColor: got %q",
