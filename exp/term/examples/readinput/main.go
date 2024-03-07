@@ -176,6 +176,8 @@ OUT:
 						execute(ansi.RequestPrimaryDeviceAttributes)
 					case "x":
 						execute(ansi.RequestXTVersion)
+					case "t":
+						execute(ansi.RequestTermcap("kbs", "colors", "Tc", "cols"))
 					}
 				case prev == "m":
 					switch string(currKey.Rune) {

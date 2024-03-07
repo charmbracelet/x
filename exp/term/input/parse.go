@@ -1,6 +1,7 @@
 package input
 
 import (
+	"log"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
@@ -513,7 +514,108 @@ func parseCtrl(intro8, intro7 byte) func([]byte) (int, Event) {
 
 func parseDcs(p []byte) (int, Event) {
 	// DCS sequences are introduced by DCS (0x90) or ESC P (0x1b 0x50)
-	return parseCtrl(ansi.DCS, 'P')(p)
+	var seq []byte
+	var i int
+	if p[i] == ansi.DCS || p[i] == ansi.ESC {
+		seq = append(seq, p[i])
+		i++
+	}
+	if i < len(p) && p[i-1] == ansi.ESC && p[i] == 'P' {
+		seq = append(seq, p[i])
+		i++
+	}
+
+	// Scan parameter bytes in the range 0x30-0x3F
+	var start, end int // start and end of the parameter bytes
+	for j := 0; i < len(p) && p[i] >= 0x30 && p[i] <= 0x3F; i, j = i+1, j+1 {
+		if j == 0 {
+			start = i
+		}
+		seq = append(seq, p[i])
+	}
+
+	end = i
+
+	// Scan intermediate bytes in the range 0x20-0x2F
+	var istart, iend int
+	for j := 0; i < len(p) && p[i] >= 0x20 && p[i] <= 0x2F; i, j = i+1, j+1 {
+		if j == 0 {
+			istart = i
+		}
+		seq = append(seq, p[i])
+	}
+
+	iend = i
+
+	// Final byte
+	var final byte
+
+	// Scan final byte in the range 0x40-0x7E
+	if i >= len(p) || p[i] < 0x40 || p[i] > 0x7E {
+		return len(seq), UnknownEvent(seq)
+	}
+	// Add the final byte
+	final = p[i]
+	seq = append(seq, p[i])
+
+	if i+1 >= len(p) {
+		return len(seq), UnknownEvent(seq)
+	}
+
+	// Collect data bytes until a ST character is found
+	// data bytes are in the range of 0x08-0x0D and 0x20-0x7F
+	// but we don't care about the actual values for now
+	var data []byte
+	for i++; i < len(p) && p[i] != ansi.ST && p[i] != ansi.ESC; i++ {
+		data = append(data, p[i])
+		seq = append(seq, p[i])
+	}
+
+	if i >= len(p) {
+		return len(seq), UnknownEvent(seq)
+	}
+
+	seq = append(seq, p[i])
+
+	// Check 7-bit ST (string terminator) character
+	if len(p) > i+1 && p[i] == ansi.ESC && p[i+1] == '\\' {
+		i++
+		seq = append(seq, p[i])
+	}
+
+	log.Printf("seq: %q\r\n", seq)
+
+	switch final {
+	case 'r':
+		inters := p[istart:iend] // intermediates
+		if len(inters) == 0 {
+			return len(seq), UnknownDcsEvent(seq)
+		}
+		switch inters[0] {
+		case '+':
+			// XTGETTCAP responses
+			params := ansi.Params(p[start:end])
+			if len(params) == 0 {
+				return len(seq), UnknownDcsEvent(seq)
+			}
+
+			switch params[0][0] {
+			case 0, 1:
+				tc := parseTermcap(data)
+				// XXX: some terminals like KiTTY report invalid responses with
+				// their queries i.e. sending a query for "Tc" using "\x1bP+q5463\x1b\\"
+				// returns "\x1bP0+r5463\x1b\\".
+				// The specs says that invalid responses should be in the form of
+				// DCS 0 + r ST "\x1bP0+r\x1b\\"
+				//
+				// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+				tc.IsValid = params[0][0] == 1
+				return len(seq), tc
+			}
+		}
+	}
+
+	return len(seq), UnknownDcsEvent(seq)
 }
 
 func parseApc(p []byte) (int, Event) {
