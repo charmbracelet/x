@@ -10,7 +10,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/charmbracelet/x/exp/term"
 	"github.com/erikgeiser/coninput"
 	"github.com/muesli/cancelreader"
 	"golang.org/x/sys/windows"
@@ -34,11 +33,13 @@ func newCancelreader(r io.Reader) (cancelreader.CancelReader, error) {
 	fallback := func(io.Reader) (cancelreader.CancelReader, error) {
 		return cancelreader.NewReader(r)
 	}
+
+	var dummy uint32
 	if f, ok := r.(cancelreader.File); !ok || f.Fd() != os.Stdin.Fd() ||
 		// If data was piped to the standard input, it does not emit events
 		// anymore. We can detect this if the console mode cannot be set anymore,
 		// in this case, we fallback to the default cancelreader implementation.
-		!term.IsTerminal(f.Fd()) {
+		windows.GetConsoleMode(windows.Handle(f.Fd()), &dummy) != nil {
 		return fallback(r)
 	}
 
