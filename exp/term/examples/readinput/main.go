@@ -36,8 +36,9 @@ func main() {
 		defer term.Restore(os.Stdin.Fd(), state)
 	}
 
-	defer io.WriteString(os.Stdout, ansi.PopKittyKeyboard(ansi.KittyAllFlags)) // Disable Kitty keyboard
 	defer disableMouse()
+	defer execute(ansi.DisableKittyKeyboard)
+	defer execute(ansi.DisableModifyOtherKeys)
 	defer execute(ansi.DisableWin32Input)
 
 	rd, err := input.NewDriver(in, os.Getenv("TERM"), 0)
@@ -152,6 +153,15 @@ OUT:
 							execute(ansi.PopKittyKeyboard(kittyFlags))
 						}
 					}
+				case prev == "x":
+					switch curr {
+					case "0":
+						execute(ansi.DisableModifyOtherKeys)
+					case "1":
+						execute(ansi.EnableModifyOtherKeys1)
+					case "2":
+						execute(ansi.EnableModifyOtherKeys2)
+					}
 				case prev == "r":
 					switch curr {
 					case "k":
@@ -247,13 +257,17 @@ func printHelp() {
 	fmt.Fprintf(os.Stdout, "Press 'hh' to print this help again.\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'pp' to toggle bracketed paste mode.\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'wm' to toggle Win32 input mode.\r\n")
+	fmt.Fprintf(os.Stdout, "Press 'x' followed by a number to toggle XTerm modifyOtherKeys.\r\n")
+	fmt.Fprintf(os.Stdout, "  0: Disable modifyOtherKeys\r\n")
+	fmt.Fprintf(os.Stdout, "  1: Enable modifyOtherKeys mode 1\r\n")
+	fmt.Fprintf(os.Stdout, "  2: Enable modifyOtherKeys mode 2\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'k' followed by a number to toggle Kitty keyboard protocol flags.\r\n")
+	fmt.Fprintf(os.Stdout, "  0: Disable all flags\r\n")
 	fmt.Fprintf(os.Stdout, "  1: DisambiguateEscapeCodes\r\n")
 	fmt.Fprintf(os.Stdout, "  2: ReportEventTypes\r\n")
 	fmt.Fprintf(os.Stdout, "  3: ReportAlternateKeys\r\n")
 	fmt.Fprintf(os.Stdout, "  4: ReportAllKeys\r\n")
 	fmt.Fprintf(os.Stdout, "  5: ReportAssociatedKeys\r\n")
-	fmt.Fprintf(os.Stdout, "  0: Disable all flags\r\n")
 	fmt.Fprintf(os.Stdout, "\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'm' followed by a number to toggle mouse events.\r\n")
 	fmt.Fprintf(os.Stdout, "  0: Disable all mouse events\r\n")
