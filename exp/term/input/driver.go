@@ -4,6 +4,7 @@ import (
 	"io"
 	"unicode/utf8"
 
+	"github.com/erikgeiser/coninput"
 	"github.com/muesli/cancelreader"
 )
 
@@ -105,6 +106,10 @@ type Driver struct {
 
 	internalEvents []Event   // holds peeked events
 	buf            [256]byte // do we need a larger buffer?
+
+	// prevMouseState keeps track of the previous mouse state to determine mouse
+	// up button events.
+	prevMouseState coninput.ButtonState
 
 	// flags to control the behavior of the driver.
 	flags int

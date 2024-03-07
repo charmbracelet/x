@@ -6,6 +6,7 @@ package input
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/erikgeiser/coninput"
@@ -67,10 +68,9 @@ func (d *Driver) handleConInput(
 		return nil, fmt.Errorf("read coninput events: %w", err)
 	}
 
-	var ps coninput.ButtonState // keep track of previous mouse state
 	var evs []Event
 	for _, event := range events {
-		if e := parseConInputEvent(event, &ps); e != nil {
+		if e := parseConInputEvent(event, &d.prevMouseState); e != nil {
 			evs = append(evs, e)
 		}
 	}
@@ -89,7 +89,7 @@ func detectConInputQuerySequences(events []Event) []Event {
 loop:
 	for i, e := range events {
 		switch e := e.(type) {
-		case KeyEvent:
+		case KeyDownEvent:
 			switch e.Rune {
 			case ansi.ESC, ansi.CSI, ansi.OSC, ansi.DCS, ansi.APC:
 				// start of a sequence
@@ -110,7 +110,7 @@ loop:
 	var seq []byte
 	for i := start; i <= end; i++ {
 		switch e := events[i].(type) {
-		case KeyEvent:
+		case KeyDownEvent:
 			seq = append(seq, byte(e.Rune))
 		}
 	}
@@ -154,12 +154,13 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Ev
 	return nil
 }
 
-func mouseEventButton(p, s coninput.ButtonState) (button MouseButton, action MouseAction) {
+func mouseEventButton(p, s coninput.ButtonState) (button MouseButton, isRelease bool) {
 	btn := p ^ s
-	action = MouseActionPress
 	if btn&s == 0 {
-		action = MouseActionRelease
+		isRelease = true
 	}
+
+	log.Printf("p: %s, s: %s\r\n", p, s)
 
 	if btn == 0 {
 		switch {
@@ -190,11 +191,12 @@ func mouseEventButton(p, s coninput.ButtonState) (button MouseButton, action Mou
 		button = MouseButtonForward
 	}
 
-	return button, action
+	return
 }
 
-func mouseEvent(p coninput.ButtonState, e coninput.MouseEventRecord) MouseEvent {
+func mouseEvent(p coninput.ButtonState, e coninput.MouseEventRecord) (ev Event) {
 	var mod Mod
+	var isRelease bool
 	if e.ControlKeyState.Contains(coninput.LEFT_ALT_PRESSED | coninput.RIGHT_ALT_PRESSED) {
 		mod |= Alt
 	}
@@ -204,30 +206,34 @@ func mouseEvent(p coninput.ButtonState, e coninput.MouseEventRecord) MouseEvent 
 	if e.ControlKeyState.Contains(coninput.SHIFT_PRESSED) {
 		mod |= Shift
 	}
-	ev := MouseEvent{
+	m := mouse{
 		X:   int(e.MousePositon.X),
 		Y:   int(e.MousePositon.Y),
 		Mod: mod,
 	}
 	switch e.EventFlags {
 	case coninput.CLICK, coninput.DOUBLE_CLICK:
-		ev.Button, ev.Action = mouseEventButton(p, e.ButtonState)
+		m.Button, isRelease = mouseEventButton(p, e.ButtonState)
 	case coninput.MOUSE_WHEELED:
 		if e.WheelDirection > 0 {
-			ev.Button = MouseButtonWheelUp
+			m.Button = MouseButtonWheelUp
 		} else {
-			ev.Button = MouseButtonWheelDown
+			m.Button = MouseButtonWheelDown
 		}
 	case coninput.MOUSE_HWHEELED:
 		if e.WheelDirection > 0 {
-			ev.Button = MouseButtonWheelRight
+			m.Button = MouseButtonWheelRight
 		} else {
-			ev.Button = MouseButtonWheelLeft
+			m.Button = MouseButtonWheelLeft
 		}
 	case coninput.MOUSE_MOVED:
-		ev.Button, _ = mouseEventButton(p, e.ButtonState)
-		ev.Action = MouseActionMotion
+		m.Button, _ = mouseEventButton(p, e.ButtonState)
+		return MouseMoveEvent(m)
 	}
 
-	return ev
+	if isRelease {
+		return MouseUpEvent(m)
+	}
+
+	return MouseDownEvent(m)
 }
