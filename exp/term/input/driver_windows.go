@@ -161,37 +161,37 @@ func mouseEventButton(p, s coninput.ButtonState) (button MouseButton, isRelease 
 	if btn == 0 {
 		switch {
 		case s&coninput.FROM_LEFT_1ST_BUTTON_PRESSED > 0:
-			button = MouseButtonLeft
+			button = MouseLeft
 		case s&coninput.FROM_LEFT_2ND_BUTTON_PRESSED > 0:
-			button = MouseButtonMiddle
+			button = MouseMiddle
 		case s&coninput.RIGHTMOST_BUTTON_PRESSED > 0:
-			button = MouseButtonRight
+			button = MouseRight
 		case s&coninput.FROM_LEFT_3RD_BUTTON_PRESSED > 0:
-			button = MouseButtonBackward
+			button = MouseBackward
 		case s&coninput.FROM_LEFT_4TH_BUTTON_PRESSED > 0:
-			button = MouseButtonForward
+			button = MouseForward
 		}
 		return
 	}
 
 	switch {
 	case btn == coninput.FROM_LEFT_1ST_BUTTON_PRESSED: // left button
-		button = MouseButtonLeft
+		button = MouseLeft
 	case btn == coninput.RIGHTMOST_BUTTON_PRESSED: // right button
-		button = MouseButtonRight
+		button = MouseRight
 	case btn == coninput.FROM_LEFT_2ND_BUTTON_PRESSED: // middle button
-		button = MouseButtonMiddle
+		button = MouseMiddle
 	case btn == coninput.FROM_LEFT_3RD_BUTTON_PRESSED: // unknown (possibly mouse backward)
-		button = MouseButtonBackward
+		button = MouseBackward
 	case btn == coninput.FROM_LEFT_4TH_BUTTON_PRESSED: // unknown (possibly mouse forward)
-		button = MouseButtonForward
+		button = MouseForward
 	}
 
 	return
 }
 
 func mouseEvent(p coninput.ButtonState, e coninput.MouseEventRecord) (ev Event) {
-	var mod Mod
+	var mod KeyMod
 	var isRelease bool
 	if e.ControlKeyState.Contains(coninput.LEFT_ALT_PRESSED | coninput.RIGHT_ALT_PRESSED) {
 		mod |= Alt
@@ -202,7 +202,7 @@ func mouseEvent(p coninput.ButtonState, e coninput.MouseEventRecord) (ev Event) 
 	if e.ControlKeyState.Contains(coninput.SHIFT_PRESSED) {
 		mod |= Shift
 	}
-	m := mouse{
+	m := Mouse{
 		X:   int(e.MousePositon.X),
 		Y:   int(e.MousePositon.Y),
 		Mod: mod,
@@ -212,22 +212,24 @@ func mouseEvent(p coninput.ButtonState, e coninput.MouseEventRecord) (ev Event) 
 		m.Button, isRelease = mouseEventButton(p, e.ButtonState)
 	case coninput.MOUSE_WHEELED:
 		if e.WheelDirection > 0 {
-			m.Button = MouseButtonWheelUp
+			m.Button = MouseWheelUp
 		} else {
-			m.Button = MouseButtonWheelDown
+			m.Button = MouseWheelDown
 		}
 	case coninput.MOUSE_HWHEELED:
 		if e.WheelDirection > 0 {
-			m.Button = MouseButtonWheelRight
+			m.Button = MouseWheelRight
 		} else {
-			m.Button = MouseButtonWheelLeft
+			m.Button = MouseWheelLeft
 		}
 	case coninput.MOUSE_MOVED:
 		m.Button, _ = mouseEventButton(p, e.ButtonState)
-		return MouseMoveEvent(m)
+		return MouseMotionEvent(m)
 	}
 
-	if isRelease {
+	if isWheel(m.Button) {
+		return MouseWheelEvent(m)
+	} else if isRelease {
 		return MouseUpEvent(m)
 	}
 

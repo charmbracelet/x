@@ -1,11 +1,11 @@
 package input
 
-// Mod represents modifier keys.
-type Mod uint16
+// KeyMod represents modifier keys.
+type KeyMod uint16
 
 // Modifier keys.
 const (
-	Shift Mod = 1 << iota
+	Shift KeyMod = 1 << iota
 	Alt
 	Ctrl
 	Meta
@@ -16,52 +16,55 @@ const (
 
 	Hyper
 	Super // Windows/Command keys
+
+	// These are key lock states.
+
 	CapsLock
 	NumLock
 	ScrollLock // Defined in Windows API only
 )
 
 // IsShift reports whether the Shift modifier is set.
-func (m Mod) IsShift() bool {
+func (m KeyMod) IsShift() bool {
 	return m&Shift != 0
 }
 
 // IsAlt reports whether the Alt modifier is set.
-func (m Mod) IsAlt() bool {
+func (m KeyMod) IsAlt() bool {
 	return m&Alt != 0
 }
 
 // IsCtrl reports whether the Ctrl modifier is set.
-func (m Mod) IsCtrl() bool {
+func (m KeyMod) IsCtrl() bool {
 	return m&Ctrl != 0
 }
 
 // IsMeta reports whether the Meta modifier is set.
-func (m Mod) IsMeta() bool {
+func (m KeyMod) IsMeta() bool {
 	return m&Meta != 0
 }
 
 // IsHyper reports whether the Hyper modifier is set.
-func (m Mod) IsHyper() bool {
+func (m KeyMod) IsHyper() bool {
 	return m&Hyper != 0
 }
 
 // IsSuper reports whether the Super modifier is set.
-func (m Mod) IsSuper() bool {
+func (m KeyMod) IsSuper() bool {
 	return m&Super != 0
 }
 
-// IsCapsLock reports whether the CapsLock modifier is set.
-func (m Mod) IsCapsLock() bool {
+// HasCapsLock reports whether the CapsLock key is enabled.
+func (m KeyMod) HasCapsLock() bool {
 	return m&CapsLock != 0
 }
 
-// IsNumLock reports whether the NumLock modifier is set.
-func (m Mod) IsNumLock() bool {
+// HasNumLock reports whether the NumLock key is enabled.
+func (m KeyMod) HasNumLock() bool {
 	return m&NumLock != 0
 }
 
-// IsScrollLock reports whether the ScrollLock modifier is set.
-func (m Mod) IsScrollLock() bool {
+// HasScrollLock reports whether the ScrollLock key is enabled.
+func (m KeyMod) HasScrollLock() bool {
 	return m&ScrollLock != 0
 }

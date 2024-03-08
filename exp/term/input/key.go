@@ -1,11 +1,5 @@
 package input
 
-import (
-	"unicode/utf8"
-
-	"github.com/charmbracelet/x/exp/term/ansi"
-)
-
 // KeySym is a keyboard symbol.
 type KeySym int
 
@@ -183,33 +177,34 @@ const (
 	KeyIsoLevel5Shift
 )
 
-// key represents a key event.
-type key struct {
+// Key represents a Key event.
+type Key struct {
+	Sym      KeySym
 	Rune     rune
 	AltRune  rune
-	Sym      KeySym
+	BaseRune rune
 	IsRepeat bool
-	Mod
+	Mod      KeyMod
 }
 
 // KeyDownEvent represents a key down event.
-type KeyDownEvent key
+type KeyDownEvent Key
 
 // String implements fmt.Stringer.
 func (k KeyDownEvent) String() string {
-	return keyString(key(k))
+	return Key(k).String()
 }
 
 // KeyUpEvent represents a key up event.
-type KeyUpEvent key
+type KeyUpEvent Key
 
 // String implements fmt.Stringer.
 func (k KeyUpEvent) String() string {
-	return keyString(key(k))
+	return Key(k).String()
 }
 
 // String implements fmt.Stringer.
-func keyString(k key) string {
+func (k Key) String() string {
 	var s string
 	if k.Mod.IsCtrl() && k.Sym != KeyLeftCtrl && k.Sym != KeyRightCtrl {
 		s += "ctrl+"
@@ -229,15 +224,18 @@ func keyString(k key) string {
 	if k.Mod.IsSuper() && k.Sym != KeyLeftSuper && k.Sym != KeyRightSuper {
 		s += "super+"
 	}
-	if k.Mod.IsCapsLock() && k.Sym != KeyCapsLock {
-		s += "capslock+"
-	}
-	if k.Mod.IsNumLock() && k.Sym != KeyNumLock {
-		s += "numlock+"
-	}
-	if k.Rune > ansi.US && k.Rune != ansi.DEL && utf8.ValidRune(k.Rune) {
-		// Space is the only invisible printable character.
+
+	if k.BaseRune != 0 {
+		// If a BaseRune is present, use it to represent a key using the standard
+		// PC-101 key layout.
+		s += string(k.BaseRune)
+	} else if k.AltRune != 0 {
+		// Otherwise, use the AltRune aka the non-shifted one if present.
+		s += string(k.AltRune)
+	} else if k.Rune != 0 {
+		// Else, just print the rune.
 		if k.Rune == ' ' {
+			// Space is the only invisible printable character.
 			s += "space"
 		} else {
 			s += string(k.Rune)

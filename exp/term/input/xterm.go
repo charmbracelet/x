@@ -6,12 +6,12 @@ import (
 
 func parseXTermModifyOtherKeys(params [][]uint) Event {
 	// XTerm modify other keys starts with ESC [ 27 ; <modifier> ; <code> ~
-	mod := Mod(params[1][0] - 1)
+	mod := KeyMod(params[1][0] - 1)
 	r := rune(params[2][0])
 	k, ok := modifyOtherKeys[int(r)]
 	if ok {
 		k.Mod = mod
-		return k
+		return KeyDownEvent(k)
 	}
 
 	return KeyDownEvent{
@@ -21,7 +21,7 @@ func parseXTermModifyOtherKeys(params [][]uint) Event {
 }
 
 // CSI 27 ; <modifier> ; <code> ~ keys defined in XTerm modifyOtherKeys
-var modifyOtherKeys = map[int]KeyDownEvent{
+var modifyOtherKeys = map[int]Key{
 	ansi.BS:  {Sym: KeyBackspace},
 	ansi.HT:  {Sym: KeyTab},
 	ansi.CR:  {Sym: KeyEnter},

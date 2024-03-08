@@ -1,6 +1,7 @@
 package input
 
 import (
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
@@ -190,8 +191,8 @@ const (
 	kittyNumLock
 )
 
-func fromKittyMod(mod int) Mod {
-	var m Mod
+func fromKittyMod(mod int) KeyMod {
+	var m KeyMod
 	if mod&kittyShift != 0 {
 		m |= Shift
 	}
@@ -221,7 +222,7 @@ func fromKittyMod(mod int) Mod {
 
 func parseKittyKeyboard(params [][]uint) Event {
 	var isRelease bool
-	key := key{}
+	key := Key{}
 	if len(params) > 0 {
 		code := int(params[0][0])
 		if sym, ok := kittyKeyMap[code]; ok {
@@ -231,11 +232,33 @@ func parseKittyKeyboard(params [][]uint) Event {
 			if !utf8.ValidRune(r) {
 				r = utf8.RuneError
 			}
+
 			key.Rune = r
-			if len(params[0]) > 1 {
-				al := rune(params[0][1])
-				if utf8.ValidRune(al) {
-					key.AltRune = al
+
+			// alternate key reporting
+			switch len(params[0]) {
+			case 3:
+				// shifted key + base key
+				if b := rune(params[0][2]); unicode.IsPrint(b) {
+					// XXX: When alternate key reporting is enabled, the protocol
+					// can return 3 things, the unicode codepoint of the key,
+					// the shifted codepoint of the key, and the standard
+					// PC-101 key layout codepoint.
+					// This is useful to create an unambiguous mapping of keys
+					// when using a different language layout.
+					key.BaseRune = b
+				}
+				fallthrough
+			case 2:
+				// shifted key
+				if s := rune(params[0][1]); unicode.IsPrint(s) {
+					// XXX: We swap keys here because we want the shifted key
+					// to be the Rune that is returned by the event.
+					// For example, shift+a should produce "A" not "a".
+					// In such a case, we set AltRune to the original key "a"
+					// and Rune to "A".
+					key.AltRune = key.Rune
+					key.Rune = s
 				}
 			}
 		}
@@ -254,13 +277,13 @@ func parseKittyKeyboard(params [][]uint) Event {
 			}
 		}
 	}
-	if len(params) > 2 {
-		r := rune(params[2][0])
-		if !utf8.ValidRune(r) {
-			r = utf8.RuneError
-		}
-		key.AltRune = r
-	}
+	// TODO: Associated keys are not support yet.
+	// if len(params) > 2 {
+	// 	r := rune(params[2][0])
+	// 	if unicode.IsPrint(r) {
+	// 		key.AltRune = r
+	// 	}
+	// }
 	if isRelease {
 		return KeyUpEvent(key)
 	}

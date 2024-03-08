@@ -84,7 +84,7 @@ func parseCsi(p []byte) (int, Event) {
 	var initial byte
 
 	// Scan parameter bytes in the range 0x30-0x3F
-	var start, end int // start and end of the parameter bytes
+	start, end := -1, -1 // start and end of the parameter bytes
 	for j := 0; i < len(p) && p[i] >= 0x30 && p[i] <= 0x3F; i, j = i+1, j+1 {
 		if j == 0 {
 			initial = p[i]
@@ -94,6 +94,11 @@ func parseCsi(p []byte) (int, Event) {
 	}
 
 	end = i
+
+	var params []byte
+	if start > 0 && end > start {
+		params = p[start:end]
+	}
 
 	// Scan intermediate bytes in the range 0x20-0x2F
 	for ; i < len(p) && p[i] >= 0x20 && p[i] <= 0x2F; i++ {
@@ -105,6 +110,18 @@ func parseCsi(p []byte) (int, Event) {
 
 	// Scan final byte in the range 0x40-0x7E
 	if i >= len(p) || p[i] < 0x40 || p[i] > 0x7E {
+		// Special case for URxvt keys
+		// CSI <number> $ is an invalid sequence, but URxvt uses it for
+		// shift modified keys.
+		if p[i-1] == '$' {
+			num := string(params)
+			if k, ok := csiTildeKeys[num]; ok {
+				k.Mod |= Shift
+				return len(seq), KeyDownEvent(k)
+			} else if k, ok := csiDollarKeys[num]; ok {
+				return len(seq), KeyDownEvent(k)
+			}
+		}
 		return len(seq), UnknownEvent(seq)
 	}
 	// Add the final byte
@@ -117,11 +134,11 @@ func parseCsi(p []byte) (int, Event) {
 		switch final {
 		case 'c':
 			// Primary Device Attributes
-			params := ansi.Params(p[start:end])
+			params := ansi.Params(params)
 			return len(seq), parsePrimaryDevAttrs(params)
 		case 'u':
 			// Kitty keyboard flags
-			params := ansi.Params(p[start:end])
+			params := ansi.Params(params)
 			if len(params) == 0 {
 				return len(seq), UnknownCsiEvent(seq)
 			}
@@ -141,7 +158,7 @@ func parseCsi(p []byte) (int, Event) {
 		switch final {
 		case 'm':
 			// XTerm modifyOtherKeys
-			params := ansi.Params(p[start:end])
+			params := ansi.Params(params)
 			if len(params) != 2 || params[0][0] != 4 {
 				return len(seq), UnknownCsiEvent(seq)
 			}
@@ -156,38 +173,13 @@ func parseCsi(p []byte) (int, Event) {
 	}
 
 	switch final {
-	case 'a':
-		return len(seq), KeyDownEvent{Sym: KeyUp, Mod: Shift}
-	case 'b':
-		return len(seq), KeyDownEvent{Sym: KeyDown, Mod: Shift}
-	case 'c':
-		return len(seq), KeyDownEvent{Sym: KeyRight, Mod: Shift}
-	case 'd':
-		return len(seq), KeyDownEvent{Sym: KeyLeft, Mod: Shift}
-	case 'A':
-		return len(seq), KeyDownEvent{Sym: KeyUp}
-	case 'B':
-		return len(seq), KeyDownEvent{Sym: KeyDown}
-	case 'C':
-		return len(seq), KeyDownEvent{Sym: KeyRight}
-	case 'D':
-		return len(seq), KeyDownEvent{Sym: KeyLeft}
-	case 'E':
-		return len(seq), KeyDownEvent{Sym: KeyBegin}
-	case 'F':
-		return len(seq), KeyDownEvent{Sym: KeyEnd}
-	case 'H':
-		return len(seq), KeyDownEvent{Sym: KeyHome}
-	case 'P':
-		return len(seq), KeyDownEvent{Sym: KeyF1}
-	case 'Q':
-		return len(seq), KeyDownEvent{Sym: KeyF2}
-	case 'R':
-		return len(seq), KeyDownEvent{Sym: KeyF3}
-	case 'S':
-		return len(seq), KeyDownEvent{Sym: KeyF4}
+	case 'a', 'b', 'c', 'd':
+		fallthrough
+	case 'A', 'B', 'C', 'D', 'E', 'F', 'H', 'P', 'Q', 'R', 'S':
+		fallthrough
 	case 'Z':
-		return len(seq), KeyDownEvent{Sym: KeyTab, Mod: Shift}
+		params := ansi.Params(params)
+		return len(seq), parseCsiFunc(params, seq)
 	case 'M':
 		// Handle X10 mouse
 		if i+3 > len(p) {
@@ -196,14 +188,14 @@ func parseCsi(p []byte) (int, Event) {
 		return len(seq) + 3, parseX10MouseEvent(append(seq, p[i:i+3]...))
 	case 'u':
 		// Kitty keyboard protocol
-		params := ansi.Params(p[start:end])
+		params := ansi.Params(params)
 		if len(params) == 0 {
 			return len(seq), UnknownCsiEvent(seq)
 		}
 		return len(seq), parseKittyKeyboard(params)
 	case '_':
 		// Win32 Input Mode
-		params := ansi.Params(p[start:end])
+		params := ansi.Params(params)
 		if len(params) != 6 {
 			return len(seq), UnknownCsiEvent(seq)
 		}
@@ -228,67 +220,19 @@ func parseCsi(p []byte) (int, Event) {
 
 		return len(seq), event
 	case '~':
-		params := ansi.Params(p[start:end])
+		params := ansi.Params(params)
 		if len(params) == 0 {
 			return len(seq), UnknownCsiEvent(seq)
 		}
 		switch params[0][0] {
-		case 1:
-			return len(seq), KeyDownEvent{Sym: KeyHome}
-		case 2:
-			return len(seq), KeyDownEvent{Sym: KeyInsert}
-		case 3:
-			return len(seq), KeyDownEvent{Sym: KeyDelete}
-		case 4:
-			return len(seq), KeyDownEvent{Sym: KeyEnd}
-		case 5:
-			return len(seq), KeyDownEvent{Sym: KeyPgUp}
-		case 6:
-			return len(seq), KeyDownEvent{Sym: KeyPgDown}
-		case 7:
-			return len(seq), KeyDownEvent{Sym: KeyHome}
-		case 8:
-			return len(seq), KeyDownEvent{Sym: KeyEnd}
-		case 11:
-			return len(seq), KeyDownEvent{Sym: KeyF1}
-		case 12:
-			return len(seq), KeyDownEvent{Sym: KeyF2}
-		case 13:
-			return len(seq), KeyDownEvent{Sym: KeyF3}
-		case 14:
-			return len(seq), KeyDownEvent{Sym: KeyF4}
-		case 15:
-			return len(seq), KeyDownEvent{Sym: KeyF5}
-		case 17:
-			return len(seq), KeyDownEvent{Sym: KeyF6}
-		case 18:
-			return len(seq), KeyDownEvent{Sym: KeyF7}
-		case 19:
-			return len(seq), KeyDownEvent{Sym: KeyF8}
-		case 20:
-			return len(seq), KeyDownEvent{Sym: KeyF9}
-		case 21:
-			return len(seq), KeyDownEvent{Sym: KeyF10}
-		case 23:
-			return len(seq), KeyDownEvent{Sym: KeyF11}
-		case 24:
-			return len(seq), KeyDownEvent{Sym: KeyF12}
-		case 25:
-			return len(seq), KeyDownEvent{Sym: KeyF13}
-		case 26:
-			return len(seq), KeyDownEvent{Sym: KeyF14}
-		case 28:
-			return len(seq), KeyDownEvent{Sym: KeyF15}
-		case 29:
-			return len(seq), KeyDownEvent{Sym: KeyF16}
-		case 31:
-			return len(seq), KeyDownEvent{Sym: KeyF17}
-		case 32:
-			return len(seq), KeyDownEvent{Sym: KeyF18}
-		case 33:
-			return len(seq), KeyDownEvent{Sym: KeyF19}
-		case 34:
-			return len(seq), KeyDownEvent{Sym: KeyF20}
+		case 1, 2, 3, 4, 5, 6, 7, 8:
+			fallthrough
+		case 11, 12, 13, 14, 15:
+			fallthrough
+		case 17, 18, 19, 20, 21, 23, 24, 25, 26:
+			fallthrough
+		case 28, 29, 31, 32, 33, 34:
+			return len(seq), parseCsiTilde(params, seq)
 		case 27:
 			// XTerm modifyOtherKeys 2
 			if len(params) != 3 {
@@ -304,6 +248,12 @@ func parseCsi(p []byte) (int, Event) {
 		default:
 			return len(seq), UnknownCsiEvent(seq)
 		}
+	case '^':
+		params := ansi.Params(params)
+		return len(seq), parseCsiCarat(params, seq)
+	case '@':
+		params := ansi.Params(params)
+		return len(seq), parseCsiAt(params, seq)
 	default:
 		return len(seq), UnknownCsiEvent(seq)
 	}
@@ -323,6 +273,21 @@ func parseSs3(p []byte) (int, Event) {
 		i++
 	}
 
+	// Scan numbers from 0-9
+	start, end := -1, -1
+	for ; i < len(p) && p[i] >= 0x30 && p[i] <= 0x39; i++ {
+		if start == -1 {
+			start = i
+		}
+		seq = append(seq, p[i])
+	}
+	end = i
+
+	var mod []byte
+	if start > 0 && end > start {
+		mod = p[start:end]
+	}
+
 	// Scan a GL character
 	// A GL character is a single byte in the range 0x21-0x7E
 	// See https://vt100.net/docs/vt220-rm/chapter2.html#S2.3.2
@@ -334,70 +299,12 @@ func parseSs3(p []byte) (int, Event) {
 	seq = append(seq, p[i])
 
 	switch p[i] {
-	case 'A':
-		return len(seq), KeyDownEvent{Sym: KeyUp}
-	case 'B':
-		return len(seq), KeyDownEvent{Sym: KeyDown}
-	case 'C':
-		return len(seq), KeyDownEvent{Sym: KeyRight}
-	case 'D':
-		return len(seq), KeyDownEvent{Sym: KeyLeft}
-	case 'F':
-		return len(seq), KeyDownEvent{Sym: KeyEnd}
-	case 'H':
-		return len(seq), KeyDownEvent{Sym: KeyHome}
-	case 'P':
-		return len(seq), KeyDownEvent{Sym: KeyF1}
-	case 'Q':
-		return len(seq), KeyDownEvent{Sym: KeyF2}
-	case 'R':
-		return len(seq), KeyDownEvent{Sym: KeyF3}
-	case 'S':
-		return len(seq), KeyDownEvent{Sym: KeyF4}
-	case 'a':
-		return len(seq), KeyDownEvent{Sym: KeyUp, Mod: Shift}
-	case 'b':
-		return len(seq), KeyDownEvent{Sym: KeyDown, Mod: Shift}
-	case 'c':
-		return len(seq), KeyDownEvent{Sym: KeyRight, Mod: Shift}
-	case 'd':
-		return len(seq), KeyDownEvent{Sym: KeyLeft, Mod: Shift}
-	case 'M':
-		return len(seq), KeyDownEvent{Sym: KeyKpEnter}
-	case 'X':
-		return len(seq), KeyDownEvent{Sym: KeyKpEqual}
-	case 'j':
-		return len(seq), KeyDownEvent{Sym: KeyKpMul}
-	case 'k':
-		return len(seq), KeyDownEvent{Sym: KeyKpPlus}
-	case 'l':
-		return len(seq), KeyDownEvent{Sym: KeyKpComma}
-	case 'm':
-		return len(seq), KeyDownEvent{Sym: KeyKpMinus}
-	case 'n':
-		return len(seq), KeyDownEvent{Sym: KeyKpPeriod}
-	case 'o':
-		return len(seq), KeyDownEvent{Sym: KeyKpDiv}
-	case 'p':
-		return len(seq), KeyDownEvent{Sym: KeyKp0}
-	case 'q':
-		return len(seq), KeyDownEvent{Sym: KeyKp1}
-	case 'r':
-		return len(seq), KeyDownEvent{Sym: KeyKp2}
-	case 's':
-		return len(seq), KeyDownEvent{Sym: KeyKp3}
-	case 't':
-		return len(seq), KeyDownEvent{Sym: KeyKp4}
-	case 'u':
-		return len(seq), KeyDownEvent{Sym: KeyKp5}
-	case 'v':
-		return len(seq), KeyDownEvent{Sym: KeyKp6}
-	case 'w':
-		return len(seq), KeyDownEvent{Sym: KeyKp7}
-	case 'x':
-		return len(seq), KeyDownEvent{Sym: KeyKp8}
-	case 'y':
-		return len(seq), KeyDownEvent{Sym: KeyKp9}
+	case 'a', 'b', 'c', 'd':
+		fallthrough
+	case 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z':
+		fallthrough
+	case 'A', 'B', 'C', 'D', 'E', 'F', 'H', 'P', 'Q', 'R', 'S', 'M', 'X':
+		return len(seq), parseSs3Func(mod, seq)
 	default:
 		return len(seq), UnknownSs3Event(seq)
 	}
@@ -632,7 +539,7 @@ func parseUtf8(p []byte) (int, Event) {
 func parseCtrl0(b byte) Event {
 	switch b {
 	case ansi.NUL:
-		return KeyDownEvent{Sym: KeySpace, Mod: Ctrl}
+		return KeyDownEvent{Rune: ' ', Sym: KeySpace, Mod: Ctrl}
 	case ansi.SOH:
 		return KeyDownEvent{Rune: 'a', Mod: Ctrl}
 	case ansi.STX:
@@ -700,6 +607,6 @@ func parseCtrl0(b byte) Event {
 	case ansi.DEL:
 		return KeyDownEvent{Sym: KeyBackspace}
 	default:
-		return UnknownEvent(string(b))
+		return UnknownEvent(b)
 	}
 }
