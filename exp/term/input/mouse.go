@@ -6,7 +6,7 @@ import (
 )
 
 // MouseButton represents the button that was pressed during a mouse event.
-type MouseButton int
+type MouseButton byte
 
 // Mouse event buttons
 //
@@ -26,53 +26,44 @@ type MouseButton int
 //
 // Other buttons are not supported.
 const (
-	MouseButtonNone MouseButton = iota
-	MouseButtonLeft
-	MouseButtonMiddle
-	MouseButtonRight
-	MouseButtonWheelUp
-	MouseButtonWheelDown
-	MouseButtonWheelLeft
-	MouseButtonWheelRight
-	MouseButtonBackward
-	MouseButtonForward
-	MouseButton10
-	MouseButton11
+	MouseNone MouseButton = iota
+	MouseLeft
+	MouseMiddle
+	MouseRight
+	MouseWheelUp
+	MouseWheelDown
+	MouseWheelLeft
+	MouseWheelRight
+	MouseBackward
+	MouseForward
+	MouseExtra1
+	MouseExtra2
 )
 
 var mouseButtons = map[MouseButton]string{
-	MouseButtonNone:       "none",
-	MouseButtonLeft:       "left",
-	MouseButtonMiddle:     "middle",
-	MouseButtonRight:      "right",
-	MouseButtonWheelUp:    "wheel up",
-	MouseButtonWheelDown:  "wheel down",
-	MouseButtonWheelLeft:  "wheel left",
-	MouseButtonWheelRight: "wheel right",
-	MouseButtonBackward:   "backward",
-	MouseButtonForward:    "forward",
-	MouseButton10:         "button 10",
-	MouseButton11:         "button 11",
+	MouseNone:       "none",
+	MouseLeft:       "left",
+	MouseMiddle:     "middle",
+	MouseRight:      "right",
+	MouseWheelUp:    "wheelup",
+	MouseWheelDown:  "wheeldown",
+	MouseWheelLeft:  "wheelleft",
+	MouseWheelRight: "wheelright",
+	MouseBackward:   "backward",
+	MouseForward:    "forward",
+	MouseExtra1:     "button10",
+	MouseExtra2:     "button11",
 }
 
-// mouse represents a mouse event.
-type mouse struct {
+// Mouse represents a Mouse event.
+type Mouse struct {
 	X, Y   int
 	Button MouseButton
-	Mod
-}
-
-// IsWheel returns true if the mouse event is a wheel event.
-func (m mouse) IsWheel() bool {
-	return isWheel(m.Button)
-}
-
-func isWheel(b MouseButton) bool {
-	return b >= MouseButtonWheelUp && b <= MouseButtonWheelRight
+	Mod    KeyMod
 }
 
 // String implements fmt.Stringer.
-func (m mouse) String() (s string) {
+func (m Mouse) String() (s string) {
 	if m.Mod.IsCtrl() {
 		s += "ctrl+"
 	}
@@ -93,49 +84,40 @@ func (m mouse) String() (s string) {
 	return s
 }
 
-// MouseDownEvent represents a mouse button press event.
-type MouseDownEvent mouse
-
-// IsWheel returns true if the mouse event is a wheel event.
-func (d MouseDownEvent) IsWheel() bool {
-	m := mouse(d)
-	return m.IsWheel()
-}
+// MouseDownEvent represents a mouse button down event.
+type MouseDownEvent Mouse
 
 // String implements fmt.Stringer.
-func (d MouseDownEvent) String() (s string) {
-	m := mouse(d)
-	return m.String()
+func (e MouseDownEvent) String() string {
+	return Mouse(e).String()
 }
 
-// MouseUpEvent represents a mouse button release event.
-type MouseUpEvent mouse
-
-// IsWheel returns true if the mouse event is a wheel event.
-func (u MouseUpEvent) IsWheel() bool {
-	m := mouse(u)
-	return m.IsWheel()
-}
+// MouseUpEvent represents a mouse button up event.
+type MouseUpEvent Mouse
 
 // String implements fmt.Stringer.
-func (u MouseUpEvent) String() (s string) {
-	m := mouse(u)
-	return m.String()
+func (e MouseUpEvent) String() string {
+	return Mouse(e).String()
 }
 
-// MouseMoveEvent represents a mouse motion event.
-type MouseMoveEvent mouse
-
-// IsWheel returns true if the mouse event is a wheel event.
-func (m MouseMoveEvent) IsWheel() bool {
-	mm := mouse(m)
-	return mm.IsWheel()
-}
+// MouseWheelEvent represents a mouse wheel event.
+type MouseWheelEvent Mouse
 
 // String implements fmt.Stringer.
-func (m MouseMoveEvent) String() (s string) {
-	mm := mouse(m)
-	return mm.String()
+func (e MouseWheelEvent) String() string {
+	return Mouse(e).String()
+}
+
+// MouseMotionEvent represents a mouse motion event.
+type MouseMotionEvent Mouse
+
+// String implements fmt.Stringer.
+func (e MouseMotionEvent) String() string {
+	m := Mouse(e)
+	if m.Button != 0 {
+		return m.String() + "+motion"
+	}
+	return m.String() + "motion"
 }
 
 var mouseSGRRegex = regexp.MustCompile(`(\d+);(\d+);(\d+)([Mm])`)
@@ -172,14 +154,18 @@ func parseSGRMouseEvent(buf []byte) Event {
 	x--
 	y--
 
+	m := Mouse{X: x, Y: y, Button: btn, Mod: mod}
+
 	// Wheel buttons don't have release events
 	// Motion can be reported as a release event in some terminals (Windows Terminal)
-	if !isMotion && !isWheel(btn) && release {
-		return MouseUpEvent{X: x, Y: y, Button: btn, Mod: mod}
+	if isWheel(m.Button) {
+		return MouseWheelEvent(m)
+	} else if !isMotion && release {
+		return MouseUpEvent(m)
 	} else if isMotion {
-		return MouseMoveEvent{X: x, Y: y, Button: btn, Mod: mod}
+		return MouseMotionEvent(m)
 	}
-	return MouseDownEvent{X: x, Y: y, Button: btn, Mod: mod}
+	return MouseDownEvent(m)
 }
 
 const x10MouseByteOffset = 32
@@ -207,16 +193,19 @@ func parseX10MouseEvent(buf []byte) Event {
 	x := int(v[1]) - x10MouseByteOffset - 1
 	y := int(v[2]) - x10MouseByteOffset - 1
 
-	if isMotion {
-		return MouseMoveEvent{X: x, Y: y, Button: btn, Mod: mod}
+	m := Mouse{X: x, Y: y, Button: btn, Mod: mod}
+	if isWheel(m.Button) {
+		return MouseWheelEvent(m)
+	} else if isMotion {
+		return MouseMotionEvent(m)
 	} else if isRelease {
-		return MouseUpEvent{X: x, Y: y, Button: btn, Mod: mod}
+		return MouseUpEvent(m)
 	}
-	return MouseDownEvent{X: x, Y: y, Button: btn, Mod: mod}
+	return MouseDownEvent(m)
 }
 
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Extended-coordinates
-func parseMouseButton(b int) (mod Mod, btn MouseButton, isRelease bool, isMotion bool) {
+func parseMouseButton(b int) (mod KeyMod, btn MouseButton, isRelease bool, isMotion bool) {
 	// mouse bit shifts
 	const (
 		bitShift  = 0b0000_0100
@@ -241,14 +230,14 @@ func parseMouseButton(b int) (mod Mod, btn MouseButton, isRelease bool, isMotion
 	}
 
 	if b&bitAdd != 0 {
-		btn = MouseButtonBackward + MouseButton(b&bitsMask)
+		btn = MouseBackward + MouseButton(b&bitsMask)
 	} else if b&bitWheel != 0 {
-		btn = MouseButtonWheelUp + MouseButton(b&bitsMask)
+		btn = MouseWheelUp + MouseButton(b&bitsMask)
 	} else {
-		btn = MouseButtonLeft + MouseButton(b&bitsMask)
+		btn = MouseLeft + MouseButton(b&bitsMask)
 		// X10 reports a button release as 0b0000_0011 (3)
 		if b&bitsMask == bitsMask {
-			btn = MouseButtonNone
+			btn = MouseNone
 			isRelease = true
 		}
 	}
@@ -259,4 +248,9 @@ func parseMouseButton(b int) (mod Mod, btn MouseButton, isRelease bool, isMotion
 	}
 
 	return
+}
+
+// isWheel returns true if the mouse event is a wheel event.
+func isWheel(btn MouseButton) bool {
+	return btn >= MouseWheelUp && btn <= MouseWheelRight
 }

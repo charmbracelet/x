@@ -6,17 +6,17 @@ import (
 	"github.com/xo/terminfo"
 )
 
-func (d *Driver) registerTerminfoKeys() {
-	if d.term == "" {
-		return
+func registerTerminfoKeys(table map[string]Key, flags int, term string) map[string]Key {
+	if term == "" {
+		return table
 	}
 
-	ti, _ := terminfo.Load(d.term)
+	ti, _ := terminfo.Load(term)
 	if ti == nil {
-		return
+		return table
 	}
 
-	tiTable := defaultTerminfoKeys(d.flags)
+	tiTable := defaultTerminfoKeys(flags)
 
 	// Default keys
 	for name, seq := range ti.StringCapsShort() {
@@ -25,7 +25,7 @@ func (d *Driver) registerTerminfoKeys() {
 		}
 
 		if k, ok := tiTable[name]; ok {
-			d.table[string(seq)] = k
+			table[string(seq)] = k
 		}
 	}
 
@@ -36,9 +36,11 @@ func (d *Driver) registerTerminfoKeys() {
 		}
 
 		if k, ok := tiTable[name]; ok {
-			d.table[string(seq)] = k
+			table[string(seq)] = k
 		}
 	}
+
+	return table
 }
 
 // This returns a map of terminfo keys to key events. It's a mix of ncurses
@@ -55,8 +57,8 @@ func (d *Driver) registerTerminfoKeys() {
 //
 // See https://man7.org/linux/man-pages/man5/terminfo.5.html
 // See https://github.com/mirror/ncurses/blob/master/include/Caps-ncurses
-func defaultTerminfoKeys(flags int) map[string]KeyDownEvent {
-	keys := map[string]KeyDownEvent{
+func defaultTerminfoKeys(flags int) map[string]Key {
+	keys := map[string]Key{
 		"kcuu1": {Sym: KeyUp},
 		"kUP":   {Sym: KeyUp, Mod: Shift},
 		"kUP3":  {Sym: KeyUp, Mod: Alt},
@@ -221,57 +223,57 @@ func defaultTerminfoKeys(flags int) map[string]KeyDownEvent {
 	// Preserve F keys from F13 to F63 instead of using them for F-keys
 	// modifiers.
 	if flags&FlagFKeys != 0 {
-		keys["kf13"] = KeyDownEvent{Sym: KeyF13}
-		keys["kf14"] = KeyDownEvent{Sym: KeyF14}
-		keys["kf15"] = KeyDownEvent{Sym: KeyF15}
-		keys["kf16"] = KeyDownEvent{Sym: KeyF16}
-		keys["kf17"] = KeyDownEvent{Sym: KeyF17}
-		keys["kf18"] = KeyDownEvent{Sym: KeyF18}
-		keys["kf19"] = KeyDownEvent{Sym: KeyF19}
-		keys["kf20"] = KeyDownEvent{Sym: KeyF20}
-		keys["kf21"] = KeyDownEvent{Sym: KeyF21}
-		keys["kf22"] = KeyDownEvent{Sym: KeyF22}
-		keys["kf23"] = KeyDownEvent{Sym: KeyF23}
-		keys["kf24"] = KeyDownEvent{Sym: KeyF24}
-		keys["kf25"] = KeyDownEvent{Sym: KeyF25}
-		keys["kf26"] = KeyDownEvent{Sym: KeyF26}
-		keys["kf27"] = KeyDownEvent{Sym: KeyF27}
-		keys["kf28"] = KeyDownEvent{Sym: KeyF28}
-		keys["kf29"] = KeyDownEvent{Sym: KeyF29}
-		keys["kf30"] = KeyDownEvent{Sym: KeyF30}
-		keys["kf31"] = KeyDownEvent{Sym: KeyF31}
-		keys["kf32"] = KeyDownEvent{Sym: KeyF32}
-		keys["kf33"] = KeyDownEvent{Sym: KeyF33}
-		keys["kf34"] = KeyDownEvent{Sym: KeyF34}
-		keys["kf35"] = KeyDownEvent{Sym: KeyF35}
-		keys["kf36"] = KeyDownEvent{Sym: KeyF36}
-		keys["kf37"] = KeyDownEvent{Sym: KeyF37}
-		keys["kf38"] = KeyDownEvent{Sym: KeyF38}
-		keys["kf39"] = KeyDownEvent{Sym: KeyF39}
-		keys["kf40"] = KeyDownEvent{Sym: KeyF40}
-		keys["kf41"] = KeyDownEvent{Sym: KeyF41}
-		keys["kf42"] = KeyDownEvent{Sym: KeyF42}
-		keys["kf43"] = KeyDownEvent{Sym: KeyF43}
-		keys["kf44"] = KeyDownEvent{Sym: KeyF44}
-		keys["kf45"] = KeyDownEvent{Sym: KeyF45}
-		keys["kf46"] = KeyDownEvent{Sym: KeyF46}
-		keys["kf47"] = KeyDownEvent{Sym: KeyF47}
-		keys["kf48"] = KeyDownEvent{Sym: KeyF48}
-		keys["kf49"] = KeyDownEvent{Sym: KeyF49}
-		keys["kf50"] = KeyDownEvent{Sym: KeyF50}
-		keys["kf51"] = KeyDownEvent{Sym: KeyF51}
-		keys["kf52"] = KeyDownEvent{Sym: KeyF52}
-		keys["kf53"] = KeyDownEvent{Sym: KeyF53}
-		keys["kf54"] = KeyDownEvent{Sym: KeyF54}
-		keys["kf55"] = KeyDownEvent{Sym: KeyF55}
-		keys["kf56"] = KeyDownEvent{Sym: KeyF56}
-		keys["kf57"] = KeyDownEvent{Sym: KeyF57}
-		keys["kf58"] = KeyDownEvent{Sym: KeyF58}
-		keys["kf59"] = KeyDownEvent{Sym: KeyF59}
-		keys["kf60"] = KeyDownEvent{Sym: KeyF60}
-		keys["kf61"] = KeyDownEvent{Sym: KeyF61}
-		keys["kf62"] = KeyDownEvent{Sym: KeyF62}
-		keys["kf63"] = KeyDownEvent{Sym: KeyF63}
+		keys["kf13"] = Key{Sym: KeyF13}
+		keys["kf14"] = Key{Sym: KeyF14}
+		keys["kf15"] = Key{Sym: KeyF15}
+		keys["kf16"] = Key{Sym: KeyF16}
+		keys["kf17"] = Key{Sym: KeyF17}
+		keys["kf18"] = Key{Sym: KeyF18}
+		keys["kf19"] = Key{Sym: KeyF19}
+		keys["kf20"] = Key{Sym: KeyF20}
+		keys["kf21"] = Key{Sym: KeyF21}
+		keys["kf22"] = Key{Sym: KeyF22}
+		keys["kf23"] = Key{Sym: KeyF23}
+		keys["kf24"] = Key{Sym: KeyF24}
+		keys["kf25"] = Key{Sym: KeyF25}
+		keys["kf26"] = Key{Sym: KeyF26}
+		keys["kf27"] = Key{Sym: KeyF27}
+		keys["kf28"] = Key{Sym: KeyF28}
+		keys["kf29"] = Key{Sym: KeyF29}
+		keys["kf30"] = Key{Sym: KeyF30}
+		keys["kf31"] = Key{Sym: KeyF31}
+		keys["kf32"] = Key{Sym: KeyF32}
+		keys["kf33"] = Key{Sym: KeyF33}
+		keys["kf34"] = Key{Sym: KeyF34}
+		keys["kf35"] = Key{Sym: KeyF35}
+		keys["kf36"] = Key{Sym: KeyF36}
+		keys["kf37"] = Key{Sym: KeyF37}
+		keys["kf38"] = Key{Sym: KeyF38}
+		keys["kf39"] = Key{Sym: KeyF39}
+		keys["kf40"] = Key{Sym: KeyF40}
+		keys["kf41"] = Key{Sym: KeyF41}
+		keys["kf42"] = Key{Sym: KeyF42}
+		keys["kf43"] = Key{Sym: KeyF43}
+		keys["kf44"] = Key{Sym: KeyF44}
+		keys["kf45"] = Key{Sym: KeyF45}
+		keys["kf46"] = Key{Sym: KeyF46}
+		keys["kf47"] = Key{Sym: KeyF47}
+		keys["kf48"] = Key{Sym: KeyF48}
+		keys["kf49"] = Key{Sym: KeyF49}
+		keys["kf50"] = Key{Sym: KeyF50}
+		keys["kf51"] = Key{Sym: KeyF51}
+		keys["kf52"] = Key{Sym: KeyF52}
+		keys["kf53"] = Key{Sym: KeyF53}
+		keys["kf54"] = Key{Sym: KeyF54}
+		keys["kf55"] = Key{Sym: KeyF55}
+		keys["kf56"] = Key{Sym: KeyF56}
+		keys["kf57"] = Key{Sym: KeyF57}
+		keys["kf58"] = Key{Sym: KeyF58}
+		keys["kf59"] = Key{Sym: KeyF59}
+		keys["kf60"] = Key{Sym: KeyF60}
+		keys["kf61"] = Key{Sym: KeyF61}
+		keys["kf62"] = Key{Sym: KeyF62}
+		keys["kf63"] = Key{Sym: KeyF63}
 	}
 
 	return keys

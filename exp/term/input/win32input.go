@@ -9,7 +9,7 @@ func parseWin32InputKeyEvent(vkc coninput.VirtualKeyCode, _ coninput.VirtualKeyC
 	if !ok && isCtrl {
 		k = vkCtrlRune(k, r, vkc)
 	} else if !ok {
-		k = KeyDownEvent{Rune: r}
+		k = Key{Rune: r}
 	}
 	if isCtrl {
 		k.Mod |= Ctrl
@@ -21,10 +21,14 @@ func parseWin32InputKeyEvent(vkc coninput.VirtualKeyCode, _ coninput.VirtualKeyC
 		k.Mod |= Shift
 	}
 
-	// XXX: the following keys when set mean that the key is ON, not that
-	// it was pressed. We should probably ignore them.
-	if cks.Contains(coninput.NUMLOCK_ON|coninput.CAPSLOCK_ON|coninput.SCROLLLOCK_ON) && k.Rune == 0 && k.Sym == 0 {
-		return nil
+	if cks.Contains(coninput.CAPSLOCK_ON) {
+		k.Mod |= CapsLock
+	}
+	if cks.Contains(coninput.NUMLOCK_ON) {
+		k.Mod |= NumLock
+	}
+	if cks.Contains(coninput.SCROLLLOCK_ON) {
+		k.Mod |= ScrollLock
 	}
 
 	var e Event = KeyDownEvent(k)
@@ -45,7 +49,7 @@ func parseWin32InputKeyEvent(vkc coninput.VirtualKeyCode, _ coninput.VirtualKeyC
 	return MultiEvent(kevents)
 }
 
-var vkKeyEvent = map[coninput.VirtualKeyCode]KeyDownEvent{
+var vkKeyEvent = map[coninput.VirtualKeyCode]Key{
 	coninput.VK_RETURN:    {Sym: KeyEnter},
 	coninput.VK_BACK:      {Sym: KeyBackspace},
 	coninput.VK_TAB:       {Sym: KeyTab},
@@ -118,7 +122,7 @@ var vkKeyEvent = map[coninput.VirtualKeyCode]KeyDownEvent{
 	// TODO: add more keys
 }
 
-func vkCtrlRune(k KeyDownEvent, r rune, kc coninput.VirtualKeyCode) KeyDownEvent {
+func vkCtrlRune(k Key, r rune, kc coninput.VirtualKeyCode) Key {
 	switch r {
 	case '@':
 		k.Rune = '@'

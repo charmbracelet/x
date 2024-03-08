@@ -96,7 +96,7 @@ const (
 // buffer.
 type Driver struct {
 	rd    cancelreader.CancelReader
-	table map[string]KeyDownEvent
+	table map[string]Key
 
 	term string // the $TERM name to use
 
@@ -132,7 +132,7 @@ func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
 	d.flags = flags
 	d.term = term
 	// Populate the key sequences table.
-	d.registerKeys(flags)
+	d.table = registerKeys(flags, term)
 	return d, nil
 }
 
@@ -196,7 +196,7 @@ func (d *Driver) peekInput(n int) ([]Event, error) {
 
 	// Lookup table first
 	if k, ok := d.table[string(buf)]; ok {
-		d.internalEvents = append(d.internalEvents, k)
+		d.internalEvents = append(d.internalEvents, KeyDownEvent(k))
 		return d.internalEvents, nil
 	}
 
@@ -217,7 +217,7 @@ func (d *Driver) peekInput(n int) ([]Event, error) {
 		case UnknownCsiEvent, UnknownSs3Event, UnknownEvent:
 			// If the sequence is not recognized by the parser, try looking it up.
 			if k, ok := d.table[string(buf[i:i+nb])]; ok {
-				ev = k
+				ev = KeyDownEvent(k)
 			}
 		case PasteStartEvent:
 			d.paste = []byte{}
