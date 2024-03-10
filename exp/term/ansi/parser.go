@@ -28,16 +28,16 @@ type Handler struct {
 	Execute func(b byte)
 
 	// EscHandler is called when an esc dispatch action is performed.
-	EscHandler func(inters [2]byte, final byte, ignore bool)
+	EscHandler func(inter byte, final byte, ignore bool)
 
 	// CsiHandler is called when a csi dispatch action is performed.
-	CsiHandler func(params [][]uint, inters [2]byte, final byte, ignore bool)
+	CsiHandler func(marker byte, params [][]uint, inter byte, final byte, ignore bool)
 
 	// OscHandler is called when an osc dispatch action is performed.
 	OscHandler func(params [][]byte, bellTerminated bool)
 
 	// DcsHandler is called when a dcs dispatch action is performed.
-	DcsHandler func(params [][]uint, inters [2]byte, final byte, data []byte, ignore bool)
+	DcsHandler func(marker byte, params [][]uint, inter byte, final byte, data []byte, ignore bool)
 }
 
 // Parser represents a state machine.
@@ -85,14 +85,11 @@ type Parser struct {
 
 // New returns a new DEC ANSI compatible sequence parser.
 func New(
-	handler *Handler,
+	handler Handler,
 ) *Parser {
-	if handler == nil {
-		handler = &Handler{}
-	}
 	p := &Parser{
 		state:     GroundState,
-		handler:   *handler,
+		handler:   handler,
 		oscRaw:    make([]byte, 0, DefaultMaxOscBytes),
 		oscParams: make([][2]int, DefaultMaxOscParameters),
 	}
@@ -124,7 +121,9 @@ func (p *Parser) advanceUtf8(code byte) {
 	// We have enough bytes to decode the rune
 	bts := p.utf8Raw[:rw]
 	r, _ := utf8.DecodeRune(bts)
-	p.handler.Rune(r)
+	if p.handler.Rune != nil {
+		p.handler.Rune(r)
+	}
 	p.state = GroundState
 	p.clearUtf8()
 }
@@ -206,15 +205,19 @@ func (p *Parser) performAction(action Action, code byte) {
 		break
 
 	case PrintAction:
-		p.handler.Rune(rune(code))
+		if p.handler.Rune != nil {
+			p.handler.Rune(rune(code))
+		}
 
 	case ExecuteAction:
-		p.handler.Execute(code)
+		if p.handler.Execute != nil {
+			p.handler.Execute(code)
+		}
 
 	case EscDispatchAction:
 		if p.handler.EscHandler != nil {
 			p.handler.EscHandler(
-				p.getIntermediates(),
+				p.inters[1],
 				code,
 				p.ignoring,
 			)
@@ -281,8 +284,9 @@ func (p *Parser) performAction(action Action, code byte) {
 	case DcsUnhookAction:
 		if p.handler.DcsHandler != nil {
 			p.handler.DcsHandler(
+				p.inters[0],
 				p.getParams(),
-				p.getIntermediates(),
+				p.inters[1],
 				byte(p.param),
 				p.oscRaw,
 				p.ignoring,
@@ -298,8 +302,9 @@ func (p *Parser) performAction(action Action, code byte) {
 
 		if p.handler.CsiHandler != nil {
 			p.handler.CsiHandler(
+				p.inters[0],
 				p.getParams(),
-				p.getIntermediates(),
+				p.inters[1],
 				code,
 				p.ignoring,
 			)
@@ -365,11 +370,6 @@ func (p *Parser) clear() {
 	p.paramsLen = 0
 	p.subParamsLen = 0
 	p.inters[0], p.inters[1] = 0, 0
-}
-
-// getIntermediates returns a copy of the intermediates
-func (p *Parser) getIntermediates() [2]byte {
-	return p.inters
 }
 
 func (p *Parser) getOscParams() [][]byte {

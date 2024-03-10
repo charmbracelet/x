@@ -147,10 +147,10 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[3;1\x1b[?1049h",
 			expected: []testSequence{
 				testCsiSequence{
-					params:        [][]uint{{1049}},
-					intermediates: [2]byte{'?', 0},
-					ignore:        false,
-					rune:          'h',
+					params: [][]uint{{1049}},
+					marker: '?',
+					ignore: false,
+					rune:   'h',
 				},
 			},
 		},
@@ -191,7 +191,6 @@ func TestCsiSequence(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
-			t.Logf("----------- input: %q", c.input)
 			New(testHandler(dispatcher)).Parse([]byte(c.input))
 			assert.Equal(t, len(c.expected), len(dispatcher.dispatched))
 			assert.Equal(t, c.expected, dispatcher.dispatched)

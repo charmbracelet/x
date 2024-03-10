@@ -19,10 +19,11 @@ type testSequence interface {
 }
 
 type testCsiSequence struct {
-	params        [][]uint
-	intermediates [2]byte
-	ignore        bool
-	rune          byte
+	marker byte
+	params [][]uint
+	inter  byte
+	ignore bool
+	rune   byte
 }
 
 func (testCsiSequence) sequence() {}
@@ -35,30 +36,23 @@ type testOscSequence struct {
 func (testOscSequence) sequence() {}
 
 type testEscSequence struct {
-	intermediates [2]byte
-	ignore        bool
-	rune          byte
+	inter  byte
+	ignore bool
+	rune   byte
 }
 
 func (testEscSequence) sequence() {}
 
 type testDcsSequence struct {
-	params        [][]uint
-	intermediates [2]byte
-	data          []byte
-	rune          byte
-	ignore        bool
+	marker byte
+	params [][]uint
+	inter  byte
+	data   []byte
+	rune   byte
+	ignore bool
 }
 
 func (testDcsSequence) sequence() {}
-
-type testDcsPutSequence byte
-
-func (testDcsPutSequence) sequence() {}
-
-type testDcsUnhookSequence struct{}
-
-func (testDcsUnhookSequence) sequence() {}
 
 type testRune rune
 
@@ -69,21 +63,22 @@ type testDispatcher struct {
 }
 
 // CsiDispatch implements Performer.
-func (d *testDispatcher) CsiDispatch(params [][]uint, intermediates [2]byte, r byte, ignore bool) {
+func (d *testDispatcher) CsiDispatch(marker byte, params [][]uint, inter byte, r byte, ignore bool) {
 	d.dispatched = append(d.dispatched, testCsiSequence{
-		params:        params,
-		intermediates: intermediates,
-		ignore:        ignore,
-		rune:          r,
+		params: params,
+		inter:  inter,
+		marker: marker,
+		ignore: ignore,
+		rune:   r,
 	})
 }
 
 // EscDispatch implements Performer.
-func (d *testDispatcher) EscDispatch(intermediates [2]byte, r byte, ignore bool) {
+func (d *testDispatcher) EscDispatch(inter byte, r byte, ignore bool) {
 	d.dispatched = append(d.dispatched, testEscSequence{
-		intermediates: intermediates,
-		ignore:        ignore,
-		rune:          r,
+		inter:  inter,
+		ignore: ignore,
+		rune:   r,
 	})
 }
 
@@ -91,13 +86,14 @@ func (d *testDispatcher) EscDispatch(intermediates [2]byte, r byte, ignore bool)
 func (*testDispatcher) Execute(b byte) {}
 
 // DcsHook implements Performer.
-func (d *testDispatcher) DcsDispatch(params [][]uint, intermediates [2]byte, r byte, data []byte, ignore bool) {
+func (d *testDispatcher) DcsDispatch(marker byte, params [][]uint, inter byte, r byte, data []byte, ignore bool) {
 	d.dispatched = append(d.dispatched, testDcsSequence{
-		params:        params,
-		intermediates: intermediates,
-		ignore:        ignore,
-		rune:          r,
-		data:          data,
+		params: params,
+		inter:  inter,
+		marker: marker,
+		ignore: ignore,
+		rune:   r,
+		data:   data,
 	})
 }
 
@@ -114,8 +110,8 @@ func (d *testDispatcher) Print(r rune) {
 	d.dispatched = append(d.dispatched, testRune(r))
 }
 
-func testHandler(d *testDispatcher) *Handler {
-	return &Handler{
+func testHandler(d *testDispatcher) Handler {
+	return Handler{
 		Rune:       d.Print,
 		Execute:    d.Execute,
 		CsiHandler: d.CsiDispatch,
@@ -145,7 +141,7 @@ func BenchmarkNext(bm *testing.B) {
 
 	bm.ResetTimer()
 
-	parser := New(nil)
+	parser := New(Handler{})
 	parser.Parse(bts)
 }
 
@@ -153,8 +149,7 @@ func BenchmarkStateChanges(bm *testing.B) {
 	input := "\x1b]2;X\x1b\\ \x1b[0m \x1bP0@\x1b\\"
 
 	for i := 0; i < bm.N; i++ {
-		parser := New(nil)
-
+		parser := New(Handler{})
 		for i := 0; i < 1000; i++ {
 			parser.Parse([]byte(input))
 		}

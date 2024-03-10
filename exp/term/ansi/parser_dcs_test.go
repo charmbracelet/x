@@ -63,11 +63,11 @@ func TestDcsSequence(t *testing.T) {
 			input: "\x1b[3;1\x1bP1$tx\x9c",
 			expected: []testSequence{
 				testDcsSequence{
-					params:        [][]uint{{1}},
-					intermediates: [2]byte{0, '$'},
-					rune:          't',
-					ignore:        false,
-					data:          []byte{'x'},
+					params: [][]uint{{1}},
+					inter:  '$',
+					rune:   't',
+					ignore: false,
+					data:   []byte{'x'},
 				},
 			},
 		},
@@ -88,16 +88,16 @@ func TestDcsSequence(t *testing.T) {
 			input: "\x1bP=1sZZZ\x1b+\x5c",
 			expected: []testSequence{
 				testDcsSequence{
-					params:        [][]uint{{1}},
-					intermediates: [2]byte{'=', 0},
-					rune:          's',
-					ignore:        false,
-					data:          []byte{'Z', 'Z', 'Z'},
+					params: [][]uint{{1}},
+					marker: '=',
+					rune:   's',
+					ignore: false,
+					data:   []byte{'Z', 'Z', 'Z'},
 				},
 				testEscSequence{
-					intermediates: [2]byte{0, '+'},
-					rune:          0x5c,
-					ignore:        false,
+					inter:  '+',
+					rune:   0x5c,
+					ignore: false,
 				},
 			},
 		},
@@ -106,10 +106,10 @@ func TestDcsSequence(t *testing.T) {
 			input: "\x1bP+r😃\x1b\\",
 			expected: []testSequence{
 				testDcsSequence{
-					rune:          'r',
-					params:        [][]uint{{0}},
-					intermediates: [2]byte{0, '+'},
-					data:          []byte("😃"),
+					rune:   'r',
+					params: [][]uint{{0}},
+					inter:  '+',
+					data:   []byte("😃"),
 				},
 				testEscSequence{
 					rune: '\\',
