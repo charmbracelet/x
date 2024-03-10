@@ -137,7 +137,9 @@ func TestOscSequence(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
-			New(testHandler(dispatcher)).Parse([]byte(c.input))
+			parser := NewParser()
+			parser.Handler = testHandler(dispatcher)
+			parser.Parse([]byte(c.input))
 			assert.Equal(t, len(c.expected), len(dispatcher.dispatched))
 			assert.Equal(t, c.expected, dispatcher.dispatched)
 		})
