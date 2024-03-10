@@ -141,7 +141,7 @@ func BenchmarkNext(bm *testing.B) {
 
 	bm.ResetTimer()
 
-	parser := New(Handler{})
+	parser := NewParser()
 	parser.Parse(bts)
 }
 
@@ -149,7 +149,7 @@ func BenchmarkStateChanges(bm *testing.B) {
 	input := "\x1b]2;X\x1b\\ \x1b[0m \x1bP0@\x1b\\"
 
 	for i := 0; i < bm.N; i++ {
-		parser := New(Handler{})
+		parser := NewParser()
 		for i := 0; i < 1000; i++ {
 			parser.Parse([]byte(input))
 		}

@@ -46,7 +46,7 @@ func main() {
 		log.Fatal(err)
 	}
 	dispatcher := &dispatcher{}
-	ansi.New(ansi.Handler{
+	ansi.NewParser(ansi.Handler{
 		Rune:       dispatcher.Print,
 		Execute:    dispatcher.Execute,
 		DcsHandler: dispatcher.DcsDispatch,

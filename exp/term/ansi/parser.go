@@ -42,7 +42,7 @@ type Handler struct {
 
 // Parser represents a state machine.
 type Parser struct {
-	handler Handler
+	Handler
 
 	oscParams [][2]int
 
@@ -83,13 +83,10 @@ type Parser struct {
 	ignoring bool
 }
 
-// New returns a new DEC ANSI compatible sequence parser.
-func New(
-	handler Handler,
-) *Parser {
+// NewParser returns a new DEC ANSI compatible sequence parser.
+func NewParser() *Parser {
 	p := &Parser{
 		state:     GroundState,
-		handler:   handler,
 		oscRaw:    make([]byte, 0, DefaultMaxOscBytes),
 		oscParams: make([][2]int, DefaultMaxOscParameters),
 	}
@@ -121,8 +118,8 @@ func (p *Parser) advanceUtf8(code byte) {
 	// We have enough bytes to decode the rune
 	bts := p.utf8Raw[:rw]
 	r, _ := utf8.DecodeRune(bts)
-	if p.handler.Rune != nil {
-		p.handler.Rune(r)
+	if p.Handler.Rune != nil {
+		p.Handler.Rune(r)
 	}
 	p.state = GroundState
 	p.clearUtf8()
@@ -205,18 +202,18 @@ func (p *Parser) performAction(action Action, code byte) {
 		break
 
 	case PrintAction:
-		if p.handler.Rune != nil {
-			p.handler.Rune(rune(code))
+		if p.Handler.Rune != nil {
+			p.Handler.Rune(rune(code))
 		}
 
 	case ExecuteAction:
-		if p.handler.Execute != nil {
-			p.handler.Execute(code)
+		if p.Handler.Execute != nil {
+			p.Handler.Execute(code)
 		}
 
 	case EscDispatchAction:
-		if p.handler.EscHandler != nil {
-			p.handler.EscHandler(
+		if p.Handler.EscHandler != nil {
+			p.Handler.EscHandler(
 				p.inters[1],
 				code,
 				p.ignoring,
@@ -262,8 +259,8 @@ func (p *Parser) performAction(action Action, code byte) {
 			p.oscNumParams++
 		}
 
-		if p.handler.OscHandler != nil {
-			p.handler.OscHandler(
+		if p.Handler.OscHandler != nil {
+			p.Handler.OscHandler(
 				p.getOscParams(),
 				code == BEL,
 			)
@@ -282,8 +279,8 @@ func (p *Parser) performAction(action Action, code byte) {
 		p.oscRaw = append(p.oscRaw, code)
 
 	case DcsUnhookAction:
-		if p.handler.DcsHandler != nil {
-			p.handler.DcsHandler(
+		if p.Handler.DcsHandler != nil {
+			p.Handler.DcsHandler(
 				p.inters[0],
 				p.getParams(),
 				p.inters[1],
@@ -300,8 +297,8 @@ func (p *Parser) performAction(action Action, code byte) {
 			p.pushParam(p.param)
 		}
 
-		if p.handler.CsiHandler != nil {
-			p.handler.CsiHandler(
+		if p.Handler.CsiHandler != nil {
+			p.Handler.CsiHandler(
 				p.inters[0],
 				p.getParams(),
 				p.inters[1],
