@@ -13,9 +13,9 @@ func TestEscSequence(t *testing.T) {
 			input: "\x1b[3;1\x1b(A",
 			expected: []testSequence{
 				testEscSequence{
-					intermediates: [2]byte{0, '('},
-					ignore:        false,
-					rune:          'A',
+					inter:  '(',
+					ignore: false,
+					rune:   'A',
 				},
 			},
 		},
