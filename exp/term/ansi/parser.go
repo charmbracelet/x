@@ -109,6 +109,11 @@ type Parser struct {
 	// memory.
 	ignoring bool
 
+	// hasParams indicates that the sequence has literal parameters.
+	// This is used to avoid encoding a default `0` parameter when there are no
+	// parameters.
+	hasParams bool
+
 	// The value here indicates the type of a SOS, PM, or APC sequence.
 	sosPmApc byte
 }
@@ -312,7 +317,7 @@ func (p *Parser) performAction(action Action, code byte) {
 		p.buf = make([]byte, 0)
 		if p.isParamsFull() {
 			p.ignoring = true
-		} else if p.param > 0 || p.paramsLen > 0 {
+		} else if p.param > 0 || p.hasParams {
 			p.pushParam(p.param)
 		}
 		p.param = uint(code)
@@ -335,7 +340,7 @@ func (p *Parser) performAction(action Action, code byte) {
 	case CsiDispatchAction:
 		if p.isParamsFull() {
 			p.ignoring = true
-		} else if p.param > 0 || p.paramsLen > 0 {
+		} else if p.param > 0 || p.hasParams {
 			p.pushParam(p.param)
 		}
 
@@ -362,6 +367,7 @@ func (p *Parser) performAction(action Action, code byte) {
 			return
 		}
 
+		p.hasParams = true
 		switch code {
 		case ';':
 			p.pushParam(p.param)
@@ -405,6 +411,7 @@ func (p *Parser) clear() {
 	// Reset everything on ESC/CSI/DCS entry
 	p.intersLen = 0
 	p.ignoring = false
+	p.hasParams = false
 	p.param = 0
 	p.paramsLen = 0
 	p.subParamsLen = 0
