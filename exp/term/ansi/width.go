@@ -5,11 +5,10 @@ import (
 	"github.com/rivo/uniseg"
 )
 
-// StringWidth returns the width of a string in cells. This is the number of
-// cells that the string will occupy when printed in a terminal. ANSI escape
-// codes are ignored and wide characters (such as East Asians and emojis) are
-// accounted for.
-func StringWidth(s string) int {
+// Strip removes ANSI escape codes from a string.
+// Note: this will strip out any non-printable characters, and control codes
+// (such as newline LF, carriage return CR, tab HT, etc).
+func Strip(s string) string {
 	var (
 		b      []byte        // buffer for collecting printable characters
 		ri     int           // rune index
@@ -54,5 +53,13 @@ func StringWidth(s string) int {
 		}
 	}
 
-	return uniseg.StringWidth(string(b))
+	return string(b)
+}
+
+// StringWidth returns the width of a string in cells. This is the number of
+// cells that the string will occupy when printed in a terminal. ANSI escape
+// codes are ignored and wide characters (such as East Asians and emojis) are
+// accounted for.
+func StringWidth(s string) int {
+	return uniseg.StringWidth(Strip(s))
 }
