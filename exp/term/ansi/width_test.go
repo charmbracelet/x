@@ -23,6 +23,9 @@ var cases = []struct {
 	{"multiemojicsi", "👨‍👩‍👦\x9b38;5;1mhello\x9bm", 7},
 	{"osc8eastasianlink", "\x9d8;id=1;https://example.com/\x9c打豆豆\x9d8;id=1;\x07", 6},
 	{"dcsarabic", "\x1bP?123$pسلام\x1b\\اهلا", 4},
+	{"newline", "hello\nworld", 10},
+	{"tab", "hello\tworld", 10},
+	{"controlnewline", "\x1b[31mhello\x1b[0m\nworld", 10},
 }
 
 func TestStringWidth(t *testing.T) {

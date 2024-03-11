@@ -6,8 +6,6 @@ import (
 )
 
 // Strip removes ANSI escape codes from a string.
-// Note: this will strip out any non-printable characters, and control codes
-// (such as newline LF, carriage return CR, tab HT, etc).
 func Strip(s string) string {
 	var (
 		b      []byte        // buffer for collecting printable characters
@@ -20,7 +18,7 @@ func Strip(s string) string {
 	// printable characters.
 	for i := 0; i < len(s); i++ {
 		state, action := Table.Transition(pstate, s[i])
-		// log.Printf("pstate: %s, state: %s, action: %s", StateNames[pstate], StateNames[state], ActionNames[action])
+		// log.Printf("pstate: %s, state: %s, action: %s, code: %c", StateNames[pstate], StateNames[state], ActionNames[action], s[i])
 		switch {
 		case pstate == Utf8State:
 			// During this state, collect rw bytes to form a valid rune in the
@@ -41,8 +39,8 @@ func Strip(s string) string {
 				b = append(b, s[i])
 				ri++
 			}
-		case action == PrintAction:
-			// PrintAction collects printable ASCII characters
+		case action == PrintAction || action == ExecuteAction:
+			// collects printable ASCII and non-printable characters
 			b = append(b, s[i])
 		}
 

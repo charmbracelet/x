@@ -235,7 +235,7 @@ func (p *Parser) performStateChange(state State, action Action, code byte, more 
 }
 
 func (p *Parser) performAction(action Action, code byte) {
-	// log.Printf("performing action: %s, code: %q", actionNames[action], code)
+	// log.Printf("performing action: %s, code: %q", ActionNames[action], code)
 	switch action {
 	case NoneAction:
 		break
