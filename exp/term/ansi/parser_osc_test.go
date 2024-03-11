@@ -133,6 +133,42 @@ func TestOscSequence(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "title_empty_params_esc",
+			input: "\x1b]0;abc\x1b\\\x1b];;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\x1b",
+			expected: []testSequence{
+				testOscSequence{
+					params: [][]byte{
+						[]byte("0"), []byte("abc"),
+					},
+					bell: false,
+				},
+				testEscSequence{
+					rune: '\\',
+				},
+				testOscSequence{
+					params: [][]byte{
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+						{},
+					},
+					bell: false,
+				},
+			},
+		},
 	}
 
 	for _, c := range cases {

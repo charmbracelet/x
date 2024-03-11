@@ -269,6 +269,7 @@ func (p *Parser) performAction(action Action, code byte) {
 
 	case StartAction:
 		p.buf = make([]byte, 0)
+		p.oscNumParams = 0
 
 	case OscPutAction:
 		idx := len(p.buf)
