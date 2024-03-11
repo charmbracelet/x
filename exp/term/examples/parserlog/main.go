@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
 )
@@ -40,18 +41,35 @@ func (p *dispatcher) EscDispatch(inter byte, r byte, ignore bool) {
 	fmt.Printf("[EscDispatch] inter=%c, final=%c, ignore=%v\n", inter, r, ignore)
 }
 
+func (p *dispatcher) SosPmApcDispatch(kind byte, data []byte) {
+	var k string
+	switch kind {
+	case ansi.SOS, 'X':
+		k = "SOS"
+	case ansi.PM, '^':
+		k = "PM"
+	case ansi.APC, '_':
+		k = "APC"
+	default:
+		k = strconv.Itoa(int(kind))
+	}
+	fmt.Printf("[SosPmApcDispatch] kind=%v, data=%q\n", k, data)
+}
+
 func main() {
 	bts, err := io.ReadAll(os.Stdin)
 	if err != nil && err != io.EOF {
 		log.Fatal(err)
 	}
 	dispatcher := &dispatcher{}
-	ansi.NewParser(ansi.Handler{
-		Rune:       dispatcher.Print,
-		Execute:    dispatcher.Execute,
-		DcsHandler: dispatcher.DcsDispatch,
-		OscHandler: dispatcher.OscDispatch,
-		CsiHandler: dispatcher.CsiDispatch,
-		EscHandler: dispatcher.EscDispatch,
-	}).Parse(bts)
+	parser := ansi.Parser{
+		Print:            dispatcher.Print,
+		Execute:          dispatcher.Execute,
+		DcsDispatch:      dispatcher.DcsDispatch,
+		OscDispatch:      dispatcher.OscDispatch,
+		CsiDispatch:      dispatcher.CsiDispatch,
+		EscDispatch:      dispatcher.EscDispatch,
+		SosPmApcDispatch: dispatcher.SosPmApcDispatch,
+	}
+	parser.Parse(bts)
 }

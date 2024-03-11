@@ -35,6 +35,13 @@ type testOscSequence struct {
 
 func (testOscSequence) sequence() {}
 
+type testSosPmApcSequence struct {
+	k    byte
+	data []byte
+}
+
+func (testSosPmApcSequence) sequence() {}
+
 type testEscSequence struct {
 	inter  byte
 	ignore bool
@@ -105,19 +112,28 @@ func (d *testDispatcher) OscDispatch(params [][]byte, bellTerminated bool) {
 	})
 }
 
+// SosPmApcDispatch implements Performer.
+func (d *testDispatcher) SosPmApcDispatch(k byte, data []byte) {
+	d.dispatched = append(d.dispatched, testSosPmApcSequence{
+		k:    k,
+		data: data,
+	})
+}
+
 // Print implements Performer.
 func (d *testDispatcher) Print(r rune) {
 	d.dispatched = append(d.dispatched, testRune(r))
 }
 
-func testHandler(d *testDispatcher) Handler {
-	return Handler{
-		Rune:       d.Print,
-		Execute:    d.Execute,
-		CsiHandler: d.CsiDispatch,
-		OscHandler: d.OscDispatch,
-		EscHandler: d.EscDispatch,
-		DcsHandler: d.DcsDispatch,
+func testParser(d *testDispatcher) Parser {
+	return Parser{
+		Print:            d.Print,
+		Execute:          d.Execute,
+		CsiDispatch:      d.CsiDispatch,
+		OscDispatch:      d.OscDispatch,
+		EscDispatch:      d.EscDispatch,
+		DcsDispatch:      d.DcsDispatch,
+		SosPmApcDispatch: d.SosPmApcDispatch,
 	}
 }
 
@@ -141,7 +157,7 @@ func BenchmarkNext(bm *testing.B) {
 
 	bm.ResetTimer()
 
-	parser := NewParser()
+	parser := testParser(&testDispatcher{})
 	parser.Parse(bts)
 }
 
@@ -149,7 +165,7 @@ func BenchmarkStateChanges(bm *testing.B) {
 	input := "\x1b]2;X\x1b\\ \x1b[0m \x1bP0@\x1b\\"
 
 	for i := 0; i < bm.N; i++ {
-		parser := NewParser()
+		parser := testParser(&testDispatcher{})
 		for i := 0; i < 1000; i++ {
 			parser.Parse([]byte(input))
 		}

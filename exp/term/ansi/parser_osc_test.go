@@ -35,7 +35,7 @@ func TestOscSequence(t *testing.T) {
 		},
 		{
 			name:  "max_params",
-			input: fmt.Sprintf("\x1b]%s\x1b", strings.Repeat(";", DefaultMaxOscParameters+1)),
+			input: fmt.Sprintf("\x1b]%s\x1b", strings.Repeat(";", maxOscParameters+1)),
 			expected: []testSequence{
 				testOscSequence{
 					params: [][]byte{
@@ -121,12 +121,13 @@ func TestOscSequence(t *testing.T) {
 			},
 		},
 		{
+			// TODO: The parser now allows arbitrary length OSC sequences, should we limit this?
 			name:  "exceed_max_buffer_size",
-			input: string(append(append([]byte{0x1b, 0x5d, 0x35, 0x32, 0x3b, 0x73}, bytes.Repeat([]byte{'a'}, DefaultMaxOscBytes+100)...), 0x07)),
+			input: fmt.Sprintf("\x1b]52;s%s\x07", strings.Repeat("a", maxBufferSize+100)),
 			expected: []testSequence{
 				testOscSequence{
 					params: [][]byte{
-						[]byte("52"), append([]byte{'s'}, bytes.Repeat([]byte{'a'}, DefaultMaxOscBytes+100)...),
+						[]byte("52"), append([]byte{'s'}, bytes.Repeat([]byte{'a'}, maxBufferSize+100)...),
 					},
 					bell: true,
 				},
@@ -137,8 +138,7 @@ func TestOscSequence(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
-			parser := NewParser()
-			parser.Handler = testHandler(dispatcher)
+			parser := testParser(dispatcher)
 			parser.Parse([]byte(c.input))
 			assert.Equal(t, len(c.expected), len(dispatcher.dispatched))
 			assert.Equal(t, c.expected, dispatcher.dispatched)

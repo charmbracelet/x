@@ -3,57 +3,84 @@ package ansi
 import (
 	"math"
 	"unicode/utf8"
+
+	. "github.com/charmbracelet/x/exp/term/ansi/parser"
 )
 
-// DefaultMaxIntermediates is the maximum number of intermediates bytes allowed.
-const DefaultMaxIntermediates = 2
+const (
+	// maxIntermediates is the maximum number of intermediates bytes allowed.
+	maxIntermediates = 2
 
-// DefaultMaxOscBytes is the maximum number of bytes allowed in an Osc parameter.
-const DefaultMaxOscBytes = 1024
+	// maxBufferSize is the maximum number of bytes allowed in an Osc or Dcs sequence.
+	// nolint: unused
+	maxBufferSize = 1024
 
-// DefaultMaxOscParameters is the default maximum number of Osc parameters allowed.
-const DefaultMaxOscParameters = 16
+	// maxOscParameters is the default maximum number of Osc parameters allowed.
+	maxOscParameters = 16
 
-// DefaultMaxParameters is the maximum number of parameters allowed.
-const DefaultMaxParameters = 32
+	// maxParameters is the maximum number of parameters allowed.
+	maxParameters = 32
+)
 
-// Handler is an interface for parsing.
-type Handler struct {
-	// Rune is called when a print action is performed.
-	// The rune is a utf8 encoded rune.
-	Rune func(r rune)
+// Parser represents a DEC ANSI compatible sequence parser.
+//
+// It uses a state machine to parse ANSI escape sequences and control
+// characters. The parser is designed to be used with a terminal emulator or
+// similar application that needs to parse ANSI escape sequences and control
+// characters.
+// See [parser] for more information.
+//
+//go:generate go run ./gen.go
+type Parser struct {
+	// Print a rune to the output.
+	Print func(r rune)
 
-	// Execute is called when an execute action is performed.
-	// This is usually a control character.
+	// Execute a C0 or C1 control code.
 	Execute func(b byte)
 
-	// EscHandler is called when an esc dispatch action is performed.
-	EscHandler func(inter byte, final byte, ignore bool)
+	// EscDispatch is called when the final byte of an escape sequence is
+	// received.
+	// The ignore flag indicates that the parser encountered more than one
+	// intermediate byte and ignoring subsequent bytes.
+	EscDispatch func(inter byte, final byte, ignore bool)
 
-	// CsiHandler is called when a csi dispatch action is performed.
-	CsiHandler func(marker byte, params [][]uint, inter byte, final byte, ignore bool)
+	// CsiDispatch is called when the final byte of a Control Sequence
+	// Introducer (CSI) is received.
+	// The ignore flag indicates that either the parser encountered more than
+	// one marker and one intermediate bytes, or more than the maximum number
+	// of parameters, and ignoring subsequent bytes.
+	CsiDispatch func(marker byte, params [][]uint, inter byte, final byte, ignore bool)
 
-	// OscHandler is called when an osc dispatch action is performed.
-	OscHandler func(params [][]byte, bellTerminated bool)
+	// OscDispatch is called to dispatch an Operating System Command (OSC).
+	// bellTerminated indicates that the sequence was terminated by a BEL byte.
+	OscDispatch func(params [][]byte, bellTerminated bool)
 
-	// DcsHandler is called when a dcs dispatch action is performed.
-	DcsHandler func(marker byte, params [][]uint, inter byte, final byte, data []byte, ignore bool)
-}
+	// DcsDispatch is called to dispatch a Device Control String (DCS).
+	// The ignore flag indicates that either the parser encountered more than
+	// the maximum number of parameters, or intermediates, and ignoring
+	// subsequent bytes.
+	DcsDispatch func(marker byte, params [][]uint, inter byte, final byte, data []byte, ignore bool)
 
-// Parser represents a state machine.
-type Parser struct {
-	Handler
+	// SosPmApcDispatch is called to dispatch a Start of String (SOS), Privacy
+	// Message (PM), or Application Program Command (APC) sequence.
+	// The kind byte indicates the type of sequence and can be one of the
+	// following:
+	//  - SOS: 0x98
+	//  - PM: 0x9E
+	//  - APC: 0x9F
+	SosPmApcDispatch func(kind byte, data []byte)
 
-	oscParams [][2]int
+	// buf holds the bytes of an Osc or Dcs sequence.
+	buf []byte
 
-	oscRaw []byte
+	oscParams [maxOscParameters][2]int
 
 	// params holds the parameters for the current sequence including sub
 	// parameters.
-	params [32]uint
+	params [maxParameters]uint
 
 	// numSubParams holds the number of sub parameters for each parameter.
-	numSubParams [32]int
+	numSubParams [maxParameters]int
 	paramsLen    int
 
 	// param holds the current parameter.
@@ -73,7 +100,7 @@ type Parser struct {
 	// ECMA-48 5.4 doesn't specify a limit on the number of private parameter
 	// or intermediate bytes, however, in practice, there isn't a need for more
 	// than 2.
-	inters [2]byte
+	inters [maxIntermediates]byte
 
 	state State
 
@@ -81,23 +108,15 @@ type Parser struct {
 	// maximum allowed. This is to prevent the parser from consuming too much
 	// memory.
 	ignoring bool
-}
 
-// NewParser returns a new DEC ANSI compatible sequence parser.
-func NewParser() *Parser {
-	p := &Parser{
-		state:     GroundState,
-		oscRaw:    make([]byte, 0, DefaultMaxOscBytes),
-		oscParams: make([][2]int, DefaultMaxOscParameters),
-	}
-
-	return p
+	// The value here indicates the type of a SOS, PM, or APC sequence.
+	sosPmApc byte
 }
 
 // Parse parses the given reader until eof.
 func (p *Parser) Parse(buf []byte) {
 	for i, b := range buf {
-		p.advance(b, i < len(buf)-1)
+		p.Advance(b, i < len(buf)-1)
 	}
 }
 
@@ -118,19 +137,29 @@ func (p *Parser) advanceUtf8(code byte) {
 	// We have enough bytes to decode the rune
 	bts := p.utf8Raw[:rw]
 	r, _ := utf8.DecodeRune(bts)
-	if p.Handler.Rune != nil {
-		p.Handler.Rune(r)
+	if p.Print != nil {
+		p.Print(r)
 	}
 	p.state = GroundState
 	p.clearUtf8()
 }
 
-// advance advances the state machine.
-func (p *Parser) advance(code byte, more bool) {
+// State returns the current state of the parser.
+func (p *Parser) State() State {
+	return p.state
+}
+
+// StateName returns the name of the current state.
+func (p *Parser) StateName() string {
+	return StateNames[p.state]
+}
+
+// Advance advances the state machine.
+func (p *Parser) Advance(code byte, more bool) {
 	if p.state == Utf8State {
 		p.advanceUtf8(code)
 	} else {
-		state, action := table.Transition(p.state, code)
+		state, action := Table.Transition(p.state, code)
 		p.performStateChange(state, action, code, more)
 	}
 }
@@ -170,7 +199,7 @@ func (p *Parser) performStateChange(state State, action Action, code byte, more 
 		case OscStringState:
 			p.performAction(OscEndAction, code)
 		case SosPmApcStringState:
-			// TODO: implement
+			p.performAction(SosPmApcEndAction, code)
 		}
 	}
 
@@ -180,12 +209,20 @@ func (p *Parser) performStateChange(state State, action Action, code byte, more 
 		switch state {
 		case CsiEntryState, DcsEntryState, EscapeState:
 			p.performAction(ClearAction, code)
+		case SosPmApcStringState:
+			switch code {
+			case SOS, 'X':
+				p.sosPmApc = SOS
+			case PM, '^':
+				p.sosPmApc = PM
+			case APC, '_':
+				p.sosPmApc = APC
+			}
+			fallthrough
 		case OscStringState:
-			p.performAction(OscStartAction, code)
+			p.performAction(StartAction, code)
 		case DcsPassthroughState:
 			p.performAction(DcsHookAction, code)
-		case SosPmApcStringState:
-			// TODO: Implement
 		}
 	}
 
@@ -202,33 +239,38 @@ func (p *Parser) performAction(action Action, code byte) {
 		break
 
 	case PrintAction:
-		if p.Handler.Rune != nil {
-			p.Handler.Rune(rune(code))
+		if p.Print != nil {
+			p.Print(rune(code))
 		}
 
 	case ExecuteAction:
-		if p.Handler.Execute != nil {
-			p.Handler.Execute(code)
+		if p.Execute != nil {
+			p.Execute(code)
 		}
 
 	case EscDispatchAction:
-		if p.Handler.EscHandler != nil {
-			p.Handler.EscHandler(
+		if p.EscDispatch != nil {
+			p.EscDispatch(
 				p.inters[1],
 				code,
 				p.ignoring,
 			)
 		}
 
-	case OscStartAction:
-		p.oscRaw = make([]byte, 0)
+	case SosPmApcEndAction:
+		if p.SosPmApcDispatch != nil {
+			p.SosPmApcDispatch(p.sosPmApc, p.buf)
+		}
+
+	case StartAction:
+		p.buf = make([]byte, 0)
 
 	case OscPutAction:
-		idx := len(p.oscRaw)
+		idx := len(p.buf)
 		if code == ';' {
 			paramIdx := p.oscNumParams
 			switch paramIdx {
-			case DefaultMaxOscParameters:
+			case maxOscParameters:
 				return
 			case 0:
 				p.oscParams[paramIdx] = [2]int{0, idx}
@@ -239,15 +281,15 @@ func (p *Parser) performAction(action Action, code byte) {
 			}
 			p.oscNumParams++
 		} else {
-			p.oscRaw = append(p.oscRaw, code)
+			p.buf = append(p.buf, code)
 		}
 
 	case OscEndAction:
 		paramIdx := p.oscNumParams
-		idx := len(p.oscRaw)
+		idx := len(p.buf)
 
 		switch paramIdx {
-		case DefaultMaxOscParameters:
+		case maxOscParameters:
 			break
 		case 0:
 			p.oscParams[paramIdx] = [2]int{0, idx}
@@ -259,33 +301,33 @@ func (p *Parser) performAction(action Action, code byte) {
 			p.oscNumParams++
 		}
 
-		if p.Handler.OscHandler != nil {
-			p.Handler.OscHandler(
+		if p.OscDispatch != nil {
+			p.OscDispatch(
 				p.getOscParams(),
 				code == BEL,
 			)
 		}
 
 	case DcsHookAction:
-		p.oscRaw = make([]byte, 0)
+		p.buf = make([]byte, 0)
 		if p.isParamsFull() {
 			p.ignoring = true
-		} else {
+		} else if p.param > 0 || p.paramsLen > 0 {
 			p.pushParam(p.param)
 		}
 		p.param = uint(code)
 
-	case DcsPutAction:
-		p.oscRaw = append(p.oscRaw, code)
+	case PutAction:
+		p.buf = append(p.buf, code)
 
 	case DcsUnhookAction:
-		if p.Handler.DcsHandler != nil {
-			p.Handler.DcsHandler(
+		if p.DcsDispatch != nil {
+			p.DcsDispatch(
 				p.inters[0],
 				p.getParams(),
 				p.inters[1],
 				byte(p.param),
-				p.oscRaw,
+				p.buf,
 				p.ignoring,
 			)
 		}
@@ -293,12 +335,12 @@ func (p *Parser) performAction(action Action, code byte) {
 	case CsiDispatchAction:
 		if p.isParamsFull() {
 			p.ignoring = true
-		} else {
+		} else if p.param > 0 || p.paramsLen > 0 {
 			p.pushParam(p.param)
 		}
 
-		if p.Handler.CsiHandler != nil {
-			p.Handler.CsiHandler(
+		if p.CsiDispatch != nil {
+			p.CsiDispatch(
 				p.inters[0],
 				p.getParams(),
 				p.inters[1],
@@ -345,7 +387,7 @@ func (p *Parser) collectUtf8(code byte) {
 }
 
 func (p *Parser) collect(code byte) {
-	if p.intersLen == DefaultMaxIntermediates {
+	if p.intersLen == maxIntermediates {
 		p.ignoring = true
 	} else if code >= 0x30 && code <= 0x3F { // private marker
 		p.inters[0] = code
@@ -374,10 +416,10 @@ func (p *Parser) getOscParams() [][]byte {
 		return nil
 	}
 
-	params := make([][]byte, 0, DefaultMaxOscParameters)
+	params := make([][]byte, 0, maxOscParameters)
 	for i := 0; i < p.oscNumParams; i++ {
 		indices := p.oscParams[i]
-		param := p.oscRaw[indices[0]:indices[1]]
+		param := p.buf[indices[0]:indices[1]]
 		params = append(params, param)
 	}
 
@@ -399,7 +441,7 @@ func (p *Parser) extendParam(param uint) {
 }
 
 func (p *Parser) isParamsFull() bool {
-	return p.paramsLen >= DefaultMaxParameters
+	return p.paramsLen >= maxParameters
 }
 
 func (p *Parser) getParams() [][]uint {
