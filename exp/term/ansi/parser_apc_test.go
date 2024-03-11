@@ -6,16 +6,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEscSequence(t *testing.T) {
+func TestSosPmApcSequence(t *testing.T) {
 	cases := []testCase{
 		{
-			name:  "reset",
-			input: "\x1b[3;1\x1b(A",
+			name:  "apc7",
+			input: "\x1b_Gf=24,s=10,v=20,o=z;aGVsbG8gd29ybGQ=\x1b\\",
 			expected: []testSequence{
+				testSosPmApcSequence{
+					k:    APC,
+					data: []byte("Gf=24,s=10,v=20,o=z;aGVsbG8gd29ybGQ="),
+				},
 				testEscSequence{
-					inter:  '(',
-					ignore: false,
-					rune:   'A',
+					rune: '\\',
 				},
 			},
 		},
@@ -27,9 +29,7 @@ func TestEscSequence(t *testing.T) {
 			parser := testParser(dispatcher)
 			parser.Parse([]byte(c.input))
 			assert.Equal(t, len(c.expected), len(dispatcher.dispatched))
-			for i := range c.expected {
-				assert.Equal(t, c.expected[i], dispatcher.dispatched[i])
-			}
+			assert.Equal(t, c.expected, dispatcher.dispatched)
 		})
 	}
 }

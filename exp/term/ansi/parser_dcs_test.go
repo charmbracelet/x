@@ -12,7 +12,7 @@ func TestDcsSequence(t *testing.T) {
 	cases := []testCase{
 		{
 			name:  "max_params",
-			input: fmt.Sprintf("\x1bP%sp\x1b\\", strings.Repeat("1;", DefaultMaxParameters+1)),
+			input: fmt.Sprintf("\x1bP%sp\x1b\\", strings.Repeat("1;", maxParameters+1)),
 			expected: []testSequence{
 				testDcsSequence{
 					rune: 'p',
@@ -106,10 +106,9 @@ func TestDcsSequence(t *testing.T) {
 			input: "\x1bP+r😃\x1b\\",
 			expected: []testSequence{
 				testDcsSequence{
-					rune:   'r',
-					params: [][]uint{{0}},
-					inter:  '+',
-					data:   []byte("😃"),
+					rune:  'r',
+					inter: '+',
+					data:  []byte("😃"),
 				},
 				testEscSequence{
 					rune: '\\',
@@ -121,8 +120,7 @@ func TestDcsSequence(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
-			parser := NewParser()
-			parser.Handler = testHandler(dispatcher)
+			parser := testParser(dispatcher)
 			parser.Parse([]byte(c.input))
 			assert.Equal(t, len(c.expected), len(dispatcher.dispatched))
 			assert.Equal(t, c.expected, dispatcher.dispatched)

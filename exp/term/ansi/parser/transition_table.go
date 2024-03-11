@@ -1,13 +1,16 @@
-package ansi
+package parser
 
 // Table values are generated like this:
 //
-//	index:  currentState << indexStateShift | charCode
-//	value:  action << transitionActionShift | nextState
+//	index:  currentState << IndexStateShift | charCode
+//	value:  action << TransitionActionShift | nextState
 const (
-	transitionActionShift = 4
-	transitionStateMask   = 15
-	indexStateShift       = 8
+	TransitionActionShift = 4
+	TransitionStateMask   = 15
+	IndexStateShift       = 8
+
+	// DefaultTableSize is the default size of the transition table.
+	DefaultTableSize = 4096
 )
 
 // TransitionTable is a DEC ANSI transition table.
@@ -17,7 +20,7 @@ type TransitionTable []byte
 // NewTransitionTable returns a new DEC ANSI transition table.
 func NewTransitionTable(size int) TransitionTable {
 	if size <= 0 {
-		size = 4096
+		size = DefaultTableSize
 	}
 	return TransitionTable(make([]byte, size))
 }
@@ -25,14 +28,14 @@ func NewTransitionTable(size int) TransitionTable {
 // SetDefault sets default transition.
 func (t TransitionTable) SetDefault(action Action, state State) {
 	for i := 0; i < len(t); i++ {
-		t[i] = action<<transitionActionShift | state
+		t[i] = action<<TransitionActionShift | state
 	}
 }
 
 // AddOne adds a transition.
 func (t TransitionTable) AddOne(code byte, state State, action Action, next State) {
-	idx := int(state)<<indexStateShift | int(code)
-	value := action<<transitionActionShift | next
+	idx := int(state)<<IndexStateShift | int(code)
+	value := action<<TransitionActionShift | next
 	t[idx] = value
 }
 
@@ -52,9 +55,9 @@ func (t TransitionTable) AddRange(start, end byte, state State, action Action, n
 
 // Transition returns the next state and action for the given state and byte.
 func (t TransitionTable) Transition(state State, code byte) (State, Action) {
-	index := int(state)<<indexStateShift | int(code)
+	index := int(state)<<IndexStateShift | int(code)
 	value := t[index]
-	return value & transitionStateMask, value >> transitionActionShift
+	return value & TransitionStateMask, value >> TransitionActionShift
 }
 
 // byte range macro
@@ -66,8 +69,6 @@ func r(start, end byte) []byte {
 	return a
 }
 
-var table = GenerateTransitionTable()
-
 // GenerateTransitionTable generates a DEC ANSI transition table compatible
 // with the VT500-series of terminals. This implementation includes a few
 // modifications that include:
@@ -76,29 +77,28 @@ var table = GenerateTransitionTable()
 //     to 0xFF and 0xFE respectively.
 //   - We don't ignore 0x3A (':') when building Csi and Dcs parameters and
 //     instead use it to denote sub-parameters.
-//   - TODO: implement APC
+//   - Support dispatching SosPmApc sequences.
 func GenerateTransitionTable() TransitionTable {
-	table := NewTransitionTable(4096)
+	table := NewTransitionTable(DefaultTableSize)
 	table.SetDefault(NoneAction, GroundState)
 
 	// Anywhere
-	for _, state := range r(GroundState, Utf8State) { // TODO: adjust range
+	for _, state := range r(GroundState, Utf8State) {
 		// Anywhere -> Ground
 		table.AddMany([]byte{0x18, 0x1a, 0x99, 0x9a}, state, ExecuteAction, GroundState)
 		table.AddRange(0x80, 0x8F, state, ExecuteAction, GroundState)
 		table.AddRange(0x90, 0x97, state, ExecuteAction, GroundState)
-		table.AddOne(ST, state, IgnoreAction, GroundState)
+		table.AddOne(0x9C, state, IgnoreAction, GroundState)
 		// Anywhere -> Escape
-		table.AddOne(ESC, state, ClearAction, EscapeState)
+		table.AddOne(0x1B, state, ClearAction, EscapeState)
 		// Anywhere -> SosPmApcStringState
-		_, _, _ = SOS, PM, APC
-		table.AddMany([]byte{SOS, PM, APC}, state, IgnoreAction, SosPmApcStringState)
+		table.AddMany([]byte{0x98, 0x9E, 0x9F}, state, IgnoreAction, SosPmApcStringState)
 		// Anywhere -> CsiEntry
-		table.AddOne(CSI, state, NoneAction, CsiEntryState)
+		table.AddOne(0x9B, state, NoneAction, CsiEntryState)
 		// Anywhere -> DcsEntry
-		table.AddOne(DCS, state, NoneAction, DcsEntryState)
+		table.AddOne(0x90, state, NoneAction, DcsEntryState)
 		// Anywhere -> OscString
-		table.AddOne(OSC, state, NoneAction, OscStringState)
+		table.AddOne(0x9D, state, NoneAction, OscStringState)
 		// Anywhere -> Utf8
 		table.AddRange(0xC2, 0xDF, state, CollectAction, Utf8State) // UTF8 2 byte sequence
 		table.AddRange(0xE0, 0xEF, state, CollectAction, Utf8State) // UTF8 3 byte sequence
@@ -121,10 +121,13 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x30, 0x7E, EscapeIntermediateState, EscDispatchAction, GroundState)
 
 	// Sos_pm_apc_string
-	table.AddRange(0x00, 0x17, SosPmApcStringState, IgnoreAction, SosPmApcStringState)
-	table.AddOne(0x19, SosPmApcStringState, IgnoreAction, SosPmApcStringState)
-	table.AddRange(0x1C, 0x1F, SosPmApcStringState, IgnoreAction, SosPmApcStringState)
-	table.AddRange(0x20, 0x7F, SosPmApcStringState, IgnoreAction, SosPmApcStringState)
+	table.AddRange(0x00, 0x17, SosPmApcStringState, PutAction, SosPmApcStringState)
+	table.AddOne(0x19, SosPmApcStringState, PutAction, SosPmApcStringState)
+	table.AddRange(0x1C, 0x1F, SosPmApcStringState, PutAction, SosPmApcStringState)
+	table.AddRange(0x20, 0x7F, SosPmApcStringState, PutAction, SosPmApcStringState)
+	// ESC, ST, CAN, and SUB terminate the sequence
+	table.AddOne(0x1B, SosPmApcStringState, IgnoreAction, EscapeState)
+	table.AddMany([]byte{0x9C, 0x18, 0x1A}, SosPmApcStringState, IgnoreAction, GroundState)
 
 	// Escape
 	table.AddRange(0x00, 0x17, EscapeState, ExecuteAction, EscapeState)
@@ -195,12 +198,12 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x40, 0x7E, DcsParamState, NoneAction, DcsPassthroughState)
 
 	// Dcs_passthrough
-	table.AddRange(0x00, 0x17, DcsPassthroughState, DcsPutAction, DcsPassthroughState)
-	table.AddOne(0x19, DcsPassthroughState, DcsPutAction, DcsPassthroughState)
-	table.AddRange(0x1C, 0x1F, DcsPassthroughState, DcsPutAction, DcsPassthroughState)
-	table.AddRange(0x20, 0x7E, DcsPassthroughState, DcsPutAction, DcsPassthroughState)
+	table.AddRange(0x00, 0x17, DcsPassthroughState, PutAction, DcsPassthroughState)
+	table.AddOne(0x19, DcsPassthroughState, PutAction, DcsPassthroughState)
+	table.AddRange(0x1C, 0x1F, DcsPassthroughState, PutAction, DcsPassthroughState)
+	table.AddRange(0x20, 0x7E, DcsPassthroughState, PutAction, DcsPassthroughState)
 	table.AddOne(0x7F, DcsPassthroughState, IgnoreAction, DcsPassthroughState)
-	table.AddRange(0x80, 0xFF, DcsPassthroughState, DcsPutAction, DcsPassthroughState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF
+	table.AddRange(0x80, 0xFF, DcsPassthroughState, PutAction, DcsPassthroughState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF
 	// ST, CAN, SUB, and ESC terminate the sequence
 	table.AddOne(0x1b, DcsPassthroughState, NoneAction, EscapeState)
 	table.AddMany([]byte{0x9C, 0x18, 0x1A}, DcsPassthroughState, NoneAction, GroundState)
@@ -259,90 +262,8 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x20, 0xFF, OscStringState, OscPutAction, OscStringState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF
 
 	// ST, CAN, SUB, ESC, and BEL terminate the sequence
-	table.AddOne(0x1b, OscStringState, NoneAction, EscapeState)
-	table.AddMany([]byte{0x9c, 0x18, 0x1a, 0x07}, OscStringState, NoneAction, GroundState)
+	table.AddOne(0x1B, OscStringState, NoneAction, EscapeState)
+	table.AddMany([]byte{0x9C, 0x18, 0x1A, 0x07}, OscStringState, NoneAction, GroundState)
 
 	return table
-}
-
-// Action is a DEC ANSI parser action.
-type Action = byte
-
-const (
-	NoneAction Action = iota
-	IgnoreAction
-	ClearAction
-	CollectAction
-	CsiDispatchAction
-	EscDispatchAction
-	ExecuteAction
-	DcsHookAction
-	OscEndAction
-	OscPutAction
-	OscStartAction
-	ParamAction
-	PrintAction
-	DcsPutAction
-	DcsUnhookAction
-)
-
-// nolint: unused
-var actionNames = []string{
-	"NoneAction",
-	"IgnoreAction",
-	"ClearAction",
-	"CollectAction",
-	"CsiDispatchAction",
-	"EscDispatchAction",
-	"ExecuteAction",
-	"DcsHookAction",
-	"OscEndAction",
-	"OscPutAction",
-	"OscStartAction",
-	"ParamAction",
-	"PrintAction",
-	"DcsPutAction",
-	"DcsUnhookAction",
-}
-
-// State is a DEC ANSI parser state.
-type State = byte
-
-const (
-	GroundState State = iota
-	CsiEntryState
-	CsiIgnoreState
-	CsiIntermediateState
-	CsiParamState
-	DcsEntryState
-	DcsIgnoreState
-	DcsIntermediateState
-	DcsParamState
-	DcsPassthroughState
-	EscapeState
-	EscapeIntermediateState
-	OscStringState
-	SosPmApcStringState
-
-	// Utf8State is not part of the DEC ANSI standard. It is used to handle
-	// UTF-8 sequences.
-	Utf8State
-)
-
-var stateNames = []string{
-	"GroundState",
-	"CsiEntryState",
-	"CsiIgnoreState",
-	"CsiIntermediateState",
-	"CsiParamState",
-	"DcsEntryState",
-	"DcsIgnoreState",
-	"DcsIntermediateState",
-	"DcsParamState",
-	"DcsPassthroughState",
-	"EscapeState",
-	"EscapeIntermediateState",
-	"OscStringState",
-	"SosPmApcStringState",
-	"Utf8State",
 }

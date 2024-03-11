@@ -16,14 +16,13 @@ func TestCsiSequence(t *testing.T) {
 			expected: []testSequence{
 				testCsiSequence{
 					rune:   'm',
-					params: [][]uint{{0}},
 					ignore: false,
 				},
 			},
 		},
 		{
 			name:  "max_params",
-			input: "\x1b[" + strings.Repeat("1;", DefaultMaxParameters-1) + "p",
+			input: "\x1b[" + strings.Repeat("1;", maxParameters-1) + "p",
 			expected: []testSequence{
 				testCsiSequence{
 					params: [][]uint{
@@ -67,7 +66,7 @@ func TestCsiSequence(t *testing.T) {
 		},
 		{
 			name:  "ignore_long",
-			input: "\x1b[" + strings.Repeat("1;", DefaultMaxParameters+2) + "p",
+			input: "\x1b[" + strings.Repeat("1;", maxParameters+2) + "p",
 			expected: []testSequence{
 				testCsiSequence{
 					params: [][]uint{
@@ -191,8 +190,7 @@ func TestCsiSequence(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
-			parser := NewParser()
-			parser.Handler = testHandler(dispatcher)
+			parser := testParser(dispatcher)
 			parser.Parse([]byte(c.input))
 			assert.Equal(t, len(c.expected), len(dispatcher.dispatched))
 			assert.Equal(t, c.expected, dispatcher.dispatched)

@@ -3,6 +3,7 @@ package parser
 // Action is a DEC ANSI parser action.
 type Action = byte
 
+// These are the actions that the parser can take.
 const (
 	NoneAction Action = iota
 	IgnoreAction
@@ -14,15 +15,16 @@ const (
 	DcsHookAction
 	OscEndAction
 	OscPutAction
-	OscStartAction
+	StartAction // Start an Osc or SosPmApc sequence
 	ParamAction
 	PrintAction
-	DcsPutAction
+	PutAction // Used to put data into the buffer for Dcs/Sos/Pm/Apc
 	DcsUnhookAction
+	SosPmApcEndAction
 )
 
 // nolint: unused
-var actionNames = []string{
+var ActionNames = []string{
 	"NoneAction",
 	"IgnoreAction",
 	"ClearAction",
@@ -33,16 +35,18 @@ var actionNames = []string{
 	"DcsHookAction",
 	"OscEndAction",
 	"OscPutAction",
-	"OscStartAction",
+	"StartAction",
 	"ParamAction",
 	"PrintAction",
-	"DcsPutAction",
+	"PutAction",
 	"DcsUnhookAction",
+	"SosPmApcEndAction",
 }
 
 // State is a DEC ANSI parser state.
 type State = byte
 
+// These are the states that the parser can be in.
 const (
 	GroundState State = iota
 	CsiEntryState
@@ -64,7 +68,8 @@ const (
 	Utf8State
 )
 
-var stateNames = []string{
+// nolint: unused
+var StateNames = []string{
 	"GroundState",
 	"CsiEntryState",
 	"CsiIgnoreState",
