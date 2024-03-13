@@ -10,21 +10,36 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi"
 )
 
-type dispatcher struct{}
+type dispatcher struct {
+	str string
+}
 
 func (p *dispatcher) Print(r rune) {
-	fmt.Printf("[Print] %c\n", r)
+	p.str += string(r)
+	// fmt.Printf("[Print] %c\n", r)
 }
 
 func (p *dispatcher) Execute(code byte) {
+	if p.str != "" {
+		fmt.Printf("[Print] %s\n", p.str)
+		p.str = ""
+	}
 	fmt.Printf("[Execute] 0x%02x\n", code)
 }
 
 func (p *dispatcher) DcsDispatch(marker byte, params [][]uint, inter byte, r byte, data []byte, ignore bool) {
+	if p.str != "" {
+		fmt.Printf("[Print] %s\n", p.str)
+		p.str = ""
+	}
 	fmt.Printf("[DcsDispatch] marker=%c params=%v, inter=%c, final=%q, data=%q, ignore=%v\n", marker, params, inter, r, data, ignore)
 }
 
 func (p *dispatcher) OscDispatch(params [][]byte, bellTerminated bool) {
+	if p.str != "" {
+		fmt.Printf("[Print] %s\n", p.str)
+		p.str = ""
+	}
 	fmt.Printf("[OscDispatch]")
 	for _, param := range params {
 		fmt.Printf(" param=%q", param)
@@ -33,15 +48,27 @@ func (p *dispatcher) OscDispatch(params [][]byte, bellTerminated bool) {
 }
 
 func (p *dispatcher) CsiDispatch(marker byte, params [][]uint, inter byte, r byte, ignore bool) {
+	if p.str != "" {
+		fmt.Printf("[Print] %s\n", p.str)
+		p.str = ""
+	}
 	fmt.Print("[CsiDispatch]")
 	fmt.Printf(" marker=%c params=%v, inter=%c, final=%c, ignore=%v\n", marker, params, inter, r, ignore)
 }
 
 func (p *dispatcher) EscDispatch(inter byte, r byte, ignore bool) {
+	if p.str != "" {
+		fmt.Printf("[Print] %s\n", p.str)
+		p.str = ""
+	}
 	fmt.Printf("[EscDispatch] inter=%c, final=%c, ignore=%v\n", inter, r, ignore)
 }
 
 func (p *dispatcher) SosPmApcDispatch(kind byte, data []byte) {
+	if p.str != "" {
+		fmt.Printf("[Print] %s\n", p.str)
+		p.str = ""
+	}
 	var k string
 	switch kind {
 	case ansi.SOS, 'X':
