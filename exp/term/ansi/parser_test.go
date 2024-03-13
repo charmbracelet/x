@@ -157,15 +157,7 @@ func BenchmarkNext(bm *testing.B) {
 
 	bm.ResetTimer()
 
-	parser := Parser{
-		Print:            func(r rune) {},
-		Execute:          func(b byte) {},
-		CsiDispatch:      func(marker byte, params [][]uint, inter byte, r byte, ignore bool) {},
-		OscDispatch:      func(params [][]byte, bellTerminated bool) {},
-		EscDispatch:      func(inter byte, r byte, ignore bool) {},
-		DcsDispatch:      func(marker byte, params [][]uint, inter byte, r byte, data []byte, ignore bool) {},
-		SosPmApcDispatch: func(k byte, data []byte) {},
-	}
+	var parser Parser
 	parser.Parse(bts)
 }
 
