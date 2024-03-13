@@ -39,9 +39,11 @@ func TestStringWidth(t *testing.T) {
 }
 
 func BenchmarkStringWidth(b *testing.B) {
-	for _, c := range cases {
-		for i := 0; i < b.N; i++ {
-			StringWidth(c.input)
+	b.RunParallel(func(pb *testing.PB) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for pb.Next() {
+			StringWidth("foo")
 		}
-	}
+	})
 }
