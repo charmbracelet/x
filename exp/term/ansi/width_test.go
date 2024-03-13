@@ -26,6 +26,9 @@ var cases = []struct {
 	{"newline", "hello\nworld", 10},
 	{"tab", "hello\tworld", 10},
 	{"controlnewline", "\x1b[31mhello\x1b[0m\nworld", 10},
+	{"style", "\x1B[38;2;249;38;114mfoo", 3},
+	{"unicode", "\x1b[35m“box”\x1b[0m", 5},
+	{"just_unicode", "Claire‘s Boutique", 17},
 }
 
 func TestStringWidth(t *testing.T) {

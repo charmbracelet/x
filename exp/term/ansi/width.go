@@ -19,8 +19,12 @@ func Strip(s string) string {
 	// This implements a subset of the Parser to only collect runes and
 	// printable characters.
 	for i := 0; i < len(s); i++ {
-		state, action := Table.Transition(pstate, s[i])
-		// log.Printf("pstate: %s, state: %s, action: %s, code: %c", StateNames[pstate], StateNames[state], ActionNames[action], s[i])
+		var state, action byte
+		if pstate != Utf8State {
+			state, action = Table.Transition(pstate, s[i])
+		}
+
+		// log.Printf("pstate: %s, state: %s, action: %s, code: %c, buf: %q", StateNames[pstate], StateNames[state], ActionNames[action], s[i], buf.String())
 		switch {
 		case pstate == Utf8State:
 			// During this state, collect rw bytes to form a valid rune in the
