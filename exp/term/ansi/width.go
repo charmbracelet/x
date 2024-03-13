@@ -1,6 +1,8 @@
 package ansi
 
 import (
+	"bytes"
+
 	. "github.com/charmbracelet/x/exp/term/ansi/parser"
 	"github.com/rivo/uniseg"
 )
@@ -8,7 +10,7 @@ import (
 // Strip removes ANSI escape codes from a string.
 func Strip(s string) string {
 	var (
-		b      []byte        // buffer for collecting printable characters
+		buf    bytes.Buffer  // buffer for collecting printable characters
 		ri     int           // rune index
 		rw     int           // rune width
 		pstate = GroundState // initial state
@@ -24,7 +26,7 @@ func Strip(s string) string {
 			// During this state, collect rw bytes to form a valid rune in the
 			// buffer. After getting all the rune bytes into the buffer,
 			// transition to GroundState and reset the counters.
-			b = append(b, s[i])
+			buf.WriteByte(s[i])
 			ri++
 			if ri < rw {
 				continue
@@ -36,12 +38,12 @@ func Strip(s string) string {
 			// This action happens when we transition to the Utf8State.
 			if w := utf8ByteLen(s[i]); w > 1 {
 				rw = w
-				b = append(b, s[i])
+				buf.WriteByte(s[i])
 				ri++
 			}
 		case action == PrintAction || action == ExecuteAction:
 			// collects printable ASCII and non-printable characters
-			b = append(b, s[i])
+			buf.WriteByte(s[i])
 		}
 
 		// Transition to the next state.
@@ -51,7 +53,7 @@ func Strip(s string) string {
 		}
 	}
 
-	return string(b)
+	return buf.String()
 }
 
 // StringWidth returns the width of a string in cells. This is the number of
@@ -59,5 +61,8 @@ func Strip(s string) string {
 // codes are ignored and wide characters (such as East Asians and emojis) are
 // accounted for.
 func StringWidth(s string) int {
+	if s == "" {
+		return 0
+	}
 	return uniseg.StringWidth(Strip(s))
 }
