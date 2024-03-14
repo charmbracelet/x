@@ -55,7 +55,7 @@ func Truncate(s string, length int, tail string) string {
 
 				// Is this gonna be too wide?
 				// If so write the tail and stop collecting.
-				if curWidth+width >= length && !ignoring {
+				if curWidth+width > length && !ignoring {
 					ignoring = true
 					buf.WriteString(tail)
 				}

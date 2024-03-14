@@ -36,6 +36,8 @@ var tcases = []struct {
 	{"dcs", "\x1BPq#0;2;0;0;0#1;2;100;100;0#2;2;0;100;0#1~~@@vv@@~~@@~~$#2??}}GG}}??}}??-#1!14@\x1B\\foobar", "…", 4, "\x1BPq#0;2;0;0;0#1;2;100;100;0#2;2;0;100;0#1~~@@vv@@~~@@~~$#2??}}GG}}??}}??-#1!14@\x1B\\foo…"},
 	{"emoji_tail", "\x1b[36mHello there!\x1b[m", "😃", 8, "\x1b[36mHello 😃\x1b[m"},
 	{"unicode", "\x1b[35mClaire‘s Boutique\x1b[0m", "", 8, "\x1b[35mClaire‘s\x1b[0m"},
+	{"wide_chars", "こんにちは", "…", 7, "こんに…"},
+	{"style_wide_chars", "\x1b[35mこんにちは\x1b[m", "…", 7, "\x1b[35mこんに…\x1b[m"},
 }
 
 func TestTruncate(t *testing.T) {
