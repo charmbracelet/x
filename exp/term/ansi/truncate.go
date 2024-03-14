@@ -69,6 +69,7 @@ func Truncate(s string, length int, tail string) string {
 					buf.WriteByte(r)
 				}
 
+				gstate = -1 // reset grapheme state otherwise, width calculation might be off
 				// Done collecting, now we're back in the ground state.
 				pstate = GroundState
 				continue
