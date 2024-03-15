@@ -1,7 +1,6 @@
 package input
 
 import (
-	"log"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
@@ -111,6 +110,7 @@ func parseCsi(p []byte) (int, Event) {
 	// Add the final byte
 	final = p[i]
 	seq = append(seq, p[i])
+	i++
 
 	switch initial {
 	case '?':
@@ -190,10 +190,10 @@ func parseCsi(p []byte) (int, Event) {
 		return len(seq), KeyDownEvent{Sym: KeyTab, Mod: Shift}
 	case 'M':
 		// Handle X10 mouse
-		if i+3 >= len(p) {
+		if i+3 > len(p) {
 			return len(seq), UnknownCsiEvent(seq)
 		}
-		return len(seq) + 3, parseX10MouseEvent(append(seq, p[i+1:i+3]...))
+		return len(seq) + 3, parseX10MouseEvent(append(seq, p[i:i+3]...))
 	case 'u':
 		// Kitty keyboard protocol
 		params := ansi.Params(p[start:end])
@@ -582,8 +582,6 @@ func parseDcs(p []byte) (int, Event) {
 		i++
 		seq = append(seq, p[i])
 	}
-
-	log.Printf("seq: %q\r\n", seq)
 
 	switch final {
 	case 'r':

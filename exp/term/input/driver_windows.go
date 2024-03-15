@@ -6,7 +6,6 @@ package input
 import (
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/erikgeiser/coninput"
@@ -130,7 +129,6 @@ loop:
 	}
 
 	return events
-
 }
 
 func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Event {
@@ -159,8 +157,6 @@ func mouseEventButton(p, s coninput.ButtonState) (button MouseButton, isRelease 
 	if btn&s == 0 {
 		isRelease = true
 	}
-
-	log.Printf("p: %s, s: %s\r\n", p, s)
 
 	if btn == 0 {
 		switch {
