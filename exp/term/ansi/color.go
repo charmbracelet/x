@@ -101,7 +101,10 @@ func (c BasicColor) RGBA() (uint32, uint32, uint32, uint32) {
 	}
 
 	r, g, b := ansiToRGB(ansi)
-	return r, g, b, 0xff
+	r |= r << 8
+	g |= g << 8
+	b |= b << 8
+	return r, g, b, 0xff00
 }
 
 // ExtendedColor is an ANSI 256 (8-bit) color with a value from 0 to 255.
@@ -113,7 +116,10 @@ var _ Color = ExtendedColor(0)
 // satisfies the color.Color interface.
 func (c ExtendedColor) RGBA() (uint32, uint32, uint32, uint32) {
 	r, g, b := ansiToRGB(uint32(c))
-	return r, g, b, 0xff
+	r |= r << 8
+	g |= g << 8
+	b |= b << 8
+	return r, g, b, 0xff00
 }
 
 // TrueColor is a 24-bit color that can be used in the terminal.
@@ -130,7 +136,10 @@ var _ Color = TrueColor(0)
 // satisfies the color.Color interface.
 func (c TrueColor) RGBA() (uint32, uint32, uint32, uint32) {
 	r, g, b := hexToRGB(uint32(c))
-	return r, g, b, 0xff
+	r |= r << 8
+	g |= g << 8
+	b |= b << 8
+	return r, g, b, 0xff00
 }
 
 // ansiToRGB converts an ANSI color to a 24-bit RGB color.

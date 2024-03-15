@@ -17,8 +17,11 @@ func TestRGBAToHex(t *testing.T) {
 
 	for _, c := range cases {
 		gotR, gotG, gotB, _ := TrueColor(c.want).RGBA()
+		gotR /= 256
+		gotG /= 256
+		gotB /= 256
 		if gotR != c.r || gotG != c.g || gotB != c.b {
-			t.Errorf("RGBA() of TrueColor(%v): got (%v, %v, %v), want (%v, %v, %v)",
+			t.Errorf("RGBA() of TrueColor(%06x): got (%v, %v, %v), want (%v, %v, %v)",
 				c.want, gotR, gotG, gotB, c.r, c.g, c.b)
 		}
 	}
