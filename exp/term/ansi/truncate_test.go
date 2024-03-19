@@ -4,6 +4,7 @@ import (
 	"testing"
 )
 
+// nolint
 var tcases = []struct {
 	name   string
 	input  string

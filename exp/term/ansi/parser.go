@@ -4,7 +4,7 @@ import (
 	"math"
 	"unicode/utf8"
 
-	. "github.com/charmbracelet/x/exp/term/ansi/parser"
+	"github.com/charmbracelet/x/exp/term/ansi/parser"
 )
 
 const (
@@ -102,7 +102,7 @@ type Parser struct {
 	// than 2.
 	inters [maxIntermediates]byte
 
-	state State
+	state parser.State
 
 	// ignoring is set to true when the number of parameters exceeds the
 	// maximum allowed. This is to prevent the parser from consuming too much
@@ -145,53 +145,53 @@ func (p *Parser) advanceUtf8(code byte) {
 	if p.Print != nil {
 		p.Print(r)
 	}
-	p.state = GroundState
+	p.state = parser.GroundState
 	p.clearUtf8()
 }
 
 // State returns the current state of the parser.
-func (p *Parser) State() State {
+func (p *Parser) State() parser.State {
 	return p.state
 }
 
 // StateName returns the name of the current state.
 func (p *Parser) StateName() string {
-	return StateNames[p.state]
+	return parser.StateNames[p.state]
 }
 
 // Advance advances the state machine.
 func (p *Parser) Advance(code byte, more bool) {
-	if p.state == Utf8State {
+	if p.state == parser.Utf8State {
 		p.advanceUtf8(code)
 	} else {
-		state, action := Table.Transition(p.state, code)
+		state, action := parser.Table.Transition(p.state, code)
 		p.performStateChange(state, action, code, more)
 	}
 }
 
 func (p *Parser) performEscapeStateChange(code byte, more bool) {
 	switch p.state {
-	case GroundState:
+	case parser.GroundState:
 		if !more {
 			// End of input, execute Esc
-			p.performAction(ExecuteAction, code)
+			p.performAction(parser.ExecuteAction, code)
 		}
-	case EscapeState:
+	case parser.EscapeState:
 		// More input mean possible Esc sequence, execute the previous Esc
-		p.performAction(ExecuteAction, code)
+		p.performAction(parser.ExecuteAction, code)
 		if !more {
 			// No more input means execute the current Esc
-			p.performAction(ExecuteAction, code)
+			p.performAction(parser.ExecuteAction, code)
 		}
 	default:
 		if !more {
 			// No more input means execute the current Esc
-			p.performAction(ExecuteAction, code)
+			p.performAction(parser.ExecuteAction, code)
 		}
 	}
 }
 
-func (p *Parser) performStateChange(state State, action Action, code byte, more bool) {
+func (p *Parser) performStateChange(state parser.State, action parser.Action, code byte, more bool) {
 	// Handle Esc execute action
 	if code == ESC {
 		p.performEscapeStateChange(code, more)
@@ -199,12 +199,12 @@ func (p *Parser) performStateChange(state State, action Action, code byte, more 
 
 	if p.state != state {
 		switch p.state {
-		case DcsPassthroughState:
-			p.performAction(DcsUnhookAction, code)
-		case OscStringState:
-			p.performAction(OscEndAction, code)
-		case SosPmApcStringState:
-			p.performAction(SosPmApcEndAction, code)
+		case parser.DcsPassthroughState:
+			p.performAction(parser.DcsUnhookAction, code)
+		case parser.OscStringState:
+			p.performAction(parser.OscEndAction, code)
+		case parser.SosPmApcStringState:
+			p.performAction(parser.SosPmApcEndAction, code)
 		}
 	}
 
@@ -212,9 +212,9 @@ func (p *Parser) performStateChange(state State, action Action, code byte, more 
 
 	if p.state != state {
 		switch state {
-		case CsiEntryState, DcsEntryState, EscapeState:
-			p.performAction(ClearAction, code)
-		case SosPmApcStringState:
+		case parser.CsiEntryState, parser.DcsEntryState, parser.EscapeState:
+			p.performAction(parser.ClearAction, code)
+		case parser.SosPmApcStringState:
 			switch code {
 			case SOS, 'X':
 				p.sosPmApc = SOS
@@ -224,36 +224,35 @@ func (p *Parser) performStateChange(state State, action Action, code byte, more 
 				p.sosPmApc = APC
 			}
 			fallthrough
-		case OscStringState:
-			p.performAction(StartAction, code)
-		case DcsPassthroughState:
-			p.performAction(DcsHookAction, code)
+		case parser.OscStringState:
+			p.performAction(parser.StartAction, code)
+		case parser.DcsPassthroughState:
+			p.performAction(parser.DcsHookAction, code)
 		}
 	}
 
 	p.state = state
 }
 
-func (p *Parser) performAction(action Action, code byte) {
-	// log.Printf("performing action: %s, code: %q", ActionNames[action], code)
+func (p *Parser) performAction(action parser.Action, code byte) {
 	switch action {
-	case NoneAction:
+	case parser.NoneAction:
 		break
 
-	case IgnoreAction:
+	case parser.IgnoreAction:
 		break
 
-	case PrintAction:
+	case parser.PrintAction:
 		if p.Print != nil {
 			p.Print(rune(code))
 		}
 
-	case ExecuteAction:
+	case parser.ExecuteAction:
 		if p.Execute != nil {
 			p.Execute(code)
 		}
 
-	case EscDispatchAction:
+	case parser.EscDispatchAction:
 		if p.EscDispatch != nil {
 			p.EscDispatch(
 				p.inters[1],
@@ -262,16 +261,16 @@ func (p *Parser) performAction(action Action, code byte) {
 			)
 		}
 
-	case SosPmApcEndAction:
+	case parser.SosPmApcEndAction:
 		if p.SosPmApcDispatch != nil {
 			p.SosPmApcDispatch(p.sosPmApc, p.buf)
 		}
 
-	case StartAction:
+	case parser.StartAction:
 		p.buf = make([]byte, 0)
 		p.oscNumParams = 0
 
-	case OscPutAction:
+	case parser.OscPutAction:
 		idx := len(p.buf)
 		if code == ';' {
 			paramIdx := p.oscNumParams
@@ -290,7 +289,7 @@ func (p *Parser) performAction(action Action, code byte) {
 			p.buf = append(p.buf, code)
 		}
 
-	case OscEndAction:
+	case parser.OscEndAction:
 		paramIdx := p.oscNumParams
 		idx := len(p.buf)
 
@@ -314,7 +313,7 @@ func (p *Parser) performAction(action Action, code byte) {
 			)
 		}
 
-	case DcsHookAction:
+	case parser.DcsHookAction:
 		p.buf = make([]byte, 0)
 		if p.isParamsFull() {
 			p.ignoring = true
@@ -323,10 +322,10 @@ func (p *Parser) performAction(action Action, code byte) {
 		}
 		p.param = uint(code)
 
-	case PutAction:
+	case parser.PutAction:
 		p.buf = append(p.buf, code)
 
-	case DcsUnhookAction:
+	case parser.DcsUnhookAction:
 		if p.DcsDispatch != nil {
 			p.DcsDispatch(
 				p.inters[0],
@@ -338,7 +337,7 @@ func (p *Parser) performAction(action Action, code byte) {
 			)
 		}
 
-	case CsiDispatchAction:
+	case parser.CsiDispatchAction:
 		if p.isParamsFull() {
 			p.ignoring = true
 		} else if p.param > 0 || p.hasParams {
@@ -355,14 +354,14 @@ func (p *Parser) performAction(action Action, code byte) {
 			)
 		}
 
-	case CollectAction:
+	case parser.CollectAction:
 		if utf8ByteLen(code) > 1 {
 			p.collectUtf8(code)
 		} else {
 			p.collect(code)
 		}
 
-	case ParamAction:
+	case parser.ParamAction:
 		if p.isParamsFull() {
 			p.ignoring = true
 			return
@@ -381,7 +380,7 @@ func (p *Parser) performAction(action Action, code byte) {
 			p.param = saddu(p.param, uint(code-'0'))
 		}
 
-	case ClearAction:
+	case parser.ClearAction:
 		p.clear()
 	}
 }

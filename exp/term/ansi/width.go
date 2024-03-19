@@ -3,30 +3,29 @@ package ansi
 import (
 	"bytes"
 
-	. "github.com/charmbracelet/x/exp/term/ansi/parser"
+	"github.com/charmbracelet/x/exp/term/ansi/parser"
 	"github.com/rivo/uniseg"
 )
 
 // Strip removes ANSI escape codes from a string.
 func Strip(s string) string {
 	var (
-		buf    bytes.Buffer  // buffer for collecting printable characters
-		ri     int           // rune index
-		rw     int           // rune width
-		pstate = GroundState // initial state
+		buf    bytes.Buffer         // buffer for collecting printable characters
+		ri     int                  // rune index
+		rw     int                  // rune width
+		pstate = parser.GroundState // initial state
 	)
 
 	// This implements a subset of the Parser to only collect runes and
 	// printable characters.
 	for i := 0; i < len(s); i++ {
 		var state, action byte
-		if pstate != Utf8State {
-			state, action = Table.Transition(pstate, s[i])
+		if pstate != parser.Utf8State {
+			state, action = parser.Table.Transition(pstate, s[i])
 		}
 
-		// log.Printf("pstate: %s, state: %s, action: %s, code: %c, buf: %q", StateNames[pstate], StateNames[state], ActionNames[action], s[i], buf.String())
 		switch {
-		case pstate == Utf8State:
+		case pstate == parser.Utf8State:
 			// During this state, collect rw bytes to form a valid rune in the
 			// buffer. After getting all the rune bytes into the buffer,
 			// transition to GroundState and reset the counters.
@@ -35,24 +34,24 @@ func Strip(s string) string {
 			if ri < rw {
 				continue
 			}
-			pstate = GroundState
+			pstate = parser.GroundState
 			ri = 0
 			rw = 0
-		case action == CollectAction:
+		case action == parser.CollectAction:
 			// This action happens when we transition to the Utf8State.
 			if w := utf8ByteLen(s[i]); w > 1 {
 				rw = w
 				buf.WriteByte(s[i])
 				ri++
 			}
-		case action == PrintAction || action == ExecuteAction:
+		case action == parser.PrintAction || action == parser.ExecuteAction:
 			// collects printable ASCII and non-printable characters
 			buf.WriteByte(s[i])
 		}
 
 		// Transition to the next state.
 		// The Utf8State is managed separately above.
-		if pstate != Utf8State {
+		if pstate != parser.Utf8State {
 			pstate = state
 		}
 	}

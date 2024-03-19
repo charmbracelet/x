@@ -3,7 +3,7 @@ package ansi
 import (
 	"bytes"
 
-	. "github.com/charmbracelet/x/exp/term/ansi/parser"
+	"github.com/charmbracelet/x/exp/term/ansi/parser"
 	"github.com/rivo/uniseg"
 )
 
@@ -23,7 +23,7 @@ func Truncate(s string, length int, tail string) string {
 	curWidth := 0
 	ignoring := false
 	gstate := -1
-	pstate := GroundState // initial state
+	pstate := parser.GroundState // initial state
 	b := []byte(s)
 	i := 0
 
@@ -33,51 +33,49 @@ func Truncate(s string, length int, tail string) string {
 	// Once we reach the given length, we start ignoring characters and only
 	// collect ANSI escape codes until we reach the end of string.
 	for i < len(b) {
-		state, action := Table.Transition(pstate, b[i])
-		// log.Printf("pstate: %s, state: %s, action: %s, code: %q", StateNames[pstate], StateNames[state], ActionNames[action], s[i])
+		state, action := parser.Table.Transition(pstate, b[i])
 
 		switch action {
-		case CollectAction:
-			// This action happens when we transition to the Utf8State.
-			if w := utf8ByteLen(b[i]); w > 1 {
-				var width int
-				cluster, _, width, gstate = uniseg.FirstGraphemeCluster(b[i:], gstate)
-
-				// log.Printf("cluster: %q, width: %d, curWidth: %d", string(cluster), width, curWidth)
-
-				// increment the index by the length of the cluster
-				i += len(cluster)
-
-				// Are we ignoring? Skip to the next byte
-				if ignoring {
-					continue
-				}
-
-				// Is this gonna be too wide?
-				// If so write the tail and stop collecting.
-				if curWidth+width > length && !ignoring {
-					ignoring = true
-					buf.WriteString(tail)
-				}
-
-				if curWidth+width > length {
-					continue
-				}
-
-				curWidth += width
-				for _, r := range cluster {
-					buf.WriteByte(r)
-				}
-
-				gstate = -1 // reset grapheme state otherwise, width calculation might be off
-				// Done collecting, now we're back in the ground state.
-				pstate = GroundState
-				continue
-			} else {
+		case parser.CollectAction:
+			if w := utf8ByteLen(b[i]); w <= 1 {
 				// Collecting sequence intermediate bytes
 				buf.WriteByte(b[i])
+				break
 			}
-		case PrintAction:
+
+			// This action happens when we transition to the Utf8State.
+			var width int
+			cluster, _, width, gstate = uniseg.FirstGraphemeCluster(b[i:], gstate)
+
+			// increment the index by the length of the cluster
+			i += len(cluster)
+
+			// Are we ignoring? Skip to the next byte
+			if ignoring {
+				continue
+			}
+
+			// Is this gonna be too wide?
+			// If so write the tail and stop collecting.
+			if curWidth+width > length && !ignoring {
+				ignoring = true
+				buf.WriteString(tail)
+			}
+
+			if curWidth+width > length {
+				continue
+			}
+
+			curWidth += width
+			for _, r := range cluster {
+				buf.WriteByte(r)
+			}
+
+			gstate = -1 // reset grapheme state otherwise, width calculation might be off
+			// Done collecting, now we're back in the ground state.
+			pstate = parser.GroundState
+			continue
+		case parser.PrintAction:
 			// Is this gonna be too wide?
 			// If so write the tail and stop collecting.
 			if curWidth >= length && !ignoring {
@@ -101,8 +99,6 @@ func Truncate(s string, length int, tail string) string {
 
 		// Transition to the next state.
 		pstate = state
-
-		// log.Printf("buf: %q, curWidth: %d, ignoring: %v", buf.String(), curWidth, ignoring)
 
 		// Once we reach the given length, we start ignoring runes and write
 		// the tail to the buffer.
