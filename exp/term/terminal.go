@@ -156,15 +156,13 @@ func queryTerminal(
 		return err
 	}
 
-	events := make([]input.Event, 2)
-
 	for {
-		n, err := rd.ReadInput(events)
+		events, err := rd.ReadEvents()
 		if err != nil {
 			return err
 		}
 
-		if !filter(events[:n]) {
+		if !filter(events) {
 			break
 		}
 	}

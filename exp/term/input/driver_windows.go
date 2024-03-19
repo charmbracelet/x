@@ -12,44 +12,18 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// ReadInput reads input events from the terminal.
+// ReadEvents reads input events from the terminal.
 //
-// It reads up to len(e) events into e and returns the number of events read
-// and an error, if any.
-func (d *Driver) ReadInput(e []Event) (n int, err error) {
+// It reads the events available in the input buffer and returns them.
+func (d *Driver) ReadEvents() ([]Event, error) {
 	events, err := d.handleConInput(coninput.ReadConsoleInput)
 	if errors.Is(err, errNotConInputReader) {
-		return d.readInput(e)
+		return d.readEvents()
 	}
-	if err != nil {
-		return 0, err
-	}
-
-	ne := copy(e, events)
-	return ne, nil
+	return events, err
 }
 
 var errNotConInputReader = fmt.Errorf("handleConInput: not a conInputReader")
-
-// PeekInput peeks at input events from the terminal without consuming them.
-//
-// If the number of events requested is greater than the number of events
-// available in the buffer, the number of available events will be returned.
-func (d *Driver) PeekInput(n int) ([]Event, error) {
-	events, err := d.handleConInput(coninput.PeekConsoleInput)
-	if errors.Is(err, errNotConInputReader) {
-		return d.peekInput(n)
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	if n < len(events) {
-		return events[:n], nil
-	}
-
-	return events, nil
-}
 
 func (d *Driver) handleConInput(
 	finput func(windows.Handle, []coninput.InputRecord) (uint32, error),
@@ -74,14 +48,14 @@ func (d *Driver) handleConInput(
 		}
 	}
 
-	return detectConInputQuerySequences(evs), nil
+	return d.detectConInputQuerySequences(evs), nil
 }
 
 // Using ConInput API, Windows Terminal responds to sequence query events with
 // KEY_EVENT_RECORDs so we need to collect them and parse them as a single
 // sequence.
 // Is this a hack?
-func detectConInputQuerySequences(events []Event) []Event {
+func (d *Driver) detectConInputQuerySequences(events []Event) []Event {
 	var newEvents []Event
 	start, end := -1, -1
 
@@ -114,7 +88,7 @@ loop:
 		}
 	}
 
-	n, seqevent := ParseSequence(seq)
+	n, seqevent := d.parser.ParseSequence(seq)
 	switch seqevent.(type) {
 	case UnknownEvent:
 		// We're not interested in unknown events
@@ -125,7 +99,7 @@ loop:
 		newEvents = events[:start]
 		newEvents = append(newEvents, seqevent)
 		newEvents = append(newEvents, events[start+n:]...)
-		return detectConInputQuerySequences(newEvents)
+		return d.detectConInputQuerySequences(newEvents)
 	}
 
 	return events

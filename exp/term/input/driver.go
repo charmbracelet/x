@@ -94,8 +94,7 @@ type Driver struct {
 	// When nil, bracketed paste mode is disabled.
 	paste []byte
 
-	internalEvents []Event   // holds peeked events
-	buf            [256]byte // do we need a larger buffer?
+	buf [256]byte // do we need a larger buffer?
 
 	// prevMouseState keeps track of the previous mouse state to determine mouse
 	// up button events.
@@ -111,8 +110,6 @@ type Driver struct {
 // key sequences.
 func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
 	d := new(Driver)
-	d.internalEvents = make([]Event, 0, 10) // initial size of 10
-
 	cr, err := newCancelreader(r)
 	if err != nil {
 		return nil, err
@@ -136,47 +133,7 @@ func (d *Driver) Close() error {
 	return d.rd.Close()
 }
 
-func (d *Driver) readInput(e []Event) (n int, err error) {
-	if len(e) == 0 {
-		return 0, nil
-	}
-
-	// If there are any peeked events, return them first.
-	if len(d.internalEvents) > 0 {
-		n = copy(e, d.internalEvents)
-		d.internalEvents = d.internalEvents[n:]
-	}
-
-	// Read new events
-	if n < len(e) {
-		ev, err := d.PeekInput(len(e) - n)
-		if err != nil {
-			return n, err
-		}
-		nl := copy(e[n:], ev)
-		n += nl
-
-		// Consume the events from the internalEvents buffer.
-		d.internalEvents = d.internalEvents[nl:]
-	}
-
-	return
-}
-
-func (d *Driver) peekInput(n int) ([]Event, error) {
-	if n <= 0 {
-		return []Event{}, nil
-	}
-
-	// Peek events from the internalEvents buffer first.
-	if len(d.internalEvents) > 0 {
-		if len(d.internalEvents) >= n {
-			return d.internalEvents[:n], nil
-		}
-		n -= len(d.internalEvents)
-	}
-
-	// Peek new events
+func (d *Driver) readEvents() (e []Event, err error) {
 	nb, err := d.rd.Read(d.buf[:])
 	if err != nil {
 		return nil, err
@@ -186,8 +143,8 @@ func (d *Driver) peekInput(n int) ([]Event, error) {
 
 	// Lookup table first
 	if k, ok := d.parser.LookupSequence(string(buf)); ok {
-		d.internalEvents = append(d.internalEvents, KeyDownEvent(k))
-		return d.internalEvents, nil
+		e = append(e, KeyDownEvent(k))
+		return
 	}
 
 	var i int
@@ -222,23 +179,19 @@ func (d *Driver) peekInput(n int) ([]Event, error) {
 				d.paste = d.paste[w:]
 			}
 			d.paste = nil // reset the buffer
-			d.internalEvents = append(d.internalEvents, PasteEvent(paste))
+			e = append(e, PasteEvent(paste))
 		case nil:
 			i++
 			continue
 		}
 
 		if mevs, ok := ev.(MultiEvent); ok {
-			d.internalEvents = append(d.internalEvents, []Event(mevs)...)
+			e = append(e, []Event(mevs)...)
 		} else {
-			d.internalEvents = append(d.internalEvents, ev)
+			e = append(e, ev)
 		}
 		i += nb
 	}
 
-	if len(d.internalEvents) >= n {
-		return d.internalEvents[:n], nil
-	}
-
-	return d.internalEvents, nil
+	return
 }

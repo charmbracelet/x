@@ -35,30 +35,6 @@ func (e KittyKeyboardEvent) IsReportAssociatedKeys() bool {
 	return e&ansi.KittyReportAssociatedKeys != 0
 }
 
-// String implements fmt.Stringer.
-func (e KittyKeyboardEvent) String() string {
-	s := "Flags:"
-	if e == 0 {
-		return s + " none"
-	}
-	if e.IsDisambiguateEscapeCodes() {
-		s += " DisambiguateEscapeCodes"
-	}
-	if e.IsReportEventTypes() {
-		s += " ReportEventTypes"
-	}
-	if e.IsReportAlternateKeys() {
-		s += " ReportAlternateKeys"
-	}
-	if e.IsReportAllKeys() {
-		s += " ReportAllKeys"
-	}
-	if e.IsReportAssociatedKeys() {
-		s += " ReportAssociatedKeys"
-	}
-	return s
-}
-
 // Kitty Clipboard Control Sequences
 var kittyKeyMap = map[int]KeySym{
 	ansi.BS:  KeyBackspace,

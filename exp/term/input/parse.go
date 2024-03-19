@@ -87,7 +87,7 @@ func (p EventParser) ParseSequence(buf []byte) (n int, e Event) {
 		return p.parseApc(buf)
 	default:
 		if b <= ansi.US || b == ansi.DEL || b == ansi.SP {
-			return 1, p.parseCtrl0(b)
+			return 1, p.parseControl(b)
 		}
 		return p.parseUtf8(buf)
 	}
@@ -173,7 +173,11 @@ func (p *EventParser) parseCsi(b []byte) (int, Event) {
 		switch final {
 		case 'm', 'M':
 			// Handle SGR mouse
-			return len(seq), parseSGRMouseEvent(seq)
+			params := ansi.Params(params)
+			if len(params) != 3 {
+				return len(seq), UnknownCsiEvent(seq)
+			}
+			return len(seq), parseSGRMouseEvent(params, final)
 		default:
 			return len(seq), UnknownCsiEvent(seq)
 		}
@@ -484,8 +488,8 @@ func (p *EventParser) parseOsc(b []byte) (int, Event) {
 	}
 }
 
-// parseCtrl parses a control sequence that gets terminated by a ST character.
-func (p *EventParser) parseCtrl(intro8, intro7 byte) func([]byte) (int, Event) {
+// parseStTerminated parses a control sequence that gets terminated by a ST character.
+func (p *EventParser) parseStTerminated(intro8, intro7 byte) func([]byte) (int, Event) {
 	return func(b []byte) (int, Event) {
 		var seq []byte
 		var i int
@@ -640,18 +644,19 @@ func (p *EventParser) parseDcs(b []byte) (int, Event) {
 
 func (p *EventParser) parseApc(b []byte) (int, Event) {
 	// APC sequences are introduced by APC (0x9f) or ESC _ (0x1b 0x5f)
-	return p.parseCtrl(ansi.APC, '_')(b)
+	return p.parseStTerminated(ansi.APC, '_')(b)
 }
 
 func (p *EventParser) parseUtf8(b []byte) (int, Event) {
 	r, rw := utf8.DecodeRune(b)
 	if r == utf8.RuneError || r <= ansi.US || r == ansi.DEL || r == ansi.SP {
+		// Control codes get handled by parseControl
 		return 0, nil
 	}
 	return rw, KeyDownEvent{Rune: r}
 }
 
-func (p *EventParser) parseCtrl0(b byte) Event {
+func (p *EventParser) parseControl(b byte) Event {
 	switch b {
 	case ansi.NUL:
 		if p.flags&FlagCtrlAt != 0 {

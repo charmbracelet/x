@@ -2,7 +2,6 @@ package input
 
 import (
 	"regexp"
-	"strconv"
 )
 
 // MouseButton represents the button that was pressed during a mouse event.
@@ -135,20 +134,13 @@ var mouseSGRRegex = regexp.MustCompile(`(\d+);(\d+);(\d+)([Mm])`)
 //	M is for button press, m is for button release
 //
 // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Extended-coordinates
-func parseSGRMouseEvent(buf []byte) Event {
-	str := string(buf[3:])
-	matches := mouseSGRRegex.FindStringSubmatch(str)
-	if len(matches) != 5 {
-		return UnknownCsiEvent(buf)
-	}
-
-	b, _ := strconv.Atoi(matches[1])
-	px := matches[2]
-	py := matches[3]
-	release := matches[4] == "m"
-	mod, btn, _, isMotion := parseMouseButton(b)
-	x, _ := strconv.Atoi(px)
-	y, _ := strconv.Atoi(py)
+func parseSGRMouseEvent(params [][]uint, final byte) Event {
+	px := params[1][0]
+	py := params[2][0]
+	release := final == 'm'
+	mod, btn, _, isMotion := parseMouseButton(int(params[0][0]))
+	x := int(px)
+	y := int(py)
 
 	// (1,1) is the upper left. We subtract 1 to normalize it to (0,0).
 	x--
