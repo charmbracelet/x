@@ -23,8 +23,8 @@ const (
 
 	KeyUp
 	KeyDown
-	KeyLeft
 	KeyRight
+	KeyLeft
 	KeyBegin
 	KeyFind
 	KeyInsert
@@ -38,12 +38,12 @@ const (
 
 	KeyKpEnter
 	KeyKpEqual
-	KeyKpMul
+	KeyKpMultiply
 	KeyKpPlus
 	KeyKpComma
 	KeyKpMinus
-	KeyKpPeriod
-	KeyKpDiv
+	KeyKpDecimal
+	KeyKpDivide
 	KeyKp0
 	KeyKp1
 	KeyKp2
@@ -256,42 +256,42 @@ func (k KeySym) String() string {
 }
 
 var keySymString = map[KeySym]string{
-	KeyEnter:     "enter",
-	KeyTab:       "tab",
-	KeyBackspace: "backspace",
-	KeyEscape:    "esc",
-	KeySpace:     "space",
-	KeyUp:        "up",
-	KeyDown:      "down",
-	KeyLeft:      "left",
-	KeyRight:     "right",
-	KeyBegin:     "begin",
-	KeyFind:      "find",
-	KeyInsert:    "insert",
-	KeyDelete:    "delete",
-	KeySelect:    "select",
-	KeyPgUp:      "pgup",
-	KeyPgDown:    "pgdown",
-	KeyHome:      "home",
-	KeyEnd:       "end",
-	KeyKpEnter:   "kpenter",
-	KeyKpEqual:   "kpequal",
-	KeyKpMul:     "kpmul",
-	KeyKpPlus:    "kpplus",
-	KeyKpComma:   "kpcomma",
-	KeyKpMinus:   "kpminus",
-	KeyKpPeriod:  "kpperiod",
-	KeyKpDiv:     "kpdiv",
-	KeyKp0:       "kp0",
-	KeyKp1:       "kp1",
-	KeyKp2:       "kp2",
-	KeyKp3:       "kp3",
-	KeyKp4:       "kp4",
-	KeyKp5:       "kp5",
-	KeyKp6:       "kp6",
-	KeyKp7:       "kp7",
-	KeyKp8:       "kp8",
-	KeyKp9:       "kp9",
+	KeyEnter:      "enter",
+	KeyTab:        "tab",
+	KeyBackspace:  "backspace",
+	KeyEscape:     "esc",
+	KeySpace:      "space",
+	KeyUp:         "up",
+	KeyDown:       "down",
+	KeyLeft:       "left",
+	KeyRight:      "right",
+	KeyBegin:      "begin",
+	KeyFind:       "find",
+	KeyInsert:     "insert",
+	KeyDelete:     "delete",
+	KeySelect:     "select",
+	KeyPgUp:       "pgup",
+	KeyPgDown:     "pgdown",
+	KeyHome:       "home",
+	KeyEnd:        "end",
+	KeyKpEnter:    "kpenter",
+	KeyKpEqual:    "kpequal",
+	KeyKpMultiply: "kpmul",
+	KeyKpPlus:     "kpplus",
+	KeyKpComma:    "kpcomma",
+	KeyKpMinus:    "kpminus",
+	KeyKpDecimal:  "kpperiod",
+	KeyKpDivide:   "kpdiv",
+	KeyKp0:        "kp0",
+	KeyKp1:        "kp1",
+	KeyKp2:        "kp2",
+	KeyKp3:        "kp3",
+	KeyKp4:        "kp4",
+	KeyKp5:        "kp5",
+	KeyKp6:        "kp6",
+	KeyKp7:        "kp7",
+	KeyKp8:        "kp8",
+	KeyKp9:        "kp9",
 
 	// Kitty keyboard extension
 	KeyKpSep:    "kpsep",

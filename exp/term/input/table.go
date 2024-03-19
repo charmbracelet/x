@@ -132,12 +132,12 @@ func registerKeys(flags int, term string) map[string]Key {
 
 		"\x1bOM": {Sym: KeyKpEnter},
 		"\x1bOX": {Sym: KeyKpEqual},
-		"\x1bOj": {Sym: KeyKpMul},
+		"\x1bOj": {Sym: KeyKpMultiply},
 		"\x1bOk": {Sym: KeyKpPlus},
 		"\x1bOl": {Sym: KeyKpComma},
 		"\x1bOm": {Sym: KeyKpMinus},
-		"\x1bOn": {Sym: KeyKpPeriod},
-		"\x1bOo": {Sym: KeyKpDiv},
+		"\x1bOn": {Sym: KeyKpDecimal},
+		"\x1bOo": {Sym: KeyKpDivide},
 		"\x1bOp": {Sym: KeyKp0},
 		"\x1bOq": {Sym: KeyKp1},
 		"\x1bOr": {Sym: KeyKp2},
@@ -173,49 +173,6 @@ func registerKeys(flags int, term string) map[string]Key {
 		"\x1b[34~": {Sym: KeyF20},
 	}
 
-	// Register Alt + <key> combinations
-	for k, v := range table {
-		v.Mod |= Alt
-		table["\x1b"+k] = v
-	}
-
-	// XTerm modifiers
-	// These are offset by 1 to be compatible with our Mod type.
-	// See https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-PC-Style-Function-Keys
-	modifiers := []KeyMod{
-		Shift,                     // 1
-		Alt,                       // 2
-		Shift | Alt,               // 3
-		Ctrl,                      // 4
-		Shift | Ctrl,              // 5
-		Alt | Ctrl,                // 6
-		Shift | Alt | Ctrl,        // 7
-		Meta,                      // 8
-		Meta | Shift,              // 9
-		Meta | Alt,                // 10
-		Meta | Shift | Alt,        // 11
-		Meta | Ctrl,               // 12
-		Meta | Shift | Ctrl,       // 13
-		Meta | Alt | Ctrl,         // 14
-		Meta | Shift | Alt | Ctrl, // 15
-	}
-
-	// SS3 keypad function keys
-	ss3FuncKeys := map[string]Key{
-		// These are defined in XTerm
-		// Taken from Foot keymap.h and XTerm modifyOtherKeys
-		// https://codeberg.org/dnkl/foot/src/branch/master/keymap.h
-		"M": {Sym: KeyKpEnter}, "X": {Sym: KeyKpEqual},
-		"j": {Sym: KeyKpMul}, "k": {Sym: KeyKpPlus},
-		"l": {Sym: KeyKpComma}, "m": {Sym: KeyKpMinus},
-		"n": {Sym: KeyKpPeriod}, "o": {Sym: KeyKpDiv},
-		"p": {Sym: KeyKp0}, "q": {Sym: KeyKp1},
-		"r": {Sym: KeyKp2}, "s": {Sym: KeyKp3},
-		"t": {Sym: KeyKp4}, "u": {Sym: KeyKp5},
-		"v": {Sym: KeyKp6}, "w": {Sym: KeyKp7},
-		"x": {Sym: KeyKp8}, "y": {Sym: KeyKp9},
-	}
-
 	// CSI ~ sequence keys
 	csiTildeKeys := map[string]Key{
 		"1": find, "2": {Sym: KeyInsert},
@@ -233,44 +190,6 @@ func registerKeys(flags int, term string) map[string]Key {
 		"28": {Sym: KeyF15}, "29": {Sym: KeyF16},
 		"31": {Sym: KeyF17}, "32": {Sym: KeyF18},
 		"33": {Sym: KeyF19}, "34": {Sym: KeyF20},
-	}
-
-	if flags&FlagNoXTerm == 0 {
-		for _, m := range modifiers {
-			// XTerm modifier offset +1
-			xtermMod := strconv.Itoa(int(m) + 1)
-
-			//  CSI 1 ; <modifier> <func>
-			for k, v := range csiFuncKeys {
-				// Functions always have a leading 1 param
-				seq := "\x1b[1;" + xtermMod + k
-				key := v
-				key.Mod = m
-				table[seq] = key
-			}
-			// SS3 <modifier> <func>
-			for k, v := range ss3FuncKeys {
-				seq := "\x1bO" + xtermMod + k
-				key := v
-				key.Mod = m
-				table[seq] = key
-			}
-			//  CSI <number> ; <modifier> ~
-			for k, v := range csiTildeKeys {
-				seq := "\x1b[" + k + ";" + xtermMod + "~"
-				key := v
-				key.Mod = m
-				table[seq] = key
-			}
-			// CSI 27 ; <modifier> ; <code> ~
-			for k, v := range modifyOtherKeys {
-				code := strconv.Itoa(k)
-				seq := "\x1b[27;" + xtermMod + ";" + code + "~"
-				key := v
-				key.Mod = m
-				table[seq] = key
-			}
-		}
 	}
 
 	// URxvt keys
@@ -350,6 +269,102 @@ func registerKeys(flags int, term string) map[string]Key {
 	table["\x1b[32@"] = Key{Sym: KeyF18, Mod: Shift | Ctrl}
 	table["\x1b[33@"] = Key{Sym: KeyF19, Mod: Shift | Ctrl}
 	table["\x1b[34@"] = Key{Sym: KeyF20, Mod: Shift | Ctrl}
+
+	// Register Alt + <key> combinations
+	// XXX: this must come after URxvt but before XTerm keys to register URxvt
+	// keys with alt modifier
+	tmap := map[string]Key{}
+	for seq, key := range table {
+		key := key
+		key.Mod |= Alt
+		tmap["\x1b"+seq] = key
+	}
+	for seq, key := range tmap {
+		table[seq] = key
+	}
+
+	// XTerm modifiers
+	// These are offset by 1 to be compatible with our Mod type.
+	// See https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-PC-Style-Function-Keys
+	modifiers := []KeyMod{
+		Shift,                     // 1
+		Alt,                       // 2
+		Shift | Alt,               // 3
+		Ctrl,                      // 4
+		Shift | Ctrl,              // 5
+		Alt | Ctrl,                // 6
+		Shift | Alt | Ctrl,        // 7
+		Meta,                      // 8
+		Meta | Shift,              // 9
+		Meta | Alt,                // 10
+		Meta | Shift | Alt,        // 11
+		Meta | Ctrl,               // 12
+		Meta | Shift | Ctrl,       // 13
+		Meta | Alt | Ctrl,         // 14
+		Meta | Shift | Alt | Ctrl, // 15
+	}
+
+	// SS3 keypad function keys
+	ss3FuncKeys := map[string]Key{
+		// These are defined in XTerm
+		// Taken from Foot keymap.h and XTerm modifyOtherKeys
+		// https://codeberg.org/dnkl/foot/src/branch/master/keymap.h
+		"M": {Sym: KeyKpEnter}, "X": {Sym: KeyKpEqual},
+		"j": {Sym: KeyKpMultiply}, "k": {Sym: KeyKpPlus},
+		"l": {Sym: KeyKpComma}, "m": {Sym: KeyKpMinus},
+		"n": {Sym: KeyKpDecimal}, "o": {Sym: KeyKpDivide},
+		"p": {Sym: KeyKp0}, "q": {Sym: KeyKp1},
+		"r": {Sym: KeyKp2}, "s": {Sym: KeyKp3},
+		"t": {Sym: KeyKp4}, "u": {Sym: KeyKp5},
+		"v": {Sym: KeyKp6}, "w": {Sym: KeyKp7},
+		"x": {Sym: KeyKp8}, "y": {Sym: KeyKp9},
+	}
+
+	// XTerm keys
+	csiFuncKeys := map[string]Key{
+		"A": {Sym: KeyUp}, "B": {Sym: KeyDown},
+		"C": {Sym: KeyRight}, "D": {Sym: KeyLeft},
+		"E": {Sym: KeyBegin}, "F": {Sym: KeyEnd},
+		"H": {Sym: KeyHome}, "P": {Sym: KeyF1},
+		"Q": {Sym: KeyF2}, "R": {Sym: KeyF3},
+		"S": {Sym: KeyF4},
+	}
+
+	for _, m := range modifiers {
+		// XTerm modifier offset +1
+		xtermMod := strconv.Itoa(int(m) + 1)
+
+		//  CSI 1 ; <modifier> <func>
+		for k, v := range csiFuncKeys {
+			// Functions always have a leading 1 param
+			seq := "\x1b[1;" + xtermMod + k
+			key := v
+			key.Mod = m
+			table[seq] = key
+		}
+		// SS3 <modifier> <func>
+		for k, v := range ss3FuncKeys {
+			seq := "\x1bO" + xtermMod + k
+			key := v
+			key.Mod = m
+			table[seq] = key
+		}
+		//  CSI <number> ; <modifier> ~
+		for k, v := range csiTildeKeys {
+			seq := "\x1b[" + k + ";" + xtermMod + "~"
+			key := v
+			key.Mod = m
+			table[seq] = key
+		}
+		// CSI 27 ; <modifier> ; <code> ~
+		for k, v := range modifyOtherKeys {
+			code := strconv.Itoa(k)
+			seq := "\x1b[27;" + xtermMod + ";" + code + "~"
+			key := v
+			key.Mod = m
+			table[seq] = key
+		}
+	}
 
 	// Register terminfo keys
 	if flags&FlagNoTerminfo == 0 {
