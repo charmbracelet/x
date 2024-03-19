@@ -250,17 +250,16 @@ func TestReadLongInput(t *testing.T) {
 		t.Fatalf("unexpected input driver error: %v", err)
 	}
 
-	var buf [maxBufferSize]Event
 	var msgs []Event
 	for {
-		n, err := drv.ReadInput(buf[:])
+		events, err := drv.ReadEvents()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			t.Fatalf("unexpected input error: %v", err)
 		}
-		msgs = append(msgs, buf[:n]...)
+		msgs = append(msgs, events...)
 	}
 
 	if !reflect.DeepEqual(expect, msgs) {
@@ -550,11 +549,10 @@ func testReadInputs(t *testing.T, input io.Reader) []Event {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		var n int
-		events := make([]Event, maxBufferSize)
-		n, inputErr = dr.ReadInput(events)
+		var events []Event
+		events, inputErr = dr.ReadEvents()
 	out:
-		for _, ev := range events[:n] {
+		for _, ev := range events {
 			select {
 			case msgsC <- ev:
 			case <-ctx.Done():

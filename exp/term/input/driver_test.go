@@ -16,10 +16,9 @@ func BenchmarkDriver(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	var buf [16]Event
 	for i := 0; i < b.N; i++ {
 		rdr.Reset(input)
-		if _, err := drv.ReadInput(buf[:]); err != nil && err != io.EOF {
+		if _, err := drv.ReadEvents(); err != nil && err != io.EOF {
 			b.Errorf("error reading input: %v", err)
 		}
 	}

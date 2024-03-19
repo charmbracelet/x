@@ -3,8 +3,6 @@ package input
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
-	"strings"
 )
 
 // TermcapEvent represents a Termcap response event. Termcap responses are
@@ -15,30 +13,6 @@ import (
 type TermcapEvent struct {
 	Values  map[string]string
 	IsValid bool
-}
-
-// String implements fmt.Stringer.
-func (t TermcapEvent) String() string {
-	var s strings.Builder
-	var i int
-	if !t.IsValid {
-		s.WriteString("!")
-		if len(t.Values) > 0 {
-			s.WriteString(" ")
-		}
-	}
-	for k, v := range t.Values {
-		if i > 0 {
-			s.WriteString(",")
-		}
-		s.WriteString(k)
-		if v != "" {
-			s.WriteString("=")
-			s.WriteString(fmt.Sprintf("%q", v))
-		}
-		i++
-	}
-	return s.String()
 }
 
 func parseTermcap(data []byte) TermcapEvent {

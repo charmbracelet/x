@@ -66,10 +66,9 @@ func main() {
 		win32Input bool
 	)
 	last := input.Event(nil)
-	var buffer [16]input.Event
 OUT:
 	for {
-		n, err := rd.ReadInput(buffer[:])
+		events, err := rd.ReadEvents()
 		if err == io.EOF {
 			break
 		}
@@ -81,9 +80,8 @@ OUT:
 			log.Fatalf("error reading input: %v\r\n", err)
 		}
 
-		buf := buffer[:n]
-		if last != nil && len(buf) > 0 {
-			currKey, ok1 := buf[len(buf)-1].(input.KeyDownEvent)
+		if last != nil && len(events) > 0 {
+			currKey, ok1 := events[len(events)-1].(input.KeyDownEvent)
 			prevKey, ok2 := last.(input.KeyDownEvent)
 			if ok1 && ok2 && currKey.Sym == 0 && prevKey.Sym == 0 {
 				prev := string(prevKey.Rune)
@@ -177,7 +175,7 @@ OUT:
 					case "x":
 						execute(ansi.RequestXTVersion)
 					case "t":
-						execute(ansi.RequestTermcap("kbs", "colors", "Tc", "cols"))
+						execute(ansi.RequestTermcap("kbs", "colors", "RGB", "Tc", "cols"))
 					}
 				case prev == "m":
 					switch string(currKey.Rune) {
@@ -223,17 +221,13 @@ OUT:
 			}
 		}
 
-		for _, e := range buf {
-			if _, ok := e.(fmt.Stringer); ok {
-				log.Printf("=== %T: %s\r\n\r\n", e, e)
-			} else {
-				log.Printf("=== %T\r\n\r\n", e)
-			}
+		for _, e := range events {
+			log.Printf("=== %T: %v\r\n\r\n", e, e)
 		}
 
 		// Store last keypress
-		if len(buf) > 0 {
-			key, ok := buf[len(buf)-1].(input.KeyDownEvent)
+		if len(events) > 0 {
+			key, ok := events[len(events)-1].(input.KeyDownEvent)
 			if ok {
 				last = key
 			}

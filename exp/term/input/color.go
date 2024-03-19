@@ -33,10 +33,13 @@ func (e CursorColorEvent) String() string {
 
 func colorToHex(c color.Color) string {
 	r, g, b, _ := c.RGBA()
-	r >>= 8
-	g >>= 8
-	b >>= 8
-	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
+	shift := func(x uint32) uint32 {
+		if x > 0xff {
+			x >>= 8
+		}
+		return x
+	}
+	return fmt.Sprintf("#%02x%02x%02x", shift(r), shift(g), shift(b))
 }
 
 func xParseColor(s string) color.Color {

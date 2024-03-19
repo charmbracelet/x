@@ -3,6 +3,8 @@ package input
 import (
 	"fmt"
 	"testing"
+
+	"github.com/charmbracelet/x/exp/term/ansi"
 )
 
 func TestMouseEvent_String(t *testing.T) {
@@ -455,7 +457,9 @@ func TestParseSGRMouseEvent(t *testing.T) {
 		tc := tt[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-			actual := parseSGRMouseEvent(tc.buf)
+			final := tc.buf[len(tc.buf)-1]
+			params := ansi.Params(tc.buf)
+			actual := parseSGRMouseEvent(params, final)
 			if tc.expected != actual {
 				t.Fatalf("expected %#v but got %#v",
 					tc.expected,
