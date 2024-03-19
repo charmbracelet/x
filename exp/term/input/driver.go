@@ -41,10 +41,6 @@ const (
 	// sequence.
 	FlagCtrlOpenBracket
 
-	// When this flag is set, the driver will treat space as a key rune instead
-	// of a key symbol.
-	FlagSpace
-
 	// When this flag is set, the driver will send a BS (0x08 byte) character
 	// instead of a DEL (0x7F byte) character when the Backspace key is
 	// pressed.
@@ -71,12 +67,6 @@ const (
 	// modern day PCs.
 	FlagSelect
 
-	// When this flag is set, the driver won't register XTerm key sequences.
-	//
-	// Most modern terminals are compatible with XTerm, so this flag is
-	// generally not needed.
-	FlagNoXTerm
-
 	// When this flag is set, the driver won't use Terminfo databases to
 	// overwrite the default key sequences.
 	FlagNoTerminfo
@@ -95,8 +85,8 @@ const (
 // It reads input events and parses ANSI sequences from the terminal input
 // buffer.
 type Driver struct {
-	rd    cancelreader.CancelReader
-	table map[string]Key
+	rd     cancelreader.CancelReader
+	parser EventParser
 
 	term string // the $TERM name to use
 
@@ -132,7 +122,7 @@ func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
 	d.flags = flags
 	d.term = term
 	// Populate the key sequences table.
-	d.table = registerKeys(flags, term)
+	d.parser = NewEventParser(term, flags)
 	return d, nil
 }
 
@@ -195,14 +185,14 @@ func (d *Driver) peekInput(n int) ([]Event, error) {
 	buf := d.buf[:nb]
 
 	// Lookup table first
-	if k, ok := d.table[string(buf)]; ok {
+	if k, ok := d.parser.LookupSequence(string(buf)); ok {
 		d.internalEvents = append(d.internalEvents, KeyDownEvent(k))
 		return d.internalEvents, nil
 	}
 
 	var i int
 	for i < len(buf) {
-		nb, ev := ParseSequence(buf[i:])
+		nb, ev := d.parser.ParseSequence(buf[i:])
 
 		// Handle bracketed-paste
 		if d.paste != nil {
@@ -216,7 +206,7 @@ func (d *Driver) peekInput(n int) ([]Event, error) {
 		switch ev.(type) {
 		case UnknownCsiEvent, UnknownSs3Event, UnknownEvent:
 			// If the sequence is not recognized by the parser, try looking it up.
-			if k, ok := d.table[string(buf[i:i+nb])]; ok {
+			if k, ok := d.parser.LookupSequence(string(buf[i : i+nb])); ok {
 				ev = KeyDownEvent(k)
 			}
 		case PasteStartEvent:

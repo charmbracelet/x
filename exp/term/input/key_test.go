@@ -19,7 +19,7 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi"
 )
 
-var sequences = registerKeys(FlagNoTerminfo, "")
+var sequences = registerKeys(FlagNoTerminfo, "dumb")
 
 func TestKeyString(t *testing.T) {
 	t.Run("alt+space", func(t *testing.T) {
@@ -100,12 +100,13 @@ func buildBaseSeqTests() []seqTest {
 
 func TestDetectSequence(t *testing.T) {
 	td := buildBaseSeqTests()
+	parser := NewEventParser("dumb", FlagNoTerminfo)
 	for _, tc := range td {
 		t.Run(fmt.Sprintf("%q", string(tc.seq)), func(t *testing.T) {
 			var events []Event
 			buf := tc.seq
 			for len(buf) > 0 {
-				width, msg := ParseSequence(buf)
+				width, msg := parser.ParseSequence(buf)
 				events = append(events, msg)
 				buf = buf[width:]
 			}
@@ -221,12 +222,13 @@ func TestDetectOneEvent(t *testing.T) {
 		})
 	}
 
+	parser := NewEventParser("dumb", 0)
 	for _, tc := range td {
 		t.Run(fmt.Sprintf("%q", string(tc.seq)), func(t *testing.T) {
 			var events []Event
 			buf := tc.seq
 			for len(buf) > 0 {
-				width, msg := ParseSequence(buf)
+				width, msg := parser.ParseSequence(buf)
 				events = append(events, msg)
 				buf = buf[width:]
 			}
@@ -642,14 +644,14 @@ func genRandomDataWithSeed(s int64, length int) randTest {
 				res.data = append(res.data, '\x1b')
 			}
 			res.data = append(res.data, 1)
-			res.names = append(res.names, prefix+"ctrl+a")
+			res.names = append(res.names, "ctrl+"+prefix+"a")
 			res.lengths = append(res.lengths, 1+esclen)
 
 		case 1, 2:
 			// A sequence.
 			seqi := r.Intn(len(allseqs))
 			s := allseqs[seqi]
-			if strings.HasPrefix(s.name, "alt+") {
+			if strings.Contains(s.name, "alt+") || strings.Contains(s.name, "meta+") {
 				esclen = 0
 				prefix = ""
 				alt = 0
@@ -658,7 +660,11 @@ func genRandomDataWithSeed(s int64, length int) randTest {
 				res.data = append(res.data, '\x1b')
 			}
 			res.data = append(res.data, s.seq...)
-			res.names = append(res.names, prefix+s.name)
+			if strings.HasPrefix(s.name, "ctrl+") {
+				prefix = "ctrl+" + prefix
+			}
+			name := prefix + strings.TrimPrefix(s.name, "ctrl+")
+			res.names = append(res.names, name)
 			res.lengths = append(res.lengths, len(s.seq)+esclen)
 		}
 	}
@@ -669,7 +675,7 @@ func genRandomDataWithSeed(s int64, length int) randTest {
 // detector works over concatenations of random sequences.
 func TestDetectRandomSequencesLex(t *testing.T) {
 	t.Skip("WIP")
-	runTestDetectSequence(t, ParseSequence)
+	runTestDetectSequence(t, NewEventParser("dumb", 0).ParseSequence)
 }
 
 func runTestDetectSequence(
@@ -704,20 +710,39 @@ func runTestDetectSequence(
 	}
 }
 
-// TestDetectRandomSequencesLex checks that the map-based sequence
+// TestDetectRandomSequences checks that the map-based sequence
 // detector works over concatenations of random sequences.
-func TestDetectRandomSequencesMap(t *testing.T) {
+func TestDetectRandomSequences(t *testing.T) {
 	t.Skip("WIP")
-	runTestDetectSequence(t, ParseSequence)
+	parser := NewEventParser("dumb", FlagNoTerminfo)
+	runTestDetectSequence(t, parser.ParseSequence)
+}
+
+func FuzzParseSequence(f *testing.F) {
+	parser := NewEventParser("dumb", FlagNoTerminfo)
+	for seq := range sequences {
+		f.Add(seq)
+	}
+	f.Fuzz(func(t *testing.T, a string) {
+		_, k := parser.ParseSequence([]byte(a))
+		v, ok := sequences[a]
+		if !ok {
+			t.Fatalf("unknown sequence: %q", a)
+		}
+		if reflect.DeepEqual(k, v) {
+			t.Errorf("expected %v, got %v", v, k)
+		}
+	})
 }
 
 // BenchmarkDetectSequenceMap benchmarks the map-based sequence
 // detector.
 func BenchmarkDetectSequenceMap(b *testing.B) {
 	td := genRandomDataWithSeed(123, 10000)
+	parser := NewEventParser("dumb", FlagNoTerminfo)
 	for i := 0; i < b.N; i++ {
 		for j, w := 0, 0; j < len(td.data); j += w {
-			w, _ = ParseSequence(td.data[j:])
+			w, _ = parser.ParseSequence(td.data[j:])
 		}
 	}
 }
