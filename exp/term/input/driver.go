@@ -67,9 +67,9 @@ const (
 	// modern day PCs.
 	FlagSelect
 
-	// When this flag is set, the driver won't use Terminfo databases to
+	// When this flag is set, the driver will use Terminfo databases to
 	// overwrite the default key sequences.
-	FlagNoTerminfo
+	FlagTerminfo
 
 	// When this flag is set, the driver will preserve function keys (F13-F63)
 	// as symbols.
@@ -86,9 +86,7 @@ const (
 // buffer.
 type Driver struct {
 	rd     cancelreader.CancelReader
-	parser EventParser
-
-	term string // the $TERM name to use
+	parser *EventParser
 
 	// paste is the bracketed paste mode buffer.
 	// When nil, bracketed paste mode is disabled.
@@ -99,16 +97,16 @@ type Driver struct {
 	// prevMouseState keeps track of the previous mouse state to determine mouse
 	// up button events.
 	prevMouseState coninput.ButtonState
-
-	// flags to control the behavior of the driver.
-	flags int
 }
 
 // NewDriver returns a new ANSI input driver.
 // This driver uses ANSI control codes compatible with VT100/VT200 terminals,
 // and XTerm. It supports reading Terminfo databases to overwrite the default
 // key sequences.
-func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
+//
+// The parser argument is used to parse ANSI sequences into input events. If
+// nil is passed, a default parser will be used.
+func NewDriver(r io.Reader, parser *EventParser) (*Driver, error) {
 	d := new(Driver)
 	cr, err := newCancelreader(r)
 	if err != nil {
@@ -116,10 +114,10 @@ func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
 	}
 
 	d.rd = cr
-	d.flags = flags
-	d.term = term
-	// Populate the key sequences table.
-	d.parser = NewEventParser(term, flags)
+	if parser == nil {
+		parser = &EventParser{}
+	}
+	d.parser = parser
 	return d, nil
 }
 
