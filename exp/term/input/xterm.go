@@ -8,25 +8,25 @@ func parseXTermModifyOtherKeys(params [][]uint) Event {
 	// XTerm modify other keys starts with ESC [ 27 ; <modifier> ; <code> ~
 	mod := KeyMod(params[1][0] - 1)
 	r := rune(params[2][0])
-	k, ok := modifyOtherKeys[int(r)]
-	if ok {
-		k.Mod = mod
-		return KeyDownEvent(k)
+
+	switch r {
+	case ansi.BS:
+		return KeyDownEvent{Mod: mod, Sym: KeyBackspace}
+	case ansi.HT:
+		return KeyDownEvent{Mod: mod, Sym: KeyTab}
+	case ansi.CR:
+		return KeyDownEvent{Mod: mod, Sym: KeyEnter}
+	case ansi.ESC:
+		return KeyDownEvent{Mod: mod, Sym: KeyEscape}
+	case ansi.DEL:
+		return KeyDownEvent{Mod: mod, Sym: KeyBackspace}
 	}
 
+	// CSI 27 ; <modifier> ; <code> ~ keys defined in XTerm modifyOtherKeys
 	return KeyDownEvent{
 		Mod:  mod,
 		Rune: r,
 	}
-}
-
-// CSI 27 ; <modifier> ; <code> ~ keys defined in XTerm modifyOtherKeys
-var modifyOtherKeys = map[int]Key{
-	ansi.BS:  {Sym: KeyBackspace},
-	ansi.HT:  {Sym: KeyTab},
-	ansi.CR:  {Sym: KeyEnter},
-	ansi.ESC: {Sym: KeyEscape},
-	ansi.DEL: {Sym: KeyBackspace},
 }
 
 // ModifyOtherKeysEvent represents a modifyOtherKeys event.

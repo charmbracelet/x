@@ -41,7 +41,7 @@ func main() {
 	defer execute(ansi.DisableModifyOtherKeys)
 	defer execute(ansi.DisableWin32Input)
 
-	rd, err := input.NewDriver(in, os.Getenv("TERM"), 0)
+	rd, err := input.NewDriver(in, input.NewEventParser(os.Getenv("TERM"), 0))
 	if err != nil {
 		log.Printf("error creating driver: %v\r\n", err)
 		return
@@ -84,8 +84,8 @@ OUT:
 			currKey, ok1 := events[len(events)-1].(input.KeyDownEvent)
 			prevKey, ok2 := last.(input.KeyDownEvent)
 			if ok1 && ok2 && currKey.Sym == 0 && prevKey.Sym == 0 {
-				prev := string(prevKey.Rune)
-				curr := string(currKey.Rune)
+				prev := prevKey.String()
+				curr := currKey.String()
 				switch {
 				case prev == "q" && curr == "q":
 					break OUT

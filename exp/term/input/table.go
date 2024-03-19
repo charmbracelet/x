@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi"
 )
 
-func registerKeys(flags int, term string) map[string]Key {
+func buildKeysTable(flags int, term string) map[string]Key {
 	nul := Key{Rune: ' ', Sym: KeySpace, Mod: Ctrl} // ctrl+@ or ctrl+space
 	if flags&FlagCtrlAt != 0 {
 		nul = Key{Rune: '@', Mod: Ctrl}
@@ -330,6 +330,15 @@ func registerKeys(flags int, term string) map[string]Key {
 		"S": {Sym: KeyF4},
 	}
 
+	// CSI 27 ; <modifier> ; <code> ~ keys defined in XTerm modifyOtherKeys
+	modifyOtherKeys := map[int]Key{
+		ansi.BS:  {Sym: KeyBackspace},
+		ansi.HT:  {Sym: KeyTab},
+		ansi.CR:  {Sym: KeyEnter},
+		ansi.ESC: {Sym: KeyEscape},
+		ansi.DEL: {Sym: KeyBackspace},
+	}
+
 	for _, m := range modifiers {
 		// XTerm modifier offset +1
 		xtermMod := strconv.Itoa(int(m) + 1)
@@ -367,7 +376,7 @@ func registerKeys(flags int, term string) map[string]Key {
 	}
 
 	// Register terminfo keys
-	if flags&FlagNoTerminfo == 0 {
+	if flags&FlagTerminfo != 0 {
 		table = registerTerminfoKeys(table, flags, term)
 	}
 

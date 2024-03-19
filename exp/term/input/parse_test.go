@@ -6,7 +6,7 @@ import (
 
 func BenchmarkParseSequence(b *testing.B) {
 	input := []byte("\x1b\x1b[Ztest\x00\x1b]10;1234/1234/1234\x07\x1b[27;2;27~")
-	parser := NewEventParser("dumb", FlagNoTerminfo)
+	parser := NewEventParser("dumb", 0)
 
 	b.ReportAllocs()
 	b.ResetTimer()

@@ -19,7 +19,7 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi"
 )
 
-var sequences = registerKeys(FlagNoTerminfo, "dumb")
+var sequences = buildKeysTable(FlagTerminfo, "dumb")
 
 func TestKeyString(t *testing.T) {
 	t.Run("alt+space", func(t *testing.T) {
@@ -100,7 +100,7 @@ func buildBaseSeqTests() []seqTest {
 
 func TestDetectSequence(t *testing.T) {
 	td := buildBaseSeqTests()
-	parser := NewEventParser("dumb", FlagNoTerminfo)
+	parser := NewEventParser("dumb", FlagTerminfo)
 	for _, tc := range td {
 		t.Run(fmt.Sprintf("%q", string(tc.seq)), func(t *testing.T) {
 			var events []Event
@@ -245,7 +245,7 @@ func TestReadLongInput(t *testing.T) {
 		expect[i] = KeyDownEvent{Rune: 'a'}
 	}
 	input := strings.Repeat("a", 1000)
-	drv, err := NewDriver(strings.NewReader(input), "", 0)
+	drv, err := NewDriver(strings.NewReader(input), NewEventParser("dumb", FlagTerminfo))
 	if err != nil {
 		t.Fatalf("unexpected input driver error: %v", err)
 	}
@@ -537,7 +537,7 @@ func testReadInputs(t *testing.T, input io.Reader) []Event {
 		}
 	}()
 
-	dr, err := NewDriver(input, "", 0)
+	dr, err := NewDriver(input, NewEventParser("dumb", 0))
 	if err != nil {
 		t.Fatalf("unexpected input driver error: %v", err)
 	}
@@ -712,12 +712,12 @@ func runTestDetectSequence(
 // detector works over concatenations of random sequences.
 func TestDetectRandomSequences(t *testing.T) {
 	t.Skip("WIP")
-	parser := NewEventParser("dumb", FlagNoTerminfo)
+	parser := NewEventParser("dumb", FlagTerminfo)
 	runTestDetectSequence(t, parser.ParseSequence)
 }
 
 func FuzzParseSequence(f *testing.F) {
-	parser := NewEventParser("dumb", FlagNoTerminfo)
+	parser := NewEventParser("dumb", FlagTerminfo)
 	for seq := range sequences {
 		f.Add(seq)
 	}
@@ -737,7 +737,7 @@ func FuzzParseSequence(f *testing.F) {
 // detector.
 func BenchmarkDetectSequenceMap(b *testing.B) {
 	td := genRandomDataWithSeed(123, 10000)
-	parser := NewEventParser("dumb", FlagNoTerminfo)
+	parser := NewEventParser("dumb", FlagTerminfo)
 	for i := 0; i < b.N; i++ {
 		for j, w := 0, 0; j < len(td.data); j += w {
 			w, _ = parser.ParseSequence(td.data[j:])

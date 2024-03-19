@@ -15,10 +15,9 @@ type EventParser struct {
 }
 
 // NewEventParser returns a new EventParser.
-func NewEventParser(term string, flags int) EventParser {
-	t := registerKeys(flags, term)
-	return EventParser{
-		table: t,
+func NewEventParser(term string, flags int) *EventParser {
+	return &EventParser{
+		table: buildKeysTable(flags, term),
 		flags: flags,
 	}
 }
@@ -26,6 +25,9 @@ func NewEventParser(term string, flags int) EventParser {
 // LookupSequence looks up a key sequence in the parser's table and returns the
 // corresponding key.
 func (p EventParser) LookupSequence(seq string) (Key, bool) {
+	if p.table == nil {
+		return Key{}, false
+	}
 	k, ok := p.table[seq]
 	return k, ok
 }
@@ -663,6 +665,8 @@ func (p *EventParser) parseControl(b byte) Event {
 			return KeyDownEvent{Rune: '@', Mod: Ctrl}
 		}
 		return KeyDownEvent{Rune: ' ', Sym: KeySpace, Mod: Ctrl}
+	case ansi.BS:
+		return KeyDownEvent{Rune: 'h', Mod: Ctrl}
 	case ansi.HT:
 		if p.flags&FlagCtrlI != 0 {
 			return KeyDownEvent{Rune: 'i', Mod: Ctrl}
