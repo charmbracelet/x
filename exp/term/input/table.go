@@ -376,8 +376,12 @@ func buildKeysTable(flags int, term string) map[string]Key {
 	}
 
 	// Register terminfo keys
+	// XXX: this might override keys already registered in table
 	if flags&FlagTerminfo != 0 {
-		table = registerTerminfoKeys(table, flags, term)
+		titable := buildTerminfoKeys(flags, term)
+		for seq, key := range titable {
+			table[seq] = key
+		}
 	}
 
 	return table

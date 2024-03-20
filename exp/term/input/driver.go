@@ -8,79 +8,6 @@ import (
 	"github.com/muesli/cancelreader"
 )
 
-// Flags to control the behavior of the driver.
-const (
-	// When this flag is set, the driver will treat both Ctrl+Space and Ctrl+@
-	// as the same key sequence.
-	//
-	// Historically, the ANSI specs generate NUL (0x00) on both the Ctrl+Space
-	// and Ctrl+@ key sequences. This flag allows the driver to treat both as
-	// the same key sequence.
-	FlagCtrlAt = 1 << iota
-
-	// When this flag is set, the driver will treat the Tab key and Ctrl+I as
-	// the same key sequence.
-	//
-	// Historically, the ANSI specs generate HT (0x09) on both the Tab key and
-	// Ctrl+I. This flag allows the driver to treat both as the same key
-	// sequence.
-	FlagCtrlI
-
-	// When this flag is set, the driver will treat the Enter key and Ctrl+M as
-	// the same key sequence.
-	//
-	// Historically, the ANSI specs generate CR (0x0D) on both the Enter key
-	// and Ctrl+M. This flag allows the driver to treat both as the same key
-	FlagCtrlM
-
-	// When this flag is set, the driver will treat Escape and Ctrl+[ as
-	// the same key sequence.
-	//
-	// Historically, the ANSI specs generate ESC (0x1B) on both the Escape key
-	// and Ctrl+[. This flag allows the driver to treat both as the same key
-	// sequence.
-	FlagCtrlOpenBracket
-
-	// When this flag is set, the driver will send a BS (0x08 byte) character
-	// instead of a DEL (0x7F byte) character when the Backspace key is
-	// pressed.
-	//
-	// The VT100 terminal has both a Backspace and a Delete key. The VT220
-	// terminal dropped the Backspace key and replaced it with the Delete key.
-	// Both terminals send a DEL character when the Delete key is pressed.
-	// Modern terminals and PCs later readded the Delete key but used a
-	// different key sequence, and the Backspace key was standardized to send a
-	// DEL character.
-	FlagBackspace
-
-	// When this flag is set, the driver will recognize the Find key instead of
-	// treating it as a Home key.
-	//
-	// The Find key was part of the VT220 keyboard, and is no longer used in
-	// modern day PCs.
-	FlagFind
-
-	// When this flag is set, the driver will recognize the Select key instead
-	// of treating it as a End key.
-	//
-	// The Symbol key was part of the VT220 keyboard, and is no longer used in
-	// modern day PCs.
-	FlagSelect
-
-	// When this flag is set, the driver will use Terminfo databases to
-	// overwrite the default key sequences.
-	FlagTerminfo
-
-	// When this flag is set, the driver will preserve function keys (F13-F63)
-	// as symbols.
-	//
-	// Since these keys are not part of today's standard 20th century keyboard,
-	// we treat them as F1-F12 modifier keys i.e. ctrl/shift/alt + Fn combos.
-	// Key definitions come from Terminfo, this flag is only useful when
-	// FlagTerminfo is not set.
-	FlagFKeys
-)
-
 // Driver represents an ANSI terminal input Driver.
 // It reads input events and parses ANSI sequences from the terminal input
 // buffer.
@@ -96,7 +23,7 @@ type Driver struct {
 
 	// prevMouseState keeps track of the previous mouse state to determine mouse
 	// up button events.
-	prevMouseState coninput.ButtonState
+	prevMouseState coninput.ButtonState // nolint: unused
 }
 
 // NewDriver returns a new ANSI input driver.

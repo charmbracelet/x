@@ -8,6 +8,79 @@ import (
 	"github.com/erikgeiser/coninput"
 )
 
+// Flags to control the behavior of the parser.
+const (
+	// When this flag is set, the driver will treat both Ctrl+Space and Ctrl+@
+	// as the same key sequence.
+	//
+	// Historically, the ANSI specs generate NUL (0x00) on both the Ctrl+Space
+	// and Ctrl+@ key sequences. This flag allows the driver to treat both as
+	// the same key sequence.
+	FlagCtrlAt = 1 << iota
+
+	// When this flag is set, the driver will treat the Tab key and Ctrl+I as
+	// the same key sequence.
+	//
+	// Historically, the ANSI specs generate HT (0x09) on both the Tab key and
+	// Ctrl+I. This flag allows the driver to treat both as the same key
+	// sequence.
+	FlagCtrlI
+
+	// When this flag is set, the driver will treat the Enter key and Ctrl+M as
+	// the same key sequence.
+	//
+	// Historically, the ANSI specs generate CR (0x0D) on both the Enter key
+	// and Ctrl+M. This flag allows the driver to treat both as the same key
+	FlagCtrlM
+
+	// When this flag is set, the driver will treat Escape and Ctrl+[ as
+	// the same key sequence.
+	//
+	// Historically, the ANSI specs generate ESC (0x1B) on both the Escape key
+	// and Ctrl+[. This flag allows the driver to treat both as the same key
+	// sequence.
+	FlagCtrlOpenBracket
+
+	// When this flag is set, the driver will send a BS (0x08 byte) character
+	// instead of a DEL (0x7F byte) character when the Backspace key is
+	// pressed.
+	//
+	// The VT100 terminal has both a Backspace and a Delete key. The VT220
+	// terminal dropped the Backspace key and replaced it with the Delete key.
+	// Both terminals send a DEL character when the Delete key is pressed.
+	// Modern terminals and PCs later readded the Delete key but used a
+	// different key sequence, and the Backspace key was standardized to send a
+	// DEL character.
+	FlagBackspace
+
+	// When this flag is set, the driver will recognize the Find key instead of
+	// treating it as a Home key.
+	//
+	// The Find key was part of the VT220 keyboard, and is no longer used in
+	// modern day PCs.
+	FlagFind
+
+	// When this flag is set, the driver will recognize the Select key instead
+	// of treating it as a End key.
+	//
+	// The Symbol key was part of the VT220 keyboard, and is no longer used in
+	// modern day PCs.
+	FlagSelect
+
+	// When this flag is set, the driver will use Terminfo databases to
+	// overwrite the default key sequences.
+	FlagTerminfo
+
+	// When this flag is set, the driver will preserve function keys (F13-F63)
+	// as symbols.
+	//
+	// Since these keys are not part of today's standard 20th century keyboard,
+	// we treat them as F1-F12 modifier keys i.e. ctrl/shift/alt + Fn combos.
+	// Key definitions come from Terminfo, this flag is only useful when
+	// FlagTerminfo is not set.
+	FlagFKeys
+)
+
 // EventParser represents a parser for input events.
 type EventParser struct {
 	table map[string]Key
@@ -15,6 +88,10 @@ type EventParser struct {
 }
 
 // NewEventParser returns a new EventParser.
+// The term argument along with FlagTerminfo are used to read Terminfo
+// databases to overwrite the default key sequences. If an empty string is
+// passed, the driver will not use Terminfo databases.
+// Other flags control the behavior of the parser.
 func NewEventParser(term string, flags int) *EventParser {
 	return &EventParser{
 		table: buildKeysTable(flags, term),
@@ -60,21 +137,15 @@ func (p EventParser) ParseSequence(buf []byte) (n int, e Event) {
 			return p.parseOsc(buf)
 		case '_': // Esc-prefixed APC
 			return p.parseApc(buf)
-		case ansi.ESC:
-			if len(buf) == 2 {
-				// Double escape key
-				return 2, KeyDownEvent{Sym: KeyEscape, Mod: Alt}
-			}
-			fallthrough
 		default:
 			n, e := p.ParseSequence(buf[1:])
-			if k, ok := e.(KeyDownEvent); ok {
-				if !k.Mod.IsAlt() {
-					k.Mod |= Alt
-					return n + 1, k
-				}
+			if k, ok := e.(KeyDownEvent); ok && !k.Mod.IsAlt() {
+				k.Mod |= Alt
+				return n + 1, k
 			}
 
+			// Not a key sequence, nor an alt modified key sequence. In that
+			// case, just report a single escape key.
 			return 1, KeyDownEvent{Sym: KeyEscape}
 		}
 	case ansi.SS3:
@@ -90,12 +161,22 @@ func (p EventParser) ParseSequence(buf []byte) (n int, e Event) {
 	default:
 		if b <= ansi.US || b == ansi.DEL || b == ansi.SP {
 			return 1, p.parseControl(b)
+		} else if b >= ansi.PAD && b <= ansi.APC {
+			// C1 control code
+			// UTF-8 never starts with a C1 control code
+			// Encode these as Ctrl+Alt+<code - 0x40>
+			return 1, KeyDownEvent{Rune: rune(b) - 0x40, Mod: Ctrl | Alt}
 		}
 		return p.parseUtf8(buf)
 	}
 }
 
 func (p *EventParser) parseCsi(b []byte) (int, Event) {
+	if len(b) == 2 && b[0] == ansi.ESC {
+		// short cut if this is an alt+[ key
+		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
+	}
+
 	var seq []byte
 	var i int
 	if b[i] == ansi.CSI || b[i] == ansi.ESC {
@@ -360,6 +441,11 @@ func (p *EventParser) parseCsi(b []byte) (int, Event) {
 // parseSs3 parses a SS3 sequence.
 // See https://vt100.net/docs/vt220-rm/chapter4.html#S4.4.4.2
 func (p *EventParser) parseSs3(b []byte) (int, Event) {
+	if len(b) == 2 && b[0] == ansi.ESC {
+		// short cut if this is an alt+O key
+		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
+	}
+
 	var seq []byte
 	var i int
 	if b[i] == ansi.SS3 || b[i] == ansi.ESC {
@@ -432,6 +518,11 @@ func (p *EventParser) parseSs3(b []byte) (int, Event) {
 }
 
 func (p *EventParser) parseOsc(b []byte) (int, Event) {
+	if len(b) == 2 && b[0] == ansi.ESC {
+		// short cut if this is an alt+] key
+		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
+	}
+
 	var seq []byte
 	var i int
 	if b[i] == ansi.OSC || b[i] == ansi.ESC {
@@ -541,6 +632,11 @@ func (p *EventParser) parseStTerminated(intro8, intro7 byte) func([]byte) (int, 
 }
 
 func (p *EventParser) parseDcs(b []byte) (int, Event) {
+	if len(b) == 2 && b[0] == ansi.ESC {
+		// short cut if this is an alt+P key
+		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
+	}
+
 	// DCS sequences are introduced by DCS (0x90) or ESC P (0x1b 0x50)
 	var seq []byte
 	var i int
@@ -645,6 +741,11 @@ func (p *EventParser) parseDcs(b []byte) (int, Event) {
 }
 
 func (p *EventParser) parseApc(b []byte) (int, Event) {
+	if len(b) == 2 && b[0] == ansi.ESC {
+		// short cut if this is an alt+_ key
+		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
+	}
+
 	// APC sequences are introduced by APC (0x9f) or ESC _ (0x1b 0x5f)
 	return p.parseStTerminated(ansi.APC, '_')(b)
 }
@@ -691,9 +792,10 @@ func (p *EventParser) parseControl(b byte) Event {
 		return KeyDownEvent{Sym: KeySpace, Rune: ' '}
 	default:
 		if b >= ansi.SOH && b <= ansi.SUB {
-			return KeyDownEvent{Rune: rune(b - ansi.SOH + 'a'), Mod: Ctrl}
+			// Use lower case letters for control codes
+			return KeyDownEvent{Rune: rune(b + 0x60), Mod: Ctrl}
 		} else if b >= ansi.FS && b <= ansi.US {
-			return KeyDownEvent{Rune: rune(b - ansi.FS + '\\'), Mod: Ctrl}
+			return KeyDownEvent{Rune: rune(b + 0x40), Mod: Ctrl}
 		}
 		return UnknownEvent(b)
 	}

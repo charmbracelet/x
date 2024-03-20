@@ -177,7 +177,7 @@ const (
 	KeyIsoLevel5Shift
 )
 
-// Key represents a Key event.
+// Key represents a key event.
 type Key struct {
 	Sym      KeySym
 	Rune     rune
