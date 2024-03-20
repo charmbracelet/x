@@ -6,11 +6,8 @@ import (
 	"github.com/xo/terminfo"
 )
 
-func registerTerminfoKeys(table map[string]Key, flags int, term string) map[string]Key {
-	if term == "" {
-		return table
-	}
-
+func buildTerminfoKeys(flags int, term string) map[string]Key {
+	table := make(map[string]Key)
 	ti, _ := terminfo.Load(term)
 	if ti == nil {
 		return table
