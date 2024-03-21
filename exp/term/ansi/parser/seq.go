@@ -1,0 +1,132 @@
+package parser
+
+// Shift and masks for sequence parameters and intermediates.
+const (
+	MarkerShift   = 8
+	IntermedShift = 16
+	CommandMask   = 0xff
+	HasMoreFlag   = 1 << 31
+	ParamMask     = ^HasMoreFlag
+	MissingParam  = (HasMoreFlag) - 1
+)
+
+const (
+	// MaxParamsSize is the maximum number of parameters a sequence can have.
+	MaxParamsSize = 16
+
+	// DefaultParamValue is the default value used for missing parameters.
+	DefaultParamValue = 0
+)
+
+// Marker returns the marker byte of the sequence.
+// This is always gonna be one of the following '<' '=' '>' '?' and in the
+// range of 0x3C-0x3F.
+// Zero is returned if the sequence does not have a marker.
+func Marker(cmd int) int {
+	return (cmd >> MarkerShift) & CommandMask
+}
+
+// Intermediate returns the intermediate byte of the sequence.
+// An intermediate byte is in the range of 0x20-0x2F. This includes these
+// characters from ' ', '!', '"', '#', '$', '%', '&', ”', '(', ')', '*', '+',
+// ',', '-', '.', '/'.
+// Zero is returned if the sequence does not have an intermediate byte.
+func Intermediate(cmd int) int {
+	return (cmd >> IntermedShift) & CommandMask
+}
+
+// Command returns the command byte of the CSI sequence.
+func Command(cmd int) int {
+	return cmd & CommandMask
+}
+
+// Param returns the parameter at the given index.
+// It returns -1 if the parameter does not exist.
+func Param(params []int, i int) int {
+	if len(params) == 0 || i < 0 || i >= len(params) {
+		return -1
+	}
+
+	p := params[i] & ParamMask
+	if p == MissingParam {
+		return -1
+	}
+
+	return p
+}
+
+// HasMore returns true if the parameter has more sub-parameters.
+func HasMore(params []int, i int) bool {
+	if len(params) == 0 || i >= len(params) {
+		return false
+	}
+
+	return params[i]&HasMoreFlag != 0
+}
+
+// Subparams returns the sub-parameters of the given parameter.
+// It returns nil if the parameter does not exist.
+func Subparams(params []int, paramsLen int, i int) []int {
+	if len(params) == 0 || i < 0 || i >= len(params) || i >= paramsLen {
+		return nil
+	}
+
+	// Count the number of parameters before the given parameter index.
+	var count int
+	var j int
+	for j = 0; j < paramsLen; j++ {
+		if count == i {
+			break
+		}
+		if !HasMore(params, j) {
+			count++
+		}
+	}
+
+	if count > i || j >= paramsLen {
+		return nil
+	}
+
+	var subs []int
+	for ; j < paramsLen; j++ {
+		if !HasMore(params, j) {
+			break
+		}
+		p := Param(params, j)
+		if p == -1 {
+			p = DefaultParamValue
+		}
+		subs = append(subs, p)
+	}
+
+	p := Param(params, j)
+	if p == -1 {
+		p = DefaultParamValue
+	}
+
+	return append(subs, p)
+}
+
+// Len returns the number of parameters in the sequence.
+// This will return the number of parameters in the sequence, excluding any
+// sub-parameters.
+func Len(params []int, paramsLen int) int {
+	var n int
+	for i := 0; i < paramsLen; i++ {
+		if !HasMore(params, i) {
+			n++
+		}
+	}
+	return n
+}
+
+// Range iterates over the parameters of the sequence and calls the given
+// function for each parameter.
+// The function should return false to stop the iteration.
+func Range(params []int, paramsLen int, fn func(i int, param int, hasMore bool) bool) {
+	for i := 0; i < paramsLen; i++ {
+		if !fn(i, Param(params, i), HasMore(params, i)) {
+			break
+		}
+	}
+}
