@@ -100,13 +100,12 @@ func buildBaseSeqTests() []seqTest {
 
 func TestDetectSequence(t *testing.T) {
 	td := buildBaseSeqTests()
-	parser := NewEventParser("dumb", FlagTerminfo)
 	for _, tc := range td {
 		t.Run(fmt.Sprintf("%q", string(tc.seq)), func(t *testing.T) {
 			var events []Event
 			buf := tc.seq
 			for len(buf) > 0 {
-				width, msg := parser.ParseSequence(buf)
+				width, msg := ParseSequence(buf)
 				events = append(events, msg)
 				buf = buf[width:]
 			}
@@ -222,13 +221,12 @@ func TestDetectOneEvent(t *testing.T) {
 		})
 	}
 
-	parser := NewEventParser("dumb", 0)
 	for _, tc := range td {
 		t.Run(fmt.Sprintf("%q", string(tc.seq)), func(t *testing.T) {
 			var events []Event
 			buf := tc.seq
 			for len(buf) > 0 {
-				width, msg := parser.ParseSequence(buf)
+				width, msg := ParseSequence(buf)
 				events = append(events, msg)
 				buf = buf[width:]
 			}
@@ -245,7 +243,7 @@ func TestReadLongInput(t *testing.T) {
 		expect[i] = KeyDownEvent{Rune: 'a'}
 	}
 	input := strings.Repeat("a", 1000)
-	drv, err := NewDriver(strings.NewReader(input), NewEventParser("dumb", FlagTerminfo))
+	drv, err := NewDriver(strings.NewReader(input), "dumb", 0)
 	if err != nil {
 		t.Fatalf("unexpected input driver error: %v", err)
 	}
@@ -537,7 +535,7 @@ func testReadInputs(t *testing.T, input io.Reader) []Event {
 		}
 	}()
 
-	dr, err := NewDriver(input, NewEventParser("dumb", 0))
+	dr, err := NewDriver(input, "dumb", 0)
 	if err != nil {
 		t.Fatalf("unexpected input driver error: %v", err)
 	}
@@ -673,7 +671,7 @@ func genRandomDataWithSeed(s int64, length int) randTest {
 // detector works over concatenations of random sequences.
 func TestDetectRandomSequencesLex(t *testing.T) {
 	t.Skip("WIP")
-	runTestDetectSequence(t, NewEventParser("dumb", 0).ParseSequence)
+	runTestDetectSequence(t, ParseSequence)
 }
 
 func runTestDetectSequence(
@@ -712,17 +710,15 @@ func runTestDetectSequence(
 // detector works over concatenations of random sequences.
 func TestDetectRandomSequences(t *testing.T) {
 	t.Skip("WIP")
-	parser := NewEventParser("dumb", FlagTerminfo)
-	runTestDetectSequence(t, parser.ParseSequence)
+	runTestDetectSequence(t, ParseSequence)
 }
 
 func FuzzParseSequence(f *testing.F) {
-	parser := NewEventParser("dumb", FlagTerminfo)
 	for seq := range sequences {
 		f.Add(seq)
 	}
 	f.Fuzz(func(t *testing.T, a string) {
-		_, k := parser.ParseSequence([]byte(a))
+		_, k := ParseSequence([]byte(a))
 		v, ok := sequences[a]
 		if !ok {
 			t.Fatalf("unknown sequence: %q", a)
@@ -737,10 +733,9 @@ func FuzzParseSequence(f *testing.F) {
 // detector.
 func BenchmarkDetectSequenceMap(b *testing.B) {
 	td := genRandomDataWithSeed(123, 10000)
-	parser := NewEventParser("dumb", FlagTerminfo)
 	for i := 0; i < b.N; i++ {
 		for j, w := 0, 0; j < len(td.data); j += w {
-			w, _ = parser.ParseSequence(td.data[j:])
+			w, _ = ParseSequence(td.data[j:])
 		}
 	}
 }

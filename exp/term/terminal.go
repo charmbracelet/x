@@ -135,7 +135,7 @@ func queryTerminal(
 
 	defer Restore(in.Fd(), state) // nolint: errcheck
 
-	rd, err := input.NewDriver(in, nil)
+	rd, err := input.NewDriver(in, "", 0)
 	if err != nil {
 		return err
 	}

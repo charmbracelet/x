@@ -12,8 +12,10 @@ import (
 // It reads input events and parses ANSI sequences from the terminal input
 // buffer.
 type Driver struct {
-	rd     cancelreader.CancelReader
-	parser *EventParser
+	rd    cancelreader.CancelReader
+	table map[string]Key // table is a lookup table for key sequences.
+
+	term string // term is the terminal name $TERM.
 
 	// paste is the bracketed paste mode buffer.
 	// When nil, bracketed paste mode is disabled.
@@ -24,16 +26,15 @@ type Driver struct {
 	// prevMouseState keeps track of the previous mouse state to determine mouse
 	// up button events.
 	prevMouseState coninput.ButtonState // nolint: unused
+
+	flags int // control the behavior of the driver.
 }
 
 // NewDriver returns a new ANSI input driver.
 // This driver uses ANSI control codes compatible with VT100/VT200 terminals,
 // and XTerm. It supports reading Terminfo databases to overwrite the default
 // key sequences.
-//
-// The parser argument is used to parse ANSI sequences into input events. If
-// nil is passed, a default parser will be used.
-func NewDriver(r io.Reader, parser *EventParser) (*Driver, error) {
+func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
 	d := new(Driver)
 	cr, err := newCancelreader(r)
 	if err != nil {
@@ -41,10 +42,9 @@ func NewDriver(r io.Reader, parser *EventParser) (*Driver, error) {
 	}
 
 	d.rd = cr
-	if parser == nil {
-		parser = &EventParser{}
-	}
-	d.parser = parser
+	d.table = buildKeysTable(flags, term)
+	d.term = term
+	d.flags = flags
 	return d, nil
 }
 
@@ -67,14 +67,14 @@ func (d *Driver) readEvents() (e []Event, err error) {
 	buf := d.buf[:nb]
 
 	// Lookup table first
-	if k, ok := d.parser.LookupSequence(string(buf)); ok {
+	if k, ok := d.table[string(buf)]; ok {
 		e = append(e, KeyDownEvent(k))
 		return
 	}
 
 	var i int
 	for i < len(buf) {
-		nb, ev := d.parser.ParseSequence(buf[i:])
+		nb, ev := ParseSequence(buf[i:])
 
 		// Handle bracketed-paste
 		if d.paste != nil {
@@ -88,7 +88,7 @@ func (d *Driver) readEvents() (e []Event, err error) {
 		switch ev.(type) {
 		case UnknownCsiEvent, UnknownSs3Event, UnknownEvent:
 			// If the sequence is not recognized by the parser, try looking it up.
-			if k, ok := d.parser.LookupSequence(string(buf[i : i+nb])); ok {
+			if k, ok := d.table[string(buf[i:i+nb])]; ok {
 				ev = KeyDownEvent(k)
 			}
 		case PasteStartEvent:

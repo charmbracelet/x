@@ -1,10 +1,10 @@
 package input
 
 import (
-	"strconv"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
+	"github.com/charmbracelet/x/exp/term/ansi/parser"
 	"github.com/erikgeiser/coninput"
 )
 
@@ -81,32 +81,12 @@ const (
 	FlagFKeys
 )
 
-// EventParser represents a parser for input events.
-type EventParser struct {
-	table map[string]Key
-	flags int
-}
+var flags int
 
-// NewEventParser returns a new EventParser.
-// The term argument along with FlagTerminfo are used to read Terminfo
-// databases to overwrite the default key sequences. If an empty string is
-// passed, the driver will not use Terminfo databases.
-// Other flags control the behavior of the parser.
-func NewEventParser(term string, flags int) *EventParser {
-	return &EventParser{
-		table: buildKeysTable(flags, term),
-		flags: flags,
-	}
-}
-
-// LookupSequence looks up a key sequence in the parser's table and returns the
-// corresponding key.
-func (p EventParser) LookupSequence(seq string) (Key, bool) {
-	if p.table == nil {
-		return Key{}, false
-	}
-	k, ok := p.table[seq]
-	return k, ok
+// SetFlags sets the flags for the parser.
+// This will control the behavior of ParseSequence.
+func SetFlags(f int) {
+	flags = f
 }
 
 // ParseSequence finds the first recognized event sequence and returns it along
@@ -114,7 +94,7 @@ func (p EventParser) LookupSequence(seq string) (Key, bool) {
 //
 // It will return zero and nil no sequence is recognized or when the buffer is
 // empty. If a sequence is not supported, an UnknownEvent is returned.
-func (p EventParser) ParseSequence(buf []byte) (n int, e Event) {
+func ParseSequence(buf []byte) (n int, e Event) {
 	if len(buf) == 0 {
 		return 0, nil
 	}
@@ -128,17 +108,17 @@ func (p EventParser) ParseSequence(buf []byte) (n int, e Event) {
 
 		switch b := buf[1]; b {
 		case 'O': // Esc-prefixed SS3
-			return p.parseSs3(buf)
+			return parseSs3(buf)
 		case 'P': // Esc-prefixed DCS
-			return p.parseDcs(buf)
+			return parseDcs(buf)
 		case '[': // Esc-prefixed CSI
-			return p.parseCsi(buf)
+			return parseCsi(buf)
 		case ']': // Esc-prefixed OSC
-			return p.parseOsc(buf)
+			return parseOsc(buf)
 		case '_': // Esc-prefixed APC
-			return p.parseApc(buf)
+			return parseApc(buf)
 		default:
-			n, e := p.ParseSequence(buf[1:])
+			n, e := ParseSequence(buf[1:])
 			if k, ok := e.(KeyDownEvent); ok && !k.Mod.IsAlt() {
 				k.Mod |= Alt
 				return n + 1, k
@@ -149,147 +129,154 @@ func (p EventParser) ParseSequence(buf []byte) (n int, e Event) {
 			return 1, KeyDownEvent{Sym: KeyEscape}
 		}
 	case ansi.SS3:
-		return p.parseSs3(buf)
+		return parseSs3(buf)
 	case ansi.DCS:
-		return p.parseDcs(buf)
+		return parseDcs(buf)
 	case ansi.CSI:
-		return p.parseCsi(buf)
+		return parseCsi(buf)
 	case ansi.OSC:
-		return p.parseOsc(buf)
+		return parseOsc(buf)
 	case ansi.APC:
-		return p.parseApc(buf)
+		return parseApc(buf)
 	default:
 		if b <= ansi.US || b == ansi.DEL || b == ansi.SP {
-			return 1, p.parseControl(b)
+			return 1, parseControl(b)
 		} else if b >= ansi.PAD && b <= ansi.APC {
 			// C1 control code
 			// UTF-8 never starts with a C1 control code
 			// Encode these as Ctrl+Alt+<code - 0x40>
 			return 1, KeyDownEvent{Rune: rune(b) - 0x40, Mod: Ctrl | Alt}
 		}
-		return p.parseUtf8(buf)
+		return parseUtf8(buf)
 	}
 }
 
-func (p *EventParser) parseCsi(b []byte) (int, Event) {
+func parseCsi(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+[ key
 		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
 	}
 
-	var seq []byte
+	var params [16]int
+	csi := ansi.CsiSequence{Params: params[:]}
+
 	var i int
 	if b[i] == ansi.CSI || b[i] == ansi.ESC {
-		seq = append(seq, b[i])
 		i++
 	}
 	if i < len(b) && b[i-1] == ansi.ESC && b[i] == '[' {
-		seq = append(seq, b[i])
 		i++
 	}
 
 	// Initial CSI byte
-	var initial byte
-
-	// Scan parameter bytes in the range 0x30-0x3F
-	start := -11 // start of the parameter bytes
-	for j := 0; i < len(b) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
-		if j == 0 {
-			initial = b[i]
-			start = i
-		}
-		seq = append(seq, b[i])
+	if b[i] >= '<' && b[i] <= '?' {
+		csi.Cmd |= int(b[i]) << parser.MarkerShift
 	}
 
-	end := i
+	// Scan parameter bytes in the range 0x30-0x3F
+	var j int
+	for j = 0; i < len(b) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
+		if b[i] >= '0' && b[i] <= '9' {
+			if csi.Params[csi.ParamsLen] == parser.MissingParam {
+				csi.Params[csi.ParamsLen] = 0
+			}
+			csi.Params[csi.ParamsLen] *= 10
+			csi.Params[csi.ParamsLen] += int(b[i]) - '0'
+		}
+		if b[i] == ':' {
+			csi.Params[csi.ParamsLen] |= parser.HasMoreFlag
+		}
+		if b[i] == ';' || b[i] == ':' {
+			csi.ParamsLen++
+			csi.Params[csi.ParamsLen] = parser.MissingParam
+		}
+	}
 
-	var params []byte
-	if start > 0 && end > start {
-		params = b[start:end]
+	if j > 0 {
+		// has parameters
+		csi.ParamsLen++
 	}
 
 	// Scan intermediate bytes in the range 0x20-0x2F
+	var intermed byte
 	for ; i < len(b) && b[i] >= 0x20 && b[i] <= 0x2F; i++ {
-		seq = append(seq, b[i])
+		intermed = b[i]
 	}
 
-	// Final byte
-	var final byte
+	// Set the intermediate byte
+	csi.Cmd |= int(intermed) << parser.IntermedShift
 
 	// Scan final byte in the range 0x40-0x7E
 	if i >= len(b) || b[i] < 0x40 || b[i] > 0x7E {
 		// Special case for URxvt keys
 		// CSI <number> $ is an invalid sequence, but URxvt uses it for
 		// shift modified keys.
-		if seq[i-1] == '$' {
-			n, ev := p.parseCsi(append(seq[:i-1], '~'))
+		if b[i-1] == '$' {
+			n, ev := parseCsi(append(b[:i-1], '~'))
 			if k, ok := ev.(KeyDownEvent); ok {
 				k.Mod |= Shift
 				return n, k
 			}
 		}
-		return len(seq), UnknownEvent(seq)
+		return i, UnknownEvent(b[i-1])
 	}
+
 	// Add the final byte
-	final = b[i]
-	seq = append(seq, b[i])
+	csi.Cmd |= int(b[i])
 	i++
 
-	switch initial {
+	marker, cmd := csi.Marker(), csi.Command()
+	switch marker {
 	case '?':
-		switch final {
+		switch cmd {
 		case 'c':
 			// Primary Device Attributes
-			params := ansi.Params(params)
-			return len(seq), parsePrimaryDevAttrs(params)
+			return i, parsePrimaryDevAttrs(&csi)
 		case 'u':
 			// Kitty keyboard flags
-			params := ansi.Params(params)
-			if len(params) == 0 {
-				return len(seq), UnknownCsiEvent(seq)
+			if param := csi.Param(0); param != -1 {
+				return i, KittyKeyboardEvent(param)
 			}
-			return len(seq), KittyKeyboardEvent(params[0][0])
+			fallthrough
 		default:
-			return len(seq), UnknownCsiEvent(seq)
+			return i, UnknownCsiEvent(b[:i])
 		}
 	case '<':
-		switch final {
+		switch cmd {
 		case 'm', 'M':
 			// Handle SGR mouse
-			params := ansi.Params(params)
-			if len(params) != 3 {
-				return len(seq), UnknownCsiEvent(seq)
+			if csi.ParamsLen != 3 {
+				return i, UnknownCsiEvent(b[:i])
 			}
-			return len(seq), parseSGRMouseEvent(params, final)
+			return i, parseSGRMouseEvent(&csi)
 		default:
-			return len(seq), UnknownCsiEvent(seq)
+			return i, UnknownCsiEvent(b[:i])
 		}
 	case '>':
-		switch final {
+		switch cmd {
 		case 'm':
 			// XTerm modifyOtherKeys
-			params := ansi.Params(params)
-			if len(params) != 2 || params[0][0] != 4 {
-				return len(seq), UnknownCsiEvent(seq)
+			if csi.ParamsLen != 2 || csi.Param(0) != 4 {
+				return i, UnknownCsiEvent(b[:i])
 			}
 
-			return len(seq), ModifyOtherKeysEvent(params[1][0])
+			return i, ModifyOtherKeysEvent(csi.Param(1))
 		default:
-			return len(seq), UnknownCsiEvent(seq)
+			return i, UnknownCsiEvent(b[:i])
 		}
 	case '=':
 		// We don't support any of these yet
-		return len(seq), UnknownCsiEvent(seq)
+		return i, UnknownCsiEvent(b[:i])
 	}
 
-	switch final {
+	switch cmd := csi.Command(); cmd {
 	case 'a', 'b', 'c', 'd', 'A', 'B', 'C', 'D', 'E', 'F', 'H', 'P', 'Q', 'R', 'S', 'Z':
 		var k KeyDownEvent
-		switch final {
+		switch cmd {
 		case 'a', 'b', 'c', 'd':
-			k = KeyDownEvent{Sym: KeyUp + KeySym(final-'a'), Mod: Shift}
+			k = KeyDownEvent{Sym: KeyUp + KeySym(cmd-'a'), Mod: Shift}
 		case 'A', 'B', 'C', 'D':
-			k = KeyDownEvent{Sym: KeyUp + KeySym(final-'A')}
+			k = KeyDownEvent{Sym: KeyUp + KeySym(cmd-'A')}
 		case 'E':
 			k = KeyDownEvent{Sym: KeyBegin}
 		case 'F':
@@ -297,82 +284,79 @@ func (p *EventParser) parseCsi(b []byte) (int, Event) {
 		case 'H':
 			k = KeyDownEvent{Sym: KeyHome}
 		case 'P', 'Q', 'R', 'S':
-			k = KeyDownEvent{Sym: KeyF1 + KeySym(final-'P')}
+			k = KeyDownEvent{Sym: KeyF1 + KeySym(cmd-'P')}
 		case 'Z':
 			k = KeyDownEvent{Sym: KeyTab, Mod: Shift}
 		}
-		if len(params) > 0 {
-			params := ansi.Params(params)
+		if csi.ParamsLen > 0 {
 			// CSI 1 ; <modifiers> A
-			if len(params) > 1 {
-				k.Mod |= KeyMod(params[1][0] - 1)
+			if csi.ParamsLen > 1 {
+				k.Mod |= KeyMod(csi.Param(1) - 1)
 			}
 		}
-		return len(seq), k
+		return i, k
 	case 'M':
 		// Handle X10 mouse
 		if i+3 > len(b) {
-			return len(seq), UnknownCsiEvent(seq)
+			return i, UnknownCsiEvent(b[:i])
 		}
-		return len(seq) + 3, parseX10MouseEvent(append(seq, b[i:i+3]...))
+		return i + 3, parseX10MouseEvent(append(b[:i], b[i:i+3]...))
 	case 'u':
 		// Kitty keyboard protocol
-		params := ansi.Params(params)
-		if len(params) == 0 {
-			return len(seq), UnknownCsiEvent(seq)
+		if csi.ParamsLen == 0 {
+			return i, UnknownCsiEvent(b[:i])
 		}
-		return len(seq), parseKittyKeyboard(params)
+		return i, parseKittyKeyboard(&csi)
 	case '_':
 		// Win32 Input Mode
-		params := ansi.Params(params)
-		if len(params) != 6 {
-			return len(seq), UnknownCsiEvent(seq)
+		if csi.ParamsLen != 6 {
+			return i, UnknownCsiEvent(b[:i])
 		}
 
-		rc := uint16(params[5][0])
+		rc := uint16(csi.Param(5))
 		if rc == 0 {
 			rc = 1
 		}
 
 		event := parseWin32InputKeyEvent(
-			coninput.VirtualKeyCode(params[0][0]),  // Vk wVirtualKeyCode
-			coninput.VirtualKeyCode(params[1][0]),  // Sc wVirtualScanCode
-			rune(params[2][0]),                     // Uc UnicodeChar
-			params[3][0] == 1,                      // Kd bKeyDown
-			coninput.ControlKeyState(params[4][0]), // Cs dwControlKeyState
+			coninput.VirtualKeyCode(csi.Param(0)),  // Vk wVirtualKeyCode
+			coninput.VirtualKeyCode(csi.Param(1)),  // Sc wVirtualScanCode
+			rune(csi.Param(2)),                     // Uc UnicodeChar
+			csi.Param(3) == 1,                      // Kd bKeyDown
+			coninput.ControlKeyState(csi.Param(4)), // Cs dwControlKeyState
 			rc,                                     // Rc wRepeatCount
 		)
 
 		if event == nil {
-			return len(seq), UnknownCsiEvent(seq)
+			return i, UnknownCsiEvent(b[:])
 		}
 
-		return len(seq), event
+		return i, event
 	case '@', '^', '~':
-		params := ansi.Params(params)
-		if len(params) == 0 {
-			return len(seq), UnknownCsiEvent(seq)
+		if csi.ParamsLen == 0 {
+			return i, UnknownCsiEvent(b[:i])
 		}
 
-		switch final {
+		param := csi.Param(0)
+		switch cmd {
 		case '~':
-			switch params[0][0] {
+			switch param {
 			case 27:
 				// XTerm modifyOtherKeys 2
-				if len(params) != 3 {
-					return len(seq), UnknownCsiEvent(seq)
+				if csi.ParamsLen != 3 {
+					return i, UnknownCsiEvent(b[:i])
 				}
-				return len(seq), parseXTermModifyOtherKeys(params)
+				return i, parseXTermModifyOtherKeys(&csi)
 			case 200:
 				// bracketed-paste start
-				return len(seq), PasteStartEvent{}
+				return i, PasteStartEvent{}
 			case 201:
 				// bracketed-paste end
-				return len(seq), PasteEndEvent{}
+				return i, PasteEndEvent{}
 			}
 		}
 
-		switch params[0][0] {
+		switch param {
 		case 1, 2, 3, 4, 5, 6, 7, 8:
 			fallthrough
 		case 11, 12, 13, 14, 15:
@@ -381,10 +365,9 @@ func (p *EventParser) parseCsi(b []byte) (int, Event) {
 			fallthrough
 		case 28, 29, 31, 32, 33, 34:
 			var k KeyDownEvent
-			v := params[0][0]
-			switch v {
+			switch param {
 			case 1:
-				if p.flags&FlagFind != 0 {
+				if flags&FlagFind != 0 {
 					k = KeyDownEvent{Sym: KeyFind}
 				} else {
 					k = KeyDownEvent{Sym: KeyHome}
@@ -394,7 +377,7 @@ func (p *EventParser) parseCsi(b []byte) (int, Event) {
 			case 3:
 				k = KeyDownEvent{Sym: KeyDelete}
 			case 4:
-				if p.flags&FlagSelect != 0 {
+				if flags&FlagSelect != 0 {
 					k = KeyDownEvent{Sym: KeySelect}
 				} else {
 					k = KeyDownEvent{Sym: KeyEnd}
@@ -408,86 +391,76 @@ func (p *EventParser) parseCsi(b []byte) (int, Event) {
 			case 8:
 				k = KeyDownEvent{Sym: KeyEnd}
 			case 11, 12, 13, 14, 15:
-				k = KeyDownEvent{Sym: KeyF1 + KeySym(v-11)}
+				k = KeyDownEvent{Sym: KeyF1 + KeySym(param-11)}
 			case 17, 18, 19, 20, 21:
-				k = KeyDownEvent{Sym: KeyF6 + KeySym(v-17)}
+				k = KeyDownEvent{Sym: KeyF6 + KeySym(param-17)}
 			case 23, 24, 25, 26:
-				k = KeyDownEvent{Sym: KeyF11 + KeySym(v-23)}
+				k = KeyDownEvent{Sym: KeyF11 + KeySym(param-23)}
 			case 28, 29:
-				k = KeyDownEvent{Sym: KeyF15 + KeySym(v-28)}
+				k = KeyDownEvent{Sym: KeyF15 + KeySym(param-28)}
 			case 31, 32, 33, 34:
-				k = KeyDownEvent{Sym: KeyF17 + KeySym(v-31)}
+				k = KeyDownEvent{Sym: KeyF17 + KeySym(param-31)}
 			}
 
 			// modifiers
-			if len(params) > 1 {
-				k.Mod |= KeyMod(params[1][0] - 1)
+			if csi.ParamsLen > 1 {
+				k.Mod |= KeyMod(csi.Param(1) - 1)
 			}
 
 			// Handle URxvt weird keys
-			switch final {
+			switch cmd {
 			case '^':
 				k.Mod |= Ctrl
 			case '@':
 				k.Mod |= Ctrl | Shift
 			}
 
-			return len(seq), k
+			return i, k
 		}
 	}
-	return len(seq), UnknownCsiEvent(seq)
+	return i, UnknownCsiEvent(b[:i])
 }
 
 // parseSs3 parses a SS3 sequence.
 // See https://vt100.net/docs/vt220-rm/chapter4.html#S4.4.4.2
-func (p *EventParser) parseSs3(b []byte) (int, Event) {
+func parseSs3(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+O key
 		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
 	}
 
-	var seq []byte
 	var i int
 	if b[i] == ansi.SS3 || b[i] == ansi.ESC {
-		seq = append(seq, b[i])
 		i++
 	}
 	if i < len(b) && b[i-1] == ansi.ESC && b[i] == 'O' {
-		seq = append(seq, b[i])
 		i++
 	}
 
 	// Scan numbers from 0-9
-	start := -1
-	for ; i < len(b) && b[i] >= 0x30 && b[i] <= 0x39; i++ {
-		if start == -1 {
-			start = i
-		}
-		seq = append(seq, b[i])
-	}
-	end := i
-
-	var mod []byte
-	if start > 0 && end > start {
-		mod = b[start:end]
+	var mod int
+	for ; i < len(b) && b[i] >= '0' && b[i] <= '9'; i++ {
+		mod *= 10
+		mod += int(b[i]) - '0'
 	}
 
 	// Scan a GL character
 	// A GL character is a single byte in the range 0x21-0x7E
 	// See https://vt100.net/docs/vt220-rm/chapter2.html#S2.3.2
 	if i >= len(b) || b[i] < 0x21 || b[i] > 0x7E {
-		return len(seq), UnknownEvent(seq)
+		return i, UnknownEvent(b[:i])
 	}
 
-	// Add the GL character
-	seq = append(seq, b[i])
+	// GL character(s)
+	gl := b[i]
+	i++
 
 	var k KeyDownEvent
-	switch b[i] {
+	switch gl {
 	case 'a', 'b', 'c', 'd':
-		k = KeyDownEvent{Sym: KeyUp + KeySym(b[i]-'a'), Mod: Ctrl}
+		k = KeyDownEvent{Sym: KeyUp + KeySym(gl-'a'), Mod: Ctrl}
 	case 'A', 'B', 'C', 'D':
-		k = KeyDownEvent{Sym: KeyUp + KeySym(b[i]-'A')}
+		k = KeyDownEvent{Sym: KeyUp + KeySym(gl-'A')}
 	case 'E':
 		k = KeyDownEvent{Sym: KeyBegin}
 	case 'F':
@@ -495,103 +468,102 @@ func (p *EventParser) parseSs3(b []byte) (int, Event) {
 	case 'H':
 		k = KeyDownEvent{Sym: KeyHome}
 	case 'P', 'Q', 'R', 'S':
-		k = KeyDownEvent{Sym: KeyF1 + KeySym(b[i]-'P')}
+		k = KeyDownEvent{Sym: KeyF1 + KeySym(gl-'P')}
 	case 'M':
 		k = KeyDownEvent{Sym: KeyKpEnter}
 	case 'X':
 		k = KeyDownEvent{Sym: KeyKpEqual}
 	case 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y':
-		k = KeyDownEvent{Sym: KeyKpMultiply + KeySym(b[i]-'j')}
+		k = KeyDownEvent{Sym: KeyKpMultiply + KeySym(gl-'j')}
 	default:
-		return len(seq), UnknownSs3Event(seq)
+		return i, UnknownSs3Event(b[:i])
 	}
 
 	// Handle weird SS3 <modifier> Func
-	if len(mod) > 0 {
-		m, err := strconv.Atoi(string(mod))
-		if err == nil {
-			k.Mod |= KeyMod(m - 1)
-		}
+	if mod > 0 {
+		k.Mod |= KeyMod(mod - 1)
 	}
 
-	return len(seq), k
+	return i, k
 }
 
-func (p *EventParser) parseOsc(b []byte) (int, Event) {
+func parseOsc(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+] key
 		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
 	}
 
-	var seq []byte
 	var i int
 	if b[i] == ansi.OSC || b[i] == ansi.ESC {
-		seq = append(seq, b[i])
 		i++
 	}
 	if i < len(b) && b[i-1] == ansi.ESC && b[i] == ']' {
-		seq = append(seq, b[i])
 		i++
 	}
 
-	// Scan a OSC sequence
+	// Parse OSC command
 	// An OSC sequence is terminated by a BEL, ESC, or ST character
 	var start, end int
-	var dstart, dend int
-	for j := 0; i < len(b) && b[i] != ansi.BEL && b[i] != ansi.ESC && b[i] != ansi.ST; i, j = i+1, j+1 {
-		if end != 0 && dstart == 0 {
-			dstart = i
+	cmd := -1
+	for ; i < len(b) && b[i] >= '0' && b[i] <= '9'; i++ {
+		if cmd == -1 {
+			cmd = 0
+		} else {
+			cmd *= 10
 		}
-		if j == 0 {
-			start = i
-		}
-		if b[i] == ';' {
-			end = i
-		}
-		seq = append(seq, b[i])
+		cmd += int(b[i]) - '0'
 	}
 
-	dend = i
+	if b[i] == ';' {
+		// mark the start of the sequence data
+		i++
+		start = i
+	}
+
+	for ; i < len(b); i++ {
+		// advance to the end of the sequence
+		if b[i] == ansi.BEL || b[i] == ansi.ESC || b[i] == ansi.ST {
+			break
+		}
+	}
 
 	if i >= len(b) {
-		return len(seq), UnknownEvent(seq)
+		return i, UnknownEvent(b[:i])
 	}
-	seq = append(seq, b[i])
+
+	end = i // end of the sequence data
+	i++
 
 	// Check 7-bit ST (string terminator) character
-	if len(b) > i+1 && b[i] == ansi.ESC && b[i+1] == '\\' {
+	if i < len(b) && b[i-1] == ansi.ESC && b[i] == '\\' {
 		i++
-		seq = append(seq, b[i])
 	}
 
-	if end <= start || dend <= dstart {
-		return len(seq), UnknownOscEvent(seq)
+	if end <= start {
+		return i, UnknownOscEvent(b[:i])
 	}
 
-	data := string(b[dstart:dend])
-	switch string(seq[start:end]) {
-	case "10":
-		return len(seq), ForegroundColorEvent{xParseColor(data)}
-	case "11":
-		return len(seq), BackgroundColorEvent{xParseColor(data)}
-	case "12":
-		return len(seq), CursorColorEvent{xParseColor(data)}
+	data := string(b[start:end])
+	switch cmd {
+	case 10:
+		return i, ForegroundColorEvent{xParseColor(data)}
+	case 11:
+		return i, BackgroundColorEvent{xParseColor(data)}
+	case 12:
+		return i, CursorColorEvent{xParseColor(data)}
 	default:
-		return len(seq), UnknownOscEvent(seq)
+		return i, UnknownOscEvent(b[:i])
 	}
 }
 
 // parseStTerminated parses a control sequence that gets terminated by a ST character.
-func (p *EventParser) parseStTerminated(intro8, intro7 byte) func([]byte) (int, Event) {
+func parseStTerminated(intro8, intro7 byte) func([]byte) (int, Event) {
 	return func(b []byte) (int, Event) {
-		var seq []byte
 		var i int
 		if b[i] == intro8 || b[i] == ansi.ESC {
-			seq = append(seq, b[i])
 			i++
 		}
 		if i < len(b) && b[i-1] == ansi.ESC && b[i] == intro7 {
-			seq = append(seq, b[i])
 			i++
 		}
 
@@ -599,131 +571,128 @@ func (p *EventParser) parseStTerminated(intro8, intro7 byte) func([]byte) (int, 
 		// Most common control sequence is terminated by a ST character
 		// ST is a 7-bit string terminator character is (ESC \)
 		for ; i < len(b) && b[i] != ansi.ST && b[i] != ansi.ESC; i++ {
-			seq = append(seq, b[i])
 		}
 
 		if i >= len(b) {
 			switch intro8 {
 			case ansi.DCS:
-				return len(seq), UnknownDcsEvent(seq)
+				return i, UnknownDcsEvent(b[:i])
 			case ansi.APC:
-				return len(seq), UnknownApcEvent(seq)
+				return i, UnknownApcEvent(b[:i])
 			default:
-				return len(seq), UnknownEvent(seq)
+				return i, UnknownEvent(b[:i])
 			}
 		}
-		seq = append(seq, b[i])
+		i++
 
 		// Check 7-bit ST (string terminator) character
-		if len(b) > i+1 && b[i] == ansi.ESC && b[i+1] == '\\' {
+		if i < len(b) && b[i-1] == ansi.ESC && b[i] == '\\' {
 			i++
-			seq = append(seq, b[i])
 		}
 
 		switch intro8 {
 		case ansi.DCS:
-			return len(seq), UnknownDcsEvent(seq)
+			return i, UnknownDcsEvent(b[:i])
 		case ansi.APC:
-			return len(seq), UnknownApcEvent(seq)
+			return i, UnknownApcEvent(b[:i])
 		default:
-			return len(seq), UnknownEvent(seq)
+			return i, UnknownEvent(b[:i])
 		}
 	}
 }
 
-func (p *EventParser) parseDcs(b []byte) (int, Event) {
+func parseDcs(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+P key
 		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
 	}
 
+	var params [16]int
+	dcs := ansi.DcsSequence{Params: params[:]}
+
 	// DCS sequences are introduced by DCS (0x90) or ESC P (0x1b 0x50)
-	var seq []byte
 	var i int
 	if b[i] == ansi.DCS || b[i] == ansi.ESC {
-		seq = append(seq, b[i])
 		i++
 	}
 	if i < len(b) && b[i-1] == ansi.ESC && b[i] == 'P' {
-		seq = append(seq, b[i])
 		i++
+	}
+
+	// initial DCS byte
+	if b[i] >= '<' && b[i] <= '?' {
+		dcs.Cmd |= int(b[i]) << parser.MarkerShift
 	}
 
 	// Scan parameter bytes in the range 0x30-0x3F
-	var start, end int // start and end of the parameter bytes
-	for j := 0; i < len(b) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
-		if j == 0 {
-			start = i
+	var j int
+	for j = 0; i < len(b) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
+		if b[i] >= '0' && b[i] <= '9' {
+			if dcs.Params[dcs.ParamsLen] == parser.MissingParam {
+				dcs.Params[dcs.ParamsLen] = 0
+			}
+			dcs.Params[dcs.ParamsLen] *= 10
+			dcs.Params[dcs.ParamsLen] += int(b[i]) - '0'
 		}
-		seq = append(seq, b[i])
+		if b[i] == ':' {
+			dcs.Params[dcs.ParamsLen] |= parser.HasMoreFlag
+		}
+		if b[i] == ';' || b[i] == ':' {
+			dcs.ParamsLen++
+			dcs.Params[dcs.ParamsLen] = parser.MissingParam
+		}
 	}
 
-	end = i
+	if j > 0 {
+		// has parameters
+		dcs.ParamsLen++
+	}
 
 	// Scan intermediate bytes in the range 0x20-0x2F
-	var istart, iend int
+	var intermed byte
 	for j := 0; i < len(b) && b[i] >= 0x20 && b[i] <= 0x2F; i, j = i+1, j+1 {
-		if j == 0 {
-			istart = i
-		}
-		seq = append(seq, b[i])
+		intermed = b[i]
 	}
 
-	iend = i
-
-	// Final byte
-	var final byte
+	// set intermediate byte
+	dcs.Cmd |= int(intermed) << parser.IntermedShift
 
 	// Scan final byte in the range 0x40-0x7E
 	if i >= len(b) || b[i] < 0x40 || b[i] > 0x7E {
-		return len(seq), UnknownEvent(seq)
+		return i, UnknownEvent(b[:i])
 	}
+
 	// Add the final byte
-	final = b[i]
-	seq = append(seq, b[i])
+	dcs.Cmd |= int(b[i])
+	i++
 
-	if i+1 >= len(b) {
-		return len(seq), UnknownEvent(seq)
-	}
-
-	// Collect data bytes until a ST character is found
-	// data bytes are in the range of 0x08-0x0D and 0x20-0x7F
-	// but we don't care about the actual values for now
-	var data []byte
-	for i++; i < len(b) && b[i] != ansi.ST && b[i] != ansi.ESC; i++ {
-		data = append(data, b[i])
-		seq = append(seq, b[i])
+	start := i // start of the sequence data
+	for ; i < len(b); i++ {
+		if b[i] == ansi.ST || b[i] == ansi.ESC {
+			break
+		}
 	}
 
 	if i >= len(b) {
-		return len(seq), UnknownEvent(seq)
+		return i, UnknownEvent(b[:i])
 	}
 
-	seq = append(seq, b[i])
+	end := i // end of the sequence data
+	i++
 
 	// Check 7-bit ST (string terminator) character
-	if len(b) > i+1 && b[i] == ansi.ESC && b[i+1] == '\\' {
+	if i < len(b) && b[i-1] == ansi.ESC && b[i] == '\\' {
 		i++
-		seq = append(seq, b[i])
 	}
 
-	switch final {
+	switch cmd := dcs.Command(); cmd {
 	case 'r':
-		inters := b[istart:iend] // intermediates
-		if len(inters) == 0 {
-			return len(seq), UnknownDcsEvent(seq)
-		}
-		switch inters[0] {
+		switch dcs.Intermediate() {
 		case '+':
 			// XTGETTCAP responses
-			params := ansi.Params(b[start:end])
-			if len(params) == 0 {
-				return len(seq), UnknownDcsEvent(seq)
-			}
-
-			switch params[0][0] {
+			switch param := dcs.Param(0); param {
 			case 0, 1:
-				tc := parseTermcap(data)
+				tc := parseTermcap(b[start:end])
 				// XXX: some terminals like KiTTY report invalid responses with
 				// their queries i.e. sending a query for "Tc" using "\x1bP+q5463\x1b\\"
 				// returns "\x1bP0+r5463\x1b\\".
@@ -731,26 +700,26 @@ func (p *EventParser) parseDcs(b []byte) (int, Event) {
 				// DCS 0 + r ST "\x1bP0+r\x1b\\"
 				//
 				// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
-				tc.IsValid = params[0][0] == 1
-				return len(seq), tc
+				tc.IsValid = param == 1
+				return i, tc
 			}
 		}
 	}
 
-	return len(seq), UnknownDcsEvent(seq)
+	return i, UnknownDcsEvent(b[:i])
 }
 
-func (p *EventParser) parseApc(b []byte) (int, Event) {
+func parseApc(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+_ key
 		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
 	}
 
 	// APC sequences are introduced by APC (0x9f) or ESC _ (0x1b 0x5f)
-	return p.parseStTerminated(ansi.APC, '_')(b)
+	return parseStTerminated(ansi.APC, '_')(b)
 }
 
-func (p *EventParser) parseUtf8(b []byte) (int, Event) {
+func parseUtf8(b []byte) (int, Event) {
 	r, rw := utf8.DecodeRune(b)
 	if r == utf8.RuneError || r <= ansi.US || r == ansi.DEL || r == ansi.SP {
 		// Control codes get handled by parseControl
@@ -759,32 +728,32 @@ func (p *EventParser) parseUtf8(b []byte) (int, Event) {
 	return rw, KeyDownEvent{Rune: r}
 }
 
-func (p *EventParser) parseControl(b byte) Event {
+func parseControl(b byte) Event {
 	switch b {
 	case ansi.NUL:
-		if p.flags&FlagCtrlAt != 0 {
+		if flags&FlagCtrlAt != 0 {
 			return KeyDownEvent{Rune: '@', Mod: Ctrl}
 		}
 		return KeyDownEvent{Rune: ' ', Sym: KeySpace, Mod: Ctrl}
 	case ansi.BS:
 		return KeyDownEvent{Rune: 'h', Mod: Ctrl}
 	case ansi.HT:
-		if p.flags&FlagCtrlI != 0 {
+		if flags&FlagCtrlI != 0 {
 			return KeyDownEvent{Rune: 'i', Mod: Ctrl}
 		}
 		return KeyDownEvent{Sym: KeyTab}
 	case ansi.CR:
-		if p.flags&FlagCtrlM != 0 {
+		if flags&FlagCtrlM != 0 {
 			return KeyDownEvent{Rune: 'm', Mod: Ctrl}
 		}
 		return KeyDownEvent{Sym: KeyEnter}
 	case ansi.ESC:
-		if p.flags&FlagCtrlOpenBracket != 0 {
+		if flags&FlagCtrlOpenBracket != 0 {
 			return KeyDownEvent{Rune: '[', Mod: Ctrl}
 		}
 		return KeyDownEvent{Sym: KeyEscape}
 	case ansi.DEL:
-		if p.flags&FlagBackspace != 0 {
+		if flags&FlagBackspace != 0 {
 			return KeyDownEvent{Sym: KeyDelete}
 		}
 		return KeyDownEvent{Sym: KeyBackspace}

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
+	"github.com/charmbracelet/x/exp/term/ansi/parser"
 )
 
 func TestMouseEvent_String(t *testing.T) {
@@ -305,17 +306,21 @@ func TestParseX10MouseDownEvent(t *testing.T) {
 }
 
 func TestParseSGRMouseEvent(t *testing.T) {
-	encode := func(b, x, y int, r bool) []byte {
+	encode := func(b, x, y int, r bool) *ansi.CsiSequence {
 		re := 'M'
 		if r {
 			re = 'm'
 		}
-		return []byte(fmt.Sprintf("\x1b[<%d;%d;%d%c", b, x+1, y+1, re))
+		return &ansi.CsiSequence{
+			Params:    []int{b, x + 1, y + 1},
+			ParamsLen: 3,
+			Cmd:       int(re) | ('<' << parser.MarkerShift),
+		}
 	}
 
 	tt := []struct {
 		name     string
-		buf      []byte
+		buf      *ansi.CsiSequence
 		expected Event
 	}{
 		// Position.
@@ -457,9 +462,7 @@ func TestParseSGRMouseEvent(t *testing.T) {
 		tc := tt[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-			final := tc.buf[len(tc.buf)-1]
-			params := ansi.Params(tc.buf)
-			actual := parseSGRMouseEvent(params, final)
+			actual := parseSGRMouseEvent(tc.buf)
 			if tc.expected != actual {
 				t.Fatalf("expected %#v but got %#v",
 					tc.expected,
