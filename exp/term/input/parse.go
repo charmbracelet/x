@@ -169,13 +169,13 @@ func parseCsi(b []byte) (int, Event) {
 	}
 
 	// Initial CSI byte
-	if b[i] >= '<' && b[i] <= '?' {
+	if i < len(b) && b[i] >= '<' && b[i] <= '?' {
 		csi.Cmd |= int(b[i]) << parser.MarkerShift
 	}
 
 	// Scan parameter bytes in the range 0x30-0x3F
 	var j int
-	for j = 0; i < len(b) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
+	for j = 0; i < len(b) && i < len(params) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
 		if b[i] >= '0' && b[i] <= '9' {
 			if csi.Params[csi.ParamsLen] == parser.MissingParam {
 				csi.Params[csi.ParamsLen] = 0
@@ -553,7 +553,7 @@ func parseOsc(b []byte) (int, Event) {
 		cmd += int(b[i]) - '0'
 	}
 
-	if b[i] == ';' {
+	if i < len(b) && b[i] == ';' {
 		// mark the start of the sequence data
 		i++
 		start = i
@@ -660,13 +660,13 @@ func parseDcs(b []byte) (int, Event) {
 	}
 
 	// initial DCS byte
-	if b[i] >= '<' && b[i] <= '?' {
+	if i < len(b) && b[i] >= '<' && b[i] <= '?' {
 		dcs.Cmd |= int(b[i]) << parser.MarkerShift
 	}
 
 	// Scan parameter bytes in the range 0x30-0x3F
 	var j int
-	for j = 0; i < len(b) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
+	for j = 0; i < len(b) && i < len(params) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
 		if b[i] >= '0' && b[i] <= '9' {
 			if dcs.Params[dcs.ParamsLen] == parser.MissingParam {
 				dcs.Params[dcs.ParamsLen] = 0
@@ -761,9 +761,11 @@ func parseApc(b []byte) (int, Event) {
 
 func parseUtf8(b []byte) (int, Event) {
 	r, rw := utf8.DecodeRune(b)
-	if r == utf8.RuneError || r <= ansi.US || r == ansi.DEL || r == ansi.SP {
+	if r <= ansi.US || r == ansi.DEL || r == ansi.SP {
 		// Control codes get handled by parseControl
-		return 0, nil
+		return 1, parseControl(byte(r))
+	} else if r == utf8.RuneError {
+		return 1, UnknownEvent(b[0])
 	}
 	return rw, KeyDownEvent{Rune: r}
 }

@@ -44,15 +44,6 @@ type CsiSequence struct {
 	Cmd int
 }
 
-// NewCsiSequence returns a new CsiSequence with the given parameters size.
-// Use zero to use the default size.
-func NewCsiSequence(size int) CsiSequence {
-	if size <= 0 {
-		size = parser.MaxParamsSize
-	}
-	return CsiSequence{Params: make([]int, size)}
-}
-
 // Marker returns the marker byte of the CSI sequence.
 // This is always gonna be one of the following '<' '=' '>' '?' and in the
 // range of 0x3C-0x3F.

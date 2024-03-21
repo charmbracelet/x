@@ -24,12 +24,6 @@ type OscSequence struct {
 	Cmd int
 }
 
-// NewOscSequence returns a new OscSequence.
-// This is synonym for OscSequence{}.
-func NewOscSequence() OscSequence {
-	return OscSequence{}
-}
-
 // Command returns the command of the OSC sequence.
 func (s OscSequence) Command() int {
 	return s.Cmd

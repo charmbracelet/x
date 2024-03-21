@@ -98,35 +98,14 @@ func buildBaseSeqTests() []seqTest {
 	return td
 }
 
-func TestDetectSequence(t *testing.T) {
+func TestParseSequence(t *testing.T) {
 	td := buildBaseSeqTests()
-	for _, tc := range td {
-		t.Run(fmt.Sprintf("%q", string(tc.seq)), func(t *testing.T) {
-			var events []Event
-			buf := tc.seq
-			for len(buf) > 0 {
-				width, msg := ParseSequence(buf)
-				events = append(events, msg)
-				buf = buf[width:]
-			}
-			if !reflect.DeepEqual(tc.msgs, events) {
-				t.Errorf("\nexpected event:\n    %#v\ngot:\n    %#v", tc.msgs, events)
-			}
-		})
-	}
-}
-
-func TestDetectOneEvent(t *testing.T) {
-	t.Skip("WIP")
-	td := buildBaseSeqTests()
-	// Add tests for the inputs that detectOneEvent() can parse, but
-	// detectSequence() cannot.
 	td = append(td,
 		// Mouse event.
 		seqTest{
 			[]byte{'\x1b', '[', 'M', byte(32) + 0b0100_0000, byte(65), byte(49)},
 			[]Event{
-				MouseDownEvent{X: 32, Y: 16, Button: MouseWheelUp},
+				MouseWheelEvent{X: 32, Y: 16, Button: MouseWheelUp},
 			},
 		},
 		// SGR Mouse event.
@@ -140,34 +119,34 @@ func TestDetectOneEvent(t *testing.T) {
 		seqTest{
 			[]byte{'a'},
 			[]Event{
-				KeyDownEvent{Sym: KeyNone, Rune: 'a'},
+				KeyDownEvent{Rune: 'a'},
 			},
 		},
 		seqTest{
 			[]byte{'\x1b', 'a'},
 			[]Event{
-				KeyDownEvent{Sym: KeyNone, Rune: 'a', Mod: Alt},
+				KeyDownEvent{Rune: 'a', Mod: Alt},
 			},
 		},
 		seqTest{
 			[]byte{'a', 'a', 'a'},
 			[]Event{
-				KeyDownEvent{Sym: KeyNone, Rune: 'a'},
-				KeyDownEvent{Sym: KeyNone, Rune: 'a'},
-				KeyDownEvent{Sym: KeyNone, Rune: 'a'},
+				KeyDownEvent{Rune: 'a'},
+				KeyDownEvent{Rune: 'a'},
+				KeyDownEvent{Rune: 'a'},
 			},
 		},
 		// Multi-byte rune.
 		seqTest{
 			[]byte("☃"),
 			[]Event{
-				KeyDownEvent{Sym: KeyNone, Rune: '☃'},
+				KeyDownEvent{Rune: '☃'},
 			},
 		},
 		seqTest{
 			[]byte("\x1b☃"),
 			[]Event{
-				KeyDownEvent{Sym: KeyNone, Rune: '☃', Mod: Alt},
+				KeyDownEvent{Rune: '☃', Mod: Alt},
 			},
 		},
 		// Standalone control chacters.
@@ -178,34 +157,34 @@ func TestDetectOneEvent(t *testing.T) {
 			},
 		},
 		seqTest{
-			[]byte{byte(ansi.SOH)},
+			[]byte{ansi.SOH},
 			[]Event{
 				KeyDownEvent{Rune: 'a', Mod: Ctrl},
 			},
 		},
 		seqTest{
-			[]byte{'\x1b', byte(ansi.SOH)},
+			[]byte{'\x1b', ansi.SOH},
 			[]Event{
 				KeyDownEvent{Rune: 'a', Mod: Ctrl | Alt},
 			},
 		},
 		seqTest{
-			[]byte{byte(ansi.NUL)},
+			[]byte{ansi.NUL},
 			[]Event{
-				KeyDownEvent{Rune: '@', Mod: Ctrl},
+				KeyDownEvent{Rune: ' ', Sym: KeySpace, Mod: Ctrl},
 			},
 		},
 		seqTest{
-			[]byte{'\x1b', byte(ansi.NUL)},
+			[]byte{'\x1b', ansi.NUL},
 			[]Event{
-				KeyDownEvent{Rune: '@', Mod: Ctrl | Alt},
+				KeyDownEvent{Rune: ' ', Sym: KeySpace, Mod: Ctrl | Alt},
 			},
 		},
-		// Invalid characters.
+		// C1 control characters.
 		seqTest{
 			[]byte{'\x80'},
 			[]Event{
-				UnknownEvent(byte(0x80)),
+				KeyDownEvent{Rune: 0x80 - '@', Mod: Ctrl | Alt},
 			},
 		},
 	)
@@ -216,7 +195,7 @@ func TestDetectOneEvent(t *testing.T) {
 		td = append(td, seqTest{
 			[]byte{'\xfe'},
 			[]Event{
-				UnknownEvent(byte(0xfe)),
+				UnknownEvent(rune(0xfe)),
 			},
 		})
 	}
@@ -231,7 +210,7 @@ func TestDetectOneEvent(t *testing.T) {
 				buf = buf[width:]
 			}
 			if !reflect.DeepEqual(tc.msgs, events) {
-				t.Errorf("expected event %#v (%T), got %#v (%T)", tc.msgs, tc.msgs, events, events)
+				t.Errorf("\nexpected event:\n    %#v\ngot:\n    %#v", tc.msgs, events)
 			}
 		})
 	}
@@ -480,13 +459,16 @@ func TestReadInput(t *testing.T) {
 		{
 			"?0xfe?",
 			[]byte{'\xfe'},
-			nil,
+			[]Event{
+				UnknownEvent(rune(0xfe)),
+			},
 		},
 		{
 			"a ?0xfe?   b",
 			[]byte{'a', '\xfe', ' ', 'b'},
 			[]Event{
 				KeyDownEvent{Sym: KeyNone, Rune: 'a'},
+				UnknownEvent(rune(0xfe)),
 				KeyDownEvent{Sym: KeySpace, Rune: ' '},
 				KeyDownEvent{Sym: KeyNone, Rune: 'b'},
 			},
@@ -509,7 +491,7 @@ func TestReadInput(t *testing.T) {
 			}
 
 			if len(msgs) != len(td.out) {
-				t.Fatalf("unexpected message list length: got %d, expected %d\n%#v", len(msgs), len(td.out), msgs)
+				t.Fatalf("unexpected message list length: got %d, expected %d\n  got: %#v\n  expected: %#v\n", len(msgs), len(td.out), msgs, td.out)
 			}
 
 			if !reflect.DeepEqual(td.out, msgs) {
@@ -518,8 +500,6 @@ func TestReadInput(t *testing.T) {
 		})
 	}
 }
-
-const maxBufferSize = 256
 
 func testReadInputs(t *testing.T, input io.Reader) []Event {
 	// We'll check that the input reader finishes at the end
@@ -667,64 +647,18 @@ func genRandomDataWithSeed(s int64, length int) randTest {
 	return res
 }
 
-// TestDetectRandomSequencesLex checks that the lex-generated sequence
-// detector works over concatenations of random sequences.
-func TestDetectRandomSequencesLex(t *testing.T) {
-	t.Skip("WIP")
-	runTestDetectSequence(t, ParseSequence)
-}
-
-func runTestDetectSequence(
-	t *testing.T, detectSequence func(input []byte) (width int, msg Event),
-) {
-	for i := 0; i < 10; i++ {
-		t.Run("", func(t *testing.T) {
-			td := genRandomData(func(s int64) { t.Logf("using random seed: %d", s) }, 1000)
-
-			t.Logf("%#v", td)
-
-			// tn is the event number in td.
-			// i is the cursor in the input data.
-			// w is the length of the last sequence detected.
-			for tn, i, w := 0, 0, 0; i < len(td.data); tn, i = tn+1, i+w {
-				width, msg := detectSequence(td.data[i:])
-				if width != td.lengths[tn] {
-					t.Errorf("at %d (ev %d): expected width %d, got %d", i, tn, td.lengths[tn], width)
-				}
-				w = width
-
-				s, ok := msg.(fmt.Stringer)
-				if !ok {
-					t.Errorf("at %d (ev %d): expected stringer event, got %T", i, tn, msg)
-				} else {
-					if td.names[tn] != s.String() {
-						t.Errorf("at %d (ev %d): expected event %q, %q, got %q", i, tn, td.names[tn], td.data[i:i+w], s.String())
-					}
-				}
-			}
-		})
-	}
-}
-
-// TestDetectRandomSequences checks that the map-based sequence
-// detector works over concatenations of random sequences.
-func TestDetectRandomSequences(t *testing.T) {
-	t.Skip("WIP")
-	runTestDetectSequence(t, ParseSequence)
-}
-
 func FuzzParseSequence(f *testing.F) {
 	for seq := range sequences {
 		f.Add(seq)
 	}
-	f.Fuzz(func(t *testing.T, a string) {
-		_, k := ParseSequence([]byte(a))
-		v, ok := sequences[a]
-		if !ok {
-			t.Fatalf("unknown sequence: %q", a)
-		}
-		if reflect.DeepEqual(k, v) {
-			t.Errorf("expected %v, got %v", v, k)
+	f.Add("\x1b]52;?\x07")                      // OSC 52
+	f.Add("\x1b]11;rgb:0000/0000/0000\x1b\\")   // OSC 11
+	f.Add("\x1bP>|charm terminal(0.1.2)\x1b\\") // DCS (XTVERSION)
+	f.Add("\x1b_Gi=123\x1b\\")                  // APC
+	f.Fuzz(func(t *testing.T, seq string) {
+		n, _ := ParseSequence([]byte(seq))
+		if n == 0 && seq != "" {
+			t.Errorf("expected a non-zero width for %q", seq)
 		}
 	})
 }

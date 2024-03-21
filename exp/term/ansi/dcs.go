@@ -47,15 +47,6 @@ type DcsSequence struct {
 	Cmd int
 }
 
-// NewDcsSequence returns a new DcsSequence with the given parameters size.
-// Use zero to use the default size.
-func NewDcsSequence(size int) DcsSequence {
-	if size <= 0 {
-		size = parser.MaxParamsSize
-	}
-	return DcsSequence{Params: make([]int, size)}
-}
-
 // Marker returns the marker byte of the DCS sequence.
 // This is always gonna be one of the following '<' '=' '>' '?' and in the
 // range of 0x3C-0x3F.

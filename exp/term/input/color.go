@@ -31,14 +31,19 @@ func (e CursorColorEvent) String() string {
 	return colorToHex(e)
 }
 
+type shiftable interface {
+	~uint | ~uint16 | ~uint32 | ~uint64
+}
+
+func shift[T shiftable](x T) T {
+	if x > 0xff {
+		x >>= 8
+	}
+	return x
+}
+
 func colorToHex(c color.Color) string {
 	r, g, b, _ := c.RGBA()
-	shift := func(x uint32) uint32 {
-		if x > 0xff {
-			x >>= 8
-		}
-		return x
-	}
 	return fmt.Sprintf("#%02x%02x%02x", shift(r), shift(g), shift(b))
 }
 
@@ -54,7 +59,7 @@ func xParseColor(s string) color.Color {
 		g, _ := strconv.ParseUint(parts[1], 16, 32)
 		b, _ := strconv.ParseUint(parts[2], 16, 32)
 
-		return color.RGBA{uint8(r), uint8(g), uint8(b), 255}
+		return color.RGBA{uint8(shift(r)), uint8(shift(g)), uint8(shift(b)), 255}
 	case strings.HasPrefix(s, "rgba:"):
 		parts := strings.Split(s[5:], "/")
 		if len(parts) != 4 {
@@ -66,7 +71,7 @@ func xParseColor(s string) color.Color {
 		b, _ := strconv.ParseUint(parts[2], 16, 32)
 		a, _ := strconv.ParseUint(parts[3], 16, 32)
 
-		return color.RGBA{uint8(r), uint8(g), uint8(b), uint8(a)}
+		return color.RGBA{uint8(shift(r)), uint8(shift(g)), uint8(shift(b)), uint8(shift(a))}
 	}
 	return color.Black
 }
