@@ -196,11 +196,12 @@ func fromKittyMod(mod int) KeyMod {
 	return m
 }
 
-func parseKittyKeyboard(params [][]uint) Event {
+func parseKittyKeyboard(csi *ansi.CsiSequence) Event {
 	var isRelease bool
 	key := Key{}
-	if len(params) > 0 {
-		code := int(params[0][0])
+
+	if params := csi.Subparams(0); len(params) > 0 {
+		code := params[0]
 		if sym, ok := kittyKeyMap[code]; ok {
 			key.Sym = sym
 		} else {
@@ -212,10 +213,10 @@ func parseKittyKeyboard(params [][]uint) Event {
 			key.Rune = r
 
 			// alternate key reporting
-			switch len(params[0]) {
+			switch len(params) {
 			case 3:
 				// shifted key + base key
-				if b := rune(params[0][2]); unicode.IsPrint(b) {
+				if b := rune(params[2]); unicode.IsPrint(b) {
 					// XXX: When alternate key reporting is enabled, the protocol
 					// can return 3 things, the unicode codepoint of the key,
 					// the shifted codepoint of the key, and the standard
@@ -227,7 +228,7 @@ func parseKittyKeyboard(params [][]uint) Event {
 				fallthrough
 			case 2:
 				// shifted key
-				if s := rune(params[0][1]); unicode.IsPrint(s) {
+				if s := rune(params[1]); unicode.IsPrint(s) {
 					// XXX: We swap keys here because we want the shifted key
 					// to be the Rune that is returned by the event.
 					// For example, shift+a should produce "A" not "a".
@@ -239,13 +240,13 @@ func parseKittyKeyboard(params [][]uint) Event {
 			}
 		}
 	}
-	if len(params) > 1 {
-		mod := int(params[1][0])
+	if params := csi.Subparams(1); len(params) > 0 {
+		mod := params[0]
 		if mod > 1 {
-			key.Mod = fromKittyMod(int(params[1][0] - 1))
+			key.Mod = fromKittyMod(mod - 1)
 		}
-		if len(params[1]) > 1 {
-			switch int(params[1][1]) {
+		if len(params) > 1 {
+			switch params[1] {
 			case 2:
 				key.IsRepeat = true
 			case 3:
@@ -254,8 +255,8 @@ func parseKittyKeyboard(params [][]uint) Event {
 		}
 	}
 	// TODO: Associated keys are not support yet.
-	// if len(params) > 2 {
-	// 	r := rune(params[2][0])
+	// if params := csi.Subparams(2); len(params) > 0 {
+	// 	r := rune(params[0])
 	// 	if unicode.IsPrint(r) {
 	// 		key.AltRune = r
 	// 	}

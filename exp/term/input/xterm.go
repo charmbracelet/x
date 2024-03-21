@@ -4,10 +4,10 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi"
 )
 
-func parseXTermModifyOtherKeys(params [][]uint) Event {
+func parseXTermModifyOtherKeys(csi *ansi.CsiSequence) Event {
 	// XTerm modify other keys starts with ESC [ 27 ; <modifier> ; <code> ~
-	mod := KeyMod(params[1][0] - 1)
-	r := rune(params[2][0])
+	mod := KeyMod(csi.Param(1) - 1)
+	r := rune(csi.Param(2))
 
 	switch r {
 	case ansi.BS:

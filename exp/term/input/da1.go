@@ -1,13 +1,18 @@
 package input
 
+import "github.com/charmbracelet/x/exp/term/ansi"
+
 // PrimaryDeviceAttributesEvent represents a primary device attributes event.
 type PrimaryDeviceAttributesEvent []uint
 
-func parsePrimaryDevAttrs(params [][]uint) Event {
+func parsePrimaryDevAttrs(csi *ansi.CsiSequence) Event {
 	// Primary Device Attributes
-	da1 := make(PrimaryDeviceAttributesEvent, len(params))
-	for i, p := range params {
-		da1[i] = p[0]
-	}
+	da1 := make(PrimaryDeviceAttributesEvent, csi.ParamsLen)
+	csi.Range(func(i int, p int, hasMore bool) bool {
+		if !hasMore {
+			da1[i] = uint(p)
+		}
+		return true
+	})
 	return da1
 }

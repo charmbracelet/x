@@ -41,7 +41,7 @@ func main() {
 	defer execute(ansi.DisableModifyOtherKeys)
 	defer execute(ansi.DisableWin32Input)
 
-	rd, err := input.NewDriver(in, input.NewEventParser(os.Getenv("TERM"), 0))
+	rd, err := input.NewDriver(in, os.Getenv("TERM"), 0)
 	if err != nil {
 		log.Printf("error creating driver: %v\r\n", err)
 		return
