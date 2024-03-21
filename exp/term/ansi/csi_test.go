@@ -1,89 +1,291 @@
 package ansi
 
-import "testing"
+import (
+	"testing"
 
-func TestCsiSequenceIsValid(t *testing.T) {
-	cases := []struct {
-		seq   CsiSequence
-		valid bool
+	"github.com/charmbracelet/x/exp/term/ansi/parser"
+)
+
+func TestCsiSequence_Marker(t *testing.T) {
+	tests := []struct {
+		name string
+		s    CsiSequence
+		want int
 	}{
-		{CsiSequence(""), false},
-		{CsiSequence("\x1b["), false},
-		{CsiSequence("\x1b]"), false},
-		{CsiSequence("\x9b"), false},
-		{CsiSequence("\x1b[?1;2:1230"), false},
-		{CsiSequence("\x1b[0A"), true},
-		{CsiSequence("\x1b[A"), true},
-		{CsiSequence("\x1b[ A"), true},
-		{CsiSequence("\x1b[ #A"), true},
-		{CsiSequence("\x1b[1 #A"), true},
-		{CsiSequence("\x1b[1; #A"), true},
-		{CsiSequence("\x1b[1;2 #A"), true},
-		{CsiSequence("\x1b[1;2:3:4 #A"), true},
-		{CsiSequence("\x1b[1;2:3:4: #["), true},
-		{CsiSequence("\x1b[1;2;3;4;5;6;7;8;9A"), true},
-		{CsiSequence("\x1b[?1;2A"), true},
-		{CsiSequence("\x1b[?1;2:123A"), true},
+		{
+			name: "no marker",
+			s:    CsiSequence{},
+			want: 0,
+		},
+		{
+			name: "marker",
+			s: CsiSequence{
+				Cmd: 'u' | '?'<<parser.MarkerShift,
+			},
+			want: '?',
+		},
 	}
-	for _, c := range cases {
-		if got, want := c.seq.IsValid(), c.valid; got != want {
-			t.Errorf("got %t, want %t", got, want)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.Marker(); got != tt.want {
+				t.Errorf("CsiSequence.Marker() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestCsiSequenceParams(t *testing.T) {
-	cases := []struct {
-		seq    CsiSequence
-		params string
+func TestCsiSequence_Intermediate(t *testing.T) {
+	tests := []struct {
+		name string
+		s    CsiSequence
+		want int
 	}{
-		{CsiSequence("\x1b[012;3"), ""},
-		{CsiSequence("\x1b[A"), ""},
-		{CsiSequence("\x1b[0A"), "0"},
-		{CsiSequence("\x1b[1;2;3;4;5;6;7;8;9A"), "1;2;3;4;5;6;7;8;9"},
-		{CsiSequence("\x1b[?1;2A"), "?1;2"},
-		{CsiSequence("\x1b[?1;2:123A"), "?1;2:123"},
+		{
+			name: "no intermediate",
+			s:    CsiSequence{},
+			want: 0,
+		},
+		{
+			name: "marker",
+			s: CsiSequence{
+				Cmd: 'u' | '?'<<parser.MarkerShift,
+			},
+			want: 0,
+		},
+		{
+			name: "intermediate",
+			s: CsiSequence{
+				Cmd: 'u' | '$'<<parser.IntermedShift,
+			},
+			want: '$',
+		},
 	}
-	for _, c := range cases {
-		if got, want := string(c.seq.Params()), c.params; got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.Intermediate(); got != tt.want {
+				t.Errorf("CsiSequence.Intermediate() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestCsiSequenceIntermediates(t *testing.T) {
-	cases := []struct {
-		seq          CsiSequence
-		intermediate string
+func TestCsiSequence_Command(t *testing.T) {
+	tests := []struct {
+		name string
+		s    CsiSequence
+		want int
 	}{
-		{CsiSequence("\x1b[0A"), ""},
-		{CsiSequence("\x1b[1;2;3;4;5;6;7;8;9A"), ""},
-		{CsiSequence("\x1b[?1;2A"), ""},
-		{CsiSequence("\x1b[?1;2:123A"), ""},
-		{CsiSequence("\x1b[?1;2:123 A"), " "},
-		{CsiSequence("\x1b[123 #!A"), " #!"},
+		{
+			name: "no command",
+			s:    CsiSequence{},
+			want: 0,
+		},
+		{
+			name: "command",
+			s: CsiSequence{
+				Cmd: 'u' | '?'<<parser.MarkerShift,
+			},
+			want: 'u',
+		},
 	}
-	for _, c := range cases {
-		if got, want := string(c.seq.Intermediates()), c.intermediate; got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.Command(); got != tt.want {
+				t.Errorf("CsiSequence.Command() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestCsiSequenceCommand(t *testing.T) {
-	cases := []struct {
-		seq     CsiSequence
-		command byte
+func TestCsiSequence_Param(t *testing.T) {
+	tests := []struct {
+		name string
+		s    CsiSequence
+		i    int
+		want int
 	}{
-		{CsiSequence(""), 0},
-		{CsiSequence("\x1b[0A"), 'A'},
-		{CsiSequence("\x1b[1;2;3;4;5;6;7;8;9A"), 'A'},
-		{CsiSequence("\x1b[?1;2A"), 'A'},
-		{CsiSequence("\x1b[?1;2:123A"), 'A'},
+		{
+			name: "no param",
+			s:    CsiSequence{},
+			i:    0,
+			want: -1,
+		},
+		{
+			name: "param",
+			s: CsiSequence{
+				Params:    []int{1, 2, 3},
+				ParamsLen: 3,
+			},
+			i:    1,
+			want: 2,
+		},
+		{
+			name: "missing param",
+			s: CsiSequence{
+				Params:    []int{1, parser.MissingParam, 3},
+				ParamsLen: 3,
+			},
+			i:    1,
+			want: -1,
+		},
 	}
-	for _, c := range cases {
-		if got, want := c.seq.Command(), c.command; got != want {
-			t.Errorf("got %q, want %q", got, want)
-		}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.Param(tt.i); got != tt.want {
+				t.Errorf("CsiSequence.Param() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCsiSequence_HasMore(t *testing.T) {
+	tests := []struct {
+		name string
+		s    CsiSequence
+		i    int
+		want bool
+	}{
+		{
+			name: "no param",
+			s:    CsiSequence{},
+			i:    0,
+			want: false,
+		},
+		{
+			name: "has more",
+			s: CsiSequence{
+				Params:    []int{1 | parser.HasMoreFlag, 2, 3},
+				ParamsLen: 3,
+			},
+			i:    0,
+			want: true,
+		},
+		{
+			name: "no more",
+			s: CsiSequence{
+				Params:    []int{1, 2, 3},
+				ParamsLen: 3,
+			},
+			i:    0,
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.HasMore(tt.i); got != tt.want {
+				t.Errorf("CsiSequence.HasMore() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCsiSequence_Len(t *testing.T) {
+	tests := []struct {
+		name string
+		s    CsiSequence
+		want int
+	}{
+		{
+			name: "no param",
+			s:    CsiSequence{},
+			want: 0,
+		},
+		{
+			name: "len",
+			s: CsiSequence{
+				Params:    []int{1, 2, 3},
+				ParamsLen: 3,
+			},
+			want: 3,
+		},
+		{
+			name: "len with missing param",
+			s: CsiSequence{
+				Params:    []int{1, parser.MissingParam, 3},
+				ParamsLen: 3,
+			},
+			want: 3,
+		},
+		{
+			name: "len with more flag",
+			s: CsiSequence{
+				Params:    []int{1 | parser.HasMoreFlag, 2, 3},
+				ParamsLen: 3,
+			},
+			want: 2,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.Len(); got != tt.want {
+				t.Errorf("CsiSequence.Len() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestCsiSequence_String(t *testing.T) {
+	tests := []struct {
+		name string
+		s    CsiSequence
+		want string
+	}{
+		{
+			name: "empty",
+			s:    CsiSequence{Cmd: 'R'},
+			want: "\x1b[R",
+		},
+		{
+			name: "with data",
+			s: CsiSequence{
+				Cmd:       'A',
+				Params:    []int{1, 2, 3},
+				ParamsLen: 3,
+			},
+			want: "\x1b[1;2;3A",
+		},
+		{
+			name: "with more flag",
+			s: CsiSequence{
+				Cmd:       'A',
+				Params:    []int{1 | parser.HasMoreFlag, 2, 3},
+				ParamsLen: 3,
+			},
+			want: "\x1b[1:2;3A",
+		},
+		{
+			name: "with intermediate",
+			s: CsiSequence{
+				Cmd:       'A' | '$'<<parser.IntermedShift,
+				Params:    []int{1, 2, 3},
+				ParamsLen: 3,
+			},
+			want: "\x1b[1;2;3$A",
+		},
+		{
+			name: "with marker",
+			s: CsiSequence{
+				Cmd:       'A' | '?'<<parser.MarkerShift,
+				Params:    []int{1, 2, 3},
+				ParamsLen: 3,
+			},
+			want: "\x1b[?1;2;3A",
+		},
+		{
+			name: "with marker intermediate and more flag",
+			s: CsiSequence{
+				Cmd:       'A' | '?'<<parser.MarkerShift | '$'<<parser.IntermedShift,
+				Params:    []int{1, 2 | parser.HasMoreFlag, 3},
+				ParamsLen: 3,
+			},
+			want: "\x1b[?1;2:3$A",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.s.String(); got != tt.want {
+				t.Errorf("CsiSequence.String() = %q, want %q", got, tt.want)
+			}
+		})
 	}
 }

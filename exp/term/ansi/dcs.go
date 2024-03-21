@@ -7,23 +7,26 @@ import (
 	"github.com/charmbracelet/x/exp/term/ansi/parser"
 )
 
-// CsiSequence represents a control sequence introducer (CSI) sequence.
+// DcsSequence represents a Device Control String (DCS) escape sequence.
 //
-// The sequence starts with a CSI sequence, CSI (0x9B) in a 8-bit environment
-// or ESC [ (0x1B 0x5B) in a 7-bit environment, followed by any number of
-// parameters in the range of 0x30-0x3F, then by any number of intermediate
-// byte in the range of 0x20-0x2F, then finally with a single final byte in the
-// range of 0x20-0x7E.
+// The DCS sequence is used to send device control strings to the terminal. The
+// sequence starts with the C1 control code character DCS (0x9B) or ESC P in
+// 7-bit environments, followed by parameter bytes, intermediate bytes, a
+// command byte, followed by data bytes, and ends with the C1 control code
+// character ST (0x9C) or ESC \ in 7-bit environments.
 //
-//	CSI P..P I..I F
-//
-// See ECMA-48 § 5.4.
-type CsiSequence struct {
+// This follows the parameter string format.
+// See ECMA-48 § 5.4.1
+type DcsSequence struct {
 	// Params contains the raw parameters of the sequence.
 	// This is a slice of integers, where each integer is a 32-bit integer
 	// containing the parameter value in the lower 31 bits and a flag in the
 	// most significant bit indicating whether there are more sub-parameters.
 	Params []int
+
+	// Data contains the string raw data of the sequence.
+	// This is the data between the final byte and the escape sequence terminator.
+	Data []byte
 
 	// ParamsLen contains the number of parameters in the sequence.
 	// This is the number of all parameters, including sub-parameters.
@@ -32,94 +35,90 @@ type CsiSequence struct {
 	ParamsLen int
 
 	// Cmd contains the raw command of the sequence.
-	// The command is a 32-bit integer containing the CSI command byte in the
+	// The command is a 32-bit integer containing the DCS command byte in the
 	// lower 8 bits, the private marker in the next 8 bits, and the intermediate
 	// byte in the next 8 bits.
 	//
-	//  CSI ? u
+	//  DCS > 0 ; 1 $ r <data> ST
 	//
 	// Is represented as:
 	//
-	//  'u' | '?' << 8
+	//  'r' | '>' << 8 | '$' << 16
 	Cmd int
 }
 
-// NewCsiSequence returns a new CsiSequence with the given parameters size.
+// NewDcsSequence returns a new DcsSequence with the given parameters size.
 // Use zero to use the default size.
-func NewCsiSequence(size int) CsiSequence {
+func NewDcsSequence(size int) DcsSequence {
 	if size <= 0 {
 		size = parser.MaxParamsSize
 	}
-	return CsiSequence{Params: make([]int, size)}
+	return DcsSequence{Params: make([]int, size)}
 }
 
-// Marker returns the marker byte of the CSI sequence.
+// Marker returns the marker byte of the DCS sequence.
 // This is always gonna be one of the following '<' '=' '>' '?' and in the
 // range of 0x3C-0x3F.
 // Zero is returned if the sequence does not have a marker.
-func (s CsiSequence) Marker() int {
-	return parser.Marker(s.Cmd)
+func (s DcsSequence) Marker() int {
+	return parser.Command(s.Cmd)
 }
 
-// Intermediate returns the intermediate byte of the CSI sequence.
+// Intermediate returns the intermediate byte of the DCS sequence.
 // An intermediate byte is in the range of 0x20-0x2F. This includes these
 // characters from ' ', '!', '"', '#', '$', '%', '&', ”', '(', ')', '*', '+',
 // ',', '-', '.', '/'.
 // Zero is returned if the sequence does not have an intermediate byte.
-func (s CsiSequence) Intermediate() int {
+func (s DcsSequence) Intermediate() int {
 	return parser.Intermediate(s.Cmd)
 }
 
 // Command returns the command byte of the CSI sequence.
-func (s CsiSequence) Command() int {
+func (s DcsSequence) Command() int {
 	return parser.Command(s.Cmd)
 }
 
 // Param returns the parameter at the given index.
 // It returns -1 if the parameter does not exist.
-func (s CsiSequence) Param(i int) int {
+func (s DcsSequence) Param(i int) int {
 	return parser.Param(s.Params, i)
 }
 
 // HasMore returns true if the parameter has more sub-parameters.
-func (s CsiSequence) HasMore(i int) bool {
-	if len(s.Params) == 0 || i >= len(s.Params) {
-		return false
-	}
-
-	return s.Params[i]&parser.HasMoreFlag != 0
+func (s DcsSequence) HasMore(i int) bool {
+	return parser.HasMore(s.Params, i)
 }
 
 // Subparams returns the sub-parameters of the given parameter.
 // It returns nil if the parameter does not exist.
-func (s CsiSequence) Subparams(i int) []int {
+func (s DcsSequence) Subparams(i int) []int {
 	return parser.Subparams(s.Params, s.ParamsLen, i)
 }
 
 // Len returns the number of parameters in the sequence.
 // This will return the number of parameters in the sequence, excluding any
 // sub-parameters.
-func (s CsiSequence) Len() int {
+func (s DcsSequence) Len() int {
 	return parser.Len(s.Params, s.ParamsLen)
 }
 
 // Range iterates over the parameters of the sequence and calls the given
 // function for each parameter.
 // The function should return false to stop the iteration.
-func (s CsiSequence) Range(fn func(i int, param int, hasMore bool) bool) {
+func (s DcsSequence) Range(fn func(i int, param int, hasMore bool) bool) {
 	parser.Range(s.Params, s.ParamsLen, fn)
 }
 
 // String returns a string representation of the sequence.
-// The string will always be in the 7-bit format i.e (ESC [ P..P I..I F).
-func (s CsiSequence) String() string {
+// The string will always be in the 7-bit format i.e (ESC P p..p i..i f <data> ESC \).
+func (s DcsSequence) String() string {
 	return s.buffer().String()
 }
 
 // buffer returns a buffer containing the sequence.
-func (s CsiSequence) buffer() *bytes.Buffer {
+func (s DcsSequence) buffer() *bytes.Buffer {
 	var b bytes.Buffer
-	b.WriteString("\x1b[")
+	b.WriteString("\x1bP")
 	if m := s.Marker(); m != 0 {
 		b.WriteByte(byte(m))
 	}
@@ -140,11 +139,14 @@ func (s CsiSequence) buffer() *bytes.Buffer {
 		b.WriteByte(byte(i))
 	}
 	b.WriteByte(byte(s.Command()))
+	b.Write(s.Data)
+	b.WriteByte(ESC)
+	b.WriteByte('\\')
 	return &b
 }
 
 // Bytes returns the byte representation of the sequence.
-// The bytes will always be in the 7-bit format i.e (ESC [ P..P I..I F).
-func (s CsiSequence) Bytes() []byte {
+// The bytes will always be in the 7-bit format i.e (ESC P p..p i..i F <data> ESC \).
+func (s DcsSequence) Bytes() []byte {
 	return s.buffer().Bytes()
 }
