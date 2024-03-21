@@ -233,7 +233,7 @@ func parseCsi(b []byte) (int, Event) {
 			switch intermed {
 			case '$':
 				// Report Mode (DECRPM)
-				if csi.ParamsLen == 2 {
+				if csi.ParamsLen != 2 {
 					return i, UnknownCsiEvent(b[:i])
 				}
 				return i, ReportModeEvent{Mode: csi.Param(0), Value: csi.Param(1)}
