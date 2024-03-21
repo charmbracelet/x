@@ -88,7 +88,7 @@ loop:
 		}
 	}
 
-	n, seqevent := d.parser.ParseSequence(seq)
+	n, seqevent := ParseSequence(seq)
 	switch seqevent.(type) {
 	case UnknownEvent:
 		// We're not interested in unknown events
