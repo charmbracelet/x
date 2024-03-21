@@ -1,6 +1,7 @@
 package input
 
 import (
+	"bytes"
 	"io"
 	"unicode/utf8"
 
@@ -67,9 +68,11 @@ func (d *Driver) readEvents() (e []Event, err error) {
 	buf := d.buf[:nb]
 
 	// Lookup table first
-	if k, ok := d.table[string(buf)]; ok {
-		e = append(e, KeyDownEvent(k))
-		return
+	if bytes.HasPrefix(buf, []byte{'\x1b'}) {
+		if k, ok := d.table[string(buf)]; ok {
+			e = append(e, KeyDownEvent(k))
+			return
+		}
 	}
 
 	var i int
