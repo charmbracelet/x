@@ -123,7 +123,7 @@ func (s DcsSequence) buffer() *bytes.Buffer {
 		b.WriteByte(byte(m))
 	}
 	s.Range(func(i, param int, hasMore bool) bool {
-		if param != -1 {
+		if param >= -1 {
 			b.WriteString(strconv.Itoa(param))
 		}
 		if i < s.ParamsLen-1 {

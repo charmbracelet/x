@@ -162,6 +162,8 @@ OUT:
 					}
 				case prev == "r":
 					switch curr {
+					case "a":
+						execute(ansi.RequestAltScreenBuffer)
 					case "k":
 						execute(ansi.RequestKittyKeyboard)
 					case "b":
@@ -170,6 +172,10 @@ OUT:
 						execute(ansi.RequestForegroundColor)
 					case "c":
 						execute(ansi.RequestCursorColor)
+					case "p":
+						execute(ansi.RequestCursorPosition)
+					case "P":
+						execute(ansi.RequestExtendedCursorPosition)
 					case "d":
 						execute(ansi.RequestPrimaryDeviceAttributes)
 					case "x":
@@ -274,11 +280,15 @@ func printHelp() {
 	fmt.Fprintf(os.Stdout, "  5: Enable extended mouse events (SGR)\r\n")
 	fmt.Fprintf(os.Stdout, "\r\n")
 	fmt.Fprintf(os.Stdout, "Press 'r' followed by a letter to request a terminal capability.\r\n")
+	fmt.Fprintf(os.Stdout, "  a: Alt buffer mode\r\n")
 	fmt.Fprintf(os.Stdout, "  k: Kitty keyboard protocol flags\r\n")
 	fmt.Fprintf(os.Stdout, "  b: Background color\r\n")
 	fmt.Fprintf(os.Stdout, "  f: Foreground color\r\n")
 	fmt.Fprintf(os.Stdout, "  c: Cursor color\r\n")
+	fmt.Fprintf(os.Stdout, "  p: Cursor position\r\n")
+	fmt.Fprintf(os.Stdout, "  P: Extended cursor position\r\n")
 	fmt.Fprintf(os.Stdout, "  d: Primary Device Attributes\r\n")
 	fmt.Fprintf(os.Stdout, "  x: XTVERSION\r\n")
+	fmt.Fprintf(os.Stdout, "  t: XTGETTCAP\r\n")
 	fmt.Fprintf(os.Stdout, "\r\n")
 }

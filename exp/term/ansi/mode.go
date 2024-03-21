@@ -6,6 +6,20 @@ package ansi
 // See: https://vt100.net/docs/vt510-rm/SM.html
 // See: https://vt100.net/docs/vt510-rm/RM.html
 // See: https://vt100.net/docs/vt510-rm/DECRQM.html
+//
+// The terminal then responds to the request with a Report Mode function
+// (DECRPM) in the format:
+//
+// ANSI format:
+//
+//  CSI Pa ; Ps ; $ y
+//
+// DEC format:
+//
+//  CSI ? Pa ; Ps $ y
+//
+// Where Pa is the mode number, and Ps is the mode value.
+// See: https://vt100.net/docs/vt510-rm/DECRPM.html
 
 // Application Cursor Keys (DECCKM) is a mode that determines whether the
 // cursor keys send ANSI cursor sequences or application sequences.

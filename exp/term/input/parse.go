@@ -229,6 +229,15 @@ func parseCsi(b []byte) (int, Event) {
 	switch marker {
 	case '?':
 		switch cmd {
+		case 'y':
+			switch intermed {
+			case '$':
+				// Report Mode (DECRPM)
+				if csi.ParamsLen == 2 {
+					return i, UnknownCsiEvent(b[:i])
+				}
+				return i, ReportModeEvent{Mode: csi.Param(0), Value: csi.Param(1)}
+			}
 		case 'c':
 			// Primary Device Attributes
 			return i, parsePrimaryDevAttrs(&csi)
@@ -237,10 +246,14 @@ func parseCsi(b []byte) (int, Event) {
 			if param := csi.Param(0); param != -1 {
 				return i, KittyKeyboardEvent(param)
 			}
-			fallthrough
-		default:
-			return i, UnknownCsiEvent(b[:i])
+		case 'R':
+			// This report may return a third parameter representing the page
+			// number, but we don't really need it.
+			if csi.ParamsLen >= 2 {
+				return i, CursorPositionEvent{Row: csi.Param(0), Column: csi.Param(1)}
+			}
 		}
+		return i, UnknownCsiEvent(b[:i])
 	case '<':
 		switch cmd {
 		case 'm', 'M':
@@ -270,7 +283,27 @@ func parseCsi(b []byte) (int, Event) {
 	}
 
 	switch cmd := csi.Command(); cmd {
-	case 'a', 'b', 'c', 'd', 'A', 'B', 'C', 'D', 'E', 'F', 'H', 'P', 'Q', 'R', 'S', 'Z':
+	case 'R':
+		// Cursor position report OR modified F3
+		if csi.ParamsLen == 0 {
+			return i, KeyDownEvent{Sym: KeyF3}
+		} else if csi.ParamsLen != 2 {
+			break
+		}
+
+		// XXX: We cannot differentiate between cursor position report and
+		// CSI 1 ; <mod> R (which is modified F3) when the cursor is at the
+		// row 1. In this case, we report a modified F3 event since it's more
+		// likely to be the case than the cursor being at the first row.
+		//
+		// For a non ambiguous cursor position report, use
+		// [ansi.RequestExtendedCursorPosition] (DECRPM) instead.
+		if csi.Param(0) != 1 {
+			return i, CursorPositionEvent{Row: csi.Param(0), Column: csi.Param(1)}
+		}
+
+		fallthrough
+	case 'a', 'b', 'c', 'd', 'A', 'B', 'C', 'D', 'E', 'F', 'H', 'P', 'Q', 'S', 'Z':
 		var k KeyDownEvent
 		switch cmd {
 		case 'a', 'b', 'c', 'd':
@@ -288,7 +321,7 @@ func parseCsi(b []byte) (int, Event) {
 		case 'Z':
 			k = KeyDownEvent{Sym: KeyTab, Mod: Shift}
 		}
-		if csi.ParamsLen > 0 {
+		if csi.ParamsLen > 1 && csi.Param(0) == 1 {
 			// CSI 1 ; <modifiers> A
 			if csi.ParamsLen > 1 {
 				k.Mod |= KeyMod(csi.Param(1) - 1)
@@ -301,6 +334,12 @@ func parseCsi(b []byte) (int, Event) {
 			return i, UnknownCsiEvent(b[:i])
 		}
 		return i + 3, parseX10MouseEvent(append(b[:i], b[i:i+3]...))
+	case 'y':
+		// Report Mode (DECRPM)
+		if csi.ParamsLen != 2 {
+			return i, UnknownCsiEvent(b[:i])
+		}
+		return i, ReportModeEvent{Mode: csi.Param(0), Value: csi.Param(1)}
 	case 'u':
 		// Kitty keyboard protocol
 		if csi.ParamsLen == 0 {
@@ -570,6 +609,7 @@ func parseStTerminated(intro8, intro7 byte) func([]byte) (int, Event) {
 		// Scan control sequence
 		// Most common control sequence is terminated by a ST character
 		// ST is a 7-bit string terminator character is (ESC \)
+		// nolint: revive
 		for ; i < len(b) && b[i] != ansi.ST && b[i] != ansi.ESC; i++ {
 		}
 

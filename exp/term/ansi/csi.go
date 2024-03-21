@@ -124,7 +124,7 @@ func (s CsiSequence) buffer() *bytes.Buffer {
 		b.WriteByte(byte(m))
 	}
 	s.Range(func(i, param int, hasMore bool) bool {
-		if param != -1 {
+		if param >= 0 {
 			b.WriteString(strconv.Itoa(param))
 		}
 		if i < s.ParamsLen-1 {
