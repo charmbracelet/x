@@ -157,7 +157,7 @@ func parseCsi(b []byte) (int, Event) {
 		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
 	}
 
-	var params [16]int
+	var params [parser.MaxParamsSize]int
 	csi := ansi.CsiSequence{Params: params[:]}
 
 	var i int
@@ -175,7 +175,7 @@ func parseCsi(b []byte) (int, Event) {
 
 	// Scan parameter bytes in the range 0x30-0x3F
 	var j int
-	for j = 0; i < len(b) && i < len(params) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
+	for j = 0; i < len(b) && csi.ParamsLen < len(params) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
 		if b[i] >= '0' && b[i] <= '9' {
 			if csi.Params[csi.ParamsLen] == parser.MissingParam {
 				csi.Params[csi.ParamsLen] = 0
@@ -218,7 +218,7 @@ func parseCsi(b []byte) (int, Event) {
 				return n, k
 			}
 		}
-		return i, UnknownEvent(b[i-1])
+		return i, UnknownEvent(b[:i-1])
 	}
 
 	// Add the final byte
@@ -666,7 +666,7 @@ func parseDcs(b []byte) (int, Event) {
 
 	// Scan parameter bytes in the range 0x30-0x3F
 	var j int
-	for j = 0; i < len(b) && i < len(params) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
+	for j = 0; i < len(b) && dcs.ParamsLen < len(params) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
 		if b[i] >= '0' && b[i] <= '9' {
 			if dcs.Params[dcs.ParamsLen] == parser.MissingParam {
 				dcs.Params[dcs.ParamsLen] = 0
