@@ -344,7 +344,7 @@ func parseCsi(b []byte) (int, Event) {
 		}
 		return i, ReportModeEvent{Mode: csi.Param(0), Value: csi.Param(1)}
 	case 'u':
-		// Kitty keyboard protocol
+		// Kitty keyboard protocol & CSI u (fixterms)
 		if csi.ParamsLen == 0 {
 			return i, UnknownCsiEvent(b[:i])
 		}
