@@ -196,6 +196,19 @@ func fromKittyMod(mod int) KeyMod {
 	return m
 }
 
+// parseKittyKeyboard parses a Kitty Keyboard Protocol sequence.
+//
+// In `CSI u`, this is parsed as:
+//
+//	CSI codepoint ; modifiers u
+//	codepoint: ASCII Dec value
+//
+// The Kitty Keyboard Protocol extends this with optional components that can be
+// enabled progressively. The full sequence is parsed as:
+//
+//	CSI unicode-key-code:alternate-key-codes ; modifiers:event-type ; text-as-codepoints u
+//
+// See https://sw.kovidgoyal.net/kitty/keyboard-protocol/
 func parseKittyKeyboard(csi *ansi.CsiSequence) Event {
 	var isRelease bool
 	key := Key{}
