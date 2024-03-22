@@ -116,12 +116,11 @@ func DeleteLine(n int) string {
 //
 // See: https://vt100.net/docs/vt510-rm/DECSTBM.html
 func SetScrollingRegion(t, b int) string {
-	var ts, bs string
-	if t > 1 {
-		ts = strconv.Itoa(t)
+	if t < 0 {
+		t = 0
 	}
-	if b > 1 {
-		bs = strconv.Itoa(b)
+	if b < 0 {
+		b = 0
 	}
-	return "\x1b[" + ts + ";" + bs + "r"
+	return "\x1b[" + strconv.Itoa(t) + ";" + strconv.Itoa(b) + "r"
 }

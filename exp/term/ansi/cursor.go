@@ -121,14 +121,13 @@ func CursorPreviousLine(n int) string {
 //
 // See: https://vt100.net/docs/vt510-rm/CUP.html
 func MoveCursor(row, col int) string {
-	var r, c string
-	if row > 1 {
-		r = strconv.Itoa(row)
+	if row < 0 {
+		row = 0
 	}
-	if col > 1 {
-		c = strconv.Itoa(col)
+	if col < 0 {
+		col = 0
 	}
-	return "\x1b[" + r + ";" + c + "H"
+	return "\x1b[" + strconv.Itoa(row) + ";" + strconv.Itoa(col) + "H"
 }
 
 // MoveCursorZero is a sequence for moving the cursor to the upper left corner
