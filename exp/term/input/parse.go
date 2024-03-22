@@ -188,7 +188,10 @@ func parseCsi(b []byte) (int, Event) {
 		}
 		if b[i] == ';' || b[i] == ':' {
 			csi.ParamsLen++
-			csi.Params[csi.ParamsLen] = parser.MissingParam
+			if csi.ParamsLen < len(params) {
+				// Don't overflow the params slice
+				csi.Params[csi.ParamsLen] = parser.MissingParam
+			}
 		}
 	}
 
@@ -679,7 +682,10 @@ func parseDcs(b []byte) (int, Event) {
 		}
 		if b[i] == ';' || b[i] == ':' {
 			dcs.ParamsLen++
-			dcs.Params[dcs.ParamsLen] = parser.MissingParam
+			if dcs.ParamsLen < len(params) {
+				// Don't overflow the params slice
+				dcs.Params[dcs.ParamsLen] = parser.MissingParam
+			}
 		}
 	}
 
