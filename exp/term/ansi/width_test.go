@@ -50,3 +50,18 @@ func BenchmarkStringWidth(b *testing.B) {
 		}
 	})
 }
+
+func TestStrip(t *testing.T) {
+	for i, test := range []struct {
+		input, expected string
+	}{
+		{"", ""},
+		{"Hello, 世界", "Hello, 世界"},
+		{"\x1b[7mHello\n,世界\x1b[m", "Hello\n,世界"},
+		{"\x1b[7m\x1b[0m", ""},
+	} {
+		if res := Strip(test.input); res != test.expected {
+			t.Errorf("test case %d failed: expected %q, got %q", i, test.expected, res)
+		}
+	}
+}
