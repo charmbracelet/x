@@ -1,40 +1,76 @@
 package input
 
-import "github.com/erikgeiser/coninput"
+import (
+	"unicode"
+
+	"github.com/erikgeiser/coninput"
+)
 
 func parseWin32InputKeyEvent(vkc coninput.VirtualKeyCode, _ coninput.VirtualKeyCode, r rune, keyDown bool, cks coninput.ControlKeyState, repeatCount uint16) Event {
+	var key Key
 	isCtrl := cks.Contains(coninput.LEFT_CTRL_PRESSED | coninput.RIGHT_CTRL_PRESSED)
-
-	k, ok := vkKeyEvent[vkc]
-	if !ok && isCtrl {
-		k = vkCtrlRune(k, r, vkc)
-	} else if !ok {
-		k = Key{Rune: r}
+	switch vkc {
+	case coninput.VK_SHIFT:
+		// We currently ignore these keys when they are pressed alone.
+		return nil
+	case coninput.VK_MENU:
+		if cks.Contains(coninput.LEFT_ALT_PRESSED) {
+			key = Key{Sym: KeyLeftAlt}
+		} else if cks.Contains(coninput.RIGHT_ALT_PRESSED) {
+			key = Key{Sym: KeyRightAlt}
+		} else if !keyDown {
+			return nil
+		}
+	case coninput.VK_CONTROL:
+		if cks.Contains(coninput.LEFT_CTRL_PRESSED) {
+			key = Key{Sym: KeyLeftCtrl}
+		} else if cks.Contains(coninput.RIGHT_CTRL_PRESSED) {
+			key = Key{Sym: KeyRightCtrl}
+		} else if !keyDown {
+			return nil
+		}
+	case coninput.VK_CAPITAL:
+		key = Key{Sym: KeyCapsLock}
+	default:
+		k, ok := vkKeyEvent[vkc]
+		if !ok && isCtrl {
+			k = vkCtrlRune(k, r, vkc)
+		} else if !ok {
+			k = Key{Rune: r}
+		}
+		key = k
 	}
+
 	if isCtrl {
-		k.Mod |= Ctrl
+		key.Mod |= Ctrl
 	}
 	if cks.Contains(coninput.LEFT_ALT_PRESSED | coninput.RIGHT_ALT_PRESSED) {
-		k.Mod |= Alt
+		key.Mod |= Alt
 	}
 	if cks.Contains(coninput.SHIFT_PRESSED) {
-		k.Mod |= Shift
+		key.Mod |= Shift
 	}
-
 	if cks.Contains(coninput.CAPSLOCK_ON) {
-		k.Mod |= CapsLock
+		key.Mod |= CapsLock
 	}
 	if cks.Contains(coninput.NUMLOCK_ON) {
-		k.Mod |= NumLock
+		key.Mod |= NumLock
 	}
 	if cks.Contains(coninput.SCROLLLOCK_ON) {
-		k.Mod |= ScrollLock
+		key.Mod |= ScrollLock
 	}
 
-	var e Event = KeyDownEvent(k)
-	k.IsRepeat = repeatCount > 1
+	// Use the unshifted key
+	if cks.Contains(coninput.SHIFT_PRESSED ^ coninput.CAPSLOCK_ON) {
+		key.AltRune = unicode.ToUpper(key.Rune)
+	} else {
+		key.AltRune = unicode.ToLower(key.Rune)
+	}
+
+	var e Event = KeyDownEvent(key)
+	key.IsRepeat = repeatCount > 1
 	if !keyDown {
-		e = KeyUpEvent(k)
+		e = KeyUpEvent(key)
 	}
 
 	if repeatCount <= 1 {
