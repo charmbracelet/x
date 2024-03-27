@@ -1,8 +1,8 @@
 package ansi
 
 import (
+	"bytes"
 	"strconv"
-	"strings"
 )
 
 // OscSequence represents an OSC sequence.
@@ -33,18 +33,22 @@ func (s OscSequence) Command() int {
 // To be more compatible with different terminal, this will always return a
 // 7-bit formatted sequence, terminated by BEL.
 func (s OscSequence) String() string {
-	var b strings.Builder
-	b.WriteString("\x1b]")
-	b.WriteString(strconv.Itoa(s.Cmd))
-	b.WriteByte(';')
-	b.Write(s.Data)
-	b.WriteByte(BEL)
-	return b.String()
+	return s.buffer().String()
 }
 
 // Bytes returns the byte representation of the OSC sequence.
 // To be more compatible with different terminal, this will always return a
 // 7-bit formatted sequence, terminated by BEL.
 func (s OscSequence) Bytes() []byte {
-	return []byte(s.String())
+	return s.buffer().Bytes()
+}
+
+func (s OscSequence) buffer() *bytes.Buffer {
+	var b bytes.Buffer
+	b.WriteString("\x1b]")
+	b.WriteString(strconv.Itoa(s.Cmd))
+	b.WriteByte(';')
+	b.Write(s.Data)
+	b.WriteByte(BEL)
+	return &b
 }

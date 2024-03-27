@@ -74,11 +74,7 @@ func (s CsiSequence) Param(i int) int {
 
 // HasMore returns true if the parameter has more sub-parameters.
 func (s CsiSequence) HasMore(i int) bool {
-	if len(s.Params) == 0 || i >= len(s.Params) {
-		return false
-	}
-
-	return s.Params[i]&parser.HasMoreFlag != 0
+	return parser.HasMore(s.Params, i)
 }
 
 // Subparams returns the sub-parameters of the given parameter.
