@@ -32,13 +32,15 @@ func parseWin32InputKeyEvent(vkc coninput.VirtualKeyCode, _ coninput.VirtualKeyC
 	case coninput.VK_CAPITAL:
 		key = Key{Sym: KeyCapsLock}
 	default:
-		k, ok := vkKeyEvent[vkc]
-		if !ok && isCtrl {
-			k = vkCtrlRune(k, r, vkc)
-		} else if !ok {
-			k = Key{Rune: r}
+		var ok bool
+		key, ok = vkKeyEvent[vkc]
+		if !ok {
+			if isCtrl {
+				key = vkCtrlRune(key, r, vkc)
+			} else {
+				key = Key{Rune: r}
+			}
 		}
-		key = k
 	}
 
 	if isCtrl {
@@ -225,6 +227,13 @@ func vkCtrlRune(k Key, r rune, kc coninput.VirtualKeyCode) Key {
 	switch kc {
 	case coninput.VK_OEM_4:
 		k.Rune = '['
+	}
+
+	// https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+	if k.Rune == 0 &&
+		(kc >= 0x30 && kc <= 0x39) ||
+		(kc >= 0x41 && kc <= 0x5a) {
+		k.Rune = rune(kc)
 	}
 
 	return k
