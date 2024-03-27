@@ -6,8 +6,10 @@ package input
 import (
 	"errors"
 	"fmt"
+	"unicode/utf16"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
+	termwindows "github.com/charmbracelet/x/exp/term/windows"
 	"github.com/erikgeiser/coninput"
 	"golang.org/x/sys/windows"
 )
@@ -108,8 +110,71 @@ loop:
 func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Event {
 	switch e := event.Unwrap().(type) {
 	case coninput.KeyEventRecord:
-		return parseWin32InputKeyEvent(e.VirtualKeyCode, e.VirtualScanCode,
+		event := parseWin32InputKeyEvent(e.VirtualKeyCode, e.VirtualScanCode,
 			e.Char, e.KeyDown, e.ControlKeyState, e.RepeatCount)
+
+		var key Key
+		switch event := event.(type) {
+		case KeyDownEvent:
+			key = Key(event)
+		case KeyUpEvent:
+			key = Key(event)
+		default:
+			return nil
+		}
+
+		// If the key is not printable, return the event as is
+		// (e.g. function keys, arrows, etc.)
+		// Otherwise, try to translate it to a rune based on the active keyboard
+		// layout.
+		if key.Rune == 0 {
+			return event
+		}
+
+		// Get active keyboard layout
+		fgWin := windows.GetForegroundWindow()
+		fgThread, err := windows.GetWindowThreadProcessId(fgWin, nil)
+		if err != nil {
+			return event
+		}
+
+		layout, err := termwindows.GetKeyboardLayout(fgThread)
+		if layout == windows.InvalidHandle || err != nil {
+			return event
+		}
+
+		// Translate key to rune
+		var keyState [256]byte
+		var utf16Buf [16]uint16
+		const dontChangeKernelKeyboardLayout = 0x4
+		ret, err := termwindows.ToUnicodeEx(
+			uint32(e.VirtualKeyCode),
+			uint32(e.VirtualScanCode),
+			&keyState[0],
+			&utf16Buf[0],
+			int32(len(utf16Buf)),
+			dontChangeKernelKeyboardLayout,
+			layout,
+		)
+
+		// -1 indicates a dead key
+		// 0 indicates no translation for this key
+		if ret < 1 || err != nil {
+			return event
+		}
+
+		runes := utf16.Decode(utf16Buf[:ret])
+		if len(runes) != 1 {
+			// Key doesn't translate to a single rune
+			return event
+		}
+
+		key.BaseRune = runes[0]
+		if e.KeyDown {
+			return KeyDownEvent(key)
+		}
+
+		return KeyUpEvent(key)
 
 	case coninput.WindowBufferSizeEventRecord:
 		return WindowSizeEvent{

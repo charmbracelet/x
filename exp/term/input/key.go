@@ -225,21 +225,23 @@ func (k Key) String() string {
 		s += "super+"
 	}
 
+	runeStr := func(r rune) string {
+		// Space is the only invisible printable character.
+		if r == ' ' {
+			return "space"
+		}
+		return string(r)
+	}
 	if k.BaseRune != 0 {
 		// If a BaseRune is present, use it to represent a key using the standard
 		// PC-101 key layout.
-		s += string(k.BaseRune)
+		s += runeStr(k.BaseRune)
 	} else if k.AltRune != 0 {
 		// Otherwise, use the AltRune aka the non-shifted one if present.
-		s += string(k.AltRune)
+		s += runeStr(k.AltRune)
 	} else if k.Rune != 0 {
 		// Else, just print the rune.
-		if k.Rune == ' ' {
-			// Space is the only invisible printable character.
-			s += "space"
-		} else {
-			s += string(k.Rune)
-		}
+		s += runeStr(k.Rune)
 	} else {
 		s += k.Sym.String()
 	}
