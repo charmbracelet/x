@@ -41,8 +41,15 @@ func (OsEnviron) LookupEnv(key string) (string, bool) {
 // If the terminal does not support querying the background color, nil is
 // returned.
 func BackgroundColor(in, out *os.File) (c color.Color) {
+	state, err := MakeRaw(in.Fd())
+	if err != nil {
+		return
+	}
+
+	defer Restore(in.Fd(), state) // nolint: errcheck
+
 	// nolint: errcheck
-	queryTerminal(in, out, func(events []input.Event) bool {
+	QueryTerminal(in, out, func(events []input.Event) bool {
 		for _, e := range events {
 			switch e := e.(type) {
 			case input.BackgroundColorEvent:
@@ -61,8 +68,15 @@ func BackgroundColor(in, out *os.File) (c color.Color) {
 // If the terminal does not support querying the foreground color, nil is
 // returned.
 func ForegroundColor(in, out *os.File) (c color.Color) {
+	state, err := MakeRaw(in.Fd())
+	if err != nil {
+		return
+	}
+
+	defer Restore(in.Fd(), state) // nolint: errcheck
+
 	// nolint: errcheck
-	queryTerminal(in, out, func(events []input.Event) bool {
+	QueryTerminal(in, out, func(events []input.Event) bool {
 		for _, e := range events {
 			switch e := e.(type) {
 			case input.ForegroundColorEvent:
@@ -80,8 +94,15 @@ func ForegroundColor(in, out *os.File) (c color.Color) {
 // CursorColor queries the terminal for the cursor color.
 // If the terminal does not support querying the cursor color, nil is returned.
 func CursorColor(in, out *os.File) (c color.Color) {
+	state, err := MakeRaw(in.Fd())
+	if err != nil {
+		return
+	}
+
+	defer Restore(in.Fd(), state) // nolint: errcheck
+
 	// nolint: errcheck
-	queryTerminal(in, out, func(events []input.Event) bool {
+	QueryTerminal(in, out, func(events []input.Event) bool {
 		for _, e := range events {
 			switch e := e.(type) {
 			case input.CursorColorEvent:
@@ -99,8 +120,15 @@ func CursorColor(in, out *os.File) (c color.Color) {
 // SupportsKittyKeyboard returns true if the terminal supports the Kitty
 // keyboard protocol.
 func SupportsKittyKeyboard(in, out *os.File) (supported bool) {
+	state, err := MakeRaw(in.Fd())
+	if err != nil {
+		return
+	}
+
+	defer Restore(in.Fd(), state) // nolint: errcheck
+
 	// nolint: errcheck
-	queryTerminal(in, out, func(events []input.Event) bool {
+	QueryTerminal(in, out, func(events []input.Event) bool {
 		for _, e := range events {
 			switch e.(type) {
 			case input.KittyKeyboardEvent:
@@ -115,26 +143,23 @@ func SupportsKittyKeyboard(in, out *os.File) (supported bool) {
 	return
 }
 
-// queryTerminalFunc is a function that filters input events using a type
-// switch. If false is returned, the queryTerminal function will stop reading
+// QueryTerminalFilter is a function that filters input events using a type
+// switch. If false is returned, the QueryTerminal function will stop reading
 // input.
-type queryTerminalFunc func(events []input.Event) bool
+type QueryTerminalFilter func(events []input.Event) bool
 
-// queryTerminal queries the terminal for support of various features and
+// QueryTerminal queries the terminal for support of various features and
 // returns a list of response events.
-func queryTerminal(
+// Most of the time, you will need to set stdin to raw mode before calling this
+// function.
+// Note: This function will block until the terminal responds or the timeout
+// is reached.
+func QueryTerminal(
 	in *os.File,
 	out *os.File,
-	filter queryTerminalFunc,
+	filter QueryTerminalFilter,
 	query string,
 ) error {
-	state, err := MakeRaw(in.Fd())
-	if err != nil {
-		return err
-	}
-
-	defer Restore(in.Fd(), state) // nolint: errcheck
-
 	rd, err := input.NewDriver(in, "", 0)
 	if err != nil {
 		return err
