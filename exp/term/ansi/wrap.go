@@ -9,12 +9,12 @@ import (
 	"github.com/rivo/uniseg"
 )
 
-// Wrap wraps a string or a block of text to a given line length, breaking word
-// boundaries. This will preserve ANSI escape codes and will account for
+// Hardwrap wraps a string or a block of text to a given line length, breaking
+// word boundaries. This will preserve ANSI escape codes and will account for
 // wide-characters in the string.
 // When preserveSpace is true, spaces at the beginning of a line will be
 // preserved.
-func Wrap(s string, limit int, preserveSpace bool) string {
+func Hardwrap(s string, limit int, preserveSpace bool) string {
 	if limit < 1 {
 		return s
 	}
@@ -229,12 +229,12 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 	return buf.String()
 }
 
-// SmartWrap wraps a string or a block of text to a given line length, breaking
-// word boundaries if necessary. This will preserve ANSI escape codes and will
+// Wrap wraps a string or a block of text to a given line length, breaking word
+// boundaries if necessary. This will preserve ANSI escape codes and will
 // account for wide-characters in the string. The breakpoints string is a list
 // of characters that are considered breakpoints for word wrapping. A hyphen
 // (-) is always considered a breakpoint.
-func SmartWrap(s string, limit int, breakpoints string) string {
+func Wrap(s string, limit int, breakpoints string) string {
 	if limit < 1 {
 		return s
 	}

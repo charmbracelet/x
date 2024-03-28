@@ -37,7 +37,7 @@ var cases = []struct {
 func TestWrap(t *testing.T) {
 	for i, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ansi.Wrap(tt.input, tt.limit, tt.preserveSpace); got != tt.expected {
+			if got := ansi.Hardwrap(tt.input, tt.limit, tt.preserveSpace); got != tt.expected {
 				t.Errorf("case %d, expected %q, got %q", i+1, tt.expected, got)
 			}
 		})
@@ -86,7 +86,7 @@ func TestWordwrap(t *testing.T) {
 func TestWrapWordwrap(t *testing.T) {
 	input := "the quick brown foxxxxxxxxxxxxxxxx jumped over the lazy dog."
 	limit := 16
-	output := ansi.SmartWrap(input, limit, "")
+	output := ansi.Wrap(input, limit, "")
 	if output != "the quick brown\nfoxxxxxxxxxxxxxx\nxx jumped over\nthe lazy dog." {
 		t.Errorf("expected %q, got %q", "the quick brown\nfoxxxxxxxxxxxxxx\nxx jumped over\nthe lazy dog.", output)
 	}
@@ -163,7 +163,7 @@ var smartWrapCases = []struct {
 func TestSmartWrap(t *testing.T) {
 	for i, tc := range smartWrapCases {
 		t.Run(tc.name, func(t *testing.T) {
-			output := ansi.SmartWrap(tc.input, tc.width, "")
+			output := ansi.Wrap(tc.input, tc.width, "")
 			if output != tc.expected {
 				t.Errorf("case %d, expected %q, got %q", i+1, tc.expected, output)
 			}
