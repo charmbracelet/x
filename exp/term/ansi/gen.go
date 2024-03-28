@@ -29,7 +29,14 @@ var Table = TransitionTable{
 		action := v >> TransitionActionShift
 		next := v & TransitionStateMask
 
-		fmt.Fprintf(&f, "\t%s<<TransitionActionShift | %s,", ActionNames[action], StateNames[next])
+		format := "\t%s<<TransitionActionShift"
+		args := []interface{}{ActionNames[action]}
+		if next > GroundState {
+			format += " | %s"
+			args = append(args, StateNames[next])
+		}
+		format += ","
+		fmt.Fprintf(&f, format, args...)
 		fmt.Fprintf(&f, " // %d: %s << IndexStateShift | 0x%02x", i, StateNames[state], code)
 		fmt.Fprintln(&f)
 	}

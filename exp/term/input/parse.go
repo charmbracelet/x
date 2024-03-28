@@ -157,8 +157,9 @@ func parseCsi(b []byte) (int, Event) {
 		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
 	}
 
+	var csi ansi.CsiSequence
 	var params [parser.MaxParamsSize]int
-	csi := ansi.CsiSequence{Params: params[:]}
+	var paramsLen int
 
 	var i int
 	if b[i] == ansi.CSI || b[i] == ansi.ESC {
@@ -175,29 +176,29 @@ func parseCsi(b []byte) (int, Event) {
 
 	// Scan parameter bytes in the range 0x30-0x3F
 	var j int
-	for j = 0; i < len(b) && csi.ParamsLen < len(params) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
+	for j = 0; i < len(b) && paramsLen < len(params) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
 		if b[i] >= '0' && b[i] <= '9' {
-			if csi.Params[csi.ParamsLen] == parser.MissingParam {
-				csi.Params[csi.ParamsLen] = 0
+			if params[paramsLen] == parser.MissingParam {
+				params[paramsLen] = 0
 			}
-			csi.Params[csi.ParamsLen] *= 10
-			csi.Params[csi.ParamsLen] += int(b[i]) - '0'
+			params[paramsLen] *= 10
+			params[paramsLen] += int(b[i]) - '0'
 		}
 		if b[i] == ':' {
-			csi.Params[csi.ParamsLen] |= parser.HasMoreFlag
+			params[paramsLen] |= parser.HasMoreFlag
 		}
 		if b[i] == ';' || b[i] == ':' {
-			csi.ParamsLen++
-			if csi.ParamsLen < len(params) {
+			paramsLen++
+			if paramsLen < len(params) {
 				// Don't overflow the params slice
-				csi.Params[csi.ParamsLen] = parser.MissingParam
+				params[paramsLen] = parser.MissingParam
 			}
 		}
 	}
 
-	if j > 0 {
+	if j > 0 && paramsLen < len(params) {
 		// has parameters
-		csi.ParamsLen++
+		paramsLen++
 	}
 
 	// Scan intermediate bytes in the range 0x20-0x2F
@@ -228,6 +229,7 @@ func parseCsi(b []byte) (int, Event) {
 	csi.Cmd |= int(b[i])
 	i++
 
+	csi.Params = params[:paramsLen]
 	marker, cmd := csi.Marker(), csi.Command()
 	switch marker {
 	case '?':
@@ -236,7 +238,7 @@ func parseCsi(b []byte) (int, Event) {
 			switch intermed {
 			case '$':
 				// Report Mode (DECRPM)
-				if csi.ParamsLen != 2 {
+				if paramsLen != 2 {
 					return i, UnknownCsiEvent(b[:i])
 				}
 				return i, ReportModeEvent{Mode: csi.Param(0), Value: csi.Param(1)}
@@ -252,7 +254,7 @@ func parseCsi(b []byte) (int, Event) {
 		case 'R':
 			// This report may return a third parameter representing the page
 			// number, but we don't really need it.
-			if csi.ParamsLen >= 2 {
+			if paramsLen >= 2 {
 				return i, CursorPositionEvent{Row: csi.Param(0), Column: csi.Param(1)}
 			}
 		}
@@ -261,7 +263,7 @@ func parseCsi(b []byte) (int, Event) {
 		switch cmd {
 		case 'm', 'M':
 			// Handle SGR mouse
-			if csi.ParamsLen != 3 {
+			if paramsLen != 3 {
 				return i, UnknownCsiEvent(b[:i])
 			}
 			return i, parseSGRMouseEvent(&csi)
@@ -272,7 +274,7 @@ func parseCsi(b []byte) (int, Event) {
 		switch cmd {
 		case 'm':
 			// XTerm modifyOtherKeys
-			if csi.ParamsLen != 2 || csi.Param(0) != 4 {
+			if paramsLen != 2 || csi.Param(0) != 4 {
 				return i, UnknownCsiEvent(b[:i])
 			}
 
@@ -288,9 +290,9 @@ func parseCsi(b []byte) (int, Event) {
 	switch cmd := csi.Command(); cmd {
 	case 'R':
 		// Cursor position report OR modified F3
-		if csi.ParamsLen == 0 {
+		if paramsLen == 0 {
 			return i, KeyDownEvent{Sym: KeyF3}
-		} else if csi.ParamsLen != 2 {
+		} else if paramsLen != 2 {
 			break
 		}
 
@@ -324,9 +326,9 @@ func parseCsi(b []byte) (int, Event) {
 		case 'Z':
 			k = KeyDownEvent{Sym: KeyTab, Mod: Shift}
 		}
-		if csi.ParamsLen > 1 && csi.Param(0) == 1 {
+		if paramsLen > 1 && csi.Param(0) == 1 {
 			// CSI 1 ; <modifiers> A
-			if csi.ParamsLen > 1 {
+			if paramsLen > 1 {
 				k.Mod |= KeyMod(csi.Param(1) - 1)
 			}
 		}
@@ -339,19 +341,19 @@ func parseCsi(b []byte) (int, Event) {
 		return i + 3, parseX10MouseEvent(append(b[:i], b[i:i+3]...))
 	case 'y':
 		// Report Mode (DECRPM)
-		if csi.ParamsLen != 2 {
+		if paramsLen != 2 {
 			return i, UnknownCsiEvent(b[:i])
 		}
 		return i, ReportModeEvent{Mode: csi.Param(0), Value: csi.Param(1)}
 	case 'u':
 		// Kitty keyboard protocol & CSI u (fixterms)
-		if csi.ParamsLen == 0 {
+		if paramsLen == 0 {
 			return i, UnknownCsiEvent(b[:i])
 		}
 		return i, parseKittyKeyboard(&csi)
 	case '_':
 		// Win32 Input Mode
-		if csi.ParamsLen != 6 {
+		if paramsLen != 6 {
 			return i, UnknownCsiEvent(b[:i])
 		}
 
@@ -375,7 +377,7 @@ func parseCsi(b []byte) (int, Event) {
 
 		return i, event
 	case '@', '^', '~':
-		if csi.ParamsLen == 0 {
+		if paramsLen == 0 {
 			return i, UnknownCsiEvent(b[:i])
 		}
 
@@ -385,7 +387,7 @@ func parseCsi(b []byte) (int, Event) {
 			switch param {
 			case 27:
 				// XTerm modifyOtherKeys 2
-				if csi.ParamsLen != 3 {
+				if paramsLen != 3 {
 					return i, UnknownCsiEvent(b[:i])
 				}
 				return i, parseXTermModifyOtherKeys(&csi)
@@ -445,7 +447,7 @@ func parseCsi(b []byte) (int, Event) {
 			}
 
 			// modifiers
-			if csi.ParamsLen > 1 {
+			if paramsLen > 1 {
 				k.Mod |= KeyMod(csi.Param(1) - 1)
 			}
 
@@ -651,7 +653,8 @@ func parseDcs(b []byte) (int, Event) {
 	}
 
 	var params [16]int
-	dcs := ansi.DcsSequence{Params: params[:]}
+	var paramsLen int
+	var dcs ansi.DcsSequence
 
 	// DCS sequences are introduced by DCS (0x90) or ESC P (0x1b 0x50)
 	var i int
@@ -669,29 +672,29 @@ func parseDcs(b []byte) (int, Event) {
 
 	// Scan parameter bytes in the range 0x30-0x3F
 	var j int
-	for j = 0; i < len(b) && dcs.ParamsLen < len(params) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
+	for j = 0; i < len(b) && paramsLen < len(params) && b[i] >= 0x30 && b[i] <= 0x3F; i, j = i+1, j+1 {
 		if b[i] >= '0' && b[i] <= '9' {
-			if dcs.Params[dcs.ParamsLen] == parser.MissingParam {
-				dcs.Params[dcs.ParamsLen] = 0
+			if params[paramsLen] == parser.MissingParam {
+				params[paramsLen] = 0
 			}
-			dcs.Params[dcs.ParamsLen] *= 10
-			dcs.Params[dcs.ParamsLen] += int(b[i]) - '0'
+			params[paramsLen] *= 10
+			params[paramsLen] += int(b[i]) - '0'
 		}
 		if b[i] == ':' {
-			dcs.Params[dcs.ParamsLen] |= parser.HasMoreFlag
+			params[paramsLen] |= parser.HasMoreFlag
 		}
 		if b[i] == ';' || b[i] == ':' {
-			dcs.ParamsLen++
-			if dcs.ParamsLen < len(params) {
+			paramsLen++
+			if paramsLen < len(params) {
 				// Don't overflow the params slice
-				dcs.Params[dcs.ParamsLen] = parser.MissingParam
+				params[paramsLen] = parser.MissingParam
 			}
 		}
 	}
 
-	if j > 0 {
+	if j > 0 && paramsLen < len(params) {
 		// has parameters
-		dcs.ParamsLen++
+		paramsLen++
 	}
 
 	// Scan intermediate bytes in the range 0x20-0x2F
@@ -731,6 +734,7 @@ func parseDcs(b []byte) (int, Event) {
 		i++
 	}
 
+	dcs.Params = params[:paramsLen]
 	switch cmd := dcs.Command(); cmd {
 	case 'r':
 		switch dcs.Intermediate() {

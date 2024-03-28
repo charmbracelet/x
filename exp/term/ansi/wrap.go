@@ -39,34 +39,31 @@ func Wrap(s string, limit int, preserveSpace bool) string {
 		state, action := parser.Table.Transition(pstate, b[i])
 
 		switch action {
-		case parser.CollectAction:
-			if w := utf8ByteLen(b[i]); w <= 1 {
-				// Collect sequence intermediate bytes
-				buf.WriteByte(b[i])
-				break
-			}
+		case parser.PrintAction:
+			if utf8ByteLen(b[i]) > 1 {
+				var width int
+				cluster, _, width, gstate = uniseg.FirstGraphemeCluster(b[i:], gstate)
+				i += len(cluster)
 
-			var width int
-			cluster, _, width, gstate = uniseg.FirstGraphemeCluster(b[i:], gstate)
-			i += len(cluster)
-
-			if curWidth+width > limit {
-				addNewline()
-			}
-			if !preserveSpace && curWidth == 0 && len(cluster) <= 4 {
-				// Skip spaces at the beginning of a line
-				if r, _ := utf8.DecodeRune(cluster); r != utf8.RuneError && unicode.IsSpace(r) {
-					pstate = parser.GroundState
-					continue
+				if curWidth+width > limit {
+					addNewline()
 				}
-			}
+				if !preserveSpace && curWidth == 0 && len(cluster) <= 4 {
+					// Skip spaces at the beginning of a line
+					if r, _ := utf8.DecodeRune(cluster); r != utf8.RuneError && unicode.IsSpace(r) {
+						pstate = parser.GroundState
+						continue
+					}
+				}
 
-			buf.Write(cluster)
-			curWidth += width
-			gstate = -1 // reset grapheme state otherwise, width calculation might be off
-			pstate = parser.GroundState
-			continue
-		case parser.PrintAction, parser.ExecuteAction:
+				buf.Write(cluster)
+				curWidth += width
+				gstate = -1 // reset grapheme state otherwise, width calculation might be off
+				pstate = parser.GroundState
+				continue
+			}
+			fallthrough
+		case parser.ExecuteAction:
 			if b[i] == '\n' {
 				addNewline()
 				forceNewline = false
@@ -156,37 +153,34 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 		state, action := parser.Table.Transition(pstate, b[i])
 
 		switch action {
-		case parser.CollectAction:
-			if w := utf8ByteLen(b[i]); w <= 1 {
-				// Collect sequence intermediate bytes
-				word.WriteByte(b[i])
-				break
-			}
+		case parser.PrintAction:
+			if utf8ByteLen(b[i]) > 1 {
+				var width int
+				cluster, _, width, gstate = uniseg.FirstGraphemeCluster(b[i:], gstate)
+				i += len(cluster)
 
-			var width int
-			cluster, _, width, gstate = uniseg.FirstGraphemeCluster(b[i:], gstate)
-			i += len(cluster)
-
-			r, _ := utf8.DecodeRune(cluster)
-			if r != utf8.RuneError && unicode.IsSpace(r) {
-				addWord()
-				space.WriteRune(r)
-			} else if bytes.ContainsAny(cluster, breakpoints) {
-				addSpace()
-				addWord()
-				buf.Write(cluster)
-			} else {
-				word.Write(cluster)
-				wordLen += width
-				if curWidth+space.Len()+wordLen > limit &&
-					wordLen < limit {
-					addNewline()
+				r, _ := utf8.DecodeRune(cluster)
+				if r != utf8.RuneError && unicode.IsSpace(r) {
+					addWord()
+					space.WriteRune(r)
+				} else if bytes.ContainsAny(cluster, breakpoints) {
+					addSpace()
+					addWord()
+					buf.Write(cluster)
+				} else {
+					word.Write(cluster)
+					wordLen += width
+					if curWidth+space.Len()+wordLen > limit &&
+						wordLen < limit {
+						addNewline()
+					}
 				}
-			}
 
-			pstate = parser.GroundState
-			continue
-		case parser.PrintAction, parser.ExecuteAction:
+				pstate = parser.GroundState
+				continue
+			}
+			fallthrough
+		case parser.ExecuteAction:
 			r := rune(b[i])
 			switch {
 			case r == '\n':

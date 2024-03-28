@@ -35,9 +35,11 @@ var cases = []struct {
 
 func TestStrip(t *testing.T) {
 	for i, c := range cases {
-		if res := Strip(c.input); res != c.stripped {
-			t.Errorf("test case %d (%s) failed:\nexpected %q, got %q", i, c.name, c.stripped, res)
-		}
+		t.Run(c.name, func(t *testing.T) {
+			if res := Strip(c.input); res != c.stripped {
+				t.Errorf("test case %d (%s) failed:\nexpected %q, got %q", i, c.name, c.stripped, res)
+			}
+		})
 	}
 }
 

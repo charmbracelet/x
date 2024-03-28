@@ -25,12 +25,6 @@ type CsiSequence struct {
 	// most significant bit indicating whether there are more sub-parameters.
 	Params []int
 
-	// ParamsLen contains the number of parameters in the sequence.
-	// This is the number of all parameters, including sub-parameters.
-	// Use Len to get the number of parameters segments excluding
-	// sub-parameters.
-	ParamsLen int
-
 	// Cmd contains the raw command of the sequence.
 	// The command is a 32-bit integer containing the CSI command byte in the
 	// lower 8 bits, the private marker in the next 8 bits, and the intermediate
@@ -43,6 +37,8 @@ type CsiSequence struct {
 	//  'u' | '?' << 8
 	Cmd int
 }
+
+var _ Sequence = CsiSequence{}
 
 // Marker returns the marker byte of the CSI sequence.
 // This is always gonna be one of the following '<' '=' '>' '?' and in the
@@ -80,21 +76,29 @@ func (s CsiSequence) HasMore(i int) bool {
 // Subparams returns the sub-parameters of the given parameter.
 // It returns nil if the parameter does not exist.
 func (s CsiSequence) Subparams(i int) []int {
-	return parser.Subparams(s.Params, s.ParamsLen, i)
+	return parser.Subparams(s.Params, i)
 }
 
 // Len returns the number of parameters in the sequence.
 // This will return the number of parameters in the sequence, excluding any
 // sub-parameters.
 func (s CsiSequence) Len() int {
-	return parser.Len(s.Params, s.ParamsLen)
+	return parser.Len(s.Params)
 }
 
 // Range iterates over the parameters of the sequence and calls the given
 // function for each parameter.
 // The function should return false to stop the iteration.
 func (s CsiSequence) Range(fn func(i int, param int, hasMore bool) bool) {
-	parser.Range(s.Params, s.ParamsLen, fn)
+	parser.Range(s.Params, fn)
+}
+
+// Clone returns a copy of the CSI sequence.
+func (s CsiSequence) Clone() Sequence {
+	return CsiSequence{
+		Params: append([]int(nil), s.Params...),
+		Cmd:    s.Cmd,
+	}
 }
 
 // String returns a string representation of the sequence.
@@ -114,7 +118,7 @@ func (s CsiSequence) buffer() *bytes.Buffer {
 		if param >= 0 {
 			b.WriteString(strconv.Itoa(param))
 		}
-		if i < s.ParamsLen-1 {
+		if i < len(s.Params)-1 {
 			if hasMore {
 				b.WriteByte(':')
 			} else {

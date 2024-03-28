@@ -2,12 +2,14 @@ package parser
 
 // Shift and masks for sequence parameters and intermediates.
 const (
-	MarkerShift   = 8
-	IntermedShift = 16
-	CommandMask   = 0xff
-	HasMoreFlag   = 1 << 31
-	ParamMask     = ^HasMoreFlag
-	MissingParam  = (HasMoreFlag) - 1
+	MarkerShift    = 8
+	IntermedShift  = 16
+	CommandMask    = 0xff
+	HasMoreFlag    = 1 << 31
+	ParamMask      = ^HasMoreFlag
+	MissingParam   = (HasMoreFlag) - 1
+	MissingCommand = MissingParam
+	MaxParam       = MissingParam - 1 // the maximum value a parameter can have
 )
 
 const (
@@ -66,15 +68,15 @@ func HasMore(params []int, i int) bool {
 
 // Subparams returns the sub-parameters of the given parameter.
 // It returns nil if the parameter does not exist.
-func Subparams(params []int, paramsLen int, i int) []int {
-	if len(params) == 0 || i < 0 || i >= len(params) || i >= paramsLen {
+func Subparams(params []int, i int) []int {
+	if len(params) == 0 || i < 0 || i >= len(params) {
 		return nil
 	}
 
 	// Count the number of parameters before the given parameter index.
 	var count int
 	var j int
-	for j = 0; j < paramsLen; j++ {
+	for j = 0; j < len(params); j++ {
 		if count == i {
 			break
 		}
@@ -83,12 +85,12 @@ func Subparams(params []int, paramsLen int, i int) []int {
 		}
 	}
 
-	if count > i || j >= paramsLen {
+	if count > i || j >= len(params) {
 		return nil
 	}
 
 	var subs []int
-	for ; j < paramsLen; j++ {
+	for ; j < len(params); j++ {
 		if !HasMore(params, j) {
 			break
 		}
@@ -110,9 +112,9 @@ func Subparams(params []int, paramsLen int, i int) []int {
 // Len returns the number of parameters in the sequence.
 // This will return the number of parameters in the sequence, excluding any
 // sub-parameters.
-func Len(params []int, paramsLen int) int {
+func Len(params []int) int {
 	var n int
-	for i := 0; i < paramsLen; i++ {
+	for i := 0; i < len(params); i++ {
 		if !HasMore(params, i) {
 			n++
 		}
@@ -123,8 +125,8 @@ func Len(params []int, paramsLen int) int {
 // Range iterates over the parameters of the sequence and calls the given
 // function for each parameter.
 // The function should return false to stop the iteration.
-func Range(params []int, paramsLen int, fn func(i int, param int, hasMore bool) bool) {
-	for i := 0; i < paramsLen; i++ {
+func Range(params []int, fn func(i int, param int, hasMore bool) bool) {
+	for i := 0; i < len(params); i++ {
 		if !fn(i, Param(params, i), HasMore(params, i)) {
 			break
 		}

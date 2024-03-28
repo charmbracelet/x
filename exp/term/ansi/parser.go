@@ -1,26 +1,13 @@
 package ansi
 
 import (
-	"math"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi/parser"
 )
 
-const (
-	// maxIntermediates is the maximum number of intermediates bytes allowed.
-	maxIntermediates = 2
-
-	// maxBufferSize is the maximum number of bytes allowed in an Osc or Dcs sequence.
-	// nolint: unused
-	maxBufferSize = 1024
-
-	// maxOscParameters is the default maximum number of Osc parameters allowed.
-	maxOscParameters = 16
-
-	// maxParameters is the maximum number of parameters allowed.
-	maxParameters = 32
-)
+// ParserDispatcher is a function that dispatches a sequence.
+type ParserDispatcher func(Sequence)
 
 // Parser represents a DEC ANSI compatible sequence parser.
 //
@@ -28,457 +15,319 @@ const (
 // characters. The parser is designed to be used with a terminal emulator or
 // similar application that needs to parse ANSI escape sequences and control
 // characters.
-// See [parser] for more information.
+// See package [parser] for more information.
 //
 //go:generate go run ./gen.go
 type Parser struct {
-	// Print a rune to the output.
-	Print func(r rune)
+	// Params contains the raw parameters of the sequence.
+	// These parameters used when constructing CSI and DCS sequences.
+	Params []int
 
-	// Execute a C0 or C1 control code.
-	Execute func(b byte)
+	// Data contains the raw data of the sequence.
+	// These data used when constructing OSC, DCS, SOS, PM, and APC sequences.
+	Data []byte
 
-	// EscDispatch is called when the final byte of an escape sequence is
-	// received.
-	// The ignore flag indicates that the parser encountered more than one
-	// intermediate byte and ignoring subsequent bytes.
-	EscDispatch func(inter byte, final byte, ignore bool)
+	// DataLen keeps track of the length of the data buffer.
+	// If DataLen is -1, the data buffer is unlimited and will grow as needed.
+	// Otherwise, DataLen is limited by the size of the Data buffer.
+	DataLen int
 
-	// CsiDispatch is called when the final byte of a Control Sequence
-	// Introducer (CSI) is received.
-	// The ignore flag indicates that either the parser encountered more than
-	// one marker and one intermediate bytes, or more than the maximum number
-	// of parameters, and ignoring subsequent bytes.
-	CsiDispatch func(marker byte, params [][]uint, inter byte, final byte, ignore bool)
+	// ParamsLen keeps track of the number of parameters.
+	// This is limited by the size of the Params buffer.
+	ParamsLen int
 
-	// OscDispatch is called to dispatch an Operating System Command (OSC).
-	// bellTerminated indicates that the sequence was terminated by a BEL byte.
-	OscDispatch func(params [][]byte, bellTerminated bool)
+	// Cmd contains the raw command along with the private marker and
+	// intermediate bytes of the sequence.
+	// The first lower byte contains the command byte, the next byte contains
+	// the private marker, and the next byte contains the intermediate byte.
+	Cmd int
 
-	// DcsDispatch is called to dispatch a Device Control String (DCS).
-	// The ignore flag indicates that either the parser encountered more than
-	// the maximum number of parameters, or intermediates, and ignoring
-	// subsequent bytes.
-	DcsDispatch func(marker byte, params [][]uint, inter byte, final byte, data []byte, ignore bool)
+	// RuneLen keeps track of the number of bytes collected for a UTF-8 rune.
+	RuneLen int
 
-	// SosPmApcDispatch is called to dispatch a Start of String (SOS), Privacy
-	// Message (PM), or Application Program Command (APC) sequence.
-	// The kind byte indicates the type of sequence and can be one of the
-	// following:
-	//  - SOS: 0x98
-	//  - PM: 0x9E
-	//  - APC: 0x9F
-	SosPmApcDispatch func(kind byte, data []byte)
+	// RuneBuf contains the bytes collected for a UTF-8 rune.
+	RuneBuf [utf8.MaxRune]byte
 
-	// buf holds the bytes of an Osc or Dcs sequence.
-	buf []byte
-
-	oscParams [maxOscParameters][2]int
-
-	// params holds the parameters for the current sequence including sub
-	// parameters.
-	params [maxParameters]uint
-
-	// numSubParams holds the number of sub parameters for each parameter.
-	numSubParams [maxParameters]int
-	paramsLen    int
-
-	// param holds the current parameter.
-	// When we get a DcsHookAction, we store the final byte in param.
-	param uint
-
-	subParamsLen int
-	oscNumParams int
-	intersLen    int
-
-	// utf8Idx & utf8Raw are used to collect utf8 encoded runes.
-	utf8Idx int
-	utf8Raw [utf8.UTFMax]byte
-
-	// inters holds 2 bytes, the 1st for the private marker and the 2nd for the
-	// intermediate byte.
-	// ECMA-48 5.4 doesn't specify a limit on the number of private parameter
-	// or intermediate bytes, however, in practice, there isn't a need for more
-	// than 2.
-	inters [maxIntermediates]byte
-
-	state parser.State
-
-	// ignoring is set to true when the number of parameters exceeds the
-	// maximum allowed. This is to prevent the parser from consuming too much
-	// memory.
-	ignoring bool
-
-	// hasParams indicates that the sequence has literal parameters.
-	// This is used to avoid encoding a default `0` parameter when there are no
-	// parameters.
-	hasParams bool
-
-	// The value here indicates the type of a SOS, PM, or APC sequence.
-	sosPmApc byte
+	// State is the current state of the parser.
+	State byte
 }
 
-// Parse parses the given reader until eof.
-func (p *Parser) Parse(buf []byte) {
-	for i, b := range buf {
-		p.Advance(b, i < len(buf)-1)
+// NewParser returns a new parser with the given sizes allocated.
+// If dataSize is zero, the underlying data buffer will be unlimited and will
+// grow as needed.
+func NewParser(paramsSize, dataSize int) *Parser {
+	s := &Parser{
+		Params: make([]int, paramsSize),
+		Data:   make([]byte, dataSize),
+	}
+	if dataSize <= 0 {
+		s.DataLen = -1
+	}
+	return s
+}
+
+// Reset resets the parser to its initial state.
+func (p *Parser) Reset() {
+	if len(p.Params) > 0 {
+		p.Params[0] = parser.MissingParam
+	}
+	p.ParamsLen = 0
+	p.Cmd = 0
+	p.RuneLen = 0
+}
+
+// StateName returns the name of the current state.
+func (p *Parser) StateName() string {
+	return parser.StateNames[p.State]
+}
+
+// Parse parses the given dispatcher and byte buffer.
+func (p *Parser) Parse(dispatcher ParserDispatcher, b []byte) {
+	for i := 0; i < len(b); i++ {
+		p.Advance(dispatcher, b[i], i < len(b)-1)
 	}
 }
 
-func (p *Parser) advanceUtf8(code byte) {
-	// Collect the byte into the array
-	p.collectUtf8(code)
-	rw := utf8ByteLen(p.utf8Raw[0])
+// Advance advances the parser with the given dispatcher and byte.
+func (p *Parser) Advance(dispatcher ParserDispatcher, b byte, more bool) parser.Action {
+	switch p.State {
+	case parser.Utf8State:
+		// We handle UTF-8 here.
+		return p.advanceUtf8(dispatcher, b)
+	default:
+		return p.advance(dispatcher, b, more)
+	}
+}
+
+func (p *Parser) collectRune(b byte) {
+	if p.RuneLen < utf8.UTFMax {
+		p.RuneBuf[p.RuneLen] = b
+		p.RuneLen++
+	}
+}
+
+func (p *Parser) advanceUtf8(dispatcher ParserDispatcher, b byte) parser.Action {
+	// Collect UTF-8 rune bytes.
+	p.collectRune(b)
+	rw := utf8ByteLen(p.RuneBuf[0])
 	if rw == -1 {
 		// We panic here because the first byte comes from the state machine,
 		// if this panics, it means there is a bug in the state machine!
 		panic("invalid rune") // unreachable
 	}
 
-	if p.utf8Idx < rw {
-		return
+	if p.RuneLen < rw {
+		return parser.NoneAction
 	}
 
 	// We have enough bytes to decode the rune
-	bts := p.utf8Raw[:rw]
+	bts := p.RuneBuf[:rw]
 	r, _ := utf8.DecodeRune(bts)
-	if p.Print != nil {
-		p.Print(r)
+	if dispatcher != nil {
+		dispatcher(Rune(r))
 	}
-	p.state = parser.GroundState
-	p.clearUtf8()
+
+	p.State = parser.GroundState
+	p.RuneLen = 0
+
+	return parser.NoneAction
 }
 
-// State returns the current state of the parser.
-func (p *Parser) State() parser.State {
-	return p.state
-}
+func (p *Parser) advance(d ParserDispatcher, b byte, more bool) parser.Action {
+	state, action := parser.Table.Transition(p.State, b)
 
-// StateName returns the name of the current state.
-func (p *Parser) StateName() string {
-	return parser.StateNames[p.state]
-}
-
-// Advance advances the state machine.
-func (p *Parser) Advance(code byte, more bool) {
-	if p.state == parser.Utf8State {
-		p.advanceUtf8(code)
-	} else {
-		state, action := parser.Table.Transition(p.state, code)
-		p.performStateChange(state, action, code, more)
+	// We need to clear the parser state if the state changes from EscapeState.
+	// This is because when we enter the EscapeState, we don't get a chance to
+	// clear the parser state. For example, when a sequence terminates with a
+	// ST (\x1b\\ or \x9c), we dispatch the current sequence and transition to
+	// EscapeState. However, the parser state is not cleared in this case and
+	// we need to clear it here before dispatching the esc sequence.
+	if p.State != state {
+		switch p.State {
+		case parser.EscapeState:
+			p.performAction(d, parser.ClearAction, b)
+		}
 	}
-}
 
-func (p *Parser) performEscapeStateChange(code byte, more bool) {
-	switch p.state {
-	case parser.GroundState:
+	// Handle special cases
+	switch {
+	case b == ESC && p.State == parser.EscapeState:
+		// Two ESCs in a row
+		p.performAction(d, parser.ExecuteAction, b)
 		if !more {
-			// End of input, execute Esc
-			p.performAction(parser.ExecuteAction, code)
+			// Two ESCs at the end of the buffer
+			p.performAction(d, parser.ExecuteAction, b)
 		}
-	case parser.EscapeState:
-		// More input mean possible Esc sequence, execute the previous Esc
-		p.performAction(parser.ExecuteAction, code)
-		if !more {
-			// No more input means execute the current Esc
-			p.performAction(parser.ExecuteAction, code)
-		}
+	case b == ESC && !more:
+		// Last byte is an ESC
+		p.performAction(d, parser.ExecuteAction, b)
+	case p.State == parser.EscapeState && b == 'P' && !more:
+		// ESC P (DCS) at the end of the buffer
+		p.performAction(d, parser.DispatchAction, b)
+	case p.State == parser.EscapeState && b == 'X' && !more:
+		// ESC X (SOS) at the end of the buffer
+		p.performAction(d, parser.DispatchAction, b)
+	case p.State == parser.EscapeState && b == '[' && !more:
+		// ESC [ (CSI) at the end of the buffer
+		p.performAction(d, parser.DispatchAction, b)
+	case p.State == parser.EscapeState && b == ']' && !more:
+		// ESC ] (OSC) at the end of the buffer
+		p.performAction(d, parser.DispatchAction, b)
+	case p.State == parser.EscapeState && b == '^' && !more:
+		// ESC ^ (PM) at the end of the buffer
+		p.performAction(d, parser.DispatchAction, b)
+	case p.State == parser.EscapeState && b == '_' && !more:
+		// ESC _ (APC) at the end of the buffer
+		p.performAction(d, parser.DispatchAction, b)
 	default:
-		if !more {
-			// No more input means execute the current Esc
-			p.performAction(parser.ExecuteAction, code)
-		}
+		p.performAction(d, action, b)
 	}
+
+	p.State = state
+
+	return action
 }
 
-func (p *Parser) performStateChange(state parser.State, action parser.Action, code byte, more bool) {
-	// Handle Esc execute action
-	if code == ESC {
-		p.performEscapeStateChange(code, more)
-	}
-
-	if p.state != state {
-		switch p.state {
-		case parser.DcsPassthroughState:
-			p.performAction(parser.DcsUnhookAction, code)
-		case parser.OscStringState:
-			p.performAction(parser.OscEndAction, code)
-		case parser.SosPmApcStringState:
-			p.performAction(parser.SosPmApcEndAction, code)
-		}
-	}
-
-	p.performAction(action, code)
-
-	if p.state != state {
-		switch state {
-		case parser.CsiEntryState, parser.DcsEntryState, parser.EscapeState:
-			p.performAction(parser.ClearAction, code)
-		case parser.SosPmApcStringState:
-			switch code {
-			case SOS, 'X':
-				p.sosPmApc = SOS
-			case PM, '^':
-				p.sosPmApc = PM
-			case APC, '_':
-				p.sosPmApc = APC
-			}
-			fallthrough
-		case parser.OscStringState:
-			p.performAction(parser.StartAction, code)
-		case parser.DcsPassthroughState:
-			p.performAction(parser.DcsHookAction, code)
-		}
-	}
-
-	p.state = state
-}
-
-func (p *Parser) performAction(action parser.Action, code byte) {
+func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action, b byte) {
 	switch action {
-	case parser.NoneAction:
-		break
-
 	case parser.IgnoreAction:
 		break
 
+	case parser.ClearAction:
+		p.Reset()
+
 	case parser.PrintAction:
-		if p.Print != nil {
-			p.Print(rune(code))
+		if utf8ByteLen(b) > 1 {
+			p.collectRune(b)
+		} else if dispatcher != nil {
+			dispatcher(Rune(b))
 		}
 
 	case parser.ExecuteAction:
-		if p.Execute != nil {
-			p.Execute(code)
+		if dispatcher != nil {
+			dispatcher(ControlCode(b))
 		}
 
-	case parser.EscDispatchAction:
-		if p.EscDispatch != nil {
-			p.EscDispatch(
-				p.inters[1],
-				code,
-				p.ignoring,
-			)
+	case parser.MarkerAction:
+		// Collect private marker
+		// we only store the last marker
+		p.Cmd &^= 0xff << parser.MarkerShift
+		p.Cmd |= int(b) << parser.MarkerShift
+
+	case parser.CollectAction:
+		// Collect intermediate bytes
+		// we only store the last intermediate byte
+		p.Cmd &^= 0xff << parser.IntermedShift
+		p.Cmd |= int(b) << parser.IntermedShift
+
+	case parser.ParamAction:
+		// Collect parameters
+		if p.ParamsLen >= len(p.Params) {
+			break
 		}
 
-	case parser.SosPmApcEndAction:
-		if p.SosPmApcDispatch != nil {
-			p.SosPmApcDispatch(p.sosPmApc, p.buf)
+		if b >= '0' && b <= '9' {
+			if p.Params[p.ParamsLen] == parser.MissingParam {
+				p.Params[p.ParamsLen] = 0
+			}
+
+			p.Params[p.ParamsLen] *= 10
+			p.Params[p.ParamsLen] += int(b - '0')
+		}
+
+		if b == ':' {
+			p.Params[p.ParamsLen] |= parser.HasMoreFlag
+		}
+
+		if b == ';' || b == ':' {
+			p.ParamsLen++
+			if p.ParamsLen < len(p.Params) {
+				p.Params[p.ParamsLen] = parser.MissingParam
+			}
 		}
 
 	case parser.StartAction:
-		p.buf = make([]byte, 0)
-		p.oscNumParams = 0
-
-	case parser.OscPutAction:
-		idx := len(p.buf)
-		if code == ';' {
-			paramIdx := p.oscNumParams
-			switch paramIdx {
-			case maxOscParameters:
-				return
-			case 0:
-				p.oscParams[paramIdx] = [2]int{0, idx}
-			default:
-				prev := p.oscParams[paramIdx-1]
-				begin := prev[1]
-				p.oscParams[paramIdx] = [2]int{begin, idx}
-			}
-			p.oscNumParams++
+		if p.DataLen < 0 {
+			p.Data = make([]byte, 0)
 		} else {
-			p.buf = append(p.buf, code)
+			p.DataLen = 0
 		}
-
-	case parser.OscEndAction:
-		paramIdx := p.oscNumParams
-		idx := len(p.buf)
-
-		switch paramIdx {
-		case maxOscParameters:
-			break
-		case 0:
-			p.oscParams[paramIdx] = [2]int{0, idx}
-			p.oscNumParams++
-		default:
-			prev := p.oscParams[paramIdx-1]
-			begin := prev[1]
-			p.oscParams[paramIdx] = [2]int{begin, idx}
-			p.oscNumParams++
+		if p.State >= parser.DcsEntryState && p.State <= parser.DcsStringState {
+			// Collect the command byte for DCS
+			p.Cmd |= int(b)
+		} else {
+			p.Cmd = parser.MissingCommand
 		}
-
-		if p.OscDispatch != nil {
-			p.OscDispatch(
-				p.getOscParams(),
-				code == BEL,
-			)
-		}
-
-	case parser.DcsHookAction:
-		p.buf = make([]byte, 0)
-		if p.isParamsFull() {
-			p.ignoring = true
-		} else if p.param > 0 || p.hasParams {
-			p.pushParam(p.param)
-		}
-		p.param = uint(code)
 
 	case parser.PutAction:
-		p.buf = append(p.buf, code)
-
-	case parser.DcsUnhookAction:
-		if p.DcsDispatch != nil {
-			p.DcsDispatch(
-				p.inters[0],
-				p.getParams(),
-				p.inters[1],
-				byte(p.param),
-				p.buf,
-				p.ignoring,
-			)
+		switch p.State {
+		case parser.OscStringState:
+			if b == ';' && p.Cmd == parser.MissingCommand {
+				// Try to parse the command
+				datalen := len(p.Data)
+				if p.DataLen >= 0 {
+					datalen = p.DataLen
+				}
+				for i := 0; i < datalen; i++ {
+					d := p.Data[i]
+					if d < '0' || d > '9' {
+						break
+					}
+					if p.Cmd == parser.MissingCommand {
+						p.Cmd = 0
+					}
+					p.Cmd *= 10
+					p.Cmd += int(d - '0')
+				}
+			}
 		}
 
-	case parser.CsiDispatchAction:
-		if p.isParamsFull() {
-			p.ignoring = true
-		} else if p.param > 0 || p.hasParams {
-			p.pushParam(p.param)
-		}
-
-		if p.CsiDispatch != nil {
-			p.CsiDispatch(
-				p.inters[0],
-				p.getParams(),
-				p.inters[1],
-				code,
-				p.ignoring,
-			)
-		}
-
-	case parser.CollectAction:
-		if utf8ByteLen(code) > 1 {
-			p.collectUtf8(code)
+		if p.DataLen < 0 {
+			p.Data = append(p.Data, b)
 		} else {
-			p.collect(code)
+			if p.DataLen < len(p.Data) {
+				p.Data[p.DataLen] = b
+				p.DataLen++
+			}
 		}
 
-	case parser.ParamAction:
-		if p.isParamsFull() {
-			p.ignoring = true
-			return
+	case parser.DispatchAction:
+		// Increment the last parameter
+		if p.ParamsLen > 0 && p.ParamsLen < len(p.Params)-1 ||
+			p.ParamsLen == 0 && len(p.Params) > 0 && p.Params[0] != parser.MissingParam {
+			p.ParamsLen++
 		}
 
-		p.hasParams = true
-		switch code {
-		case ';':
-			p.pushParam(p.param)
-			p.param = 0
-		case ':':
-			p.extendParam(p.param)
-			p.param = 0
-		default:
-			p.param = smulu(p.param, 10)
-			p.param = saddu(p.param, uint(code-'0'))
+		if dispatcher == nil {
+			break
 		}
 
-	case parser.ClearAction:
-		p.clear()
+		var seq Sequence
+		data := p.Data
+		if p.DataLen >= 0 {
+			data = data[:p.DataLen]
+		}
+		switch p.State {
+		case parser.CsiEntryState, parser.CsiParamState, parser.CsiIntermediateState:
+			p.Cmd |= int(b)
+			seq = CsiSequence{Cmd: p.Cmd, Params: p.Params[:p.ParamsLen]}
+		case parser.EscapeState, parser.EscapeIntermediateState:
+			p.Cmd |= int(b)
+			seq = EscSequence(p.Cmd)
+		case parser.DcsEntryState, parser.DcsParamState, parser.DcsIntermediateState, parser.DcsStringState:
+			seq = DcsSequence{Cmd: p.Cmd, Params: p.Params[:p.ParamsLen], Data: data}
+		case parser.OscStringState:
+			seq = OscSequence{Cmd: p.Cmd, Data: data}
+		case parser.SosStringState:
+			seq = SosSequence(data)
+		case parser.PmStringState:
+			seq = PmSequence(data)
+		case parser.ApcStringState:
+			seq = ApcSequence(data)
+		}
+
+		dispatcher(seq)
 	}
-}
-
-func (p *Parser) collectUtf8(code byte) {
-	if p.utf8Idx < utf8.UTFMax {
-		p.utf8Raw[p.utf8Idx] = code
-		p.utf8Idx++
-	}
-}
-
-func (p *Parser) collect(code byte) {
-	if p.intersLen == maxIntermediates {
-		p.ignoring = true
-	} else if code >= 0x30 && code <= 0x3F { // private marker
-		p.inters[0] = code
-	} else {
-		p.inters[1] = code
-	}
-	p.intersLen++
-}
-
-func (p *Parser) clearUtf8() {
-	p.utf8Idx = 0
-}
-
-func (p *Parser) clear() {
-	// Reset everything on ESC/CSI/DCS entry
-	p.intersLen = 0
-	p.ignoring = false
-	p.hasParams = false
-	p.param = 0
-	p.paramsLen = 0
-	p.subParamsLen = 0
-	p.inters[0], p.inters[1] = 0, 0
-}
-
-func (p *Parser) getOscParams() [][]byte {
-	if p.oscNumParams == 0 {
-		return nil
-	}
-
-	params := make([][]byte, 0, maxOscParameters)
-	for i := 0; i < p.oscNumParams; i++ {
-		indices := p.oscParams[i]
-		param := p.buf[indices[0]:indices[1]]
-		params = append(params, param)
-	}
-
-	return params[:p.oscNumParams]
-}
-
-func (p *Parser) pushParam(param uint) {
-	p.numSubParams[p.paramsLen-p.subParamsLen] = p.subParamsLen + 1
-	p.params[p.paramsLen] = param
-	p.subParamsLen = 0
-	p.paramsLen++
-}
-
-func (p *Parser) extendParam(param uint) {
-	p.numSubParams[p.paramsLen-p.subParamsLen] = p.subParamsLen + 1
-	p.params[p.paramsLen] = param
-	p.subParamsLen++
-	p.paramsLen++
-}
-
-func (p *Parser) isParamsFull() bool {
-	return p.paramsLen >= maxParameters
-}
-
-func (p *Parser) getParams() [][]uint {
-	if p.paramsLen == 0 {
-		return nil
-	}
-	params := make([][]uint, 0)
-	for i := 0; i < p.paramsLen; {
-		nSubs := p.numSubParams[i]
-		subs := p.params[i : i+nSubs]
-		i += nSubs
-		params = append(params, subs)
-	}
-	return params
-}
-
-func saddu(a, b uint) uint {
-	if b > 0 && a > math.MaxUint-b {
-		return math.MaxUint
-	}
-
-	return a + b
-}
-
-func smulu(a, b uint) uint {
-	if a > 0 && b > 0 && a > math.MaxUint/b {
-		return math.MaxUint
-	}
-
-	return a * b
 }
 
 func utf8ByteLen(b byte) int {

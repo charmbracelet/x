@@ -113,8 +113,7 @@ func TestCsiSequence_Param(t *testing.T) {
 		{
 			name: "param",
 			s: CsiSequence{
-				Params:    []int{1, 2, 3},
-				ParamsLen: 3,
+				Params: []int{1, 2, 3},
 			},
 			i:    1,
 			want: 2,
@@ -122,8 +121,7 @@ func TestCsiSequence_Param(t *testing.T) {
 		{
 			name: "missing param",
 			s: CsiSequence{
-				Params:    []int{1, parser.MissingParam, 3},
-				ParamsLen: 3,
+				Params: []int{1, parser.MissingParam, 3},
 			},
 			i:    1,
 			want: -1,
@@ -154,8 +152,7 @@ func TestCsiSequence_HasMore(t *testing.T) {
 		{
 			name: "has more",
 			s: CsiSequence{
-				Params:    []int{1 | parser.HasMoreFlag, 2, 3},
-				ParamsLen: 3,
+				Params: []int{1 | parser.HasMoreFlag, 2, 3},
 			},
 			i:    0,
 			want: true,
@@ -163,8 +160,7 @@ func TestCsiSequence_HasMore(t *testing.T) {
 		{
 			name: "no more",
 			s: CsiSequence{
-				Params:    []int{1, 2, 3},
-				ParamsLen: 3,
+				Params: []int{1, 2, 3},
 			},
 			i:    0,
 			want: false,
@@ -193,24 +189,21 @@ func TestCsiSequence_Len(t *testing.T) {
 		{
 			name: "len",
 			s: CsiSequence{
-				Params:    []int{1, 2, 3},
-				ParamsLen: 3,
+				Params: []int{1, 2, 3},
 			},
 			want: 3,
 		},
 		{
 			name: "len with missing param",
 			s: CsiSequence{
-				Params:    []int{1, parser.MissingParam, 3},
-				ParamsLen: 3,
+				Params: []int{1, parser.MissingParam, 3},
 			},
 			want: 3,
 		},
 		{
 			name: "len with more flag",
 			s: CsiSequence{
-				Params:    []int{1 | parser.HasMoreFlag, 2, 3},
-				ParamsLen: 3,
+				Params: []int{1 | parser.HasMoreFlag, 2, 3},
 			},
 			want: 2,
 		},
@@ -238,45 +231,40 @@ func TestCsiSequence_String(t *testing.T) {
 		{
 			name: "with data",
 			s: CsiSequence{
-				Cmd:       'A',
-				Params:    []int{1, 2, 3},
-				ParamsLen: 3,
+				Cmd:    'A',
+				Params: []int{1, 2, 3},
 			},
 			want: "\x1b[1;2;3A",
 		},
 		{
 			name: "with more flag",
 			s: CsiSequence{
-				Cmd:       'A',
-				Params:    []int{1 | parser.HasMoreFlag, 2, 3},
-				ParamsLen: 3,
+				Cmd:    'A',
+				Params: []int{1 | parser.HasMoreFlag, 2, 3},
 			},
 			want: "\x1b[1:2;3A",
 		},
 		{
 			name: "with intermediate",
 			s: CsiSequence{
-				Cmd:       'A' | '$'<<parser.IntermedShift,
-				Params:    []int{1, 2, 3},
-				ParamsLen: 3,
+				Cmd:    'A' | '$'<<parser.IntermedShift,
+				Params: []int{1, 2, 3},
 			},
 			want: "\x1b[1;2;3$A",
 		},
 		{
 			name: "with marker",
 			s: CsiSequence{
-				Cmd:       'A' | '?'<<parser.MarkerShift,
-				Params:    []int{1, 2, 3},
-				ParamsLen: 3,
+				Cmd:    'A' | '?'<<parser.MarkerShift,
+				Params: []int{1, 2, 3},
 			},
 			want: "\x1b[?1;2;3A",
 		},
 		{
 			name: "with marker intermediate and more flag",
 			s: CsiSequence{
-				Cmd:       'A' | '?'<<parser.MarkerShift | '$'<<parser.IntermedShift,
-				Params:    []int{1, 2 | parser.HasMoreFlag, 3},
-				ParamsLen: 3,
+				Cmd:    'A' | '?'<<parser.MarkerShift | '$'<<parser.IntermedShift,
+				Params: []int{1, 2 | parser.HasMoreFlag, 3},
 			},
 			want: "\x1b[?1;2:3$A",
 		},
