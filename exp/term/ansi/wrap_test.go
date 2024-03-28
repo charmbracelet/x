@@ -84,27 +84,65 @@ func TestWordwrap(t *testing.T) {
 }
 
 func TestWrapWordwrap(t *testing.T) {
-	t.Skip("WIP")
 	input := "the quick brown foxxxxxxxxxxxxxxxx jumped over the lazy dog."
 	limit := 16
-	output := ansi.Wordwrap(input, limit, "")
-	t.Logf("output: %q", output)
-	output = ansi.Wrap(output, limit, false)
-	if output != "the quick brown\nfoxxxxxxxxxxxxx\nxxxx jumped over\nthe lazy dog." {
+	output := ansi.SmartWrap(input, limit, "")
+	if output != "the quick brown\nfoxxxxxxxxxxxxxx\nxx jumped over\nthe lazy dog." {
 		t.Errorf("expected %q, got %q", "the quick brown\nfoxxxxxxxxxxxxxx\nxx jumped over\nthe lazy dog.", output)
 	}
 }
 
-const _ = `
- the quick brown
- foxxxxxxxxxxxxxxxx
- jumped over the
- lazy dog.
-`
+var smartWrapCases = []struct {
+	name     string
+	input    string
+	expected string
+	width    int
+}{
+	{
+		name:     "simple",
+		input:    "I really \x1B[38;2;249;38;114mlove\x1B[0m Go!",
+		expected: "I really\n\x1B[38;2;249;38;114mlove\x1B[0m Go!",
+		width:    8,
+	},
+	{
+		name:     "passthrough",
+		input:    "hello world",
+		expected: "hello world",
+		width:    11,
+	},
+	{
+		name:     "longer",
+		input:    "the quick brown foxxxxxxxxxxxxxxxx jumped over the lazy dog.",
+		expected: "the quick brown\nfoxxxxxxxxxxxxxx\nxx jumped over\nthe lazy dog.",
+		width:    16,
+	},
+	{
+		name:     "longer asian",
+		input:    "猴 猴 猴猴 猴猴猴猴猴猴猴猴猴 猴猴猴 猴猴 猴’ 猴猴 猴.",
+		expected: "猴 猴 猴猴\n猴猴猴猴猴猴猴猴\n猴 猴猴猴 猴猴\n猴’ 猴猴 猴.",
+		width:    16,
+	},
+	{
+		name:     "long input",
+		input:    "Rotated keys for a-good-offensive-cheat-code-incorporated/animal-like-law-on-the-rocks.",
+		expected: "Rotated keys for a-good-offensive-cheat-code-incorporated/animal-like-law-on\n-the-rocks.",
+		width:    76,
+	},
+	{
+		name:     "long input2",
+		input:    "Rotated keys for a-good-offensive-cheat-code-incorporated/crypto-line-operating-system.",
+		expected: "Rotated keys for a-good-offensive-cheat-code-incorporated/crypto-line-operat\ning-system.",
+		width:    76,
+	},
+}
 
-const _ = `
- the quick brown
- foxxxxxxxxxxxxxx
- xx jumped over t
- he lazy dog.
-`
+func TestSmartWrap(t *testing.T) {
+	for i, tc := range smartWrapCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output := ansi.SmartWrap(tc.input, tc.width, "")
+			if output != tc.expected {
+				t.Errorf("case %d, expected %q, got %q", i+1, tc.expected, output)
+			}
+		})
+	}
+}
