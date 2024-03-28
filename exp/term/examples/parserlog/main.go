@@ -5,98 +5,95 @@ import (
 	"io"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
+	"github.com/charmbracelet/x/exp/term/ansi/parser"
 )
-
-type dispatcher struct {
-	str string
-}
-
-func (p *dispatcher) Print(r rune) {
-	p.str += string(r)
-	// fmt.Printf("[Print] %c\n", r)
-}
-
-func (p *dispatcher) Execute(code byte) {
-	if p.str != "" {
-		fmt.Printf("[Print] %s\n", p.str)
-		p.str = ""
-	}
-	fmt.Printf("[Execute] 0x%02x\n", code)
-}
-
-func (p *dispatcher) DcsDispatch(marker byte, params [][]uint, inter byte, r byte, data []byte, ignore bool) {
-	if p.str != "" {
-		fmt.Printf("[Print] %s\n", p.str)
-		p.str = ""
-	}
-	fmt.Printf("[DcsDispatch] marker=%c params=%v, inter=%c, final=%q, data=%q, ignore=%v\n", marker, params, inter, r, data, ignore)
-}
-
-func (p *dispatcher) OscDispatch(params [][]byte, bellTerminated bool) {
-	if p.str != "" {
-		fmt.Printf("[Print] %s\n", p.str)
-		p.str = ""
-	}
-	fmt.Printf("[OscDispatch]")
-	for _, param := range params {
-		fmt.Printf(" param=%q", param)
-	}
-	fmt.Printf(" bellTerminated=%v\n", bellTerminated)
-}
-
-func (p *dispatcher) CsiDispatch(marker byte, params [][]uint, inter byte, r byte, ignore bool) {
-	if p.str != "" {
-		fmt.Printf("[Print] %s\n", p.str)
-		p.str = ""
-	}
-	fmt.Print("[CsiDispatch]")
-	fmt.Printf(" marker=%c params=%v, inter=%c, final=%c, ignore=%v\n", marker, params, inter, r, ignore)
-}
-
-func (p *dispatcher) EscDispatch(inter byte, r byte, ignore bool) {
-	if p.str != "" {
-		fmt.Printf("[Print] %s\n", p.str)
-		p.str = ""
-	}
-	fmt.Printf("[EscDispatch] inter=%c, final=%c, ignore=%v\n", inter, r, ignore)
-}
-
-func (p *dispatcher) SosPmApcDispatch(kind byte, data []byte) {
-	if p.str != "" {
-		fmt.Printf("[Print] %s\n", p.str)
-		p.str = ""
-	}
-	var k string
-	switch kind {
-	case ansi.SOS, 'X':
-		k = "SOS"
-	case ansi.PM, '^':
-		k = "PM"
-	case ansi.APC, '_':
-		k = "APC"
-	default:
-		k = strconv.Itoa(int(kind))
-	}
-	fmt.Printf("[SosPmApcDispatch] kind=%v, data=%q\n", k, data)
-}
 
 func main() {
 	bts, err := io.ReadAll(os.Stdin)
 	if err != nil && err != io.EOF {
 		log.Fatal(err)
 	}
-	dispatcher := &dispatcher{}
-	parser := ansi.Parser{
-		Print:            dispatcher.Print,
-		Execute:          dispatcher.Execute,
-		DcsDispatch:      dispatcher.DcsDispatch,
-		OscDispatch:      dispatcher.OscDispatch,
-		CsiDispatch:      dispatcher.CsiDispatch,
-		EscDispatch:      dispatcher.EscDispatch,
-		SosPmApcDispatch: dispatcher.SosPmApcDispatch,
+
+	var str string
+	parser := ansi.NewParser(parser.MaxParamsSize, 0)
+	dispatcher := func(s ansi.Sequence) {
+		if _, ok := s.(ansi.Rune); !ok && str != "" {
+			fmt.Printf("[Print] %s\n", str)
+			str = ""
+		}
+		switch s := s.(type) {
+		case ansi.Rune:
+			str += string(s)
+		case ansi.ControlCode:
+			fmt.Printf("[ControlCode] %q\n", s)
+		case ansi.EscSequence:
+			fmt.Print("[EscSequence] ")
+			fmt.Printf("Cmd=%c ", s.Command())
+			if intermed := s.Intermediate(); intermed != 0 {
+				fmt.Printf("Inter=%c", intermed)
+			}
+			fmt.Println()
+		case ansi.CsiSequence:
+			fmt.Print("[CsiSequence] ")
+			fmt.Printf("Cmd=%q ", s.Command())
+			if marker := s.Marker(); marker != 0 {
+				fmt.Printf("Marker=%q, ", marker)
+			}
+			if intermed := s.Intermediate(); intermed != 0 {
+				fmt.Printf("Intermed=%q, ", intermed)
+			}
+			for i := 0; i < s.Len(); i++ {
+				if i == 0 {
+					fmt.Printf("Params=[")
+				}
+				fmt.Printf("%+v", s.Subparams(i))
+				if i != s.Len()-1 {
+					fmt.Print(", ")
+				}
+				if i == s.Len()-1 {
+					fmt.Print("]")
+				}
+			}
+			fmt.Println()
+		case ansi.OscSequence:
+			fmt.Print("[OscSequence] ")
+			fmt.Printf("Cmd=%d ", s.Command())
+			fmt.Printf("Params=%+v\n", s.Params())
+		case ansi.DcsSequence:
+			fmt.Print("[DcsSequence] ")
+			fmt.Printf("Cmd=%q ", s.Command())
+			if marker := s.Marker(); marker != 0 {
+				fmt.Printf("Marker=%q, ", marker)
+			}
+			if intermed := s.Intermediate(); intermed != 0 {
+				fmt.Printf("Intermed=%q, ", intermed)
+			}
+			for i := 0; i < s.Len(); i++ {
+				if i == 0 {
+					fmt.Printf("Params=[")
+				}
+				fmt.Printf("%+v", s.Subparams(i))
+				if i != s.Len()-1 {
+					fmt.Print(", ")
+				}
+				if i == s.Len()-1 {
+					fmt.Print("] ")
+				}
+			}
+			fmt.Printf("Data=%q\n", s.Data)
+		case ansi.SosSequence:
+			fmt.Printf("[SosSequence] Data=%q\n", []byte(s))
+		case ansi.PmSequence:
+			fmt.Printf("[PmSequence] Data=%q\n", []byte(s))
+		case ansi.ApcSequence:
+			fmt.Printf("[ApcSequence] Data=%q\n", []byte(s))
+		}
 	}
-	parser.Parse(bts)
+
+	parser.Parse(dispatcher, bts)
+	if str != "" {
+		fmt.Printf("[Print] %s\n", str)
+	}
 }

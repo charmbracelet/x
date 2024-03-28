@@ -6,41 +6,31 @@ type Action = byte
 // These are the actions that the parser can take.
 const (
 	NoneAction Action = iota
-	IgnoreAction
 	ClearAction
 	CollectAction
-	CsiDispatchAction
-	EscDispatchAction
+	MarkerAction
+	DispatchAction
 	ExecuteAction
-	DcsHookAction
-	OscEndAction
-	OscPutAction
-	StartAction // Start an Osc or SosPmApc sequence
+	StartAction // Start of a data string
+	PutAction   // Put into the data string
 	ParamAction
 	PrintAction
-	PutAction // Used to put data into the buffer for Dcs/Sos/Pm/Apc
-	DcsUnhookAction
-	SosPmApcEndAction
+
+	IgnoreAction = NoneAction
 )
 
 // nolint: unused
 var ActionNames = []string{
 	"NoneAction",
-	"IgnoreAction",
 	"ClearAction",
 	"CollectAction",
-	"CsiDispatchAction",
-	"EscDispatchAction",
+	"MarkerAction",
+	"DispatchAction",
 	"ExecuteAction",
-	"DcsHookAction",
-	"OscEndAction",
-	"OscPutAction",
 	"StartAction",
+	"PutAction",
 	"ParamAction",
 	"PrintAction",
-	"PutAction",
-	"DcsUnhookAction",
-	"SosPmApcEndAction",
 }
 
 // State is a DEC ANSI parser state.
@@ -50,18 +40,18 @@ type State = byte
 const (
 	GroundState State = iota
 	CsiEntryState
-	CsiIgnoreState
 	CsiIntermediateState
 	CsiParamState
 	DcsEntryState
-	DcsIgnoreState
 	DcsIntermediateState
 	DcsParamState
-	DcsPassthroughState
+	DcsStringState
 	EscapeState
 	EscapeIntermediateState
 	OscStringState
-	SosPmApcStringState
+	SosStringState
+	PmStringState
+	ApcStringState
 
 	// Utf8State is not part of the DEC ANSI standard. It is used to handle
 	// UTF-8 sequences.
@@ -72,17 +62,17 @@ const (
 var StateNames = []string{
 	"GroundState",
 	"CsiEntryState",
-	"CsiIgnoreState",
 	"CsiIntermediateState",
 	"CsiParamState",
 	"DcsEntryState",
-	"DcsIgnoreState",
 	"DcsIntermediateState",
 	"DcsParamState",
-	"DcsPassthroughState",
+	"DcsStringState",
 	"EscapeState",
 	"EscapeIntermediateState",
 	"OscStringState",
-	"SosPmApcStringState",
+	"SosStringState",
+	"PmStringState",
+	"ApcStringState",
 	"Utf8State",
 }

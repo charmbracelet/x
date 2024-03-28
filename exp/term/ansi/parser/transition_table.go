@@ -13,6 +13,9 @@ const (
 	DefaultTableSize = 4096
 )
 
+// Table is a DEC ANSI transition table.
+var Table = GenerateTransitionTable()
+
 // TransitionTable is a DEC ANSI transition table.
 // https://vt100.net/emu/dec_ansi_parser
 type TransitionTable []byte
@@ -91,18 +94,22 @@ func GenerateTransitionTable() TransitionTable {
 		table.AddOne(0x9C, state, IgnoreAction, GroundState)
 		// Anywhere -> Escape
 		table.AddOne(0x1B, state, ClearAction, EscapeState)
-		// Anywhere -> SosPmApcStringState
-		table.AddMany([]byte{0x98, 0x9E, 0x9F}, state, IgnoreAction, SosPmApcStringState)
+		// Anywhere -> SosStringState
+		table.AddOne(0x98, state, StartAction, SosStringState)
+		// Anywhere -> PmStringState
+		table.AddOne(0x9E, state, StartAction, PmStringState)
+		// Anywhere -> ApcStringState
+		table.AddOne(0x9F, state, StartAction, ApcStringState)
 		// Anywhere -> CsiEntry
-		table.AddOne(0x9B, state, NoneAction, CsiEntryState)
+		table.AddOne(0x9B, state, ClearAction, CsiEntryState)
 		// Anywhere -> DcsEntry
-		table.AddOne(0x90, state, NoneAction, DcsEntryState)
+		table.AddOne(0x90, state, ClearAction, DcsEntryState)
 		// Anywhere -> OscString
-		table.AddOne(0x9D, state, NoneAction, OscStringState)
+		table.AddOne(0x9D, state, StartAction, OscStringState)
 		// Anywhere -> Utf8
-		table.AddRange(0xC2, 0xDF, state, CollectAction, Utf8State) // UTF8 2 byte sequence
-		table.AddRange(0xE0, 0xEF, state, CollectAction, Utf8State) // UTF8 3 byte sequence
-		table.AddRange(0xF0, 0xF4, state, CollectAction, Utf8State) // UTF8 4 byte sequence
+		table.AddRange(0xC2, 0xDF, state, PrintAction, Utf8State) // UTF8 2 byte sequence
+		table.AddRange(0xE0, 0xEF, state, PrintAction, Utf8State) // UTF8 3 byte sequence
+		table.AddRange(0xF0, 0xF4, state, PrintAction, Utf8State) // UTF8 4 byte sequence
 	}
 
 	// Ground
@@ -118,16 +125,7 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x20, 0x2F, EscapeIntermediateState, CollectAction, EscapeIntermediateState)
 	table.AddOne(0x7F, EscapeIntermediateState, IgnoreAction, EscapeIntermediateState)
 	// EscapeIntermediate -> Ground
-	table.AddRange(0x30, 0x7E, EscapeIntermediateState, EscDispatchAction, GroundState)
-
-	// Sos_pm_apc_string
-	table.AddRange(0x00, 0x17, SosPmApcStringState, PutAction, SosPmApcStringState)
-	table.AddOne(0x19, SosPmApcStringState, PutAction, SosPmApcStringState)
-	table.AddRange(0x1C, 0x1F, SosPmApcStringState, PutAction, SosPmApcStringState)
-	table.AddRange(0x20, 0x7F, SosPmApcStringState, PutAction, SosPmApcStringState)
-	// ESC, ST, CAN, and SUB terminate the sequence
-	table.AddOne(0x1B, SosPmApcStringState, IgnoreAction, EscapeState)
-	table.AddMany([]byte{0x9C, 0x18, 0x1A}, SosPmApcStringState, IgnoreAction, GroundState)
+	table.AddRange(0x30, 0x7E, EscapeIntermediateState, DispatchAction, GroundState)
 
 	// Escape
 	table.AddRange(0x00, 0x17, EscapeState, ExecuteAction, EscapeState)
@@ -135,24 +133,36 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x1C, 0x1F, EscapeState, ExecuteAction, EscapeState)
 	table.AddOne(0x7F, EscapeState, IgnoreAction, EscapeState)
 	// Escape -> Ground
-	table.AddRange(0x30, 0x4F, EscapeState, EscDispatchAction, GroundState)
-	table.AddRange(0x51, 0x57, EscapeState, EscDispatchAction, GroundState)
-	table.AddOne(0x59, EscapeState, EscDispatchAction, GroundState)
-	table.AddOne(0x5A, EscapeState, EscDispatchAction, GroundState)
-	table.AddOne(0x5C, EscapeState, EscDispatchAction, GroundState)
-	table.AddRange(0x60, 0x7E, EscapeState, EscDispatchAction, GroundState)
+	table.AddRange(0x30, 0x4F, EscapeState, DispatchAction, GroundState)
+	table.AddRange(0x51, 0x57, EscapeState, DispatchAction, GroundState)
+	table.AddOne(0x59, EscapeState, DispatchAction, GroundState)
+	table.AddOne(0x5A, EscapeState, DispatchAction, GroundState)
+	table.AddOne(0x5C, EscapeState, DispatchAction, GroundState)
+	table.AddRange(0x60, 0x7E, EscapeState, DispatchAction, GroundState)
 	// Escape -> Escape_intermediate
 	table.AddRange(0x20, 0x2F, EscapeState, CollectAction, EscapeIntermediateState)
 	// Escape -> Sos_pm_apc_string
-	table.AddOne('X', EscapeState, NoneAction, SosPmApcStringState) // SOS
-	table.AddOne('^', EscapeState, NoneAction, SosPmApcStringState) // PM
-	table.AddOne('_', EscapeState, NoneAction, SosPmApcStringState) // APC
+	table.AddOne('X', EscapeState, StartAction, SosStringState) // SOS
+	table.AddOne('^', EscapeState, StartAction, PmStringState)  // PM
+	table.AddOne('_', EscapeState, StartAction, ApcStringState) // APC
 	// Escape -> Dcs_entry
-	table.AddOne('P', EscapeState, NoneAction, DcsEntryState)
+	table.AddOne('P', EscapeState, ClearAction, DcsEntryState)
 	// Escape -> Csi_entry
-	table.AddOne('[', EscapeState, NoneAction, CsiEntryState)
+	table.AddOne('[', EscapeState, ClearAction, CsiEntryState)
 	// Escape -> Osc_string
-	table.AddOne(']', EscapeState, NoneAction, OscStringState)
+	table.AddOne(']', EscapeState, StartAction, OscStringState)
+
+	// Sos_pm_apc_string
+	for _, state := range r(SosStringState, ApcStringState) {
+		table.AddRange(0x00, 0x17, state, PutAction, state)
+		table.AddOne(0x19, state, PutAction, state)
+		table.AddRange(0x1C, 0x1F, state, PutAction, state)
+		table.AddRange(0x20, 0x7F, state, PutAction, state)
+		// ESC, ST, CAN, and SUB terminate the sequence
+		table.AddOne(0x1B, state, DispatchAction, EscapeState)
+		table.AddOne(0x9C, state, DispatchAction, GroundState)
+		table.AddMany([]byte{0x18, 0x1A}, state, IgnoreAction, GroundState)
+	}
 
 	// Dcs_entry
 	table.AddRange(0x00, 0x17, DcsEntryState, IgnoreAction, DcsEntryState)
@@ -161,12 +171,11 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddOne(0x7F, DcsEntryState, IgnoreAction, DcsEntryState)
 	// Dcs_entry -> Dcs_intermediate
 	table.AddRange(0x20, 0x2F, DcsEntryState, CollectAction, DcsIntermediateState)
-	// Dcs_entry -> Dcs_ignore
 	// Dcs_entry -> Dcs_param
 	table.AddRange(0x30, 0x3B, DcsEntryState, ParamAction, DcsParamState)
-	table.AddRange(0x3C, 0x3F, DcsEntryState, CollectAction, DcsParamState)
+	table.AddRange(0x3C, 0x3F, DcsEntryState, MarkerAction, DcsParamState)
 	// Dcs_entry -> Dcs_passthrough
-	table.AddRange(0x40, 0x7E, DcsEntryState, NoneAction, DcsPassthroughState)
+	table.AddRange(0x40, 0x7E, DcsEntryState, StartAction, DcsStringState)
 
 	// Dcs_intermediate
 	table.AddRange(0x00, 0x17, DcsIntermediateState, IgnoreAction, DcsIntermediateState)
@@ -174,15 +183,9 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x1C, 0x1F, DcsIntermediateState, IgnoreAction, DcsIntermediateState)
 	table.AddRange(0x20, 0x2F, DcsIntermediateState, CollectAction, DcsIntermediateState)
 	table.AddOne(0x7F, DcsIntermediateState, IgnoreAction, DcsIntermediateState)
-	// Dcs_intermediate -> Dcs_ignore
-	table.AddRange(0x30, 0x3F, DcsIntermediateState, NoneAction, DcsIgnoreState)
 	// Dcs_intermediate -> Dcs_passthrough
-	table.AddRange(0x40, 0x7E, DcsIntermediateState, NoneAction, DcsPassthroughState)
-
-	// Dcs_ignore
-	table.AddRange(0x00, 0x17, DcsIgnoreState, IgnoreAction, DcsIgnoreState)
-	table.AddOne(0x19, DcsIgnoreState, IgnoreAction, DcsIgnoreState)
-	table.AddRange(0x1C, 0x1F, DcsIgnoreState, IgnoreAction, DcsIgnoreState)
+	table.AddRange(0x30, 0x3F, DcsIntermediateState, StartAction, DcsStringState)
+	table.AddRange(0x40, 0x7E, DcsIntermediateState, StartAction, DcsStringState)
 
 	// Dcs_param
 	table.AddRange(0x00, 0x17, DcsParamState, IgnoreAction, DcsParamState)
@@ -190,23 +193,23 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x1C, 0x1F, DcsParamState, IgnoreAction, DcsParamState)
 	table.AddRange(0x30, 0x3B, DcsParamState, ParamAction, DcsParamState)
 	table.AddOne(0x7F, DcsParamState, IgnoreAction, DcsParamState)
-	// Dcs_param -> Dcs_ignore
-	table.AddRange(0x3C, 0x3F, DcsParamState, NoneAction, DcsIgnoreState)
+	table.AddRange(0x3C, 0x3F, DcsParamState, IgnoreAction, DcsParamState)
 	// Dcs_param -> Dcs_intermediate
 	table.AddRange(0x20, 0x2F, DcsParamState, CollectAction, DcsIntermediateState)
 	// Dcs_param -> Dcs_passthrough
-	table.AddRange(0x40, 0x7E, DcsParamState, NoneAction, DcsPassthroughState)
+	table.AddRange(0x40, 0x7E, DcsParamState, StartAction, DcsStringState)
 
 	// Dcs_passthrough
-	table.AddRange(0x00, 0x17, DcsPassthroughState, PutAction, DcsPassthroughState)
-	table.AddOne(0x19, DcsPassthroughState, PutAction, DcsPassthroughState)
-	table.AddRange(0x1C, 0x1F, DcsPassthroughState, PutAction, DcsPassthroughState)
-	table.AddRange(0x20, 0x7E, DcsPassthroughState, PutAction, DcsPassthroughState)
-	table.AddOne(0x7F, DcsPassthroughState, IgnoreAction, DcsPassthroughState)
-	table.AddRange(0x80, 0xFF, DcsPassthroughState, PutAction, DcsPassthroughState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF
+	table.AddRange(0x00, 0x17, DcsStringState, PutAction, DcsStringState)
+	table.AddOne(0x19, DcsStringState, PutAction, DcsStringState)
+	table.AddRange(0x1C, 0x1F, DcsStringState, PutAction, DcsStringState)
+	table.AddRange(0x20, 0x7E, DcsStringState, PutAction, DcsStringState)
+	table.AddOne(0x7F, DcsStringState, IgnoreAction, DcsStringState)
+	table.AddRange(0x80, 0xFF, DcsStringState, PutAction, DcsStringState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF
 	// ST, CAN, SUB, and ESC terminate the sequence
-	table.AddOne(0x1b, DcsPassthroughState, NoneAction, EscapeState)
-	table.AddMany([]byte{0x9C, 0x18, 0x1A}, DcsPassthroughState, NoneAction, GroundState)
+	table.AddOne(0x1B, DcsStringState, DispatchAction, EscapeState)
+	table.AddOne(0x9C, DcsStringState, DispatchAction, GroundState)
+	table.AddMany([]byte{0x18, 0x1A}, DcsStringState, IgnoreAction, GroundState)
 
 	// Csi_param
 	table.AddRange(0x00, 0x17, CsiParamState, ExecuteAction, CsiParamState)
@@ -214,21 +217,11 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x1C, 0x1F, CsiParamState, ExecuteAction, CsiParamState)
 	table.AddRange(0x30, 0x3B, CsiParamState, ParamAction, CsiParamState)
 	table.AddOne(0x7F, CsiParamState, IgnoreAction, CsiParamState)
+	table.AddRange(0x3C, 0x3F, CsiParamState, IgnoreAction, CsiParamState)
 	// Csi_param -> Ground
-	table.AddRange(0x40, 0x7E, CsiParamState, CsiDispatchAction, GroundState)
-	// Csi_param -> Csi_ignore
-	table.AddRange(0x3C, 0x3F, CsiParamState, IgnoreAction, CsiIgnoreState)
+	table.AddRange(0x40, 0x7E, CsiParamState, DispatchAction, GroundState)
 	// Csi_param -> Csi_intermediate
 	table.AddRange(0x20, 0x2F, CsiParamState, CollectAction, CsiIntermediateState)
-
-	// Csi_ignore
-	table.AddRange(0x00, 0x17, CsiIgnoreState, ExecuteAction, CsiIgnoreState)
-	table.AddOne(0x19, CsiIgnoreState, ExecuteAction, CsiIgnoreState)
-	table.AddRange(0x1C, 0x1F, CsiIgnoreState, ExecuteAction, CsiIgnoreState)
-	table.AddRange(0x20, 0x3F, CsiIgnoreState, IgnoreAction, CsiIgnoreState)
-	table.AddOne(0x7F, CsiIgnoreState, IgnoreAction, CsiIgnoreState)
-	// Csi_ignore -> Ground
-	table.AddRange(0x40, 0x7E, CsiIgnoreState, NoneAction, GroundState)
 
 	// Csi_intermediate
 	table.AddRange(0x00, 0x17, CsiIntermediateState, ExecuteAction, CsiIntermediateState)
@@ -237,9 +230,9 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x20, 0x2F, CsiIntermediateState, CollectAction, CsiIntermediateState)
 	table.AddOne(0x7F, CsiIntermediateState, IgnoreAction, CsiIntermediateState)
 	// Csi_intermediate -> Ground
-	table.AddRange(0x40, 0x7E, CsiIntermediateState, CsiDispatchAction, GroundState)
+	table.AddRange(0x40, 0x7E, CsiIntermediateState, DispatchAction, GroundState)
 	// Csi_intermediate -> Csi_ignore
-	table.AddRange(0x30, 0x3F, CsiIntermediateState, NoneAction, CsiIgnoreState)
+	table.AddRange(0x30, 0x3F, CsiIntermediateState, IgnoreAction, GroundState)
 
 	// Csi_entry
 	table.AddRange(0x00, 0x17, CsiEntryState, ExecuteAction, CsiEntryState)
@@ -247,23 +240,25 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x1C, 0x1F, CsiEntryState, ExecuteAction, CsiEntryState)
 	table.AddOne(0x7F, CsiEntryState, IgnoreAction, CsiEntryState)
 	// Csi_entry -> Ground
-	table.AddRange(0x40, 0x7E, CsiEntryState, CsiDispatchAction, GroundState)
+	table.AddRange(0x40, 0x7E, CsiEntryState, DispatchAction, GroundState)
 	// Csi_entry -> Csi_intermediate
 	table.AddRange(0x20, 0x2F, CsiEntryState, CollectAction, CsiIntermediateState)
 	// Csi_entry -> Csi_param
 	table.AddRange(0x30, 0x3B, CsiEntryState, ParamAction, CsiParamState)
-	table.AddRange(0x3C, 0x3F, CsiEntryState, CollectAction, CsiParamState)
+	table.AddRange(0x3C, 0x3F, CsiEntryState, MarkerAction, CsiParamState)
 
 	// Osc_string
 	table.AddRange(0x00, 0x06, OscStringState, IgnoreAction, OscStringState)
 	table.AddRange(0x08, 0x17, OscStringState, IgnoreAction, OscStringState)
 	table.AddOne(0x19, OscStringState, IgnoreAction, OscStringState)
 	table.AddRange(0x1C, 0x1F, OscStringState, IgnoreAction, OscStringState)
-	table.AddRange(0x20, 0xFF, OscStringState, OscPutAction, OscStringState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF
+	table.AddRange(0x20, 0xFF, OscStringState, PutAction, OscStringState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF
 
 	// ST, CAN, SUB, ESC, and BEL terminate the sequence
-	table.AddOne(0x1B, OscStringState, NoneAction, EscapeState)
-	table.AddMany([]byte{0x9C, 0x18, 0x1A, 0x07}, OscStringState, NoneAction, GroundState)
+	table.AddOne(0x1B, OscStringState, DispatchAction, EscapeState)
+	table.AddOne(0x07, OscStringState, DispatchAction, GroundState)
+	table.AddOne(0x9C, OscStringState, DispatchAction, GroundState)
+	table.AddMany([]byte{0x18, 0x1A}, OscStringState, IgnoreAction, GroundState)
 
 	return table
 }

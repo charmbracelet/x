@@ -1,91 +1,65 @@
 package ansi
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/charmbracelet/x/exp/term/ansi/parser"
 )
 
 func TestOscSequence(t *testing.T) {
+	const maxBufferSize = 1024
 	cases := []testCase{
 		{
 			name:  "parse",
 			input: "\x1b]2;charmbracelet: ~/Source/bubbletea\x07",
-			expected: []testSequence{
-				testOscSequence{
-					params: [][]byte{
-						[]byte("2"), []byte("charmbracelet: ~/Source/bubbletea"),
-					},
-					bell: true,
+			expected: []Sequence{
+				OscSequence{
+					Data: []byte("2;charmbracelet: ~/Source/bubbletea"),
+					Cmd:  2,
 				},
 			},
 		},
 		{
 			name:  "empty",
 			input: "\x1b]\x07",
-			expected: []testSequence{
-				testOscSequence{
-					params: [][]byte{{}},
-					bell:   true,
+			expected: []Sequence{
+				OscSequence{
+					Cmd: parser.MissingCommand,
 				},
 			},
 		},
 		{
 			name:  "max_params",
-			input: fmt.Sprintf("\x1b]%s\x1b", strings.Repeat(";", maxOscParameters+1)),
-			expected: []testSequence{
-				testOscSequence{
-					params: [][]byte{
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-					},
-					bell: false,
+			input: fmt.Sprintf("\x1b]%s\x1b\\", strings.Repeat(";", 17)),
+			expected: []Sequence{
+				OscSequence{
+					Data: []byte(strings.Repeat(";", 17)),
+					Cmd:  parser.MissingCommand,
 				},
+				EscSequence('\\'),
 			},
 		},
 		{
 			name:  "bell_terminated",
 			input: "\x1b]11;ff/00/ff\x07",
-			expected: []testSequence{
-				testOscSequence{
-					params: [][]byte{
-						[]byte("11"), []byte("ff/00/ff"),
-					},
-					bell: true,
+			expected: []Sequence{
+				OscSequence{
+					Data: []byte("11;ff/00/ff"),
+					Cmd:  11,
 				},
 			},
 		},
 		{
 			name:  "esc_st_terminated",
 			input: "\x1b]11;ff/00/ff\x1b\\",
-			expected: []testSequence{
-				testOscSequence{
-					params: [][]byte{
-						[]byte("11"), []byte("ff/00/ff"),
-					},
-					bell: false,
+			expected: []Sequence{
+				OscSequence{
+					Data: []byte("11;ff/00/ff"),
+					Cmd:  11,
 				},
-				testEscSequence{
-					ignore: false,
-					rune:   '\\',
-				},
+				EscSequence('\\'),
 			},
 		},
 		{
@@ -96,76 +70,46 @@ func TestOscSequence(t *testing.T) {
 				0x2f, 0xc2, 0xaf, 0x27, 0x20, 0x26, 0x26, 0x20, 0x73, 0x6c,
 				0x65, 0x65, 0x70, 0x20, 0x31, 0x9c,
 			}),
-			expected: []testSequence{
-				testOscSequence{
-					params: [][]byte{
-						[]byte("2"), []byte(`echo '¯\_(ツ)_/¯' && sleep 1`),
-					},
-					bell: false,
+			expected: []Sequence{
+				OscSequence{
+					Data: []byte("2;echo '¯\\_(ツ)_/¯' && sleep 1"),
+					Cmd:  2,
 				},
 			},
 		},
 		{
 			name:  "string_terminator",
 			input: "\x1b]2;\xe6\x9c\xab\x1b\\",
-			expected: []testSequence{
-				testOscSequence{
-					params: [][]byte{
-						[]byte("2"), []byte("\xe6"),
-					},
+			expected: []Sequence{
+				OscSequence{
+					Data: []byte("2;\xe6"),
+					Cmd:  2,
 				},
-				testEscSequence{
-					ignore: false,
-					rune:   '\\',
-				},
+				EscSequence('\\'),
 			},
 		},
 		{
-			// TODO: The parser now allows arbitrary length OSC sequences, should we limit this?
 			name:  "exceed_max_buffer_size",
-			input: fmt.Sprintf("\x1b]52;s%s\x07", strings.Repeat("a", maxBufferSize+100)),
-			expected: []testSequence{
-				testOscSequence{
-					params: [][]byte{
-						[]byte("52"), append([]byte{'s'}, bytes.Repeat([]byte{'a'}, maxBufferSize+100)...),
-					},
-					bell: true,
+			input: fmt.Sprintf("\x1b]52;s%s\x07", strings.Repeat("a", maxBufferSize)),
+			expected: []Sequence{
+				OscSequence{
+					Data: []byte(fmt.Sprintf("52;s%s", strings.Repeat("a", maxBufferSize-4))), // 4 is the len of "52;s"
+					Cmd:  52,
 				},
 			},
 		},
 		{
 			name:  "title_empty_params_esc",
-			input: "\x1b]0;abc\x1b\\\x1b];;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\x1b",
-			expected: []testSequence{
-				testOscSequence{
-					params: [][]byte{
-						[]byte("0"), []byte("abc"),
-					},
-					bell: false,
+			input: "\x1b]0;abc\x1b\\\x1b];;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\x07",
+			expected: []Sequence{
+				OscSequence{
+					Data: []byte("0;abc"),
+					Cmd:  0,
 				},
-				testEscSequence{
-					rune: '\\',
-				},
-				testOscSequence{
-					params: [][]byte{
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-						{},
-					},
-					bell: false,
+				EscSequence('\\'),
+				OscSequence{
+					Data: []byte(strings.Repeat(";", 45)),
+					Cmd:  parser.MissingCommand,
 				},
 			},
 		},
@@ -175,9 +119,11 @@ func TestOscSequence(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
 			parser := testParser(dispatcher)
-			parser.Parse([]byte(c.input))
-			assert.Equal(t, len(c.expected), len(dispatcher.dispatched))
-			assert.Equal(t, c.expected, dispatcher.dispatched)
+			parser.Data = make([]byte, maxBufferSize)
+			parser.DataLen = maxBufferSize
+			parser.Parse(dispatcher.Dispatch, []byte(c.input))
+			assertEqual(t, len(c.expected), len(dispatcher.dispatched))
+			assertEqual(t, c.expected, dispatcher.dispatched)
 		})
 	}
 }

@@ -28,12 +28,6 @@ type DcsSequence struct {
 	// This is the data between the final byte and the escape sequence terminator.
 	Data []byte
 
-	// ParamsLen contains the number of parameters in the sequence.
-	// This is the number of all parameters, including sub-parameters.
-	// Use Len to get the number of parameters segments excluding
-	// sub-parameters.
-	ParamsLen int
-
 	// Cmd contains the raw command of the sequence.
 	// The command is a 32-bit integer containing the DCS command byte in the
 	// lower 8 bits, the private marker in the next 8 bits, and the intermediate
@@ -47,12 +41,14 @@ type DcsSequence struct {
 	Cmd int
 }
 
+var _ Sequence = DcsSequence{}
+
 // Marker returns the marker byte of the DCS sequence.
 // This is always gonna be one of the following '<' '=' '>' '?' and in the
 // range of 0x3C-0x3F.
 // Zero is returned if the sequence does not have a marker.
 func (s DcsSequence) Marker() int {
-	return parser.Command(s.Cmd)
+	return parser.Marker(s.Cmd)
 }
 
 // Intermediate returns the intermediate byte of the DCS sequence.
@@ -83,21 +79,30 @@ func (s DcsSequence) HasMore(i int) bool {
 // Subparams returns the sub-parameters of the given parameter.
 // It returns nil if the parameter does not exist.
 func (s DcsSequence) Subparams(i int) []int {
-	return parser.Subparams(s.Params, s.ParamsLen, i)
+	return parser.Subparams(s.Params, i)
 }
 
 // Len returns the number of parameters in the sequence.
 // This will return the number of parameters in the sequence, excluding any
 // sub-parameters.
 func (s DcsSequence) Len() int {
-	return parser.Len(s.Params, s.ParamsLen)
+	return parser.Len(s.Params)
 }
 
 // Range iterates over the parameters of the sequence and calls the given
 // function for each parameter.
 // The function should return false to stop the iteration.
 func (s DcsSequence) Range(fn func(i int, param int, hasMore bool) bool) {
-	parser.Range(s.Params, s.ParamsLen, fn)
+	parser.Range(s.Params, fn)
+}
+
+// Clone returns a copy of the DCS sequence.
+func (s DcsSequence) Clone() Sequence {
+	return DcsSequence{
+		Params: append([]int(nil), s.Params...),
+		Data:   append([]byte(nil), s.Data...),
+		Cmd:    s.Cmd,
+	}
 }
 
 // String returns a string representation of the sequence.
@@ -117,7 +122,7 @@ func (s DcsSequence) buffer() *bytes.Buffer {
 		if param >= -1 {
 			b.WriteString(strconv.Itoa(param))
 		}
-		if i < s.ParamsLen-1 {
+		if i < len(s.Params)-1 {
 			if hasMore {
 				b.WriteByte(':')
 			} else {

@@ -37,14 +37,16 @@ func Strip(s string) string {
 			pstate = parser.GroundState
 			ri = 0
 			rw = 0
-		case action == parser.CollectAction:
+		case action == parser.PrintAction:
 			// This action happens when we transition to the Utf8State.
 			if w := utf8ByteLen(s[i]); w > 1 {
 				rw = w
 				buf.WriteByte(s[i])
 				ri++
+				break
 			}
-		case action == parser.PrintAction || action == parser.ExecuteAction:
+			fallthrough
+		case action == parser.ExecuteAction:
 			// collects printable ASCII and non-printable characters
 			buf.WriteByte(s[i])
 		}

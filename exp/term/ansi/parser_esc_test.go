@@ -3,7 +3,7 @@ package ansi
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	"github.com/charmbracelet/x/exp/term/ansi/parser"
 )
 
 func TestEscSequence(t *testing.T) {
@@ -11,12 +11,8 @@ func TestEscSequence(t *testing.T) {
 		{
 			name:  "reset",
 			input: "\x1b[3;1\x1b(A",
-			expected: []testSequence{
-				testEscSequence{
-					inter:  '(',
-					ignore: false,
-					rune:   'A',
-				},
+			expected: []Sequence{
+				EscSequence('A' | '('<<parser.IntermedShift),
 			},
 		},
 	}
@@ -25,10 +21,10 @@ func TestEscSequence(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
 			parser := testParser(dispatcher)
-			parser.Parse([]byte(c.input))
-			assert.Equal(t, len(c.expected), len(dispatcher.dispatched))
+			parser.Parse(dispatcher.Dispatch, []byte(c.input))
+			assertEqual(t, len(c.expected), len(dispatcher.dispatched))
 			for i := range c.expected {
-				assert.Equal(t, c.expected[i], dispatcher.dispatched[i])
+				assertEqual(t, c.expected[i], dispatcher.dispatched[i])
 			}
 		})
 	}
