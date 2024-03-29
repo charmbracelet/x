@@ -37,7 +37,7 @@ var cases = []struct {
 func TestWrap(t *testing.T) {
 	for i, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := ansi.Wrap(tt.input, tt.limit, tt.preserveSpace); got != tt.expected {
+			if got := ansi.Hardwrap(tt.input, tt.limit, tt.preserveSpace); got != tt.expected {
 				t.Errorf("case %d, expected %q, got %q", i+1, tt.expected, got)
 			}
 		})
@@ -84,27 +84,89 @@ func TestWordwrap(t *testing.T) {
 }
 
 func TestWrapWordwrap(t *testing.T) {
-	t.Skip("WIP")
 	input := "the quick brown foxxxxxxxxxxxxxxxx jumped over the lazy dog."
 	limit := 16
-	output := ansi.Wordwrap(input, limit, "")
-	t.Logf("output: %q", output)
-	output = ansi.Wrap(output, limit, false)
-	if output != "the quick brown\nfoxxxxxxxxxxxxx\nxxxx jumped over\nthe lazy dog." {
+	output := ansi.Wrap(input, limit, "")
+	if output != "the quick brown\nfoxxxxxxxxxxxxxx\nxx jumped over\nthe lazy dog." {
 		t.Errorf("expected %q, got %q", "the quick brown\nfoxxxxxxxxxxxxxx\nxx jumped over\nthe lazy dog.", output)
 	}
 }
 
-const _ = `
- the quick brown
- foxxxxxxxxxxxxxxxx
- jumped over the
- lazy dog.
-`
+var smartWrapCases = []struct {
+	name     string
+	input    string
+	expected string
+	width    int
+}{
+	{
+		name:     "simple",
+		input:    "I really \x1B[38;2;249;38;114mlove\x1B[0m Go!",
+		expected: "I really\n\x1B[38;2;249;38;114mlove\x1B[0m Go!",
+		width:    8,
+	},
+	{
+		name:     "passthrough",
+		input:    "hello world",
+		expected: "hello world",
+		width:    11,
+	},
+	{
+		name:     "asian",
+		input:    "こんにち",
+		expected: "こんに\nち",
+		width:    7,
+	},
+	{
+		name:     "emoji",
+		input:    "😃👰🏻‍♀️🫧",
+		expected: "😃\n👰🏻‍♀️\n🫧",
+		width:    2,
+	},
+	{
+		name:     "long style",
+		input:    "\x1B[38;2;249;38;114ma really long string\x1B[0m",
+		expected: "\x1B[38;2;249;38;114ma really\nlong\nstring\x1B[0m",
+		width:    10,
+	},
+	{
+		name:     "longer",
+		input:    "the quick brown foxxxxxxxxxxxxxxxx jumped over the lazy dog.",
+		expected: "the quick brown\nfoxxxxxxxxxxxxxx\nxx jumped over\nthe lazy dog.",
+		width:    16,
+	},
+	{
+		name:     "longer asian",
+		input:    "猴 猴 猴猴 猴猴猴猴猴猴猴猴猴 猴猴猴 猴猴 猴’ 猴猴 猴.",
+		expected: "猴 猴 猴猴\n猴猴猴猴猴猴猴猴\n猴 猴猴猴 猴猴\n猴’ 猴猴 猴.",
+		width:    16,
+	},
+	{
+		name:     "long input",
+		input:    "Rotated keys for a-good-offensive-cheat-code-incorporated/animal-like-law-on-the-rocks.",
+		expected: "Rotated keys for a-good-offensive-cheat-code-incorporated/animal-like-law-on\n-the-rocks.",
+		width:    76,
+	},
+	{
+		name:     "long input2",
+		input:    "Rotated keys for a-good-offensive-cheat-code-incorporated/crypto-line-operating-system.",
+		expected: "Rotated keys for a-good-offensive-cheat-code-incorporated/crypto-line-operat\ning-system.",
+		width:    76,
+	},
+	{
+		name:     "paragraph with styles",
+		input:    "Lorem ipsum dolor \x1b[1msit\x1b[m amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. \x1b[31mUt enim\x1b[m ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea \x1b[38;5;200mcommodo consequat\x1b[m. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. \x1b[1;2;33mExcepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\x1b[m",
+		expected: "Lorem ipsum dolor \x1b[1msit\x1b[m amet,\nconsectetur adipiscing elit,\nsed do eiusmod tempor\nincididunt ut labore et dolore\nmagna aliqua. \x1b[31mUt enim\x1b[m ad minim\nveniam, quis nostrud\nexercitation ullamco laboris\nnisi ut aliquip ex ea \x1b[38;5;200mcommodo\nconsequat\x1b[m. Duis aute irure\ndolor in reprehenderit in\nvoluptate velit esse cillum\ndolore eu fugiat nulla\npariatur. \x1b[1;2;33mExcepteur sint\noccaecat cupidatat non\nproident, sunt in culpa qui\nofficia deserunt mollit anim\nid est laborum.\x1b[m",
+		width:    30,
+	},
+}
 
-const _ = `
- the quick brown
- foxxxxxxxxxxxxxx
- xx jumped over t
- he lazy dog.
-`
+func TestSmartWrap(t *testing.T) {
+	for i, tc := range smartWrapCases {
+		t.Run(tc.name, func(t *testing.T) {
+			output := ansi.Wrap(tc.input, tc.width, "")
+			if output != tc.expected {
+				t.Errorf("case %d, expected %q, got %q", i+1, tc.expected, output)
+			}
+		})
+	}
+}
