@@ -134,7 +134,7 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 	}
 
 	addWord := func() {
-		if wordLen > 0 {
+		if curWidth > 0 {
 			addSpace()
 		}
 		curWidth += wordLen
