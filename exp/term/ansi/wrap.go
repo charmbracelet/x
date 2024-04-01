@@ -105,6 +105,8 @@ func Hardwrap(s string, limit int, preserveSpace bool) string {
 // The breakpoints string is a list of characters that are considered
 // breakpoints for word wrapping. A hyphen (-) is always considered a
 // breakpoint.
+//
+// Note: breakpoints must be a string of 1-cell wide rune character.
 func Wordwrap(s string, limit int, breakpoints string) string {
 	if limit < 1 {
 		return s
@@ -132,10 +134,9 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 	}
 
 	addWord := func() {
-		if word.Len() == 0 {
-			return
+		if wordLen > 0 {
+			addSpace()
 		}
-		addSpace()
 		curWidth += wordLen
 		buf.Write(word.Bytes())
 		word.Reset()
@@ -163,11 +164,6 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 				if r != utf8.RuneError && unicode.IsSpace(r) {
 					addWord()
 					space.WriteRune(r)
-				} else if bytes.ContainsAny(cluster, breakpoints) {
-					addSpace()
-					addWord()
-					buf.Write(cluster)
-					curWidth++
 				} else {
 					word.Write(cluster)
 					wordLen += width
@@ -234,6 +230,8 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 // account for wide-characters in the string. The breakpoints string is a list
 // of characters that are considered breakpoints for word wrapping. A hyphen
 // (-) is always considered a breakpoint.
+//
+// Note: breakpoints must be a string of 1-cell wide rune character.
 func Wrap(s string, limit int, breakpoints string) string {
 	if limit < 1 {
 		return s
@@ -247,12 +245,19 @@ func Wrap(s string, limit int, breakpoints string) string {
 		buf      bytes.Buffer
 		word     bytes.Buffer
 		space    bytes.Buffer
+		bpoint   bytes.Buffer
 		curWidth int
 		wordLen  int
 		gstate   = -1
 		pstate   = parser.GroundState // initial state
 		b        = []byte(s)
 	)
+
+	addBpoint := func() {
+		curWidth += bpoint.Len()
+		buf.Write(bpoint.Bytes())
+		bpoint.Reset()
+	}
 
 	addSpace := func() {
 		curWidth += space.Len()
@@ -261,10 +266,14 @@ func Wrap(s string, limit int, breakpoints string) string {
 	}
 
 	addWord := func() {
-		if word.Len() == 0 {
-			return
+		addBpoint()
+		if wordLen > 0 {
+			// We use wordLen to determine if we have a word to add
+			// to the buffer. If wordLen is 0, we don't add spaces at the
+			// beginning of a line.
+			addSpace()
 		}
-		addSpace()
+
 		curWidth += wordLen
 		buf.Write(word.Bytes())
 		word.Reset()
@@ -292,26 +301,16 @@ func Wrap(s string, limit int, breakpoints string) string {
 				if r != utf8.RuneError && unicode.IsSpace(r) {
 					addWord()
 					space.WriteRune(r)
-				} else if bytes.ContainsAny(cluster, breakpoints) {
-					addSpace()
-					addWord()
-					buf.Write(cluster)
-					curWidth++
 				} else {
 					if wordLen+width > limit {
+						// If the word is longer than the limit, we break it
 						addWord()
-						addNewline()
 					}
 					word.Write(cluster)
 					wordLen += width
-					if curWidth+space.Len()+wordLen > limit &&
-						wordLen < limit {
+					if curWidth+space.Len()+wordLen+bpoint.Len() > limit {
+						addBpoint()
 						addNewline()
-					} else if curWidth+wordLen >= limit {
-						addWord()
-						if i < len(b)-1 {
-							addNewline()
-						}
 					}
 				}
 
@@ -340,23 +339,23 @@ func Wrap(s string, limit int, breakpoints string) string {
 			case runeContainsAny(r, breakpoints):
 				addSpace()
 				addWord()
-				buf.WriteByte(b[i])
-				curWidth++
+				if curWidth+1 <= limit {
+					bpoint.WriteByte(b[i])
+					break
+				}
+				// If we can't fit the breakpoint in the current line, we treat
+				// it as a word character.
+				fallthrough
 			default:
-				if wordLen+1 > limit {
+				if wordLen >= limit {
+					// If the word is longer than the limit, we break it
 					addWord()
-					addNewline()
 				}
 				word.WriteByte(b[i])
 				wordLen++
-				if curWidth+space.Len()+wordLen > limit &&
-					wordLen < limit {
+				if curWidth+space.Len()+wordLen+bpoint.Len() > limit {
+					addBpoint()
 					addNewline()
-				} else if curWidth+wordLen >= limit {
-					addWord()
-					if i < len(b)-1 {
-						addNewline()
-					}
 				}
 			}
 
