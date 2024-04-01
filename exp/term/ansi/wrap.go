@@ -267,7 +267,7 @@ func Wrap(s string, limit int, breakpoints string) string {
 
 	addWord := func() {
 		addBpoint()
-		if wordLen > 0 {
+		if curWidth > 0 {
 			// We use wordLen to determine if we have a word to add
 			// to the buffer. If wordLen is 0, we don't add spaces at the
 			// beginning of a line.
