@@ -1,10 +1,11 @@
-go 1.21
+go 1.22.1
 
 use (
 	./editor
 	./errors
 	./exp/golden
 	./exp/higherorder
+	./exp/open
 	./exp/ordered
 	./exp/slice
 	./exp/strings
