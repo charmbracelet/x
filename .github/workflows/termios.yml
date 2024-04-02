@@ -17,7 +17,7 @@ jobs:
         with:
           go-version-file: ./exp/term/go.mod
           cache: true
-          cache-dependency-path: ./exp/term.sum
+          cache-dependency-path: ./exp/term/go.sum
       # https://go.dev/doc/install/source#environment
       - run: GOOS=darwin GOARCH=amd64 go test -c -v ./termios/...
       - run: GOOS=darwin GOARCH=arm64 go test -c -v ./termios/...
