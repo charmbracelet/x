@@ -18,8 +18,9 @@ Currently the following packages are available:
 
 - [`editor`](./editor): open files in text editors
 - [`errors`](./errors): `errors.Join` in older Go versions
-- [`higherorder`](./exp/higherorder): generic higher order functions
 - [`golden`](./exp/golden): verify golden files equality
+- [`higherorder`](./exp/higherorder): generic higher order functions
+- [`open`](./exp/open): open a file/URL using `open`, `xdg-open`, etc
 - [`ordered`](./exp/ordered): generic `min`, `max`, and `clamp` functions for ordered types
 - [`slice`](./exp/slice): generic slice utilities
 - [`strings`](./exp/strings): utilities for working with strings
