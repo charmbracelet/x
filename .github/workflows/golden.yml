@@ -25,6 +25,6 @@ jobs:
         with:
           go-version-file: ./exp/golden/go.mod
           cache: true
-          cache-dependency-path: ./exp/golden.sum
+          cache-dependency-path: ./exp/golden/go.sum
       - run: go build -v ./...
       - run: go test -race -v ./...

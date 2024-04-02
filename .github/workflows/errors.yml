@@ -25,6 +25,6 @@ jobs:
         with:
           go-version-file: ./errors/go.mod
           cache: true
-          cache-dependency-path: ./errors.sum
+          cache-dependency-path: ./errors/go.sum
       - run: go build -v ./...
       - run: go test -race -v ./...

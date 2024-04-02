@@ -25,6 +25,6 @@ jobs:
         with:
           go-version-file: ./exp/open/go.mod
           cache: true
-          cache-dependency-path: ./exp/open.sum
+          cache-dependency-path: ./exp/open/go.sum
       - run: go build -v ./...
       - run: go test -race -v ./...
