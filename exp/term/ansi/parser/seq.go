@@ -1,15 +1,17 @@
 package parser
 
+import "math"
+
 // Shift and masks for sequence parameters and intermediates.
 const (
 	MarkerShift    = 8
 	IntermedShift  = 16
 	CommandMask    = 0xff
-	HasMoreFlag    = 1 << 31
+	HasMoreFlag    = math.MinInt32
 	ParamMask      = ^HasMoreFlag
-	MissingParam   = (HasMoreFlag) - 1
+	MissingParam   = ParamMask
 	MissingCommand = MissingParam
-	MaxParam       = MissingParam - 1 // the maximum value a parameter can have
+	MaxParam       = math.MaxUint16 // the maximum value a parameter can have
 )
 
 const (
