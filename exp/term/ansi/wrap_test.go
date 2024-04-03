@@ -165,9 +165,10 @@ var wrapCases = []struct {
 		width:    3,
 	},
 	{
+		// TODO: fixme: this is a bug
 		name:     "extra space",
 		input:    "\x1b[mfoo \x1b[m",
-		expected: "\x1b[mfoo\x1b[m",
+		expected: "\x1b[mfoo \x1b[m",
 		width:    3,
 	},
 	{

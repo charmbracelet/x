@@ -134,9 +134,11 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 	}
 
 	addWord := func() {
-		if curWidth > 0 && word.Len() > 0 {
-			addSpace()
+		if wordLen == 0 {
+			return
 		}
+
+		addSpace()
 		curWidth += wordLen
 		buf.Write(word.Bytes())
 		word.Reset()
@@ -267,13 +269,11 @@ func Wrap(s string, limit int, breakpoints string) string {
 
 	addWord := func() {
 		addBpoint()
-		if curWidth > 0 && word.Len() > 0 {
-			// We use wordLen to determine if we have a word to add
-			// to the buffer. If wordLen is 0, we don't add spaces at the
-			// beginning of a line.
-			addSpace()
+		if word.Len() == 0 {
+			return
 		}
 
+		addSpace()
 		curWidth += wordLen
 		buf.Write(word.Bytes())
 		word.Reset()
