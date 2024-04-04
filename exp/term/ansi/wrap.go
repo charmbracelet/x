@@ -134,7 +134,7 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 	}
 
 	addWord := func() {
-		if wordLen == 0 {
+		if word.Len() == 0 {
 			return
 		}
 
@@ -301,6 +301,11 @@ func Wrap(s string, limit int, breakpoints string) string {
 				if r != utf8.RuneError && unicode.IsSpace(r) {
 					addWord()
 					space.WriteRune(r)
+				} else if bytes.ContainsAny(cluster, breakpoints) {
+					addSpace()
+					addWord()
+					buf.Write(cluster)
+					curWidth++
 				} else {
 					if wordLen+width > limit {
 						// If the word is longer than the limit, we break it
