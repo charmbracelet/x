@@ -9,6 +9,9 @@ import (
 	"github.com/rivo/uniseg"
 )
 
+// nbsp is a non-breaking space
+const nbsp = 0xA0
+
 // Hardwrap wraps a string or a block of text to a given line length, breaking
 // word boundaries. This will preserve ANSI escape codes and will account for
 // wide-characters in the string.
@@ -106,14 +109,11 @@ func Hardwrap(s string, limit int, preserveSpace bool) string {
 // breakpoints for word wrapping. A hyphen (-) is always considered a
 // breakpoint.
 //
-// Note: breakpoints must be a string of 1-cell wide rune character.
+// Note: breakpoints must be a string of 1-cell wide rune characters.
 func Wordwrap(s string, limit int, breakpoints string) string {
 	if limit < 1 {
 		return s
 	}
-
-	// Add a hyphen to the breakpoints
-	breakpoints += "-"
 
 	var (
 		cluster  []byte
@@ -163,9 +163,14 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 				i += len(cluster)
 
 				r, _ := utf8.DecodeRune(cluster)
-				if r != utf8.RuneError && unicode.IsSpace(r) {
+				if r != utf8.RuneError && unicode.IsSpace(r) && r != nbsp {
 					addWord()
 					space.WriteRune(r)
+				} else if bytes.ContainsAny(cluster, breakpoints) {
+					addSpace()
+					addWord()
+					buf.Write(cluster)
+					curWidth++
 				} else {
 					word.Write(cluster)
 					wordLen += width
@@ -197,6 +202,8 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 			case unicode.IsSpace(r):
 				addWord()
 				space.WriteByte(b[i])
+			case r == '-':
+				fallthrough
 			case runeContainsAny(r, breakpoints):
 				addSpace()
 				addWord()
@@ -233,33 +240,23 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 // of characters that are considered breakpoints for word wrapping. A hyphen
 // (-) is always considered a breakpoint.
 //
-// Note: breakpoints must be a string of 1-cell wide rune character.
+// Note: breakpoints must be a string of 1-cell wide rune characters.
 func Wrap(s string, limit int, breakpoints string) string {
 	if limit < 1 {
 		return s
 	}
-
-	// Add a hyphen to the breakpoints
-	breakpoints += "-"
 
 	var (
 		cluster  []byte
 		buf      bytes.Buffer
 		word     bytes.Buffer
 		space    bytes.Buffer
-		bpoint   bytes.Buffer
-		curWidth int
-		wordLen  int
+		curWidth int // written width of the line
+		wordLen  int // word buffer len without ANSI escape codes
 		gstate   = -1
 		pstate   = parser.GroundState // initial state
 		b        = []byte(s)
 	)
-
-	addBpoint := func() {
-		curWidth += bpoint.Len()
-		buf.Write(bpoint.Bytes())
-		bpoint.Reset()
-	}
 
 	addSpace := func() {
 		curWidth += space.Len()
@@ -268,7 +265,6 @@ func Wrap(s string, limit int, breakpoints string) string {
 	}
 
 	addWord := func() {
-		addBpoint()
 		if word.Len() == 0 {
 			return
 		}
@@ -298,23 +294,30 @@ func Wrap(s string, limit int, breakpoints string) string {
 				i += len(cluster)
 
 				r, _ := utf8.DecodeRune(cluster)
-				if r != utf8.RuneError && unicode.IsSpace(r) {
+				switch {
+				case r != utf8.RuneError && unicode.IsSpace(r) && r != nbsp: // nbsp is a non-breaking space
 					addWord()
 					space.WriteRune(r)
-				} else if bytes.ContainsAny(cluster, breakpoints) {
+				case bytes.ContainsAny(cluster, breakpoints):
 					addSpace()
-					addWord()
-					buf.Write(cluster)
-					curWidth++
-				} else {
+					if curWidth+wordLen+width > limit {
+						word.Write(cluster)
+						wordLen += width
+					} else {
+						addWord()
+						buf.Write(cluster)
+						curWidth += width
+					}
+				default:
 					if wordLen+width > limit {
-						// If the word is longer than the limit, we break it
+						// Hardwrap the word if it's too long
 						addWord()
 					}
+
 					word.Write(cluster)
 					wordLen += width
-					if curWidth+space.Len()+wordLen+bpoint.Len() > limit {
-						addBpoint()
+
+					if curWidth+wordLen+space.Len() > limit {
 						addNewline()
 					}
 				}
@@ -322,15 +325,16 @@ func Wrap(s string, limit int, breakpoints string) string {
 				pstate = parser.GroundState
 				continue
 			}
+
 			fallthrough
 		case parser.ExecuteAction:
-			r := rune(b[i])
-			switch {
+			switch r := rune(b[i]); {
 			case r == '\n':
 				if wordLen == 0 {
 					if curWidth+space.Len() > limit {
 						curWidth = 0
 					} else {
+						// preserve whitespaces
 						buf.Write(space.Bytes())
 					}
 					space.Reset()
@@ -340,26 +344,31 @@ func Wrap(s string, limit int, breakpoints string) string {
 				addNewline()
 			case unicode.IsSpace(r):
 				addWord()
-				space.WriteByte(b[i])
+				space.WriteRune(r)
+			case r == '-':
+				fallthrough
 			case runeContainsAny(r, breakpoints):
 				addSpace()
-				addWord()
-				if curWidth+1 <= limit {
-					bpoint.WriteByte(b[i])
-					break
+				if curWidth+wordLen+1 > limit {
+					// We can't fit the breakpoint in the current line, treat
+					// it as part of the word.
+					word.WriteRune(r)
+					wordLen++
+				} else {
+					addWord()
+					buf.WriteRune(r)
+					curWidth++
 				}
-				// If we can't fit the breakpoint in the current line, we treat
-				// it as a word character.
-				fallthrough
 			default:
-				if wordLen >= limit {
-					// If the word is longer than the limit, we break it
+				word.WriteRune(r)
+				wordLen++
+
+				if wordLen == limit {
+					// Hardwrap the word if it's too long
 					addWord()
 				}
-				word.WriteByte(b[i])
-				wordLen++
-				if curWidth+space.Len()+wordLen+bpoint.Len() > limit {
-					addBpoint()
+
+				if curWidth+wordLen+space.Len() > limit {
 					addNewline()
 				}
 			}
@@ -375,7 +384,14 @@ func Wrap(s string, limit int, breakpoints string) string {
 		i++
 	}
 
-	addWord()
+	if word.Len() != 0 {
+		// Preserve ANSI wrapped spaces at the end of string
+		if curWidth+space.Len() > limit {
+			buf.WriteByte('\n')
+		}
+		addSpace()
+	}
+	buf.Write(word.Bytes())
 
 	return buf.String()
 }

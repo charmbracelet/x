@@ -129,6 +129,12 @@ var wrapCases = []struct {
 		width:    10,
 	},
 	{
+		name:     "long style nbsp",
+		input:    "\x1B[38;2;249;38;114ma really\u00a0long string\x1B[0m",
+		expected: "\x1b[38;2;249;38;114ma\nreally\u00a0lon\ng string\x1b[0m",
+		width:    10,
+	},
+	{
 		name:     "longer",
 		input:    "the quick brown foxxxxxxxxxxxxxxxx jumped over the lazy dog.",
 		expected: "the quick brown\nfoxxxxxxxxxxxxxx\nxx jumped over\nthe lazy dog.",
@@ -143,7 +149,7 @@ var wrapCases = []struct {
 	{
 		name:     "long input",
 		input:    "Rotated keys for a-good-offensive-cheat-code-incorporated/animal-like-law-on-the-rocks.",
-		expected: "Rotated keys for a-good-offensive-cheat-code-incorporated/animal-like-law-on\n-the-rocks.",
+		expected: "Rotated keys for a-good-offensive-cheat-code-incorporated/animal-like-law-\non-the-rocks.",
 		width:    76,
 	},
 	{
@@ -165,16 +171,16 @@ var wrapCases = []struct {
 		width:    3,
 	},
 	{
+		// XXX: Should we preserve spaces on text wrapping?
 		name:     "extra space",
 		input:    "foo ",
 		expected: "foo",
 		width:    3,
 	},
 	{
-		// FIXME: invalid expected
 		name:     "extra space style",
 		input:    "\x1b[mfoo \x1b[m",
-		expected: "\x1b[mfoo \x1b[m",
+		expected: "\x1b[mfoo\n \x1b[m",
 		width:    3,
 	},
 	{
@@ -210,7 +216,7 @@ func TestWrap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			output := ansi.Wrap(tc.input, tc.width, "")
 			if output != tc.expected {
-				t.Errorf("case %d, expected %q, got %q", i+1, tc.expected, output)
+				t.Errorf("case %d, input %q, expected %q, got %q", i+1, tc.input, tc.expected, output)
 			}
 		})
 	}
