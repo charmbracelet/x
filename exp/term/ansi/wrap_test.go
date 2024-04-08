@@ -34,7 +34,7 @@ var cases = []struct {
 	{"osc8_wrap", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\สวัสดีสวัสดี\x1b]8;;\x1b\\", 8, "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\\nสวัสดีสวัสดี\x1b]8;;\x1b\\", false},
 }
 
-func TestWrap(t *testing.T) {
+func TestHardwrap(t *testing.T) {
 	for i, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ansi.Hardwrap(tt.input, tt.limit, tt.preserveSpace); got != tt.expected {
@@ -92,7 +92,7 @@ func TestWrapWordwrap(t *testing.T) {
 	}
 }
 
-var smartWrapCases = []struct {
+var wrapCases = []struct {
 	name     string
 	input    string
 	expected string
@@ -129,6 +129,12 @@ var smartWrapCases = []struct {
 		width:    10,
 	},
 	{
+		name:     "long style nbsp",
+		input:    "\x1B[38;2;249;38;114ma really\u00a0long string\x1B[0m",
+		expected: "\x1b[38;2;249;38;114ma\nreally\u00a0lon\ng string\x1b[0m",
+		width:    10,
+	},
+	{
 		name:     "longer",
 		input:    "the quick brown foxxxxxxxxxxxxxxxx jumped over the lazy dog.",
 		expected: "the quick brown\nfoxxxxxxxxxxxxxx\nxx jumped over\nthe lazy dog.",
@@ -143,14 +149,39 @@ var smartWrapCases = []struct {
 	{
 		name:     "long input",
 		input:    "Rotated keys for a-good-offensive-cheat-code-incorporated/animal-like-law-on-the-rocks.",
-		expected: "Rotated keys for a-good-offensive-cheat-code-incorporated/animal-like-law-on\n-the-rocks.",
+		expected: "Rotated keys for a-good-offensive-cheat-code-incorporated/animal-like-law-\non-the-rocks.",
 		width:    76,
 	},
 	{
 		name:     "long input2",
 		input:    "Rotated keys for a-good-offensive-cheat-code-incorporated/crypto-line-operating-system.",
-		expected: "Rotated keys for a-good-offensive-cheat-code-incorporated/crypto-line-operat\ning-system.",
+		expected: "Rotated keys for a-good-offensive-cheat-code-incorporated/crypto-line-\noperating-system.",
 		width:    76,
+	},
+	{
+		name:     "hyphen breakpoint",
+		input:    "a-good-offensive-cheat-code",
+		expected: "a-good-\noffensive-\ncheat-code",
+		width:    10,
+	},
+	{
+		name:     "exact",
+		input:    "\x1b[91mfoo\x1b[0",
+		expected: "\x1b[91mfoo\x1b[0",
+		width:    3,
+	},
+	{
+		// XXX: Should we preserve spaces on text wrapping?
+		name:     "extra space",
+		input:    "foo ",
+		expected: "foo",
+		width:    3,
+	},
+	{
+		name:     "extra space style",
+		input:    "\x1b[mfoo \x1b[m",
+		expected: "\x1b[mfoo\n \x1b[m",
+		width:    3,
 	},
 	{
 		name:     "paragraph with styles",
@@ -158,14 +189,34 @@ var smartWrapCases = []struct {
 		expected: "Lorem ipsum dolor \x1b[1msit\x1b[m amet,\nconsectetur adipiscing elit,\nsed do eiusmod tempor\nincididunt ut labore et dolore\nmagna aliqua. \x1b[31mUt enim\x1b[m ad minim\nveniam, quis nostrud\nexercitation ullamco laboris\nnisi ut aliquip ex ea \x1b[38;5;200mcommodo\nconsequat\x1b[m. Duis aute irure\ndolor in reprehenderit in\nvoluptate velit esse cillum\ndolore eu fugiat nulla\npariatur. \x1b[1;2;33mExcepteur sint\noccaecat cupidatat non\nproident, sunt in culpa qui\nofficia deserunt mollit anim\nid est laborum.\x1b[m",
 		width:    30,
 	},
+	{"hyphen break", "foo-bar", "foo-\nbar", 5},
+	{"double space", "f  bar foobaz", "f  bar\nfoobaz", 6},
+	{"passthrough", "foobar\n ", "foobar\n ", 0},
+	{"pass", "foo", "foo", 3},
+	{"toolong", "foobarfoo", "foob\narfo\no", 4},
+	{"white space", "foo bar foo", "foo\nbar\nfoo", 4},
+	{"broken_at_spaces", "foo bars foobars", "foo\nbars\nfoob\nars", 4},
+	{"hyphen", "foob-foobar", "foob\n-foo\nbar", 4},
+	{"wide_emoji_breakpoint", "foo🫧 foobar", "foo\n🫧\nfoob\nar", 4},
+	{"space_breakpoint", "foo --bar", "foo --bar", 9},
+	{"simple", "foo bars foobars", "foo\nbars\nfoob\nars", 4},
+	{"limit", "foo bar", "foo\nbar", 5},
+	{"remove white spaces", "foo    \nb   ar   ", "foo\nb\nar", 4},
+	{"white space trail width", "foo\nb\t a\n bar", "foo\nb\t a\n bar", 4},
+	{"explicit_line_break", "foo bar foo\n", "foo\nbar\nfoo\n", 4},
+	{"explicit_breaks", "\nfoo bar\n\n\nfoo\n", "\nfoo\nbar\n\n\nfoo\n", 4},
+	{"example", " This is a list: \n\n\t* foo\n\t* bar\n\n\n\t* foo  \nbar    ", " This\nis a\nlist: \n\n\t* foo\n\t* bar\n\n\n\t* foo\nbar", 6},
+	{"style_code_dont_affect_length", "\x1B[38;2;249;38;114mfoo\x1B[0m\x1B[38;2;248;248;242m \x1B[0m\x1B[38;2;230;219;116mbar\x1B[0m", "\x1B[38;2;249;38;114mfoo\x1B[0m\x1B[38;2;248;248;242m \x1B[0m\x1B[38;2;230;219;116mbar\x1B[0m", 7},
+	{"style_code_dont_get_wrapped", "\x1B[38;2;249;38;114m(\x1B[0m\x1B[38;2;248;248;242mjust another test\x1B[38;2;249;38;114m)\x1B[0m", "\x1b[38;2;249;38;114m(\x1b[0m\x1b[38;2;248;248;242mjust\nanother\ntest\x1b[38;2;249;38;114m)\x1b[0m", 7},
+	{"osc8_wrap", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\ สวัสดีสวัสดี\x1b]8;;\x1b\\", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\\nสวัสดีสวัสดี\x1b]8;;\x1b\\", 8},
 }
 
-func TestSmartWrap(t *testing.T) {
-	for i, tc := range smartWrapCases {
+func TestWrap(t *testing.T) {
+	for i, tc := range wrapCases {
 		t.Run(tc.name, func(t *testing.T) {
 			output := ansi.Wrap(tc.input, tc.width, "")
 			if output != tc.expected {
-				t.Errorf("case %d, expected %q, got %q", i+1, tc.expected, output)
+				t.Errorf("case %d, input %q, expected %q, got %q", i+1, tc.input, tc.expected, output)
 			}
 		})
 	}
