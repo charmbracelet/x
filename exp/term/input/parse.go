@@ -1,6 +1,8 @@
 package input
 
 import (
+	"encoding/base64"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
@@ -595,6 +597,17 @@ func parseOsc(b []byte) (int, Event) {
 		return i, BackgroundColorEvent{xParseColor(data)}
 	case 12:
 		return i, CursorColorEvent{xParseColor(data)}
+	case 52:
+		parts := strings.Split(data, ";")
+		if len(parts) == 0 {
+			return i, ClipboardEvent("")
+		}
+		b64 := parts[len(parts)-1]
+		bts, err := base64.StdEncoding.DecodeString(b64)
+		if err != nil {
+			return i, ClipboardEvent("")
+		}
+		return i, ClipboardEvent(bts)
 	default:
 		return i, UnknownOscEvent(b[:i])
 	}

@@ -105,6 +105,8 @@ OUT:
 						execute(ansi.EnableWin32Input)
 					}
 					win32Input = !win32Input
+				case "c" == prev && "c" == curr:
+					execute(ansi.RequestClipboard('c'))
 				case prev == "k":
 					switch curr {
 					case "0":
@@ -228,7 +230,7 @@ OUT:
 		}
 
 		for _, e := range events {
-			log.Printf("%v, %#v\r\n", e, e)
+			log.Printf("%T %#v\r\n", e, e)
 		}
 
 		// Store last keypress
