@@ -165,7 +165,8 @@ func GenerateTransitionTable() TransitionTable {
 	}
 
 	// Dcs_entry
-	table.AddRange(0x00, 0x17, DcsEntryState, IgnoreAction, DcsEntryState)
+	table.AddRange(0x00, 0x07, DcsEntryState, IgnoreAction, DcsEntryState)
+	table.AddRange(0x0E, 0x17, DcsEntryState, IgnoreAction, DcsEntryState)
 	table.AddOne(0x19, DcsEntryState, IgnoreAction, DcsEntryState)
 	table.AddRange(0x1C, 0x1F, DcsEntryState, IgnoreAction, DcsEntryState)
 	table.AddOne(0x7F, DcsEntryState, IgnoreAction, DcsEntryState)
@@ -175,6 +176,10 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x30, 0x3B, DcsEntryState, ParamAction, DcsParamState)
 	table.AddRange(0x3C, 0x3F, DcsEntryState, MarkerAction, DcsParamState)
 	// Dcs_entry -> Dcs_passthrough
+	table.AddRange(0x08, 0x0D, DcsEntryState, PutAction, DcsStringState) // Follows ECMA-48 § 8.3.27
+	// XXX: allows passing ESC (not a ECMA-48 standard) this to allow for
+	// passthrough of ANSI sequences like in Screen or Tmux passthrough mode.
+	table.AddOne(0x1B, DcsEntryState, PutAction, DcsStringState)
 	table.AddRange(0x40, 0x7E, DcsEntryState, StartAction, DcsStringState)
 
 	// Dcs_intermediate
