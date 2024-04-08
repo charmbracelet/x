@@ -16,7 +16,7 @@ const (
 
 const (
 	// MaxParamsSize is the maximum number of parameters a sequence can have.
-	MaxParamsSize = 16
+	MaxParamsSize = 32
 
 	// DefaultParamValue is the default value used for missing parameters.
 	DefaultParamValue = 0
