@@ -2,7 +2,6 @@ package ansi
 
 import (
 	"bytes"
-	"strconv"
 	"strings"
 )
 
@@ -64,8 +63,6 @@ func (s OscSequence) Bytes() []byte {
 func (s OscSequence) buffer() *bytes.Buffer {
 	var b bytes.Buffer
 	b.WriteString("\x1b]")
-	b.WriteString(strconv.Itoa(s.Cmd))
-	b.WriteByte(';')
 	b.Write(s.Data)
 	b.WriteByte(BEL)
 	return &b

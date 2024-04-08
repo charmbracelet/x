@@ -101,13 +101,16 @@ func (e EscSequence) Intermediate() int {
 }
 
 // SosSequence represents a SOS sequence.
-type SosSequence []byte
+type SosSequence struct {
+	// Data contains the raw data of the sequence.
+	Data []byte
+}
 
-var _ Sequence = SosSequence(nil)
+var _ Sequence = &SosSequence{}
 
 // Clone implements Sequence.
 func (s SosSequence) Clone() Sequence {
-	return append(SosSequence(nil), s...)
+	return SosSequence{Data: append([]byte(nil), s.Data...)}
 }
 
 // Bytes implements Sequence.
@@ -124,64 +127,73 @@ func (s SosSequence) buffer() *bytes.Buffer {
 	var b bytes.Buffer
 	b.WriteByte('\x1b')
 	b.WriteByte('X')
-	b.Write([]byte(s))
+	b.Write(s.Data)
+	b.WriteString("\x1b\\")
 	return &b
 }
 
 // PmSequence represents a PM sequence.
-type PmSequence []byte
+type PmSequence struct {
+	// Data contains the raw data of the sequence.
+	Data []byte
+}
 
-var _ Sequence = PmSequence(nil)
+var _ Sequence = &PmSequence{}
 
 // Clone implements Sequence.
-func (p PmSequence) Clone() Sequence {
-	return append(PmSequence(nil), p...)
+func (s PmSequence) Clone() Sequence {
+	return PmSequence{Data: append([]byte(nil), s.Data...)}
 }
 
 // Bytes implements Sequence.
-func (p PmSequence) Bytes() []byte {
-	return p.buffer().Bytes()
+func (s PmSequence) Bytes() []byte {
+	return s.buffer().Bytes()
 }
 
 // String implements Sequence.
-func (p PmSequence) String() string {
-	return p.buffer().String()
+func (s PmSequence) String() string {
+	return s.buffer().String()
 }
 
 // buffer returns the buffer of the PM sequence.
-func (p PmSequence) buffer() *bytes.Buffer {
+func (s PmSequence) buffer() *bytes.Buffer {
 	var b bytes.Buffer
 	b.WriteByte('\x1b')
 	b.WriteByte('^')
-	b.Write([]byte(p))
+	b.Write(s.Data)
+	b.WriteString("\x1b\\")
 	return &b
 }
 
 // ApcSequence represents an APC sequence.
-type ApcSequence []byte
+type ApcSequence struct {
+	// Data contains the raw data of the sequence.
+	Data []byte
+}
 
-var _ Sequence = ApcSequence(nil)
+var _ Sequence = &ApcSequence{}
 
 // Clone implements Sequence.
-func (a ApcSequence) Clone() Sequence {
-	return append(ApcSequence(nil), a...)
+func (s ApcSequence) Clone() Sequence {
+	return ApcSequence{Data: append([]byte(nil), s.Data...)}
 }
 
 // Bytes implements Sequence.
-func (a ApcSequence) Bytes() []byte {
-	return a.buffer().Bytes()
+func (s ApcSequence) Bytes() []byte {
+	return s.buffer().Bytes()
 }
 
 // String implements Sequence.
-func (a ApcSequence) String() string {
-	return a.buffer().String()
+func (s ApcSequence) String() string {
+	return s.buffer().String()
 }
 
 // buffer returns the buffer of the APC sequence.
-func (a ApcSequence) buffer() *bytes.Buffer {
+func (s ApcSequence) buffer() *bytes.Buffer {
 	var b bytes.Buffer
 	b.WriteByte('\x1b')
 	b.WriteByte('_')
-	b.Write([]byte(a))
+	b.Write(s.Data)
+	b.WriteString("\x1b\\")
 	return &b
 }

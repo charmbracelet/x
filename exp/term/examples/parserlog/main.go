@@ -84,11 +84,11 @@ func main() {
 			}
 			fmt.Printf("Data=%q\n", s.Data)
 		case ansi.SosSequence:
-			fmt.Printf("[SosSequence] Data=%q\n", []byte(s))
+			fmt.Printf("[SosSequence] Data=%q\n", s.Data)
 		case ansi.PmSequence:
-			fmt.Printf("[PmSequence] Data=%q\n", []byte(s))
+			fmt.Printf("[PmSequence] Data=%q\n", s.Data)
 		case ansi.ApcSequence:
-			fmt.Printf("[ApcSequence] Data=%q\n", []byte(s))
+			fmt.Printf("[ApcSequence] Data=%q\n", s.Data)
 		}
 	}
 

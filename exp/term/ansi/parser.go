@@ -332,11 +332,11 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 		case parser.OscStringState:
 			seq = OscSequence{Cmd: p.Cmd, Data: data}
 		case parser.SosStringState:
-			seq = SosSequence(data)
+			seq = SosSequence{Data: data}
 		case parser.PmStringState:
-			seq = PmSequence(data)
+			seq = PmSequence{Data: data}
 		case parser.ApcStringState:
-			seq = ApcSequence(data)
+			seq = ApcSequence{Data: data}
 		}
 
 		dispatcher(seq)

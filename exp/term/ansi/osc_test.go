@@ -11,7 +11,8 @@ func TestOscSequence_String(t *testing.T) {
 		{
 			name: "empty",
 			s: OscSequence{
-				Cmd: 0,
+				Cmd:  0,
+				Data: []byte("0;"),
 			},
 			want: "\x1b]0;\a",
 		},
@@ -19,15 +20,7 @@ func TestOscSequence_String(t *testing.T) {
 			name: "with data",
 			s: OscSequence{
 				Cmd:  1,
-				Data: []byte("hello"),
-			},
-			want: "\x1b]1;hello\x07",
-		},
-		{
-			name: "with data and command",
-			s: OscSequence{
-				Cmd:  1,
-				Data: []byte("hello"),
+				Data: []byte("1;hello"),
 			},
 			want: "\x1b]1;hello\x07",
 		},

@@ -10,7 +10,7 @@ func TestSosPmApcSequence(t *testing.T) {
 			name:  "apc7",
 			input: "\x1b_Gf=24,s=10,v=20,o=z;aGVsbG8gd29ybGQ=\x1b\\",
 			expected: []Sequence{
-				ApcSequence("Gf=24,s=10,v=20,o=z;aGVsbG8gd29ybGQ="),
+				ApcSequence{Data: []byte("Gf=24,s=10,v=20,o=z;aGVsbG8gd29ybGQ=")},
 				EscSequence('\\'),
 			},
 		},
