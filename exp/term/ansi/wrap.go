@@ -349,7 +349,7 @@ func Wrap(s string, limit int, breakpoints string) string {
 				fallthrough
 			case runeContainsAny(r, breakpoints):
 				addSpace()
-				if curWidth+wordLen+1 > limit {
+				if curWidth+wordLen >= limit {
 					// We can't fit the breakpoint in the current line, treat
 					// it as part of the word.
 					word.WriteRune(r)
