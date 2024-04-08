@@ -68,6 +68,12 @@ func NewParser(paramsSize, dataSize int) *Parser {
 
 // Reset resets the parser to its initial state.
 func (p *Parser) Reset() {
+	p.clear()
+	p.State = parser.GroundState
+}
+
+// clear clears the parser parameters and command.
+func (p *Parser) clear() {
 	if len(p.Params) > 0 {
 		p.Params[0] = parser.MissingParam
 	}
@@ -147,6 +153,13 @@ func (p *Parser) advance(d ParserDispatcher, b byte, more bool) parser.Action {
 		case parser.EscapeState:
 			p.performAction(d, parser.ClearAction, b)
 		}
+		if action == parser.PutAction &&
+			p.State == parser.DcsEntryState && state == parser.DcsStringState {
+			// XXX: This is a special case where we need to start collecting
+			// non-string parameterized data i.e. doesn't follow the ECMA-48 §
+			// 5.4.1 string parameters format.
+			p.performAction(d, parser.StartAction, 0)
+		}
 	}
 
 	// Handle special cases
@@ -194,7 +207,7 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 		break
 
 	case parser.ClearAction:
-		p.Reset()
+		p.clear()
 
 	case parser.PrintAction:
 		if utf8ByteLen(b) > 1 {
