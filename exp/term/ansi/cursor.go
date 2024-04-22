@@ -163,10 +163,9 @@ func MoveCursor(row, col int) string {
 	return "\x1b[" + strconv.Itoa(row) + ";" + strconv.Itoa(col) + "H"
 }
 
-// MoveCursorZero is a sequence for moving the cursor to the upper left corner
-// of the screen.
-// This is equivalent to MoveCursor(1, 1).
-const MoveCursorZero = "\x1b[1;1H"
+// MoveCursorOrigin is a sequence for moving the cursor to the upper left
+// corner of the screen. This is equivalent to MoveCursor(1, 1).
+const MoveCursorOrigin = "\x1b[1;1H"
 
 // SaveCursorPosition (SCP or SCOSC) is a sequence for saving the cursor
 // position.
