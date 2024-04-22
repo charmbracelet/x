@@ -230,7 +230,7 @@ OUT:
 		}
 
 		for _, e := range events {
-			log.Printf("%T %#v\r\n", e, e)
+			log.Printf("%T %v\r\n", e, e)
 		}
 
 		// Store last keypress

@@ -304,7 +304,7 @@ func parseCsi(b []byte) (int, Event) {
 		// likely to be the case than the cursor being at the first row.
 		//
 		// For a non ambiguous cursor position report, use
-		// [ansi.RequestExtendedCursorPosition] (DECRPM) instead.
+		// [ansi.RequestExtendedCursorPosition] (DECXCPR) instead.
 		if csi.Param(0) != 1 {
 			return i, CursorPositionEvent{Row: csi.Param(0), Column: csi.Param(1)}
 		}
