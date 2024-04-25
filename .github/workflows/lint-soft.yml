@@ -18,7 +18,7 @@ jobs:
         with:
           go-version: stable
           cache: true
-      - uses: golangci/golangci-lint-action@v4
+      - uses: golangci/golangci-lint-action@v5
         with:
           # Optional: golangci-lint command line arguments.
           args: --config .golangci-soft.yml --issues-exit-code=0 ./exp/teatest/...
