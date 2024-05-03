@@ -155,8 +155,8 @@ type QueryTerminalFilter func(events []input.Event) bool
 // Note: This function will block until the terminal responds or the timeout
 // is reached.
 func QueryTerminal(
-	in *os.File,
-	out *os.File,
+	in io.Reader,
+	out io.Writer,
 	filter QueryTerminalFilter,
 	query string,
 ) error {
