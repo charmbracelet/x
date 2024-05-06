@@ -3,118 +3,72 @@ package term
 import (
 	"image/color"
 	"io"
-	"os"
 	"time"
 
 	"github.com/charmbracelet/x/exp/term/ansi"
 	"github.com/charmbracelet/x/exp/term/input"
 )
 
-// BackgroundColor queries the terminal for the background color.
+// File represents a file that has a file descriptor.
+type File interface {
+	Fd() uintptr
+}
+
+// QueryBackgroundColor queries the terminal for the background color.
 // If the terminal does not support querying the background color, nil is
 // returned.
-func BackgroundColor(in, out *os.File) (c color.Color) {
-	state, err := MakeRaw(in.Fd())
-	if err != nil {
-		return
-	}
-
-	defer Restore(in.Fd(), state) // nolint: errcheck
-
+//
+// Note: you will need to set the input to raw mode before calling this
+// function.
+//
+//	state, _ := term.MakeRaw(in.Fd())
+//	defer term.Restore(in.Fd(), state)
+func QueryBackgroundColor(in io.Reader, out io.Writer) (c color.Color, err error) {
 	// nolint: errcheck
-	QueryTerminal(in, out, func(events []input.Event) bool {
-		for _, e := range events {
-			switch e := e.(type) {
-			case input.BackgroundColorEvent:
-				c = e.Color
-				continue // we need to consume the next DA1 event
-			case input.PrimaryDeviceAttributesEvent:
-				return false
+	err = QueryTerminal(in, out, defaultQueryTimeout,
+		func(events []input.Event) bool {
+			for _, e := range events {
+				switch e := e.(type) {
+				case input.BackgroundColorEvent:
+					c = e.Color
+					continue // we need to consume the next DA1 event
+				case input.PrimaryDeviceAttributesEvent:
+					return false
+				}
 			}
-		}
-		return true
-	}, ansi.RequestBackgroundColor+ansi.RequestPrimaryDeviceAttributes)
+			return true
+		}, ansi.RequestBackgroundColor+ansi.RequestPrimaryDeviceAttributes)
 	return
 }
 
-// ForegroundColor queries the terminal for the foreground color.
-// If the terminal does not support querying the foreground color, nil is
-// returned.
-func ForegroundColor(in, out *os.File) (c color.Color) {
-	state, err := MakeRaw(in.Fd())
-	if err != nil {
-		return
-	}
-
-	defer Restore(in.Fd(), state) // nolint: errcheck
-
+// QueryKittyKeyboard returns the enabled Kitty keyboard protocol options.
+// -1 means the terminal does not support the feature.
+//
+// Note: you will need to set the input to raw mode before calling this
+// function.
+//
+//	state, _ := term.MakeRaw(in.Fd())
+//	defer term.Restore(in.Fd(), state)
+func QueryKittyKeyboard(in io.Reader, out io.Writer) (flags int, err error) {
+	flags = -1
 	// nolint: errcheck
-	QueryTerminal(in, out, func(events []input.Event) bool {
-		for _, e := range events {
-			switch e := e.(type) {
-			case input.ForegroundColorEvent:
-				c = e.Color
-				continue // we need to consume the next DA1 event
-			case input.PrimaryDeviceAttributesEvent:
-				return false
+	err = QueryTerminal(in, out, defaultQueryTimeout,
+		func(events []input.Event) bool {
+			for _, e := range events {
+				switch event := e.(type) {
+				case input.KittyKeyboardEvent:
+					flags = int(event)
+					continue // we need to consume the next DA1 event
+				case input.PrimaryDeviceAttributesEvent:
+					return false
+				}
 			}
-		}
-		return true
-	}, ansi.RequestForegroundColor+ansi.RequestPrimaryDeviceAttributes)
+			return true
+		}, ansi.RequestKittyKeyboard+ansi.RequestPrimaryDeviceAttributes)
 	return
 }
 
-// CursorColor queries the terminal for the cursor color.
-// If the terminal does not support querying the cursor color, nil is returned.
-func CursorColor(in, out *os.File) (c color.Color) {
-	state, err := MakeRaw(in.Fd())
-	if err != nil {
-		return
-	}
-
-	defer Restore(in.Fd(), state) // nolint: errcheck
-
-	// nolint: errcheck
-	QueryTerminal(in, out, func(events []input.Event) bool {
-		for _, e := range events {
-			switch e := e.(type) {
-			case input.CursorColorEvent:
-				c = e.Color
-				continue // we need to consume the next DA1 event
-			case input.PrimaryDeviceAttributesEvent:
-				return false
-			}
-		}
-		return true
-	}, ansi.RequestCursorColor+ansi.RequestPrimaryDeviceAttributes)
-	return
-}
-
-// SupportsKittyKeyboard returns true if the terminal supports the Kitty
-// keyboard protocol.
-func SupportsKittyKeyboard(in, out *os.File) (supported bool) {
-	state, err := MakeRaw(in.Fd())
-	if err != nil {
-		return
-	}
-
-	defer Restore(in.Fd(), state) // nolint: errcheck
-
-	// nolint: errcheck
-	QueryTerminal(in, out, func(events []input.Event) bool {
-		for _, e := range events {
-			switch e.(type) {
-			case input.KittyKeyboardEvent:
-				supported = true
-				continue // we need to consume the next DA1 event
-			case input.PrimaryDeviceAttributesEvent:
-				return false
-			}
-		}
-		return true
-	}, ansi.RequestKittyKeyboard+ansi.RequestPrimaryDeviceAttributes)
-	return
-}
+const defaultQueryTimeout = time.Second * 2
 
 // QueryTerminalFilter is a function that filters input events using a type
 // switch. If false is returned, the QueryTerminal function will stop reading
@@ -130,6 +84,7 @@ type QueryTerminalFilter func(events []input.Event) bool
 func QueryTerminal(
 	in io.Reader,
 	out io.Writer,
+	timeout time.Duration,
 	filter QueryTerminalFilter,
 	query string,
 ) error {
@@ -145,7 +100,7 @@ func QueryTerminal(
 	go func() {
 		select {
 		case <-done:
-		case <-time.After(2 * time.Second):
+		case <-time.After(timeout):
 			rd.Cancel()
 		}
 	}()

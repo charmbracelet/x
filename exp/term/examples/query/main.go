@@ -11,14 +11,10 @@ import (
 
 func main() {
 	in, out := os.Stdin, os.Stdout
-	hasKitty := term.SupportsKittyKeyboard(in, out)
+	hasKitty, _ := term.QueryKittyKeyboard(in, out)
 	log.Printf("Kitty keyboard support: %v", hasKitty)
-	bg := term.BackgroundColor(in, out)
+	bg, _ := term.QueryBackgroundColor(in, out)
 	log.Printf("Background color: %s", colorToHexString(bg))
-	fg := term.ForegroundColor(in, out)
-	log.Printf("Foreground color: %s", colorToHexString(fg))
-	cursor := term.CursorColor(in, out)
-	log.Printf("Cursor color: %s", colorToHexString(cursor))
 }
 
 // colorToHexString returns a hex string representation of a color.
