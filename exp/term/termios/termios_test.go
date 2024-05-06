@@ -23,11 +23,11 @@ func TestTermios(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = p.Close() })
 	fd := int(p.Fd())
-	w, err := GetWinSize(fd)
+	w, err := GetWinsize(fd)
 	if err != nil {
 		t.Error(err)
 	}
-	if err := SetWinSize(fd, w); err != nil {
+	if err := SetWinsize(fd, w); err != nil {
 		t.Error(err)
 	}
 
