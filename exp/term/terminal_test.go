@@ -9,8 +9,6 @@ import (
 
 func TestTerminalQueries(t *testing.T) {
 	in, out := os.Stdin, os.Stdout
-	_ = term.BackgroundColor(in, out)
-	_ = term.ForegroundColor(in, out)
-	_ = term.CursorColor(in, out)
-	_ = term.SupportsKittyKeyboard(in, out)
+	term.QueryBackgroundColor(in, out)
+	term.QueryKittyKeyboard(in, out)
 }
