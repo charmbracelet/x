@@ -9,13 +9,13 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// SetWinSize sets window size for an fd from a Winsize.
-func SetWinSize(fd int, w *unix.Winsize) error {
+// SetWinsize sets window size for an fd from a Winsize.
+func SetWinsize(fd int, w *unix.Winsize) error {
 	return unix.IoctlSetWinsize(fd, ioctlSetWinSize, w)
 }
 
-// GetWinSize gets window size for an fd.
-func GetWinSize(fd int) (*unix.Winsize, error) {
+// GetWinsize gets window size for an fd.
+func GetWinsize(fd int) (*unix.Winsize, error) {
 	return unix.IoctlGetWinsize(fd, ioctlSetWinSize)
 }
 
