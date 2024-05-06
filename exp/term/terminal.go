@@ -10,33 +10,6 @@ import (
 	"github.com/charmbracelet/x/exp/term/input"
 )
 
-// Environ represents the terminal environment.
-type Environ interface {
-	Getenv(string) string
-	LookupEnv(string) (string, bool)
-	Environ() []string
-}
-
-// OsEnviron is an implementation of Environ that uses os.Environ.
-type OsEnviron struct{}
-
-var _ Environ = OsEnviron{}
-
-// Environ implements Environ.
-func (OsEnviron) Environ() []string {
-	return os.Environ()
-}
-
-// Getenv implements Environ.
-func (OsEnviron) Getenv(key string) string {
-	return os.Getenv(key)
-}
-
-// LookupEnv implements Environ.
-func (OsEnviron) LookupEnv(key string) (string, bool) {
-	return os.LookupEnv(key)
-}
-
 // BackgroundColor queries the terminal for the background color.
 // If the terminal does not support querying the background color, nil is
 // returned.
