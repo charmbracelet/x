@@ -46,6 +46,23 @@ type Options struct {
 type PtyOption func(o Options)
 
 // NewPty creates a new PTY.
+//
+// The returned PTY will be a Unix PTY on Unix systems and a ConPTY on Windows.
+// The width and height parameters specify the initial size of the PTY.
+// You can pass additional options to the PTY by passing PtyOptions.
+//
+//	pty, err := xpty.NewPty(80, 24)
+//	if err != nil {
+//	   // handle error
+//	}
+//
+//	defer pty.Close() // Make sure to close the PTY when done.
+//	switch pty := pty.(type) {
+//	case xpty.UnixPty:
+//	    // Unix PTY
+//	case xpty.ConPty:
+//	    // ConPTY
+//	}
 func NewPty(width, height int, opts ...PtyOption) (Pty, error) {
 	if runtime.GOOS == "windows" {
 		return NewConPty(width, height, opts...)

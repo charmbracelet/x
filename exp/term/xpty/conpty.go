@@ -34,7 +34,7 @@ func (c *ConPty) Name() string {
 }
 
 // Start starts a command on the ConPty.
+// This is a wrapper around conpty.Spawn.
 func (c *ConPty) Start(cmd *exec.Cmd) error {
 	return c.start(cmd)
 }
-
