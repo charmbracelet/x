@@ -36,10 +36,11 @@ func TestTermios(t *testing.T) {
 		t.Error(err)
 	}
 
+	ispeed, ospeed := getSpeed(term)
 	if err := SetTermios(
 		fd,
-		uint32(term.Ispeed),
-		uint32(term.Ospeed),
+		ispeed,
+		ospeed,
 		map[CC]uint8{
 			ERASE:  1,
 			CC(50): 12, // invalid, should be ignored
