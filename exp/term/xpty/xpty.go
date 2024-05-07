@@ -34,10 +34,18 @@ type Pty interface {
 	Start(cmd *exec.Cmd) error
 }
 
+// Options represents PTY options.
+type Options struct {
+	Flags int
+}
+
+// PtyOption is a PTY option.
+type PtyOption func(o Options)
+
 // NewPty creates a new PTY.
-func NewPty(width, height int) (Pty, error) {
+func NewPty(width, height int, opts ...PtyOption) (Pty, error) {
 	if runtime.GOOS == "windows" {
-		return nil, ErrUnsupported
+		return NewConPty(width, height, opts...)
 	}
-	return NewUnixPty(width, height)
+	return NewUnixPty(width, height, opts...)
 }

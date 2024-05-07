@@ -161,7 +161,7 @@ func (c *ConPty) Resize(w int, h int) error {
 }
 
 // Size returns the current pseudo-console size.
-func (c *ConPty) Size() (w int, h int) {
+func (c *ConPty) Size() (w int, h int, err error) {
 	w = int(c.size.X)
 	h = int(c.size.Y)
 	return
