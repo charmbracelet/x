@@ -11,9 +11,19 @@ import (
 
 func main() {
 	in, out := os.Stdin, os.Stdout
+	state, err := term.MakeRaw(in.Fd())
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	hasKitty, _ := term.QueryKittyKeyboard(in, out)
-	log.Printf("Kitty keyboard support: %v", hasKitty)
 	bg, _ := term.QueryBackgroundColor(in, out)
+
+	if err := term.Restore(in.Fd(), state); err != nil {
+		log.Fatal(err)
+	}
+
+	log.Printf("Kitty keyboard support: %v", hasKitty)
 	log.Printf("Background color: %s", colorToHexString(bg))
 }
 
