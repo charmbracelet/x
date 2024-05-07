@@ -20,3 +20,7 @@ func setSpeed(*unix.Termios, uint32, uint32) {
 	// see cfgetispeed(3C) and cfsetispeed(3C)
 	// https://github.com/omniti-labs/illumos-omnios/blob/master/usr/src/uts/common/sys/termios.h#L103
 }
+
+func getSpeed(*unix.Termios) (uint32, uint32) {
+	return 0, 0
+}
