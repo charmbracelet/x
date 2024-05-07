@@ -1,5 +1,5 @@
-//go:build darwin || netbsd || freebsd || openbsd || linux || dragonfly
-// +build darwin netbsd freebsd openbsd linux dragonfly
+//go:build darwin || netbsd || freebsd || openbsd || linux || dragonfly || solaris
+// +build darwin netbsd freebsd openbsd linux dragonfly solaris
 
 package termios
 
@@ -39,8 +39,7 @@ func SetTermios(
 	if err != nil {
 		return err
 	}
-	term.Ispeed = speed(ispeed)
-	term.Ospeed = speed(ospeed)
+	setSpeed(term, ispeed, ospeed)
 
 	for key, value := range cc {
 		call, ok := allCcOpts[key]
