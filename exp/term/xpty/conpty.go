@@ -37,3 +37,4 @@ func (c *ConPty) Name() string {
 func (c *ConPty) Start(cmd *exec.Cmd) error {
 	return c.start(cmd)
 }
+
