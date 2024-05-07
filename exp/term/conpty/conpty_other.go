@@ -12,3 +12,8 @@ type ConPty struct{}
 func New(int, int, int) (*ConPty, error) {
 	return nil, ErrUnsupported
 }
+
+// Size returns the size of the ConPty.
+func (c *ConPty) Size() (int, int, error) {
+	return 0, 0, ErrUnsupported
+}

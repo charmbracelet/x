@@ -15,7 +15,7 @@ type UnixPty struct {
 var _ Pty = &UnixPty{}
 
 // NewUnixPty creates a new Unix PTY.
-func NewUnixPty(width, height int) (*UnixPty, error) {
+func NewUnixPty(width, height int, _ ...PtyOption) (*UnixPty, error) {
 	ptm, pts, err := pty.Open()
 	if err != nil {
 		return nil, err
