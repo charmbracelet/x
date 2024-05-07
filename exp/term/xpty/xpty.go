@@ -3,6 +3,7 @@ package xpty
 import (
 	"io"
 	"os/exec"
+	"runtime"
 
 	"github.com/charmbracelet/x/exp/term"
 	"github.com/creack/pty"
@@ -31,4 +32,12 @@ type Pty interface {
 	// On Windows, calling Wait won't work since the Go runtime doesn't handle
 	// ConPTY processes correctly. See https://github.com/golang/go/pull/62710.
 	Start(cmd *exec.Cmd) error
+}
+
+// NewPty creates a new PTY.
+func NewPty(width, height int) (Pty, error) {
+	if runtime.GOOS == "windows" {
+		return nil, ErrUnsupported
+	}
+	return NewUnixPty(width, height)
 }

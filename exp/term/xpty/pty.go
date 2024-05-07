@@ -3,6 +3,8 @@ package xpty
 import (
 	"os"
 	"os/exec"
+
+	"github.com/creack/pty"
 )
 
 // UnixPty represents a classic Unix PTY (pseudo-terminal).
@@ -11,6 +13,27 @@ type UnixPty struct {
 }
 
 var _ Pty = &UnixPty{}
+
+// NewUnixPty creates a new Unix PTY.
+func NewUnixPty(width, height int) (*UnixPty, error) {
+	ptm, pts, err := pty.Open()
+	if err != nil {
+		return nil, err
+	}
+
+	p := &UnixPty{
+		master: ptm,
+		slave:  pts,
+	}
+
+	if width >= 0 && height >= 0 {
+		if err := p.Resize(width, height); err != nil {
+			return nil, err
+		}
+	}
+
+	return p, nil
+}
 
 // Close implements XPTY.
 func (p *UnixPty) Close() (err error) {
