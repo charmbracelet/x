@@ -1,7 +1,10 @@
 package xpty
 
 import (
+	"context"
+	"errors"
 	"io"
+	"os"
 	"os/exec"
 	"runtime"
 
@@ -48,4 +51,33 @@ func NewPty(width, height int, opts ...PtyOption) (Pty, error) {
 		return NewConPty(width, height, opts...)
 	}
 	return NewUnixPty(width, height, opts...)
+}
+
+// WaitProcess waits for the process to exit.
+// This exists because on Windows, cmd.Wait() doesn't work with ConPty.
+func WaitProcess(ctx context.Context, c *exec.Cmd) (err error) {
+	if c.Process == nil {
+		return errors.New("process not started")
+	}
+
+	type result struct {
+		*os.ProcessState
+		error
+	}
+
+	donec := make(chan result, 1)
+	go func() {
+		state, err := c.Process.Wait()
+		donec <- result{state, err}
+	}()
+
+	select {
+	case <-ctx.Done():
+		err = c.Process.Kill()
+	case r := <-donec:
+		c.ProcessState = r.ProcessState
+		err = r.error
+	}
+
+	return
 }
