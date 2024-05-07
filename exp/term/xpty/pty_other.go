@@ -3,10 +3,10 @@
 
 package xpty
 
-func (*Pty) resize(int, int) error {
+func (p *UnixPty) setWinsize(int, int, int, int) error {
 	return ErrUnsupported
 }
 
-func (*Pty) size() (int, int, error) {
+func (*UnixPty) size() (int, int, error) {
 	return 0, 0, ErrUnsupported
 }

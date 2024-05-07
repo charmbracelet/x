@@ -11,22 +11,16 @@ import (
 // ErrUnsupported is returned when a feature is not supported.
 var ErrUnsupported = pty.ErrUnsupported
 
-// XPty represents a PTY (pseudo-terminal) interface.
-type XPty interface {
-	// Fd returns the file descriptor of the PTY.
-	Fd() uintptr
-
-	// Close closes the PTY.
-	Close() error
-
-	// Read reads data from the PTY.
-	Read(p []byte) (n int, err error)
-
-	// Write writes data to the PTY.
-	Write(p []byte) (n int, err error)
+// Pty represents a PTY (pseudo-terminal) interface.
+type Pty interface {
+	term.File
+	io.ReadWriteCloser
 
 	// Resize resizes the PTY.
 	Resize(width, height int) error
+
+	// Size returns the size of the PTY.
+	Size() (width, height int, err error)
 
 	// Name returns the name of the PTY.
 	Name() string
@@ -38,7 +32,3 @@ type XPty interface {
 	// ConPTY processes correctly. See https://github.com/golang/go/pull/62710.
 	Start(cmd *exec.Cmd) error
 }
-
-var _ io.ReadWriteCloser = XPty(nil)
-
-var _ term.File = XPty(nil)

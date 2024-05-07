@@ -5,26 +5,20 @@ import (
 	"os/exec"
 )
 
-// Pty represents a classic Unix PTY (pseudo-terminal).
-type Pty struct {
+// UnixPty represents a classic Unix PTY (pseudo-terminal).
+type UnixPty struct {
 	master, slave *os.File
-	closed        bool
 }
 
-var _ XPty = &Pty{}
+var _ Pty = &UnixPty{}
 
 // Close implements XPTY.
-func (p *Pty) Close() (err error) {
-	if p.closed {
-		return
-	}
-
+func (p *UnixPty) Close() (err error) {
 	defer func() {
 		serr := p.slave.Close()
 		if err == nil {
 			err = serr
 		}
-		p.closed = true
 	}()
 	if err := p.master.Close(); err != nil {
 		return err
@@ -33,37 +27,44 @@ func (p *Pty) Close() (err error) {
 }
 
 // Fd implements XPTY.
-func (p *Pty) Fd() uintptr {
+func (p *UnixPty) Fd() uintptr {
 	return p.master.Fd()
 }
 
 // Name implements XPTY.
-func (p *Pty) Name() string {
+func (p *UnixPty) Name() string {
 	return p.master.Name()
 }
 
-// SName returns the name of the slave PTY.
-func (p *Pty) SName() string {
+// SlaveName returns the name of the slave PTY.
+// This is usually used for remote sessions to identify the running TTY. You
+// can find this in SSH sessions defined as $SSH_TTY.
+func (p *UnixPty) SlaveName() string {
 	return p.slave.Name()
 }
 
 // Read implements XPTY.
-func (p *Pty) Read(b []byte) (n int, err error) {
+func (p *UnixPty) Read(b []byte) (n int, err error) {
 	return p.master.Read(b)
 }
 
 // Resize implements XPTY.
-func (p *Pty) Resize(width int, height int) (err error) {
-	return p.resize(width, height)
+func (p *UnixPty) Resize(width int, height int) (err error) {
+	return p.setWinsize(width, height, 0, 0)
+}
+
+// SetWinsize sets window size for the PTY.
+func (p *UnixPty) SetWinsize(width, height, x, y int) error {
+	return p.setWinsize(width, height, x, y)
 }
 
 // Size returns the size of the PTY.
-func (p *Pty) Size() (width, height int, err error) {
+func (p *UnixPty) Size() (width, height int, err error) {
 	return p.size()
 }
 
 // Start implements XPTY.
-func (p *Pty) Start(c *exec.Cmd) error {
+func (p *UnixPty) Start(c *exec.Cmd) error {
 	if c.Stdout == nil {
 		c.Stdout = p.slave
 	}
@@ -80,16 +81,26 @@ func (p *Pty) Start(c *exec.Cmd) error {
 }
 
 // Write implements XPTY.
-func (p *Pty) Write(b []byte) (n int, err error) {
+func (p *UnixPty) Write(b []byte) (n int, err error) {
 	return p.master.Write(b)
 }
 
-// Master returns the master file of the PTY.
-func (p *Pty) Master() *os.File {
+// Master returns the master end of the PTY.
+func (p *UnixPty) Master() *os.File {
 	return p.master
 }
 
-// Slave returns the slave file of the PTY.
-func (p *Pty) Slave() *os.File {
+// Slave returns the slave end of the PTY.
+func (p *UnixPty) Slave() *os.File {
 	return p.slave
+}
+
+// Control runs the given function with the file descriptor of the master PTY.
+func (p *UnixPty) Control(fn func(fd uintptr)) error {
+	conn, err := p.master.SyscallConn()
+	if err != nil {
+		return err
+	}
+
+	return conn.Control(fn)
 }
