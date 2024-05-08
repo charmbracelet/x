@@ -15,3 +15,5 @@
 # vendor/
 
 !go.work
+
+testdata
