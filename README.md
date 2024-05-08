@@ -16,16 +16,22 @@ into other repositories.
 
 Currently the following packages are available:
 
+- [`ansi`](./ansi): ANSI escape sequence parser and definitions
+- [`conpty`](./conpty): Windows Console Pseudo-terminal library
 - [`editor`](./editor): open files in text editors
 - [`errors`](./errors): `errors.Join` in older Go versions
 - [`golden`](./exp/golden): verify golden files equality
 - [`higherorder`](./exp/higherorder): generic higher order functions
+- [`input`](./input): terminal event input handler and driver
 - [`open`](./exp/open): open a file/URL using `open`, `xdg-open`, etc
 - [`ordered`](./exp/ordered): generic `min`, `max`, and `clamp` functions for ordered types
 - [`slice`](./exp/slice): generic slice utilities
 - [`strings`](./exp/strings): utilities for working with strings
 - [`teatest`](./exp/teatest): a library for testing [Bubble Tea](https://github.com/charmbracelet/bubbletea) programs
-- [`term`](./exp/term): terminal utilities: ansi, termios, conpty
+- [`term`](./term): terminal utilities and helpers
+- [`termios`](./termios): Termios unified API and library
+- [`windows`](./windows): Windows API used at Charmbracelet
+- [`xpty`](./xpty): cross-platform PTY interface
 
 ## Feedback
 
