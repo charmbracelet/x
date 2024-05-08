@@ -1,6 +1,8 @@
 go 1.21
 
 use (
+	./ansi
+	./conpty
 	./editor
 	./errors
 	./exp/golden
@@ -11,4 +13,9 @@ use (
 	./exp/strings
 	./exp/teatest
 	./exp/term
+	./input
+	./term
+	./termios
+	./windows
+	./xpty
 )
