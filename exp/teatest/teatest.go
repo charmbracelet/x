@@ -170,7 +170,10 @@ func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
 		if fopts.timeout > 0 {
 			select {
 			case <-time.After(fopts.timeout):
-				tb.Fatalf("timeout after %s", fopts.timeout)
+				if fopts.onTimeout == nil {
+					tb.Fatalf("timeout after %s", fopts.timeout)
+				}
+				fopts.onTimeout(tb)
 			case <-tm.doneCh:
 			}
 		} else {
@@ -181,11 +184,19 @@ func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
 
 // FinalOpts represents the options for FinalModel and FinalOutput.
 type FinalOpts struct {
-	timeout time.Duration
+	timeout   time.Duration
+	onTimeout func(tb testing.TB)
 }
 
 // FinalOpt changes FinalOpts.
 type FinalOpt func(opts *FinalOpts)
+
+// WithTimeoutFn allows to define what happens when WaitFinished times out.
+func WithTimeoutFn(fn func(tb testing.TB)) FinalOpt {
+	return func(opts *FinalOpts) {
+		opts.onTimeout = fn
+	}
+}
 
 // WithFinalTimeout allows to set a timeout for how long FinalModel and
 // FinalOuput should wait for the program to complete.
