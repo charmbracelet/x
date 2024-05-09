@@ -1,4 +1,6 @@
 github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d/go.mod h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=
+github.com/charmbracelet/bubbletea v0.26.1 h1:xujcQeF73rh4jwu3+zhfQsvV18x+7zIjlw7/CYbzGJ0=
+github.com/charmbracelet/bubbletea v0.26.1/go.mod h1:FzKr7sKoO8iFVcdIBM9J0sJOcQv5nDQaYwsee3kpbgo=
 github.com/google/go-cmp v0.5.8/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/stretchr/objx v0.5.2/go.mod h1:FRsXN1f5AsAjCGJKqEizvkpNtU+EGNCLh3NxZ/8L+MA=
 golang.org/x/crypto v0.18.0/go.mod h1:R0j02AL6hcrfOiy9T4ZYp/rcWeMxM3L6QYxlOuEG1mg=
