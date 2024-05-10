@@ -1,0 +1,33 @@
+name: windows-generate
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - windows/**
+      - .github/workflows/windows-generate.yml
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  generate:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: ./windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+      - run: go generate ./...
+      - uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "ci: generate windows syscalls"
+          branch: main
+          commit_user_name: actions-user
+          commit_user_email: actions@github.com
