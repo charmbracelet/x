@@ -1,6 +1,8 @@
 name: termios-goos
 on:
   push:
+    branches:
+      - main
   pull_request:
     paths:
       - "termios/**"
