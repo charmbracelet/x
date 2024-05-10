@@ -9,8 +9,10 @@ import (
 	"github.com/charmbracelet/x/input"
 )
 
-// File represents a file that has a file descriptor.
+// File represents a file that has a file descriptor and can be read from,
+// written to, and closed.
 type File interface {
+	io.ReadWriteCloser
 	Fd() uintptr
 }
 
