@@ -42,20 +42,14 @@ var (
 	procToUnicodeEx       = moduser32.NewProc("ToUnicodeEx")
 )
 
-func GetKeyboardLayout(threadId uint32) (hkl Handle, err error) {
-	r0, _, e1 := syscall.Syscall(procGetKeyboardLayout.Addr(), 1, uintptr(threadId), 0, 0)
+func GetKeyboardLayout(threadId uint32) (hkl Handle) {
+	r0, _, _ := syscall.Syscall(procGetKeyboardLayout.Addr(), 1, uintptr(threadId), 0, 0)
 	hkl = Handle(r0)
-	if hkl == 0 {
-		err = errnoErr(e1)
-	}
 	return
 }
 
-func ToUnicodeEx(vkey uint32, scancode uint32, keystate *byte, pwszBuff *uint16, cchBuff int32, flags uint32, hkl Handle) (ret int32, err error) {
-	r0, _, e1 := syscall.Syscall9(procToUnicodeEx.Addr(), 7, uintptr(vkey), uintptr(scancode), uintptr(unsafe.Pointer(keystate)), uintptr(unsafe.Pointer(pwszBuff)), uintptr(cchBuff), uintptr(flags), uintptr(hkl), 0, 0)
+func ToUnicodeEx(vkey uint32, scancode uint32, keystate *byte, pwszBuff *uint16, cchBuff int32, flags uint32, hkl Handle) (ret int32) {
+	r0, _, _ := syscall.Syscall9(procToUnicodeEx.Addr(), 7, uintptr(vkey), uintptr(scancode), uintptr(unsafe.Pointer(keystate)), uintptr(unsafe.Pointer(pwszBuff)), uintptr(cchBuff), uintptr(flags), uintptr(hkl), 0, 0)
 	ret = int32(r0)
-	if ret == 0 {
-		err = errnoErr(e1)
-	}
 	return
 }
