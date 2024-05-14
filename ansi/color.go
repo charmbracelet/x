@@ -97,14 +97,11 @@ const (
 func (c BasicColor) RGBA() (uint32, uint32, uint32, uint32) {
 	ansi := uint32(c)
 	if ansi > 15 {
-		return 0, 0, 0, 0xff
+		return 0, 0, 0, 0xffff
 	}
 
 	r, g, b := ansiToRGB(ansi)
-	r |= r << 8
-	g |= g << 8
-	b |= b << 8
-	return r, g, b, 0xff00
+	return toRGBA(r, g, b)
 }
 
 // ExtendedColor is an ANSI 256 (8-bit) color with a value from 0 to 255.
@@ -116,10 +113,7 @@ var _ Color = ExtendedColor(0)
 // satisfies the color.Color interface.
 func (c ExtendedColor) RGBA() (uint32, uint32, uint32, uint32) {
 	r, g, b := ansiToRGB(uint32(c))
-	r |= r << 8
-	g |= g << 8
-	b |= b << 8
-	return r, g, b, 0xff00
+	return toRGBA(r, g, b)
 }
 
 // TrueColor is a 24-bit color that can be used in the terminal.
@@ -136,10 +130,7 @@ var _ Color = TrueColor(0)
 // satisfies the color.Color interface.
 func (c TrueColor) RGBA() (uint32, uint32, uint32, uint32) {
 	r, g, b := hexToRGB(uint32(c))
-	r |= r << 8
-	g |= g << 8
-	b |= b << 8
-	return r, g, b, 0xff00
+	return toRGBA(r, g, b)
 }
 
 // ansiToRGB converts an ANSI color to a 24-bit RGB color.
@@ -188,4 +179,18 @@ func ansiToRGB(ansi uint32) (uint32, uint32, uint32) {
 //	r, g, b := hexToRGB(0x0000FF)
 func hexToRGB(hex uint32) (uint32, uint32, uint32) {
 	return hex >> 16, hex >> 8 & 0xff, hex & 0xff
+}
+
+// toRGBA converts an RGB 8-bit color values to 32-bit color values suitable
+// for color.Color.
+//
+// color.Color requires 16-bit color values, so we duplicate the 8-bit values
+// to fill the 16-bit values.
+//
+// This always returns 0xffff (opaque) for the alpha channel.
+func toRGBA(r, g, b uint32) (uint32, uint32, uint32, uint32) {
+	r |= r << 8
+	g |= g << 8
+	b |= b << 8
+	return r, g, b, 0xffff
 }
