@@ -250,6 +250,11 @@ func (tm *TestModel) Type(s string) {
 	}
 }
 
+// GetProgram gets the TestModel's program.
+func (tm *TestModel) GetProgram() *tea.Program {
+	return tm.program
+}
+
 // RequireEqualOutput is a helper function to assert the given output is
 // the expected from the golden files, printing its diff in case it is not.
 //
