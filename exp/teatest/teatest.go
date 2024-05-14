@@ -250,7 +250,7 @@ func (tm *TestModel) Type(s string) {
 	}
 }
 
-// GetProgram gets the TestModel's program
+// GetProgram gets the TestModel's program.
 func (tm *TestModel) GetProgram() *tea.Program {
 	return tm.program
 }
