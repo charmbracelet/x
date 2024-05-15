@@ -138,8 +138,8 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Ev
 			return event
 		}
 
-		layout, err := termwindows.GetKeyboardLayout(fgThread)
-		if layout == windows.InvalidHandle || err != nil {
+		layout := termwindows.GetKeyboardLayout(fgThread)
+		if layout == windows.InvalidHandle {
 			return event
 		}
 
@@ -147,7 +147,7 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Ev
 		var keyState [256]byte
 		var utf16Buf [16]uint16
 		const dontChangeKernelKeyboardLayout = 0x4
-		ret, err := termwindows.ToUnicodeEx(
+		ret := termwindows.ToUnicodeEx(
 			uint32(e.VirtualKeyCode),
 			uint32(e.VirtualScanCode),
 			&keyState[0],
@@ -159,7 +159,7 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Ev
 
 		// -1 indicates a dead key
 		// 0 indicates no translation for this key
-		if ret < 1 || err != nil {
+		if ret < 1 {
 			return event
 		}
 
