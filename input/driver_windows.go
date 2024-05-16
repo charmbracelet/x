@@ -45,7 +45,7 @@ func (d *Driver) handleConInput(
 
 	var evs []Event
 	for _, event := range events {
-		if e := parseConInputEvent(event, &d.prevMouseState); e != nil {
+		if e := parseConInputEvent(event, &d.prevMouseState, &d.lastWinsizeEvent); e != nil {
 			evs = append(evs, e)
 		}
 	}
@@ -107,7 +107,7 @@ loop:
 	return events
 }
 
-func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Event {
+func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState, ws *coninput.WindowBufferSizeEventRecord) Event {
 	switch e := event.Unwrap().(type) {
 	case coninput.KeyEventRecord:
 		event := parseWin32InputKeyEvent(e.VirtualKeyCode, e.VirtualScanCode,
@@ -171,9 +171,12 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Ev
 		return KeyUpEvent(key)
 
 	case coninput.WindowBufferSizeEventRecord:
-		return WindowSizeEvent{
-			Width:  int(e.Size.X),
-			Height: int(e.Size.Y),
+		if e != *ws {
+			*ws = e
+			return WindowSizeEvent{
+				Width:  int(e.Size.X),
+				Height: int(e.Size.Y),
+			}
 		}
 	case coninput.MouseEventRecord:
 		mevent := mouseEvent(*ps, e)

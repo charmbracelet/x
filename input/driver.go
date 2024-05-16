@@ -28,6 +28,10 @@ type Driver struct {
 	// up button events.
 	prevMouseState coninput.ButtonState // nolint: unused
 
+	// lastWinsizeEvent keeps track of the last window size event to prevent
+	// multiple size events from firing.
+	lastWinsizeEvent coninput.WindowBufferSizeEventRecord // nolint: unused
+
 	flags int // control the behavior of the driver.
 }
 
