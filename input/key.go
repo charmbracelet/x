@@ -182,7 +182,7 @@ type Key struct {
 	Sym      KeySym
 	Rune     rune
 	AltRune  rune
-	BaseRune rune
+	baseRune rune
 	IsRepeat bool
 	Mod      KeyMod
 }
@@ -232,10 +232,10 @@ func (k Key) String() string {
 		}
 		return string(r)
 	}
-	if k.BaseRune != 0 {
+	if k.baseRune != 0 {
 		// If a BaseRune is present, use it to represent a key using the standard
 		// PC-101 key layout.
-		s += runeStr(k.BaseRune)
+		s += runeStr(k.baseRune)
 	} else if k.AltRune != 0 {
 		// Otherwise, use the AltRune aka the non-shifted one if present.
 		s += runeStr(k.AltRune)

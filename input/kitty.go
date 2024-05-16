@@ -236,7 +236,7 @@ func parseKittyKeyboard(csi *ansi.CsiSequence) Event {
 					// PC-101 key layout codepoint.
 					// This is useful to create an unambiguous mapping of keys
 					// when using a different language layout.
-					key.BaseRune = b
+					key.baseRune = b
 				}
 				fallthrough
 			case 2:
