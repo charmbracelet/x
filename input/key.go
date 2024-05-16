@@ -179,18 +179,51 @@ const (
 
 // Key represents a key event.
 type Key struct {
-	Sym      KeySym
-	Rune     rune
-	AltRune  rune
+	// Sym is a special key, like enter, tab, backspace, and so on.
+	Sym KeySym
+
+	// Mod is a modifier key, like ctrl, alt, and so on.
+	Mod KeyMod
+
+	// Rune is the actual character received. If the user presses shift+a, the
+	// Rune will be 'A'.
+	Rune rune
+
+	// AltRune is the actual, unshifted key pressed by the user. For example,
+	// if the user presses shift+a, or caps lock is on, the AltRune will be
+	// 'a'.
+	//
+	// In the case of non-latin keyboards, like Arabic, AltRune is the
+	// unshifted key on the keyboard.
+	//
+	// This is only available with the Kitty Keyboard Protocol or the Windows
+	// Console API.
+	AltRune rune
+
+	// baseRune is the key pressed according to the standard PC-101 key layout.
+	// On internaltional keyboards, this is the key that would be pressed if
+	// the keyboard was set to US layout.
+	//
+	// For example, if the user presses 'q' on a French AZERTY keyboard, the
+	// baseRune will be 'q'.
+	//
+	// This is only available with the Kitty Keyboard Protocol or the Windows
+	// Console API.
 	baseRune rune
+
+	// IsRepeat indicates whether the key is being held down and sending events
+	// repeatedly.
+	//
+	// This is only available with the Kitty Keyboard Protocol or the Windows
+	// Console API.
 	IsRepeat bool
-	Mod      KeyMod
 }
 
 // KeyDownEvent represents a key down event.
 type KeyDownEvent Key
 
-// String implements fmt.Stringer.
+// String implements fmt.Stringer and is quite useful for matching key
+// events. For details, on what this returns see [Key.String].
 func (k KeyDownEvent) String() string {
 	return Key(k).String()
 }
@@ -198,12 +231,27 @@ func (k KeyDownEvent) String() string {
 // KeyUpEvent represents a key up event.
 type KeyUpEvent Key
 
-// String implements fmt.Stringer.
+// String implements fmt.Stringer and is quite useful for matching complex key
+// events. For details, on what this returns see [Key.String].
 func (k KeyUpEvent) String() string {
 	return Key(k).String()
 }
 
-// String implements fmt.Stringer.
+// String implements fmt.Stringer and is used to convert a key to a string.
+// While less type safe than looking at the individual fields, it will usually
+// be more convenient and readable to use this method when matching against
+// keys.
+//
+// Note that modifier keys are always printed in the following order:
+//   - ctrl
+//   - alt
+//   - shift
+//   - meta
+//   - hyper
+//   - super
+//
+// For example, you'll always see "ctrl+shift+alt+a" and never
+// "shift+ctrl+alt+a".
 func (k Key) String() string {
 	var s string
 	if k.Mod.IsCtrl() && k.Sym != KeyLeftCtrl && k.Sym != KeyRightCtrl {
@@ -248,7 +296,8 @@ func (k Key) String() string {
 	return s
 }
 
-// String implements fmt.Stringer.
+// String implements fmt.Stringer and prints the string representation of a of
+// a Symbol key.
 func (k KeySym) String() string {
 	s, ok := keySymString[k]
 	if !ok {
