@@ -131,17 +131,11 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Ev
 			return event
 		}
 
-		// Get active keyboard layout
-		fgWin := windows.GetForegroundWindow()
-		fgThread, err := windows.GetWindowThreadProcessId(fgWin, nil)
-		if err != nil {
-			return event
-		}
-
-		layout := termwindows.GetKeyboardLayout(fgThread)
-		if layout == windows.InvalidHandle {
-			return event
-		}
+		// Always use US layout for translation
+		// This is to follow the behavior of the Kitty Keyboard base layout
+		// feature :eye_roll:
+		// https://learn.microsoft.com/en-us/windows-hardware/manufacture/desktop/windows-language-pack-default-values?view=windows-11
+		const usLayout = 0x409
 
 		// Translate key to rune
 		var keyState [256]byte
@@ -154,7 +148,7 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Ev
 			&utf16Buf[0],
 			int32(len(utf16Buf)),
 			dontChangeKernelKeyboardLayout,
-			layout,
+			usLayout,
 		)
 
 		// -1 indicates a dead key
