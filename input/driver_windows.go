@@ -169,7 +169,7 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState) Ev
 			return event
 		}
 
-		key.BaseRune = runes[0]
+		key.baseRune = runes[0]
 		if e.KeyDown {
 			return KeyDownEvent(key)
 		}

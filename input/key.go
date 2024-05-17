@@ -281,7 +281,7 @@ func (k Key) String() string {
 		return string(r)
 	}
 	if k.baseRune != 0 {
-		// If a BaseRune is present, use it to represent a key using the standard
+		// If a baseRune is present, use it to represent a key using the standard
 		// PC-101 key layout.
 		s += runeStr(k.baseRune)
 	} else if k.AltRune != 0 {
