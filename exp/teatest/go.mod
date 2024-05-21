@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/charmbracelet/bubbletea v0.26.2
-	github.com/charmbracelet/x/exp/golden v0.0.0-20240222125807-0344fda748f8
+	github.com/charmbracelet/x/exp/golden v0.0.0-20240521172236-71f88323a7ca
 )
 
 require (
