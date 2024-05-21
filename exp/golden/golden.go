@@ -5,6 +5,8 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/aymanbagabas/go-udiff"
@@ -17,6 +19,12 @@ var update = flag.Bool("update", false, "update .golden files")
 //
 // You can update the golden files by running your tests with the -update flag.
 func RequireEqual(tb testing.TB, out []byte) {
+	RequireEqualEscape(tb, out, false)
+}
+
+// RequireEqualEscape is a helper function to assert the given output is
+// the expected from the golden files, printing its diff in case it is not.
+func RequireEqualEscape(tb testing.TB, out []byte, escapse bool) {
 	tb.Helper()
 
 	out = fixLineEndings(out)
@@ -37,12 +45,30 @@ func RequireEqual(tb testing.TB, out []byte) {
 	}
 
 	goldenBts = fixLineEndings(goldenBts)
-	diff := udiff.Unified("golden", "run", string(goldenBts), string(out))
+	goldenStr := string(goldenBts)
+	outStr := string(out)
+	if escapse {
+		goldenStr = escapseSeqs(goldenStr)
+		outStr = escapseSeqs(outStr)
+	}
+
+	diff := udiff.Unified("golden", "run", goldenStr, outStr)
 	if diff != "" {
-		tb.Fatalf("output does not match, expected:\n\n%s\n\ngot:\n\n%s\n\ndiff:\n\n%s", string(goldenBts), string(out), diff)
+		tb.Fatalf("output does not match, expected:\n\n%s\n\ngot:\n\n%s\n\ndiff:\n\n%s", goldenStr, outStr, diff)
 	}
 }
 
 func fixLineEndings(in []byte) []byte {
 	return bytes.ReplaceAll(in, []byte("\r\n"), []byte{'\n'})
+}
+
+func escapseSeqs(in string) string {
+	s := strings.Split(in, "\n")
+	for i, l := range s {
+		q := strconv.Quote(l)
+		q = strings.TrimPrefix(q, `"`)
+		q = strings.TrimSuffix(q, `"`)
+		s[i] = q
+	}
+	return strings.Join(s, "\n")
 }
