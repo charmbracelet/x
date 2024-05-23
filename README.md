@@ -6,8 +6,7 @@
     <source media="(prefers-color-scheme: dark)" srcset="https://user-images.githubusercontent.com/25087/236529273-6f8c841f-f11b-4ec8-b01d-7e3d9b17c85f.png" height="200" />
     <img src="https://user-images.githubusercontent.com/25087/236529178-465e9b98-3401-47dd-8691-ea475d96c3ad.png" height="200" alt="A 3D rendering of an X"/>
   </picture>
-  <br><a href="https://pkg.go.dev/github.com/charmbracelet/x?tab=doc"><img src="https://godoc.org/github.com/golang/gddo?status.svg" alt="Go Docs"></a>
-  <a href="https://github.com/charmbracelet/x/actions"><img src="https://github.com/charmbracelet/x/workflows/build/badge.svg" alt="Build Status"></a>
+  <br><a href="https://github.com/charmbracelet/x/actions"><img src="https://github.com/charmbracelet/x/workflows/build/badge.svg" alt="Build Status"></a>
 </p>
 
 This repository contains packages that are experimental and that we don’t
@@ -16,22 +15,25 @@ into other repositories.
 
 Currently the following packages are available:
 
-- [`ansi`](./ansi): ANSI escape sequence parser and definitions
-- [`conpty`](./conpty): Windows Console Pseudo-terminal library
-- [`editor`](./editor): open files in text editors
-- [`errors`](./errors): `errors.Join` in older Go versions
-- [`golden`](./exp/golden): verify golden files equality
-- [`higherorder`](./exp/higherorder): generic higher order functions
-- [`input`](./input): terminal event input handler and driver
-- [`open`](./exp/open): open a file/URL using `open`, `xdg-open`, etc
-- [`ordered`](./exp/ordered): generic `min`, `max`, and `clamp` functions for ordered types
-- [`slice`](./exp/slice): generic slice utilities
+- [`ansi`](./ansi): ANSI escape sequence parser and definitions • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/ansi)
+- [`conpty`](./conpty): Windows Console Pseudo-terminal library • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/conpty)
+- [`editor`](./editor): open files in text editors • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/editor)
+- [`errors`](./errors): `errors.Join` in older Go versions • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/errors)
+- [`golden`](./exp/golden): verify golden file equality • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/golden)
+- [`higherorder`](./exp/higherorder): generic higher order functions • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/higherorder)
+- [`input`](./input): terminal event input handler and driver • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/input)
+- [`open`](./exp/open): open a file/URL using `open`, `xdg-open`, etc • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/open)
+- [`ordered`](./exp/ordered): generic `min`, `max`, and `clamp` functions for ordered types • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/ordered)
+- [`slice`](./exp/slice): generic slice utilities • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/slice)
 - [`strings`](./exp/strings): utilities for working with strings
-- [`teatest`](./exp/teatest): a library for testing [Bubble Tea](https://github.com/charmbracelet/bubbletea) programs
-- [`term`](./term): terminal utilities and helpers
-- [`termios`](./termios): Termios unified API and library
-- [`windows`](./windows): Windows API used at Charmbracelet
-- [`xpty`](./xpty): cross-platform PTY interface
+- [`teatest`](./exp/teatest): a library for testing [Bubble Tea](https://github.com/charmbracelet/bubbletea) programs • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/teatest)
+- [`term`](./term): terminal utilities and helpers • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/term)
+- [`termios`](./termios): Termios unified API and library • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/termios)
+- [`windows`](./windows): Windows API used at Charmbracelet • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/windows)
+- [`xpty`](./xpty): cross-platform PTY interface • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/pty)
+
+[docbadge]: https://godoc.org/github.com/golang/gddo?status.svg
+
 
 ## Feedback
 
