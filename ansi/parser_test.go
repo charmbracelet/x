@@ -64,6 +64,33 @@ func TestControlSequence(t *testing.T) {
 				EscSequence('P'),
 			},
 		},
+		{
+			name:  "csi plus text",
+			input: "Hello, \x1b[31mWorld!\x1b[0m",
+			expected: []Sequence{
+				Rune('H'),
+				Rune('e'),
+				Rune('l'),
+				Rune('l'),
+				Rune('o'),
+				Rune(','),
+				Rune(' '),
+				CsiSequence{
+					Params: []int{31},
+					Cmd:    'm',
+				},
+				Rune('W'),
+				Rune('o'),
+				Rune('r'),
+				Rune('l'),
+				Rune('d'),
+				Rune('!'),
+				CsiSequence{
+					Params: []int{0},
+					Cmd:    'm',
+				},
+			},
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
