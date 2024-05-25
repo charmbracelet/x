@@ -9,8 +9,8 @@
   <br><a href="https://github.com/charmbracelet/x/actions"><img src="https://github.com/charmbracelet/x/workflows/build/badge.svg" alt="Build Status"></a>
 </p>
 
-This repository contains packages that are experimental and that we don’t
-promise any backwards compatibility. Once they mature here, they might be moved
+This repository contains experimental packages with no promises of 
+backwards compatibility. Once they mature here, they might be moved
 into other repositories.
 
 Currently the following packages are available:
