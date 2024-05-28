@@ -134,6 +134,11 @@ func (s Style) NoReverse() Style {
 	return append(s, NoReverseAttr)
 }
 
+// NoConceal appends the no conceal style attribute to the style.
+func (s Style) NoConceal() Style {
+	return append(s, NoConcealAttr)
+}
+
 // NoStrikethrough appends the no strikethrough style attribute to the style.
 func (s Style) NoStrikethrough() Style {
 	return append(s, NoStrikethroughAttr)
@@ -192,6 +197,7 @@ const (
 	NoUnderlineAttr            Attr = "24"
 	NoBlinkAttr                Attr = "25"
 	NoReverseAttr              Attr = "27"
+	NoConcealAttr              Attr = "28"
 	NoStrikethroughAttr        Attr = "29"
 	DefaultForegroundColorAttr Attr = "39"
 	DefaultBackgroundColorAttr Attr = "49"
