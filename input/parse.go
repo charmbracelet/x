@@ -121,7 +121,7 @@ func ParseSequence(buf []byte) (n int, e Event) {
 			return parseApc(buf)
 		default:
 			n, e := ParseSequence(buf[1:])
-			if k, ok := e.(KeyDownEvent); ok && !k.Mod.IsAlt() {
+			if k, ok := e.(KeyDownEvent); ok && !k.Mod.HasAlt() {
 				k.Mod |= Alt
 				return n + 1, k
 			}

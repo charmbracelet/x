@@ -254,22 +254,22 @@ func (k KeyUpEvent) String() string {
 // "shift+ctrl+alt+a".
 func (k Key) String() string {
 	var s string
-	if k.Mod.IsCtrl() && k.Sym != KeyLeftCtrl && k.Sym != KeyRightCtrl {
+	if k.Mod.HasCtrl() && k.Sym != KeyLeftCtrl && k.Sym != KeyRightCtrl {
 		s += "ctrl+"
 	}
-	if k.Mod.IsAlt() && k.Sym != KeyLeftAlt && k.Sym != KeyRightAlt {
+	if k.Mod.HasAlt() && k.Sym != KeyLeftAlt && k.Sym != KeyRightAlt {
 		s += "alt+"
 	}
-	if k.Mod.IsShift() && k.Sym != KeyLeftShift && k.Sym != KeyRightShift {
+	if k.Mod.HasShift() && k.Sym != KeyLeftShift && k.Sym != KeyRightShift {
 		s += "shift+"
 	}
-	if k.Mod.IsMeta() && k.Sym != KeyLeftMeta && k.Sym != KeyRightMeta {
+	if k.Mod.HasMeta() && k.Sym != KeyLeftMeta && k.Sym != KeyRightMeta {
 		s += "meta+"
 	}
-	if k.Mod.IsHyper() && k.Sym != KeyLeftHyper && k.Sym != KeyRightHyper {
+	if k.Mod.HasHyper() && k.Sym != KeyLeftHyper && k.Sym != KeyRightHyper {
 		s += "hyper+"
 	}
-	if k.Mod.IsSuper() && k.Sym != KeyLeftSuper && k.Sym != KeyRightSuper {
+	if k.Mod.HasSuper() && k.Sym != KeyLeftSuper && k.Sym != KeyRightSuper {
 		s += "super+"
 	}
 
