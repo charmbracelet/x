@@ -24,33 +24,33 @@ const (
 	ScrollLock // Defined in Windows API only
 )
 
-// IsShift reports whether the Shift modifier is set.
-func (m KeyMod) IsShift() bool {
+// HasShift reports whether the Shift modifier is set.
+func (m KeyMod) HasShift() bool {
 	return m&Shift != 0
 }
 
-// IsAlt reports whether the Alt modifier is set.
-func (m KeyMod) IsAlt() bool {
+// HasAlt reports whether the Alt modifier is set.
+func (m KeyMod) HasAlt() bool {
 	return m&Alt != 0
 }
 
-// IsCtrl reports whether the Ctrl modifier is set.
-func (m KeyMod) IsCtrl() bool {
+// HasCtrl reports whether the Ctrl modifier is set.
+func (m KeyMod) HasCtrl() bool {
 	return m&Ctrl != 0
 }
 
-// IsMeta reports whether the Meta modifier is set.
-func (m KeyMod) IsMeta() bool {
+// HasMeta reports whether the Meta modifier is set.
+func (m KeyMod) HasMeta() bool {
 	return m&Meta != 0
 }
 
-// IsHyper reports whether the Hyper modifier is set.
-func (m KeyMod) IsHyper() bool {
+// HasHyper reports whether the Hyper modifier is set.
+func (m KeyMod) HasHyper() bool {
 	return m&Hyper != 0
 }
 
-// IsSuper reports whether the Super modifier is set.
-func (m KeyMod) IsSuper() bool {
+// HasSuper reports whether the Super modifier is set.
+func (m KeyMod) HasSuper() bool {
 	return m&Super != 0
 }
 

@@ -65,13 +65,13 @@ type Mouse struct {
 
 // String implements fmt.Stringer.
 func (m Mouse) String() (s string) {
-	if m.Mod.IsCtrl() {
+	if m.Mod.HasCtrl() {
 		s += "ctrl+"
 	}
-	if m.Mod.IsAlt() {
+	if m.Mod.HasAlt() {
 		s += "alt+"
 	}
-	if m.Mod.IsShift() {
+	if m.Mod.HasShift() {
 		s += "shift+"
 	}
 
