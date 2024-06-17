@@ -138,6 +138,15 @@ updates:
       prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
+    directory: "/json"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+  - package-ecosystem: "gomod"
     directory: "/term"
     schedule:
       interval: "daily"

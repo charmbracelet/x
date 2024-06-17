@@ -15,6 +15,7 @@ use (
 	./exp/teatest
 	./exp/term
 	./input
+	./json
 	./term
 	./termios
 	./windows
