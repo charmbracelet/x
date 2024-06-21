@@ -9,7 +9,7 @@
   <br><a href="https://github.com/charmbracelet/x/actions"><img src="https://github.com/charmbracelet/x/workflows/build/badge.svg" alt="Build Status"></a>
 </p>
 
-This repository contains experimental packages with no promises of 
+This repository contains experimental packages with no promises of
 backwards compatibility. Once they mature here, they might be moved
 into other repositories.
 
@@ -22,9 +22,11 @@ Currently the following packages are available:
 - [`golden`](./exp/golden): verify golden file equality • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/golden)
 - [`higherorder`](./exp/higherorder): generic higher order functions • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/higherorder)
 - [`input`](./input): terminal event input handler and driver • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/input)
+- [`json`](./json): JSON parsing using generics • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/json)
 - [`open`](./exp/open): open a file/URL using `open`, `xdg-open`, etc • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/open)
 - [`ordered`](./exp/ordered): generic `min`, `max`, and `clamp` functions for ordered types • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/ordered)
 - [`slice`](./exp/slice): generic slice utilities • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/slice)
+- [`sshkey`](./sshkey): open and parse SSH keys, asks for passphrases when needed • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/sshkey)
 - [`strings`](./exp/strings): utilities for working with strings • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/strings)
 - [`teatest`](./exp/teatest): a library for testing [Bubble Tea](https://github.com/charmbracelet/bubbletea) programs • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/teatest)
 - [`term`](./term): terminal utilities and helpers • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/term)
@@ -33,7 +35,6 @@ Currently the following packages are available:
 - [`xpty`](./xpty): cross-platform PTY interface • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/xpty)
 
 [docbadge]: https://godoc.org/github.com/golang/gddo?status.svg
-
 
 ## Feedback
 

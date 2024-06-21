@@ -16,6 +16,7 @@ use (
 	./exp/term
 	./input
 	./json
+	./sshkey
 	./term
 	./termios
 	./windows
