@@ -23,35 +23,47 @@ func Open(keyPath string) (ssh.Signer, error) {
 // The 'identifier' is used to identify the key to the user when asking for the
 // passphrase.
 func Parse(identifier string, pemBytes []byte) (ssh.Signer, error) {
-	signer, err := ssh.ParsePrivateKey(pemBytes)
-	if isPasswordError(err) {
-		return askPassAndParse(identifier, pemBytes)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("sshkey: %w", err)
-	}
-
-	return signer, nil
+	return doParse(identifier, pemBytes, ssh.ParsePrivateKey, ssh.ParsePrivateKeyWithPassphrase)
 }
 
-func askPassAndParse(identifier string, pemBytes []byte) (ssh.Signer, error) {
-	pass, err := ask(identifier)
-	if err != nil {
-		return nil, fmt.Errorf("sshkey: %w", err)
-	}
-	signer, err := ssh.ParsePrivateKeyWithPassphrase(pemBytes, []byte(pass))
-	if err != nil {
-		return nil, fmt.Errorf("sshkey: %w", err)
-	}
-	return signer, nil
+// ParseRaw tries to parse the given PEM into a private key.
+// If the key is encrypted, it will ask for the passphrase.
+// The 'identifier' is used to identify the key to the user when asking for the
+// passphrase.
+func ParseRaw(identifier string, pemBytes []byte) (interface{}, error) {
+	return doParse(identifier, pemBytes, ssh.ParseRawPrivateKey, ssh.ParseRawPrivateKeyWithPassphrase)
 }
 
-func isPasswordError(err error) bool {
+func doParse[T any](
+	identifier string,
+	pemBytes []byte,
+	parse func(pemBytes []byte) (T, error),
+	parseWithPass func(pemBytes, passphrase []byte) (T, error),
+) (T, error) {
+	result, err := parse(pemBytes)
+	if isPassphraseMissing(err) {
+		passphrase, err := ask(identifier)
+		if err != nil {
+			return result, fmt.Errorf("sshkey: %w", err)
+		}
+		result, err := parseWithPass(pemBytes, passphrase)
+		if err != nil {
+			return result, fmt.Errorf("sshkey: %w", err)
+		}
+		return result, nil
+	}
+	if err != nil {
+		return result, fmt.Errorf("sshkey: %w", err)
+	}
+	return result, nil
+}
+
+func isPassphraseMissing(err error) bool {
 	var kerr *ssh.PassphraseMissingError
 	return errors.As(err, &kerr)
 }
 
-func ask(path string) (string, error) {
+func ask(path string) ([]byte, error) {
 	var pass string
 	if err := huh.Run(
 		huh.NewInput().
@@ -60,7 +72,7 @@ func ask(path string) (string, error) {
 			Title(fmt.Sprintf("Enter the passphrase to unlock %q: ", path)).
 			EchoMode(huh.EchoModePassword),
 	); err != nil {
-		return "", fmt.Errorf("sshkey: %w", err)
+		return nil, fmt.Errorf("sshkey: %w", err)
 	}
-	return pass, nil
+	return []byte(pass), nil
 }

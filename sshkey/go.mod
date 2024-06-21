@@ -1,6 +1,6 @@
 module github.com/charmbracelet/x/sshkey
 
-go 1.22.3
+go 1.18
 
 require (
 	github.com/charmbracelet/huh v0.4.2
