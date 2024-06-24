@@ -1,8 +1,9 @@
 package maps
 
 import (
-	"slices"
 	"testing"
+
+	"golang.org/x/exp/slices"
 )
 
 func TestSortedKeys(t *testing.T) {
