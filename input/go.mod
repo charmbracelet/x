@@ -11,7 +11,4 @@ require (
 	golang.org/x/sys v0.21.0
 )
 
-require (
-	github.com/rivo/uniseg v0.4.7 // indirect
-	golang.org/x/exp v0.0.0-20231219180239-dc181d75b848 // indirect
-)
+require github.com/rivo/uniseg v0.4.7 // indirect

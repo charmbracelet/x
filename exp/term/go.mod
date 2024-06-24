@@ -14,5 +14,3 @@ require (
 	github.com/muesli/cancelreader v0.2.2
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e
 )
-
-require golang.org/x/exp v0.0.0-20231219180239-dc181d75b848 // indirect
