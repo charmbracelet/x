@@ -6,6 +6,8 @@ import (
 	"testing"
 	"testing/iotest"
 	"time"
+
+	tea "github.com/charmbracelet/bubbletea"
 )
 
 func TestWaitForErrorReader(t *testing.T) {
@@ -29,5 +31,22 @@ func TestWaitForTimeout(t *testing.T) {
 	}
 	if err.Error() != "WaitFor: condition not met after 1ms" {
 		t.Fatalf("unexpected error: %s", err.Error())
+	}
+}
+
+type m string
+
+func (m m) Init() tea.Cmd                       { return nil }
+func (m m) Update(tea.Msg) (tea.Model, tea.Cmd) { return m, nil }
+func (m m) View() string                        { return string(m) }
+
+func TestWaitFinishedWithTimeoutFn(t *testing.T) {
+	tm := NewTestModel(t, m("a"))
+	var timedOut bool
+	tm.WaitFinished(t, WithFinalTimeout(time.Nanosecond), WithTimeoutFn(func(testing.TB) {
+		timedOut = true
+	}))
+	if !timedOut {
+		t.Fatal("expected timedOut to be set")
 	}
 }
