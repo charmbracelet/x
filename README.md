@@ -23,9 +23,9 @@ Currently the following packages are available:
 - [`higherorder`](./exp/higherorder): generic higher order functions • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/higherorder)
 - [`input`](./input): terminal event input handler and driver • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/input)
 - [`json`](./json): JSON parsing using generics • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/json)
+- [`maps`](./exp/maps): generic maps utilities
 - [`open`](./exp/open): open a file/URL using `open`, `xdg-open`, etc • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/open)
 - [`ordered`](./exp/ordered): generic `min`, `max`, and `clamp` functions for ordered types • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/ordered)
-- [`maps`](./exp/maps): generic maps utilities
 - [`slice`](./exp/slice): generic slice utilities • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/slice)
 - [`sshkey`](./sshkey): open and parse SSH keys, asks for passphrases when needed • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/sshkey)
 - [`strings`](./exp/strings): utilities for working with strings • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/strings)
@@ -34,6 +34,8 @@ Currently the following packages are available:
 - [`termios`](./termios): Termios unified API and library • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/termios)
 - [`windows`](./windows): Windows API used at Charmbracelet • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/windows)
 - [`xpty`](./xpty): cross-platform PTY interface • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/xpty)
+
+[docbadge]: https://godoc.org/github.com/golang/gddo?status.svg
 
 ## Feedback
 
