@@ -182,9 +182,6 @@ type Key struct {
 	// Sym is a special key, like enter, tab, backspace, and so on.
 	Sym KeySym
 
-	// Mod is a modifier key, like ctrl, alt, and so on.
-	Mod KeyMod
-
 	// Rune is the actual character received. If the user presses shift+a, the
 	// Rune will be 'A'.
 	Rune rune
@@ -211,6 +208,9 @@ type Key struct {
 	// Console API.
 	baseRune rune
 
+	// Mod is a modifier key, like ctrl, alt, and so on.
+	Mod KeyMod
+
 	// IsRepeat indicates whether the key is being held down and sending events
 	// repeatedly.
 	//
@@ -219,21 +219,21 @@ type Key struct {
 	IsRepeat bool
 }
 
-// KeyDownEvent represents a key down event.
-type KeyDownEvent Key
+// KeyPressEvent represents a key press event.
+type KeyPressEvent Key
 
 // String implements fmt.Stringer and is quite useful for matching key
 // events. For details, on what this returns see [Key.String].
-func (k KeyDownEvent) String() string {
+func (k KeyPressEvent) String() string {
 	return Key(k).String()
 }
 
-// KeyUpEvent represents a key up event.
-type KeyUpEvent Key
+// KeyReleaseEvent represents a key release event.
+type KeyReleaseEvent Key
 
 // String implements fmt.Stringer and is quite useful for matching complex key
 // events. For details, on what this returns see [Key.String].
-func (k KeyUpEvent) String() string {
+func (k KeyReleaseEvent) String() string {
 	return Key(k).String()
 }
 

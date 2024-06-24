@@ -44,22 +44,22 @@ func parseWin32InputKeyEvent(vkc coninput.VirtualKeyCode, _ coninput.VirtualKeyC
 	}
 
 	if isCtrl {
-		key.Mod |= Ctrl
+		key.Mod |= ModCtrl
 	}
 	if cks.Contains(coninput.LEFT_ALT_PRESSED | coninput.RIGHT_ALT_PRESSED) {
-		key.Mod |= Alt
+		key.Mod |= ModAlt
 	}
 	if cks.Contains(coninput.SHIFT_PRESSED) {
-		key.Mod |= Shift
+		key.Mod |= ModShift
 	}
 	if cks.Contains(coninput.CAPSLOCK_ON) {
-		key.Mod |= CapsLock
+		key.Mod |= ModCapsLock
 	}
 	if cks.Contains(coninput.NUMLOCK_ON) {
-		key.Mod |= NumLock
+		key.Mod |= ModNumLock
 	}
 	if cks.Contains(coninput.SCROLLLOCK_ON) {
-		key.Mod |= ScrollLock
+		key.Mod |= ModScrollLock
 	}
 
 	// Use the unshifted key
@@ -69,10 +69,10 @@ func parseWin32InputKeyEvent(vkc coninput.VirtualKeyCode, _ coninput.VirtualKeyC
 		key.AltRune = unicode.ToLower(key.Rune)
 	}
 
-	var e Event = KeyDownEvent(key)
+	var e Event = KeyPressEvent(key)
 	key.IsRepeat = repeatCount > 1
 	if !keyDown {
-		e = KeyUpEvent(key)
+		e = KeyReleaseEvent(key)
 	}
 
 	if repeatCount <= 1 {

@@ -64,7 +64,7 @@ func (d *Driver) detectConInputQuerySequences(events []Event) []Event {
 loop:
 	for i, e := range events {
 		switch e := e.(type) {
-		case KeyDownEvent:
+		case KeyPressEvent:
 			switch e.Rune {
 			case ansi.ESC, ansi.CSI, ansi.OSC, ansi.DCS, ansi.APC:
 				// start of a sequence
@@ -85,7 +85,7 @@ loop:
 	var seq []byte
 	for i := start; i <= end; i++ {
 		switch e := events[i].(type) {
-		case KeyDownEvent:
+		case KeyPressEvent:
 			seq = append(seq, byte(e.Rune))
 		}
 	}
@@ -115,9 +115,9 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState, ws
 
 		var key Key
 		switch event := event.(type) {
-		case KeyDownEvent:
+		case KeyPressEvent:
 			key = Key(event)
-		case KeyUpEvent:
+		case KeyReleaseEvent:
 			key = Key(event)
 		default:
 			return nil
@@ -165,10 +165,10 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState, ws
 
 		key.baseRune = runes[0]
 		if e.KeyDown {
-			return KeyDownEvent(key)
+			return KeyPressEvent(key)
 		}
 
-		return KeyUpEvent(key)
+		return KeyReleaseEvent(key)
 
 	case coninput.WindowBufferSizeEventRecord:
 		if e != *ws {
@@ -210,16 +210,16 @@ func mouseEventButton(p, s coninput.ButtonState) (button MouseButton, isRelease 
 		return
 	}
 
-	switch {
-	case btn == coninput.FROM_LEFT_1ST_BUTTON_PRESSED: // left button
+	switch btn {
+	case coninput.FROM_LEFT_1ST_BUTTON_PRESSED: // left button
 		button = MouseLeft
-	case btn == coninput.RIGHTMOST_BUTTON_PRESSED: // right button
+	case coninput.RIGHTMOST_BUTTON_PRESSED: // right button
 		button = MouseRight
-	case btn == coninput.FROM_LEFT_2ND_BUTTON_PRESSED: // middle button
+	case coninput.FROM_LEFT_2ND_BUTTON_PRESSED: // middle button
 		button = MouseMiddle
-	case btn == coninput.FROM_LEFT_3RD_BUTTON_PRESSED: // unknown (possibly mouse backward)
+	case coninput.FROM_LEFT_3RD_BUTTON_PRESSED: // unknown (possibly mouse backward)
 		button = MouseBackward
-	case btn == coninput.FROM_LEFT_4TH_BUTTON_PRESSED: // unknown (possibly mouse forward)
+	case coninput.FROM_LEFT_4TH_BUTTON_PRESSED: // unknown (possibly mouse forward)
 		button = MouseForward
 	}
 
@@ -230,13 +230,13 @@ func mouseEvent(p coninput.ButtonState, e coninput.MouseEventRecord) (ev Event) 
 	var mod KeyMod
 	var isRelease bool
 	if e.ControlKeyState.Contains(coninput.LEFT_ALT_PRESSED | coninput.RIGHT_ALT_PRESSED) {
-		mod |= Alt
+		mod |= ModAlt
 	}
 	if e.ControlKeyState.Contains(coninput.LEFT_CTRL_PRESSED | coninput.RIGHT_CTRL_PRESSED) {
-		mod |= Ctrl
+		mod |= ModCtrl
 	}
 	if e.ControlKeyState.Contains(coninput.SHIFT_PRESSED) {
-		mod |= Shift
+		mod |= ModShift
 	}
 	m := Mouse{
 		X:   int(e.MousePositon.X),
@@ -266,8 +266,8 @@ func mouseEvent(p coninput.ButtonState, e coninput.MouseEventRecord) (ev Event) 
 	if isWheel(m.Button) {
 		return MouseWheelEvent(m)
 	} else if isRelease {
-		return MouseUpEvent(m)
+		return MouseReleaseEvent(m)
 	}
 
-	return MouseDownEvent(m)
+	return MouseClickEvent(m)
 }

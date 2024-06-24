@@ -170,28 +170,28 @@ const (
 func fromKittyMod(mod int) KeyMod {
 	var m KeyMod
 	if mod&kittyShift != 0 {
-		m |= Shift
+		m |= ModShift
 	}
 	if mod&kittyAlt != 0 {
-		m |= Alt
+		m |= ModAlt
 	}
 	if mod&kittyCtrl != 0 {
-		m |= Ctrl
+		m |= ModCtrl
 	}
 	if mod&kittySuper != 0 {
-		m |= Super
+		m |= ModSuper
 	}
 	if mod&kittyHyper != 0 {
-		m |= Hyper
+		m |= ModHyper
 	}
 	if mod&kittyMeta != 0 {
-		m |= Meta
+		m |= ModMeta
 	}
 	if mod&kittyCapsLock != 0 {
-		m |= CapsLock
+		m |= ModCapsLock
 	}
 	if mod&kittyNumLock != 0 {
-		m |= NumLock
+		m |= ModNumLock
 	}
 	return m
 }
@@ -275,7 +275,7 @@ func parseKittyKeyboard(csi *ansi.CsiSequence) Event {
 	// 	}
 	// }
 	if isRelease {
-		return KeyUpEvent(key)
+		return KeyReleaseEvent(key)
 	}
-	return KeyDownEvent(key)
+	return KeyPressEvent(key)
 }

@@ -105,7 +105,7 @@ func ParseSequence(buf []byte) (n int, e Event) {
 	case ansi.ESC:
 		if len(buf) == 1 {
 			// Escape key
-			return 1, KeyDownEvent{Sym: KeyEscape}
+			return 1, KeyPressEvent{Sym: KeyEscape}
 		}
 
 		switch b := buf[1]; b {
@@ -121,14 +121,14 @@ func ParseSequence(buf []byte) (n int, e Event) {
 			return parseApc(buf)
 		default:
 			n, e := ParseSequence(buf[1:])
-			if k, ok := e.(KeyDownEvent); ok && !k.Mod.HasAlt() {
-				k.Mod |= Alt
+			if k, ok := e.(KeyPressEvent); ok && !k.Mod.HasAlt() {
+				k.Mod |= ModAlt
 				return n + 1, k
 			}
 
 			// Not a key sequence, nor an alt modified key sequence. In that
 			// case, just report a single escape key.
-			return 1, KeyDownEvent{Sym: KeyEscape}
+			return 1, KeyPressEvent{Sym: KeyEscape}
 		}
 	case ansi.SS3:
 		return parseSs3(buf)
@@ -147,7 +147,7 @@ func ParseSequence(buf []byte) (n int, e Event) {
 			// C1 control code
 			// UTF-8 never starts with a C1 control code
 			// Encode these as Ctrl+Alt+<code - 0x40>
-			return 1, KeyDownEvent{Rune: rune(b) - 0x40, Mod: Ctrl | Alt}
+			return 1, KeyPressEvent{Rune: rune(b) - 0x40, Mod: ModCtrl | ModAlt}
 		}
 		return parseUtf8(buf)
 	}
@@ -156,7 +156,7 @@ func ParseSequence(buf []byte) (n int, e Event) {
 func parseCsi(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+[ key
-		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
+		return 2, KeyPressEvent{Rune: rune(b[1]), Mod: ModAlt}
 	}
 
 	var csi ansi.CsiSequence
@@ -219,8 +219,8 @@ func parseCsi(b []byte) (int, Event) {
 		// shift modified keys.
 		if b[i-1] == '$' {
 			n, ev := parseCsi(append(b[:i-1], '~'))
-			if k, ok := ev.(KeyDownEvent); ok {
-				k.Mod |= Shift
+			if k, ok := ev.(KeyPressEvent); ok {
+				k.Mod |= ModShift
 				return n, k
 			}
 		}
@@ -293,7 +293,7 @@ func parseCsi(b []byte) (int, Event) {
 	case 'R':
 		// Cursor position report OR modified F3
 		if paramsLen == 0 {
-			return i, KeyDownEvent{Sym: KeyF3}
+			return i, KeyPressEvent{Sym: KeyF3}
 		} else if paramsLen != 2 {
 			break
 		}
@@ -311,22 +311,22 @@ func parseCsi(b []byte) (int, Event) {
 
 		fallthrough
 	case 'a', 'b', 'c', 'd', 'A', 'B', 'C', 'D', 'E', 'F', 'H', 'P', 'Q', 'S', 'Z':
-		var k KeyDownEvent
+		var k KeyPressEvent
 		switch cmd {
 		case 'a', 'b', 'c', 'd':
-			k = KeyDownEvent{Sym: KeyUp + KeySym(cmd-'a'), Mod: Shift}
+			k = KeyPressEvent{Sym: KeyUp + KeySym(cmd-'a'), Mod: ModShift}
 		case 'A', 'B', 'C', 'D':
-			k = KeyDownEvent{Sym: KeyUp + KeySym(cmd-'A')}
+			k = KeyPressEvent{Sym: KeyUp + KeySym(cmd-'A')}
 		case 'E':
-			k = KeyDownEvent{Sym: KeyBegin}
+			k = KeyPressEvent{Sym: KeyBegin}
 		case 'F':
-			k = KeyDownEvent{Sym: KeyEnd}
+			k = KeyPressEvent{Sym: KeyEnd}
 		case 'H':
-			k = KeyDownEvent{Sym: KeyHome}
+			k = KeyPressEvent{Sym: KeyHome}
 		case 'P', 'Q', 'R', 'S':
-			k = KeyDownEvent{Sym: KeyF1 + KeySym(cmd-'P')}
+			k = KeyPressEvent{Sym: KeyF1 + KeySym(cmd-'P')}
 		case 'Z':
-			k = KeyDownEvent{Sym: KeyTab, Mod: Shift}
+			k = KeyPressEvent{Sym: KeyTab, Mod: ModShift}
 		}
 		if paramsLen > 1 && csi.Param(0) == 1 {
 			// CSI 1 ; <modifiers> A
@@ -410,42 +410,42 @@ func parseCsi(b []byte) (int, Event) {
 		case 17, 18, 19, 20, 21, 23, 24, 25, 26:
 			fallthrough
 		case 28, 29, 31, 32, 33, 34:
-			var k KeyDownEvent
+			var k KeyPressEvent
 			switch param {
 			case 1:
 				if flags&FlagFind != 0 {
-					k = KeyDownEvent{Sym: KeyFind}
+					k = KeyPressEvent{Sym: KeyFind}
 				} else {
-					k = KeyDownEvent{Sym: KeyHome}
+					k = KeyPressEvent{Sym: KeyHome}
 				}
 			case 2:
-				k = KeyDownEvent{Sym: KeyInsert}
+				k = KeyPressEvent{Sym: KeyInsert}
 			case 3:
-				k = KeyDownEvent{Sym: KeyDelete}
+				k = KeyPressEvent{Sym: KeyDelete}
 			case 4:
 				if flags&FlagSelect != 0 {
-					k = KeyDownEvent{Sym: KeySelect}
+					k = KeyPressEvent{Sym: KeySelect}
 				} else {
-					k = KeyDownEvent{Sym: KeyEnd}
+					k = KeyPressEvent{Sym: KeyEnd}
 				}
 			case 5:
-				k = KeyDownEvent{Sym: KeyPgUp}
+				k = KeyPressEvent{Sym: KeyPgUp}
 			case 6:
-				k = KeyDownEvent{Sym: KeyPgDown}
+				k = KeyPressEvent{Sym: KeyPgDown}
 			case 7:
-				k = KeyDownEvent{Sym: KeyHome}
+				k = KeyPressEvent{Sym: KeyHome}
 			case 8:
-				k = KeyDownEvent{Sym: KeyEnd}
+				k = KeyPressEvent{Sym: KeyEnd}
 			case 11, 12, 13, 14, 15:
-				k = KeyDownEvent{Sym: KeyF1 + KeySym(param-11)}
+				k = KeyPressEvent{Sym: KeyF1 + KeySym(param-11)}
 			case 17, 18, 19, 20, 21:
-				k = KeyDownEvent{Sym: KeyF6 + KeySym(param-17)}
+				k = KeyPressEvent{Sym: KeyF6 + KeySym(param-17)}
 			case 23, 24, 25, 26:
-				k = KeyDownEvent{Sym: KeyF11 + KeySym(param-23)}
+				k = KeyPressEvent{Sym: KeyF11 + KeySym(param-23)}
 			case 28, 29:
-				k = KeyDownEvent{Sym: KeyF15 + KeySym(param-28)}
+				k = KeyPressEvent{Sym: KeyF15 + KeySym(param-28)}
 			case 31, 32, 33, 34:
-				k = KeyDownEvent{Sym: KeyF17 + KeySym(param-31)}
+				k = KeyPressEvent{Sym: KeyF17 + KeySym(param-31)}
 			}
 
 			// modifiers
@@ -456,9 +456,9 @@ func parseCsi(b []byte) (int, Event) {
 			// Handle URxvt weird keys
 			switch cmd {
 			case '^':
-				k.Mod |= Ctrl
+				k.Mod |= ModCtrl
 			case '@':
-				k.Mod |= Ctrl | Shift
+				k.Mod |= ModCtrl | ModShift
 			}
 
 			return i, k
@@ -472,7 +472,7 @@ func parseCsi(b []byte) (int, Event) {
 func parseSs3(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+O key
-		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
+		return 2, KeyPressEvent{Rune: rune(b[1]), Mod: ModAlt}
 	}
 
 	var i int
@@ -501,26 +501,26 @@ func parseSs3(b []byte) (int, Event) {
 	gl := b[i]
 	i++
 
-	var k KeyDownEvent
+	var k KeyPressEvent
 	switch gl {
 	case 'a', 'b', 'c', 'd':
-		k = KeyDownEvent{Sym: KeyUp + KeySym(gl-'a'), Mod: Ctrl}
+		k = KeyPressEvent{Sym: KeyUp + KeySym(gl-'a'), Mod: ModCtrl}
 	case 'A', 'B', 'C', 'D':
-		k = KeyDownEvent{Sym: KeyUp + KeySym(gl-'A')}
+		k = KeyPressEvent{Sym: KeyUp + KeySym(gl-'A')}
 	case 'E':
-		k = KeyDownEvent{Sym: KeyBegin}
+		k = KeyPressEvent{Sym: KeyBegin}
 	case 'F':
-		k = KeyDownEvent{Sym: KeyEnd}
+		k = KeyPressEvent{Sym: KeyEnd}
 	case 'H':
-		k = KeyDownEvent{Sym: KeyHome}
+		k = KeyPressEvent{Sym: KeyHome}
 	case 'P', 'Q', 'R', 'S':
-		k = KeyDownEvent{Sym: KeyF1 + KeySym(gl-'P')}
+		k = KeyPressEvent{Sym: KeyF1 + KeySym(gl-'P')}
 	case 'M':
-		k = KeyDownEvent{Sym: KeyKpEnter}
+		k = KeyPressEvent{Sym: KeyKpEnter}
 	case 'X':
-		k = KeyDownEvent{Sym: KeyKpEqual}
+		k = KeyPressEvent{Sym: KeyKpEqual}
 	case 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y':
-		k = KeyDownEvent{Sym: KeyKpMultiply + KeySym(gl-'j')}
+		k = KeyPressEvent{Sym: KeyKpMultiply + KeySym(gl-'j')}
 	default:
 		return i, UnknownSs3Event(b[:i])
 	}
@@ -536,7 +536,7 @@ func parseSs3(b []byte) (int, Event) {
 func parseOsc(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+] key
-		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
+		return 2, KeyPressEvent{Rune: rune(b[1]), Mod: ModAlt}
 	}
 
 	var i int
@@ -662,7 +662,7 @@ func parseStTerminated(intro8, intro7 byte) func([]byte) (int, Event) {
 func parseDcs(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+P key
-		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
+		return 2, KeyPressEvent{Rune: rune(b[1]), Mod: ModAlt}
 	}
 
 	var params [16]int
@@ -775,7 +775,7 @@ func parseDcs(b []byte) (int, Event) {
 func parseApc(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+_ key
-		return 2, KeyDownEvent{Rune: rune(b[1]), Mod: Alt}
+		return 2, KeyPressEvent{Rune: rune(b[1]), Mod: ModAlt}
 	}
 
 	// APC sequences are introduced by APC (0x9f) or ESC _ (0x1b 0x5f)
@@ -790,46 +790,46 @@ func parseUtf8(b []byte) (int, Event) {
 	} else if r == utf8.RuneError {
 		return 1, UnknownEvent(b[0])
 	}
-	return rw, KeyDownEvent{Rune: r}
+	return rw, KeyPressEvent{Rune: r}
 }
 
 func parseControl(b byte) Event {
 	switch b {
 	case ansi.NUL:
 		if flags&FlagCtrlAt != 0 {
-			return KeyDownEvent{Rune: '@', Mod: Ctrl}
+			return KeyPressEvent{Rune: '@', Mod: ModCtrl}
 		}
-		return KeyDownEvent{Rune: ' ', Sym: KeySpace, Mod: Ctrl}
+		return KeyPressEvent{Rune: ' ', Sym: KeySpace, Mod: ModCtrl}
 	case ansi.BS:
-		return KeyDownEvent{Rune: 'h', Mod: Ctrl}
+		return KeyPressEvent{Rune: 'h', Mod: ModCtrl}
 	case ansi.HT:
 		if flags&FlagCtrlI != 0 {
-			return KeyDownEvent{Rune: 'i', Mod: Ctrl}
+			return KeyPressEvent{Rune: 'i', Mod: ModCtrl}
 		}
-		return KeyDownEvent{Sym: KeyTab}
+		return KeyPressEvent{Sym: KeyTab}
 	case ansi.CR:
 		if flags&FlagCtrlM != 0 {
-			return KeyDownEvent{Rune: 'm', Mod: Ctrl}
+			return KeyPressEvent{Rune: 'm', Mod: ModCtrl}
 		}
-		return KeyDownEvent{Sym: KeyEnter}
+		return KeyPressEvent{Sym: KeyEnter}
 	case ansi.ESC:
 		if flags&FlagCtrlOpenBracket != 0 {
-			return KeyDownEvent{Rune: '[', Mod: Ctrl}
+			return KeyPressEvent{Rune: '[', Mod: ModCtrl}
 		}
-		return KeyDownEvent{Sym: KeyEscape}
+		return KeyPressEvent{Sym: KeyEscape}
 	case ansi.DEL:
 		if flags&FlagBackspace != 0 {
-			return KeyDownEvent{Sym: KeyDelete}
+			return KeyPressEvent{Sym: KeyDelete}
 		}
-		return KeyDownEvent{Sym: KeyBackspace}
+		return KeyPressEvent{Sym: KeyBackspace}
 	case ansi.SP:
-		return KeyDownEvent{Sym: KeySpace, Rune: ' '}
+		return KeyPressEvent{Sym: KeySpace, Rune: ' '}
 	default:
 		if b >= ansi.SOH && b <= ansi.SUB {
 			// Use lower case letters for control codes
-			return KeyDownEvent{Rune: rune(b + 0x60), Mod: Ctrl}
+			return KeyPressEvent{Rune: rune(b + 0x60), Mod: ModCtrl}
 		} else if b >= ansi.FS && b <= ansi.US {
-			return KeyDownEvent{Rune: rune(b + 0x40), Mod: Ctrl}
+			return KeyPressEvent{Rune: rune(b + 0x40), Mod: ModCtrl}
 		}
 		return UnknownEvent(b)
 	}
