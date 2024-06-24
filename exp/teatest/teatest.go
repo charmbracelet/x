@@ -3,19 +3,17 @@ package teatest
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"sync"
 	"syscall"
 	"testing"
 	"time"
 
-	"github.com/aymanbagabas/go-udiff"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/x/exp/golden"
 )
 
 // Program defines the subset of the tea.Program API we need for testing.
@@ -132,6 +130,7 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		tea.WithInput(tm.in),
 		tea.WithOutput(tm.out),
 		tea.WithoutSignals(),
+		tea.WithANSICompressor(), // this helps a bit to reduce drift between runs
 	)
 
 	interruptions := make(chan os.Signal, 1)
@@ -148,7 +147,7 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		<-interruptions
 		signal.Stop(interruptions)
 		tb.Log("interrupted")
-		tm.program.Quit()
+		tm.program.Kill()
 	}()
 
 	var opts TestModelOptions
@@ -171,7 +170,10 @@ func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
 		if fopts.timeout > 0 {
 			select {
 			case <-time.After(fopts.timeout):
-				tb.Fatalf("timeout after %s", fopts.timeout)
+				if fopts.onTimeout == nil {
+					tb.Fatalf("timeout after %s", fopts.timeout)
+				}
+				fopts.onTimeout(tb)
 			case <-tm.doneCh:
 			}
 		} else {
@@ -182,11 +184,19 @@ func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
 
 // FinalOpts represents the options for FinalModel and FinalOutput.
 type FinalOpts struct {
-	timeout time.Duration
+	timeout   time.Duration
+	onTimeout func(tb testing.TB)
 }
 
 // FinalOpt changes FinalOpts.
 type FinalOpt func(opts *FinalOpts)
+
+// WithTimeoutFn allows to define what happens when WaitFinished times out.
+func WithTimeoutFn(fn func(tb testing.TB)) FinalOpt {
+	return func(opts *FinalOpts) {
+		opts.onTimeout = fn
+	}
+}
 
 // WithFinalTimeout allows to set a timeout for how long FinalModel and
 // FinalOuput should wait for the program to complete.
@@ -244,14 +254,17 @@ func (tm *TestModel) Quit() error {
 // Type types the given text into the given program.
 func (tm *TestModel) Type(s string) {
 	for _, c := range []byte(s) {
-		tm.program.Send(tea.KeyMsg{
+		tm.Send(tea.KeyMsg{
 			Runes: []rune{rune(c)},
 			Type:  tea.KeyRunes,
 		})
 	}
 }
 
-var update = flag.Bool("update", false, "update .golden files")
+// GetProgram gets the TestModel's program.
+func (tm *TestModel) GetProgram() *tea.Program {
+	return tm.program
+}
 
 // RequireEqualOutput is a helper function to assert the given output is
 // the expected from the golden files, printing its diff in case it is not.
@@ -261,33 +274,7 @@ var update = flag.Bool("update", false, "update .golden files")
 // You can update the golden files by running your tests with the -update flag.
 func RequireEqualOutput(tb testing.TB, out []byte) {
 	tb.Helper()
-
-	golden := filepath.Join("testdata", tb.Name()+".golden")
-	if *update {
-		if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil { //nolint: gomnd
-			tb.Fatal(err)
-		}
-		if err := os.WriteFile(golden, out, 0o600); err != nil { //nolint: gomnd
-			tb.Fatal(err)
-		}
-	}
-
-	path := filepath.Join(tb.TempDir(), tb.Name()+".out")
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil { //nolint: gomnd
-		tb.Fatal(err)
-	}
-	if err := os.WriteFile(path, out, 0o600); err != nil { //nolint: gomnd
-		tb.Fatal(err)
-	}
-
-	goldenBts, err := os.ReadFile(golden)
-	if err != nil {
-		tb.Fatal(err)
-	}
-	diff := udiff.Unified("golden", "run", string(goldenBts), string(out))
-	if diff != "" {
-		tb.Fatalf("output does not match, diff:\n\n%s", diff)
-	}
+	golden.RequireEqualEscape(tb, out, true)
 }
 
 func safe(rw io.ReadWriter) io.ReadWriter {

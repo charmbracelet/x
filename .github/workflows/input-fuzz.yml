@@ -1,0 +1,28 @@
+name: input-fuzz
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - input/**
+      - .github/workflows/input-fuzz.yml
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: ./input
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./input/go.mod
+          cache: true
+          cache-dependency-path: ./input.sum
+      - run: go test -run="^$" -fuzz=FuzzParseSequence -fuzztime=1m -v ./...

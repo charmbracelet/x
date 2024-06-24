@@ -6,10 +6,12 @@ on:
       - "main"
   workflow_dispatch: {}
 
+permissions:
+  contents: write
+  actions: write
+
 jobs:
   generate:
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -1,11 +1,25 @@
 go 1.21
 
 use (
+	./ansi
+	./colors
+	./conpty
 	./editor
+	./errors
+	./exp/golden
 	./exp/higherorder
 	./exp/maps
+	./exp/open
 	./exp/ordered
 	./exp/slice
 	./exp/strings
 	./exp/teatest
+	./exp/term
+	./input
+	./json
+	./sshkey
+	./term
+	./termios
+	./windows
+	./xpty
 )

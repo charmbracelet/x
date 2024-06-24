@@ -22,6 +22,6 @@ find . -type f -name go.mod | cut -f2- -d'/' | sort | while read -r mod; do
     labels:
       - "dependencies"
     commit-message:
-      prefix: "feat"
+      prefix: "chore"
       include: "scope"' >>./.github/dependabot.yml
 done

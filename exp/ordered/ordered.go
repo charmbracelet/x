@@ -2,7 +2,7 @@ package ordered
 
 import "cmp"
 
-// Max returns the smaller of a and b.
+// Min returns the smaller of a and b.
 func Min[T cmp.Ordered](a, b T) T {
 	if a < b {
 		return a
