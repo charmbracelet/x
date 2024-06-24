@@ -1,7 +1,5 @@
-/scripts @caarlos0
-/term/ansi @aymanbagabas
-/term/conpty @aymanbagabas
-/term/termios @caarlos0
+/ansi @aymanbagabas
+/conpty @aymanbagabas
 /editor @caarlos0
 /errors @caarlos0
 /exp/golden @caarlos0
@@ -10,3 +8,9 @@
 /exp/slice @meowgorithm
 /exp/strings @meowgorithm
 /exp/teatest @caarlos0
+/input @aymanbagabas
+/scripts @caarlos0
+/term @aymanbagabas
+/termios @caarlos0 @aymanbagabas
+/windows @aymanbagabas
+/xpty @aymanbagabas
