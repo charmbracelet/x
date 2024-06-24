@@ -16,27 +16,27 @@ func TestMouseEvent_String(t *testing.T) {
 	}{
 		{
 			name:     "unknown",
-			event:    MouseDownEvent{Button: MouseButton(0xff)},
+			event:    MouseClickEvent{Button: MouseButton(0xff)},
 			expected: "unknown",
 		},
 		{
 			name:     "left",
-			event:    MouseDownEvent{Button: MouseLeft},
+			event:    MouseClickEvent{Button: MouseLeft},
 			expected: "left",
 		},
 		{
 			name:     "right",
-			event:    MouseDownEvent{Button: MouseRight},
+			event:    MouseClickEvent{Button: MouseRight},
 			expected: "right",
 		},
 		{
 			name:     "middle",
-			event:    MouseDownEvent{Button: MouseMiddle},
+			event:    MouseClickEvent{Button: MouseMiddle},
 			expected: "middle",
 		},
 		{
 			name:     "release",
-			event:    MouseUpEvent{Button: MouseNone},
+			event:    MouseReleaseEvent{Button: MouseNone},
 			expected: "",
 		},
 		{
@@ -66,46 +66,46 @@ func TestMouseEvent_String(t *testing.T) {
 		},
 		{
 			name:     "shift+left",
-			event:    MouseUpEvent{Button: MouseLeft, Mod: Shift},
+			event:    MouseReleaseEvent{Button: MouseLeft, Mod: ModShift},
 			expected: "shift+left",
 		},
 		{
-			name: "shift+left", event: MouseDownEvent{Button: MouseLeft, Mod: Shift},
+			name: "shift+left", event: MouseClickEvent{Button: MouseLeft, Mod: ModShift},
 			expected: "shift+left",
 		},
 		{
 			name:     "ctrl+shift+left",
-			event:    MouseDownEvent{Button: MouseLeft, Mod: Ctrl | Shift},
+			event:    MouseClickEvent{Button: MouseLeft, Mod: ModCtrl | ModShift},
 			expected: "ctrl+shift+left",
 		},
 		{
 			name:     "alt+left",
-			event:    MouseDownEvent{Button: MouseLeft, Mod: Alt},
+			event:    MouseClickEvent{Button: MouseLeft, Mod: ModAlt},
 			expected: "alt+left",
 		},
 		{
 			name:     "ctrl+left",
-			event:    MouseDownEvent{Button: MouseLeft, Mod: Ctrl},
+			event:    MouseClickEvent{Button: MouseLeft, Mod: ModCtrl},
 			expected: "ctrl+left",
 		},
 		{
 			name:     "ctrl+alt+left",
-			event:    MouseDownEvent{Button: MouseLeft, Mod: Alt | Ctrl},
+			event:    MouseClickEvent{Button: MouseLeft, Mod: ModAlt | ModCtrl},
 			expected: "ctrl+alt+left",
 		},
 		{
 			name:     "ctrl+alt+shift+left",
-			event:    MouseDownEvent{Button: MouseLeft, Mod: Alt | Ctrl | Shift},
+			event:    MouseClickEvent{Button: MouseLeft, Mod: ModAlt | ModCtrl | ModShift},
 			expected: "ctrl+alt+shift+left",
 		},
 		{
 			name:     "ignore coordinates",
-			event:    MouseDownEvent{X: 100, Y: 200, Button: MouseLeft},
+			event:    MouseClickEvent{X: 100, Y: 200, Button: MouseLeft},
 			expected: "left",
 		},
 		{
 			name:     "broken type",
-			event:    MouseDownEvent{Button: MouseButton(120)},
+			event:    MouseClickEvent{Button: MouseButton(120)},
 			expected: "unknown",
 		},
 	}
@@ -147,18 +147,18 @@ func TestParseX10MouseDownEvent(t *testing.T) {
 		{
 			name:     "zero position",
 			buf:      encode(0b0000_0000, 0, 0),
-			expected: MouseDownEvent{X: 0, Y: 0, Button: MouseLeft},
+			expected: MouseClickEvent{X: 0, Y: 0, Button: MouseLeft},
 		},
 		{
 			name:     "max position",
 			buf:      encode(0b0000_0000, 222, 222), // Because 255 (max int8) - 32 - 1.
-			expected: MouseDownEvent{X: 222, Y: 222, Button: MouseLeft},
+			expected: MouseClickEvent{X: 222, Y: 222, Button: MouseLeft},
 		},
 		// Simple.
 		{
 			name:     "left",
 			buf:      encode(0b0000_0000, 32, 16),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseLeft},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseLeft},
 		},
 		{
 			name:     "left in motion",
@@ -168,7 +168,7 @@ func TestParseX10MouseDownEvent(t *testing.T) {
 		{
 			name:     "middle",
 			buf:      encode(0b0000_0001, 32, 16),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseMiddle},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseMiddle},
 		},
 		{
 			name:     "middle in motion",
@@ -178,7 +178,7 @@ func TestParseX10MouseDownEvent(t *testing.T) {
 		{
 			name:     "right",
 			buf:      encode(0b0000_0010, 32, 16),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseRight},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseRight},
 		},
 		{
 			name:     "right in motion",
@@ -213,38 +213,38 @@ func TestParseX10MouseDownEvent(t *testing.T) {
 		{
 			name:     "release",
 			buf:      encode(0b0000_0011, 32, 16),
-			expected: MouseUpEvent{X: 32, Y: 16, Button: MouseNone},
+			expected: MouseReleaseEvent{X: 32, Y: 16, Button: MouseNone},
 		},
 		{
 			name:     "backward",
 			buf:      encode(0b1000_0000, 32, 16),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseBackward},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseBackward},
 		},
 		{
 			name:     "forward",
 			buf:      encode(0b1000_0001, 32, 16),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseForward},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseForward},
 		},
 		{
 			name:     "button 10",
 			buf:      encode(0b1000_0010, 32, 16),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseExtra1},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseExtra1},
 		},
 		{
 			name:     "button 11",
 			buf:      encode(0b1000_0011, 32, 16),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseExtra2},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseExtra2},
 		},
 		// Combinations.
 		{
 			name:     "alt+right",
 			buf:      encode(0b0000_1010, 32, 16),
-			expected: MouseDownEvent{X: 32, Y: 16, Mod: Alt, Button: MouseRight},
+			expected: MouseClickEvent{X: 32, Y: 16, Mod: ModAlt, Button: MouseRight},
 		},
 		{
 			name:     "ctrl+right",
 			buf:      encode(0b0001_0010, 32, 16),
-			expected: MouseDownEvent{X: 32, Y: 16, Mod: Ctrl, Button: MouseRight},
+			expected: MouseClickEvent{X: 32, Y: 16, Mod: ModCtrl, Button: MouseRight},
 		},
 		{
 			name:     "left in motion",
@@ -254,32 +254,32 @@ func TestParseX10MouseDownEvent(t *testing.T) {
 		{
 			name:     "alt+right in motion",
 			buf:      encode(0b0010_1010, 32, 16),
-			expected: MouseMotionEvent{X: 32, Y: 16, Mod: Alt, Button: MouseRight},
+			expected: MouseMotionEvent{X: 32, Y: 16, Mod: ModAlt, Button: MouseRight},
 		},
 		{
 			name:     "ctrl+right in motion",
 			buf:      encode(0b0011_0010, 32, 16),
-			expected: MouseMotionEvent{X: 32, Y: 16, Mod: Ctrl, Button: MouseRight},
+			expected: MouseMotionEvent{X: 32, Y: 16, Mod: ModCtrl, Button: MouseRight},
 		},
 		{
 			name:     "ctrl+alt+right",
 			buf:      encode(0b0001_1010, 32, 16),
-			expected: MouseDownEvent{X: 32, Y: 16, Mod: Alt | Ctrl, Button: MouseRight},
+			expected: MouseClickEvent{X: 32, Y: 16, Mod: ModAlt | ModCtrl, Button: MouseRight},
 		},
 		{
 			name:     "ctrl+wheel up",
 			buf:      encode(0b0101_0000, 32, 16),
-			expected: MouseWheelEvent{X: 32, Y: 16, Mod: Ctrl, Button: MouseWheelUp},
+			expected: MouseWheelEvent{X: 32, Y: 16, Mod: ModCtrl, Button: MouseWheelUp},
 		},
 		{
 			name:     "alt+wheel down",
 			buf:      encode(0b0100_1001, 32, 16),
-			expected: MouseWheelEvent{X: 32, Y: 16, Mod: Alt, Button: MouseWheelDown},
+			expected: MouseWheelEvent{X: 32, Y: 16, Mod: ModAlt, Button: MouseWheelDown},
 		},
 		{
 			name:     "ctrl+alt+wheel down",
 			buf:      encode(0b0101_1001, 32, 16),
-			expected: MouseWheelEvent{X: 32, Y: 16, Mod: Alt | Ctrl, Button: MouseWheelDown},
+			expected: MouseWheelEvent{X: 32, Y: 16, Mod: ModAlt | ModCtrl, Button: MouseWheelDown},
 		},
 		// Overflow position.
 		{
@@ -326,18 +326,18 @@ func TestParseSGRMouseEvent(t *testing.T) {
 		{
 			name:     "zero position",
 			buf:      encode(0, 0, 0, false),
-			expected: MouseDownEvent{X: 0, Y: 0, Button: MouseLeft},
+			expected: MouseClickEvent{X: 0, Y: 0, Button: MouseLeft},
 		},
 		{
 			name:     "225 position",
 			buf:      encode(0, 225, 225, false),
-			expected: MouseDownEvent{X: 225, Y: 225, Button: MouseLeft},
+			expected: MouseClickEvent{X: 225, Y: 225, Button: MouseLeft},
 		},
 		// Simple.
 		{
 			name:     "left",
 			buf:      encode(0, 32, 16, false),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseLeft},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseLeft},
 		},
 		{
 			name:     "left in motion",
@@ -347,12 +347,12 @@ func TestParseSGRMouseEvent(t *testing.T) {
 		{
 			name:     "left",
 			buf:      encode(0, 32, 16, true),
-			expected: MouseUpEvent{X: 32, Y: 16, Button: MouseLeft},
+			expected: MouseReleaseEvent{X: 32, Y: 16, Button: MouseLeft},
 		},
 		{
 			name:     "middle",
 			buf:      encode(1, 32, 16, false),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseMiddle},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseMiddle},
 		},
 		{
 			name:     "middle in motion",
@@ -362,17 +362,17 @@ func TestParseSGRMouseEvent(t *testing.T) {
 		{
 			name:     "middle",
 			buf:      encode(1, 32, 16, true),
-			expected: MouseUpEvent{X: 32, Y: 16, Button: MouseMiddle},
+			expected: MouseReleaseEvent{X: 32, Y: 16, Button: MouseMiddle},
 		},
 		{
 			name:     "right",
 			buf:      encode(2, 32, 16, false),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseRight},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseRight},
 		},
 		{
 			name:     "right",
 			buf:      encode(2, 32, 16, true),
-			expected: MouseUpEvent{X: 32, Y: 16, Button: MouseRight},
+			expected: MouseReleaseEvent{X: 32, Y: 16, Button: MouseRight},
 		},
 		{
 			name:     "motion",
@@ -402,7 +402,7 @@ func TestParseSGRMouseEvent(t *testing.T) {
 		{
 			name:     "backward",
 			buf:      encode(128, 32, 16, false),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseBackward},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseBackward},
 		},
 		{
 			name:     "backward in motion",
@@ -412,7 +412,7 @@ func TestParseSGRMouseEvent(t *testing.T) {
 		{
 			name:     "forward",
 			buf:      encode(129, 32, 16, false),
-			expected: MouseDownEvent{X: 32, Y: 16, Button: MouseForward},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseForward},
 		},
 		{
 			name:     "forward in motion",
@@ -423,37 +423,37 @@ func TestParseSGRMouseEvent(t *testing.T) {
 		{
 			name:     "alt+right",
 			buf:      encode(10, 32, 16, false),
-			expected: MouseDownEvent{X: 32, Y: 16, Mod: Alt, Button: MouseRight},
+			expected: MouseClickEvent{X: 32, Y: 16, Mod: ModAlt, Button: MouseRight},
 		},
 		{
 			name:     "ctrl+right",
 			buf:      encode(18, 32, 16, false),
-			expected: MouseDownEvent{X: 32, Y: 16, Mod: Ctrl, Button: MouseRight},
+			expected: MouseClickEvent{X: 32, Y: 16, Mod: ModCtrl, Button: MouseRight},
 		},
 		{
 			name:     "ctrl+alt+right",
 			buf:      encode(26, 32, 16, false),
-			expected: MouseDownEvent{X: 32, Y: 16, Mod: Alt | Ctrl, Button: MouseRight},
+			expected: MouseClickEvent{X: 32, Y: 16, Mod: ModAlt | ModCtrl, Button: MouseRight},
 		},
 		{
 			name:     "alt+wheel",
 			buf:      encode(73, 32, 16, false),
-			expected: MouseWheelEvent{X: 32, Y: 16, Mod: Alt, Button: MouseWheelDown},
+			expected: MouseWheelEvent{X: 32, Y: 16, Mod: ModAlt, Button: MouseWheelDown},
 		},
 		{
 			name:     "ctrl+wheel",
 			buf:      encode(81, 32, 16, false),
-			expected: MouseWheelEvent{X: 32, Y: 16, Mod: Ctrl, Button: MouseWheelDown},
+			expected: MouseWheelEvent{X: 32, Y: 16, Mod: ModCtrl, Button: MouseWheelDown},
 		},
 		{
 			name:     "ctrl+alt+wheel",
 			buf:      encode(89, 32, 16, false),
-			expected: MouseWheelEvent{X: 32, Y: 16, Mod: Alt | Ctrl, Button: MouseWheelDown},
+			expected: MouseWheelEvent{X: 32, Y: 16, Mod: ModAlt | ModCtrl, Button: MouseWheelDown},
 		},
 		{
 			name:     "ctrl+alt+shift+wheel",
 			buf:      encode(93, 32, 16, false),
-			expected: MouseWheelEvent{X: 32, Y: 16, Mod: Alt | Shift | Ctrl, Button: MouseWheelDown},
+			expected: MouseWheelEvent{X: 32, Y: 16, Mod: ModAlt | ModShift | ModCtrl, Button: MouseWheelDown},
 		},
 	}
 

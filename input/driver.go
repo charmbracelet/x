@@ -74,7 +74,7 @@ func (d *Driver) readEvents() (e []Event, err error) {
 	// Lookup table first
 	if bytes.HasPrefix(buf, []byte{'\x1b'}) {
 		if k, ok := d.table[string(buf)]; ok {
-			e = append(e, KeyDownEvent(k))
+			e = append(e, KeyPressEvent(k))
 			return
 		}
 	}
@@ -96,7 +96,7 @@ func (d *Driver) readEvents() (e []Event, err error) {
 		case UnknownCsiEvent, UnknownSs3Event, UnknownEvent:
 			// If the sequence is not recognized by the parser, try looking it up.
 			if k, ok := d.table[string(buf[i:i+nb])]; ok {
-				ev = KeyDownEvent(k)
+				ev = KeyPressEvent(k)
 			}
 		case PasteStartEvent:
 			d.paste = []byte{}

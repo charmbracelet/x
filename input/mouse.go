@@ -85,19 +85,19 @@ func (m Mouse) String() (s string) {
 	return s
 }
 
-// MouseDownEvent represents a mouse button down event.
-type MouseDownEvent Mouse
+// MouseClickEvent represents a mouse button click event.
+type MouseClickEvent Mouse
 
 // String implements fmt.Stringer.
-func (e MouseDownEvent) String() string {
+func (e MouseClickEvent) String() string {
 	return Mouse(e).String()
 }
 
-// MouseUpEvent represents a mouse button up event.
-type MouseUpEvent Mouse
+// MouseReleaseEvent represents a mouse button release event.
+type MouseReleaseEvent Mouse
 
 // String implements fmt.Stringer.
-func (e MouseUpEvent) String() string {
+func (e MouseReleaseEvent) String() string {
 	return Mouse(e).String()
 }
 
@@ -153,11 +153,11 @@ func parseSGRMouseEvent(csi *ansi.CsiSequence) Event {
 	if isWheel(m.Button) {
 		return MouseWheelEvent(m)
 	} else if !isMotion && release {
-		return MouseUpEvent(m)
+		return MouseReleaseEvent(m)
 	} else if isMotion {
 		return MouseMotionEvent(m)
 	}
-	return MouseDownEvent(m)
+	return MouseClickEvent(m)
 }
 
 const x10MouseByteOffset = 32
@@ -191,9 +191,9 @@ func parseX10MouseEvent(buf []byte) Event {
 	} else if isMotion {
 		return MouseMotionEvent(m)
 	} else if isRelease {
-		return MouseUpEvent(m)
+		return MouseReleaseEvent(m)
 	}
-	return MouseDownEvent(m)
+	return MouseClickEvent(m)
 }
 
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Extended-coordinates
@@ -212,13 +212,13 @@ func parseMouseButton(b int) (mod KeyMod, btn MouseButton, isRelease bool, isMot
 
 	// Modifiers
 	if b&bitAlt != 0 {
-		mod |= Alt
+		mod |= ModAlt
 	}
 	if b&bitCtrl != 0 {
-		mod |= Ctrl
+		mod |= ModCtrl
 	}
 	if b&bitShift != 0 {
-		mod |= Shift
+		mod |= ModShift
 	}
 
 	if b&bitAdd != 0 {

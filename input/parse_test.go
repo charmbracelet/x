@@ -8,14 +8,14 @@ import (
 func TestParseSequence_Events(t *testing.T) {
 	input := []byte("\x1b\x1b[Ztest\x00\x1b]10;rgb:1234/1234/1234\x07\x1b[27;2;27~\x1b[?1049;2$y")
 	want := []Event{
-		KeyDownEvent{Sym: KeyTab, Mod: Shift | Alt},
-		KeyDownEvent{Rune: 't'},
-		KeyDownEvent{Rune: 'e'},
-		KeyDownEvent{Rune: 's'},
-		KeyDownEvent{Rune: 't'},
-		KeyDownEvent{Rune: ' ', Sym: KeySpace, Mod: Ctrl},
+		KeyPressEvent{Sym: KeyTab, Mod: ModShift | ModAlt},
+		KeyPressEvent{Rune: 't'},
+		KeyPressEvent{Rune: 'e'},
+		KeyPressEvent{Rune: 's'},
+		KeyPressEvent{Rune: 't'},
+		KeyPressEvent{Rune: ' ', Sym: KeySpace, Mod: ModCtrl},
 		ForegroundColorEvent{color.RGBA{R: 0x12, G: 0x12, B: 0x12, A: 0xff}},
-		KeyDownEvent{Sym: KeyEscape, Mod: Shift},
+		KeyPressEvent{Sym: KeyEscape, Mod: ModShift},
 		ReportModeEvent{Mode: 1049, Value: 2},
 	}
 	for i := 0; len(input) != 0; i++ {

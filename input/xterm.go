@@ -11,19 +11,19 @@ func parseXTermModifyOtherKeys(csi *ansi.CsiSequence) Event {
 
 	switch r {
 	case ansi.BS:
-		return KeyDownEvent{Mod: mod, Sym: KeyBackspace}
+		return KeyPressEvent{Mod: mod, Sym: KeyBackspace}
 	case ansi.HT:
-		return KeyDownEvent{Mod: mod, Sym: KeyTab}
+		return KeyPressEvent{Mod: mod, Sym: KeyTab}
 	case ansi.CR:
-		return KeyDownEvent{Mod: mod, Sym: KeyEnter}
+		return KeyPressEvent{Mod: mod, Sym: KeyEnter}
 	case ansi.ESC:
-		return KeyDownEvent{Mod: mod, Sym: KeyEscape}
+		return KeyPressEvent{Mod: mod, Sym: KeyEscape}
 	case ansi.DEL:
-		return KeyDownEvent{Mod: mod, Sym: KeyBackspace}
+		return KeyPressEvent{Mod: mod, Sym: KeyBackspace}
 	}
 
 	// CSI 27 ; <modifier> ; <code> ~ keys defined in XTerm modifyOtherKeys
-	return KeyDownEvent{
+	return KeyPressEvent{
 		Mod:  mod,
 		Rune: r,
 	}

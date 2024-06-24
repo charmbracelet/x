@@ -23,21 +23,21 @@ var sequences = buildKeysTable(FlagTerminfo, "dumb")
 
 func TestKeyString(t *testing.T) {
 	t.Run("alt+space", func(t *testing.T) {
-		k := KeyDownEvent{Sym: KeySpace, Rune: ' ', Mod: Alt}
+		k := KeyPressEvent{Sym: KeySpace, Rune: ' ', Mod: ModAlt}
 		if got := k.String(); got != "alt+space" {
 			t.Fatalf(`expected a "alt+space ", got %q`, got)
 		}
 	})
 
 	t.Run("runes", func(t *testing.T) {
-		k := KeyDownEvent{Rune: 'a'}
+		k := KeyPressEvent{Rune: 'a'}
 		if got := k.String(); got != "a" {
 			t.Fatalf(`expected an "a", got %q`, got)
 		}
 	})
 
 	t.Run("invalid", func(t *testing.T) {
-		k := KeyDownEvent{Sym: 99999}
+		k := KeyPressEvent{Sym: 99999}
 		if got := k.String(); got != "unknown" {
 			t.Fatalf(`expected a "unknown", got %q`, got)
 		}
@@ -68,7 +68,7 @@ type seqTest struct {
 func buildBaseSeqTests() []seqTest {
 	td := []seqTest{}
 	for seq, key := range sequences {
-		td = append(td, seqTest{[]byte(seq), []Event{KeyDownEvent(key)}})
+		td = append(td, seqTest{[]byte(seq), []Event{KeyPressEvent(key)}})
 	}
 
 	// Additional special cases.
@@ -84,14 +84,14 @@ func buildBaseSeqTests() []seqTest {
 		seqTest{
 			[]byte{' '},
 			[]Event{
-				KeyDownEvent{Sym: KeySpace, Rune: ' '},
+				KeyPressEvent{Sym: KeySpace, Rune: ' '},
 			},
 		},
 		// An escape character with the alt modifier.
 		seqTest{
 			[]byte{'\x1b', ' '},
 			[]Event{
-				KeyDownEvent{Sym: KeySpace, Rune: ' ', Mod: Alt},
+				KeyPressEvent{Sym: KeySpace, Rune: ' ', Mod: ModAlt},
 			},
 		},
 	)
@@ -112,79 +112,79 @@ func TestParseSequence(t *testing.T) {
 		seqTest{
 			[]byte("\x1b[<0;33;17M"),
 			[]Event{
-				MouseDownEvent{X: 32, Y: 16, Button: MouseLeft},
+				MouseClickEvent{X: 32, Y: 16, Button: MouseLeft},
 			},
 		},
 		// Runes.
 		seqTest{
 			[]byte{'a'},
 			[]Event{
-				KeyDownEvent{Rune: 'a'},
+				KeyPressEvent{Rune: 'a'},
 			},
 		},
 		seqTest{
 			[]byte{'\x1b', 'a'},
 			[]Event{
-				KeyDownEvent{Rune: 'a', Mod: Alt},
+				KeyPressEvent{Rune: 'a', Mod: ModAlt},
 			},
 		},
 		seqTest{
 			[]byte{'a', 'a', 'a'},
 			[]Event{
-				KeyDownEvent{Rune: 'a'},
-				KeyDownEvent{Rune: 'a'},
-				KeyDownEvent{Rune: 'a'},
+				KeyPressEvent{Rune: 'a'},
+				KeyPressEvent{Rune: 'a'},
+				KeyPressEvent{Rune: 'a'},
 			},
 		},
 		// Multi-byte rune.
 		seqTest{
 			[]byte("☃"),
 			[]Event{
-				KeyDownEvent{Rune: '☃'},
+				KeyPressEvent{Rune: '☃'},
 			},
 		},
 		seqTest{
 			[]byte("\x1b☃"),
 			[]Event{
-				KeyDownEvent{Rune: '☃', Mod: Alt},
+				KeyPressEvent{Rune: '☃', Mod: ModAlt},
 			},
 		},
 		// Standalone control chacters.
 		seqTest{
 			[]byte{'\x1b'},
 			[]Event{
-				KeyDownEvent{Sym: KeyEscape},
+				KeyPressEvent{Sym: KeyEscape},
 			},
 		},
 		seqTest{
 			[]byte{ansi.SOH},
 			[]Event{
-				KeyDownEvent{Rune: 'a', Mod: Ctrl},
+				KeyPressEvent{Rune: 'a', Mod: ModCtrl},
 			},
 		},
 		seqTest{
 			[]byte{'\x1b', ansi.SOH},
 			[]Event{
-				KeyDownEvent{Rune: 'a', Mod: Ctrl | Alt},
+				KeyPressEvent{Rune: 'a', Mod: ModCtrl | ModAlt},
 			},
 		},
 		seqTest{
 			[]byte{ansi.NUL},
 			[]Event{
-				KeyDownEvent{Rune: ' ', Sym: KeySpace, Mod: Ctrl},
+				KeyPressEvent{Rune: ' ', Sym: KeySpace, Mod: ModCtrl},
 			},
 		},
 		seqTest{
 			[]byte{'\x1b', ansi.NUL},
 			[]Event{
-				KeyDownEvent{Rune: ' ', Sym: KeySpace, Mod: Ctrl | Alt},
+				KeyPressEvent{Rune: ' ', Sym: KeySpace, Mod: ModCtrl | ModAlt},
 			},
 		},
 		// C1 control characters.
 		seqTest{
 			[]byte{'\x80'},
 			[]Event{
-				KeyDownEvent{Rune: 0x80 - '@', Mod: Ctrl | Alt},
+				KeyPressEvent{Rune: 0x80 - '@', Mod: ModCtrl | ModAlt},
 			},
 		},
 	)
@@ -219,7 +219,7 @@ func TestParseSequence(t *testing.T) {
 func TestReadLongInput(t *testing.T) {
 	expect := make([]Event, 1000)
 	for i := 0; i < 1000; i++ {
-		expect[i] = KeyDownEvent{Rune: 'a'}
+		expect[i] = KeyPressEvent{Rune: 'a'}
 	}
 	input := strings.Repeat("a", 1000)
 	drv, err := NewDriver(strings.NewReader(input), "dumb", 0)
@@ -255,70 +255,70 @@ func TestReadInput(t *testing.T) {
 			"a",
 			[]byte{'a'},
 			[]Event{
-				KeyDownEvent{Sym: KeyNone, Rune: 'a'},
+				KeyPressEvent{Sym: KeyNone, Rune: 'a'},
 			},
 		},
 		{
 			"space",
 			[]byte{' '},
 			[]Event{
-				KeyDownEvent{Sym: KeySpace, Rune: ' '},
+				KeyPressEvent{Sym: KeySpace, Rune: ' '},
 			},
 		},
 		{
 			"a alt+a",
 			[]byte{'a', '\x1b', 'a'},
 			[]Event{
-				KeyDownEvent{Sym: KeyNone, Rune: 'a'},
-				KeyDownEvent{Sym: KeyNone, Rune: 'a', Mod: Alt},
+				KeyPressEvent{Sym: KeyNone, Rune: 'a'},
+				KeyPressEvent{Sym: KeyNone, Rune: 'a', Mod: ModAlt},
 			},
 		},
 		{
 			"a alt+a a",
 			[]byte{'a', '\x1b', 'a', 'a'},
 			[]Event{
-				KeyDownEvent{Sym: KeyNone, Rune: 'a'},
-				KeyDownEvent{Sym: KeyNone, Rune: 'a', Mod: Alt},
-				KeyDownEvent{Sym: KeyNone, Rune: 'a'},
+				KeyPressEvent{Sym: KeyNone, Rune: 'a'},
+				KeyPressEvent{Sym: KeyNone, Rune: 'a', Mod: ModAlt},
+				KeyPressEvent{Sym: KeyNone, Rune: 'a'},
 			},
 		},
 		{
 			"ctrl+a",
 			[]byte{byte(ansi.SOH)},
 			[]Event{
-				KeyDownEvent{Rune: 'a', Mod: Ctrl},
+				KeyPressEvent{Rune: 'a', Mod: ModCtrl},
 			},
 		},
 		{
 			"ctrl+a ctrl+b",
 			[]byte{byte(ansi.SOH), byte(ansi.STX)},
 			[]Event{
-				KeyDownEvent{Rune: 'a', Mod: Ctrl},
-				KeyDownEvent{Rune: 'b', Mod: Ctrl},
+				KeyPressEvent{Rune: 'a', Mod: ModCtrl},
+				KeyPressEvent{Rune: 'b', Mod: ModCtrl},
 			},
 		},
 		{
 			"alt+a",
 			[]byte{byte(0x1b), 'a'},
 			[]Event{
-				KeyDownEvent{Sym: KeyNone, Mod: Alt, Rune: 'a'},
+				KeyPressEvent{Sym: KeyNone, Mod: ModAlt, Rune: 'a'},
 			},
 		},
 		{
 			"a b c d",
 			[]byte{'a', 'b', 'c', 'd'},
 			[]Event{
-				KeyDownEvent{Rune: 'a'},
-				KeyDownEvent{Rune: 'b'},
-				KeyDownEvent{Rune: 'c'},
-				KeyDownEvent{Rune: 'd'},
+				KeyPressEvent{Rune: 'a'},
+				KeyPressEvent{Rune: 'b'},
+				KeyPressEvent{Rune: 'c'},
+				KeyPressEvent{Rune: 'd'},
 			},
 		},
 		{
 			"up",
 			[]byte("\x1b[A"),
 			[]Event{
-				KeyDownEvent{Sym: KeyUp},
+				KeyPressEvent{Sym: KeyUp},
 			},
 		},
 		{
@@ -336,40 +336,40 @@ func TestReadInput(t *testing.T) {
 			},
 			[]Event{
 				MouseMotionEvent{X: 32, Y: 16, Button: MouseLeft},
-				MouseUpEvent{X: 64, Y: 32, Button: MouseNone},
+				MouseReleaseEvent{X: 64, Y: 32, Button: MouseNone},
 			},
 		},
 		{
 			"shift+tab",
 			[]byte{'\x1b', '[', 'Z'},
 			[]Event{
-				KeyDownEvent{Sym: KeyTab, Mod: Shift},
+				KeyPressEvent{Sym: KeyTab, Mod: ModShift},
 			},
 		},
 		{
 			"enter",
 			[]byte{'\r'},
-			[]Event{KeyDownEvent{Sym: KeyEnter}},
+			[]Event{KeyPressEvent{Sym: KeyEnter}},
 		},
 		{
 			"alt+enter",
 			[]byte{'\x1b', '\r'},
 			[]Event{
-				KeyDownEvent{Sym: KeyEnter, Mod: Alt},
+				KeyPressEvent{Sym: KeyEnter, Mod: ModAlt},
 			},
 		},
 		{
 			"insert",
 			[]byte{'\x1b', '[', '2', '~'},
 			[]Event{
-				KeyDownEvent{Sym: KeyInsert},
+				KeyPressEvent{Sym: KeyInsert},
 			},
 		},
 		{
 			"ctrl+alt+a",
 			[]byte{'\x1b', byte(ansi.SOH)},
 			[]Event{
-				KeyDownEvent{Rune: 'a', Mod: Ctrl | Alt},
+				KeyPressEvent{Rune: 'a', Mod: ModCtrl | ModAlt},
 			},
 		},
 		{
@@ -381,52 +381,52 @@ func TestReadInput(t *testing.T) {
 		{
 			"up",
 			[]byte{'\x1b', 'O', 'A'},
-			[]Event{KeyDownEvent{Sym: KeyUp}},
+			[]Event{KeyPressEvent{Sym: KeyUp}},
 		},
 		{
 			"down",
 			[]byte{'\x1b', 'O', 'B'},
-			[]Event{KeyDownEvent{Sym: KeyDown}},
+			[]Event{KeyPressEvent{Sym: KeyDown}},
 		},
 		{
 			"right",
 			[]byte{'\x1b', 'O', 'C'},
-			[]Event{KeyDownEvent{Sym: KeyRight}},
+			[]Event{KeyPressEvent{Sym: KeyRight}},
 		},
 		{
 			"left",
 			[]byte{'\x1b', 'O', 'D'},
-			[]Event{KeyDownEvent{Sym: KeyLeft}},
+			[]Event{KeyPressEvent{Sym: KeyLeft}},
 		},
 		{
 			"alt+enter",
 			[]byte{'\x1b', '\x0d'},
-			[]Event{KeyDownEvent{Sym: KeyEnter, Mod: Alt}},
+			[]Event{KeyPressEvent{Sym: KeyEnter, Mod: ModAlt}},
 		},
 		{
 			"alt+backspace",
 			[]byte{'\x1b', '\x7f'},
-			[]Event{KeyDownEvent{Sym: KeyBackspace, Mod: Alt}},
+			[]Event{KeyPressEvent{Sym: KeyBackspace, Mod: ModAlt}},
 		},
 		{
 			"ctrl+space",
 			[]byte{'\x00'},
-			[]Event{KeyDownEvent{Sym: KeySpace, Rune: ' ', Mod: Ctrl}},
+			[]Event{KeyPressEvent{Sym: KeySpace, Rune: ' ', Mod: ModCtrl}},
 		},
 		{
 			"ctrl+alt+space",
 			[]byte{'\x1b', '\x00'},
-			[]Event{KeyDownEvent{Sym: KeySpace, Rune: ' ', Mod: Ctrl | Alt}},
+			[]Event{KeyPressEvent{Sym: KeySpace, Rune: ' ', Mod: ModCtrl | ModAlt}},
 		},
 		{
 			"esc",
 			[]byte{'\x1b'},
-			[]Event{KeyDownEvent{Sym: KeyEscape}},
+			[]Event{KeyPressEvent{Sym: KeyEscape}},
 		},
 		{
 			"alt+esc",
 			[]byte{'\x1b', '\x1b'},
-			[]Event{KeyDownEvent{Sym: KeyEscape, Mod: Alt}},
+			[]Event{KeyPressEvent{Sym: KeyEscape, Mod: ModAlt}},
 		},
 		{
 			"a b o",
@@ -440,7 +440,7 @@ func TestReadInput(t *testing.T) {
 				PasteStartEvent{},
 				PasteEvent("a b"),
 				PasteEndEvent{},
-				KeyDownEvent{Sym: KeyNone, Rune: 'o'},
+				KeyPressEvent{Sym: KeyNone, Rune: 'o'},
 			},
 		},
 		{
@@ -467,10 +467,10 @@ func TestReadInput(t *testing.T) {
 			"a ?0xfe?   b",
 			[]byte{'a', '\xfe', ' ', 'b'},
 			[]Event{
-				KeyDownEvent{Sym: KeyNone, Rune: 'a'},
+				KeyPressEvent{Sym: KeyNone, Rune: 'a'},
 				UnknownEvent(rune(0xfe)),
-				KeyDownEvent{Sym: KeySpace, Rune: ' '},
-				KeyDownEvent{Sym: KeyNone, Rune: 'b'},
+				KeyPressEvent{Sym: KeySpace, Rune: ' '},
+				KeyPressEvent{Sym: KeyNone, Rune: 'b'},
 			},
 		},
 	}

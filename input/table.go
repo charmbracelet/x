@@ -7,24 +7,24 @@ import (
 )
 
 func buildKeysTable(flags int, term string) map[string]Key {
-	nul := Key{Rune: ' ', Sym: KeySpace, Mod: Ctrl} // ctrl+@ or ctrl+space
+	nul := Key{Rune: ' ', Sym: KeySpace, Mod: ModCtrl} // ctrl+@ or ctrl+space
 	if flags&FlagCtrlAt != 0 {
-		nul = Key{Rune: '@', Mod: Ctrl}
+		nul = Key{Rune: '@', Mod: ModCtrl}
 	}
 
 	tab := Key{Sym: KeyTab} // ctrl+i or tab
 	if flags&FlagCtrlI != 0 {
-		tab = Key{Rune: 'i', Mod: Ctrl}
+		tab = Key{Rune: 'i', Mod: ModCtrl}
 	}
 
 	enter := Key{Sym: KeyEnter} // ctrl+m or enter
 	if flags&FlagCtrlM != 0 {
-		enter = Key{Rune: 'm', Mod: Ctrl}
+		enter = Key{Rune: 'm', Mod: ModCtrl}
 	}
 
 	esc := Key{Sym: KeyEscape} // ctrl+[ or escape
 	if flags&FlagCtrlOpenBracket != 0 {
-		esc = Key{Rune: '[', Mod: Ctrl} // ctrl+[ or escape
+		esc = Key{Rune: '[', Mod: ModCtrl} // ctrl+[ or escape
 	}
 
 	del := Key{Sym: KeyBackspace}
@@ -53,37 +53,37 @@ func buildKeysTable(flags int, term string) map[string]Key {
 	table := map[string]Key{
 		// C0 control characters
 		string(byte(ansi.NUL)): nul,
-		string(byte(ansi.SOH)): {Rune: 'a', Mod: Ctrl},
-		string(byte(ansi.STX)): {Rune: 'b', Mod: Ctrl},
-		string(byte(ansi.ETX)): {Rune: 'c', Mod: Ctrl},
-		string(byte(ansi.EOT)): {Rune: 'd', Mod: Ctrl},
-		string(byte(ansi.ENQ)): {Rune: 'e', Mod: Ctrl},
-		string(byte(ansi.ACK)): {Rune: 'f', Mod: Ctrl},
-		string(byte(ansi.BEL)): {Rune: 'g', Mod: Ctrl},
-		string(byte(ansi.BS)):  {Rune: 'h', Mod: Ctrl},
+		string(byte(ansi.SOH)): {Rune: 'a', Mod: ModCtrl},
+		string(byte(ansi.STX)): {Rune: 'b', Mod: ModCtrl},
+		string(byte(ansi.ETX)): {Rune: 'c', Mod: ModCtrl},
+		string(byte(ansi.EOT)): {Rune: 'd', Mod: ModCtrl},
+		string(byte(ansi.ENQ)): {Rune: 'e', Mod: ModCtrl},
+		string(byte(ansi.ACK)): {Rune: 'f', Mod: ModCtrl},
+		string(byte(ansi.BEL)): {Rune: 'g', Mod: ModCtrl},
+		string(byte(ansi.BS)):  {Rune: 'h', Mod: ModCtrl},
 		string(byte(ansi.HT)):  tab,
-		string(byte(ansi.LF)):  {Rune: 'j', Mod: Ctrl},
-		string(byte(ansi.VT)):  {Rune: 'k', Mod: Ctrl},
-		string(byte(ansi.FF)):  {Rune: 'l', Mod: Ctrl},
+		string(byte(ansi.LF)):  {Rune: 'j', Mod: ModCtrl},
+		string(byte(ansi.VT)):  {Rune: 'k', Mod: ModCtrl},
+		string(byte(ansi.FF)):  {Rune: 'l', Mod: ModCtrl},
 		string(byte(ansi.CR)):  enter,
-		string(byte(ansi.SO)):  {Rune: 'n', Mod: Ctrl},
-		string(byte(ansi.SI)):  {Rune: 'o', Mod: Ctrl},
-		string(byte(ansi.DLE)): {Rune: 'p', Mod: Ctrl},
-		string(byte(ansi.DC1)): {Rune: 'q', Mod: Ctrl},
-		string(byte(ansi.DC2)): {Rune: 'r', Mod: Ctrl},
-		string(byte(ansi.DC3)): {Rune: 's', Mod: Ctrl},
-		string(byte(ansi.DC4)): {Rune: 't', Mod: Ctrl},
-		string(byte(ansi.NAK)): {Rune: 'u', Mod: Ctrl},
-		string(byte(ansi.SYN)): {Rune: 'v', Mod: Ctrl},
-		string(byte(ansi.ETB)): {Rune: 'w', Mod: Ctrl},
-		string(byte(ansi.CAN)): {Rune: 'x', Mod: Ctrl},
-		string(byte(ansi.EM)):  {Rune: 'y', Mod: Ctrl},
-		string(byte(ansi.SUB)): {Rune: 'z', Mod: Ctrl},
+		string(byte(ansi.SO)):  {Rune: 'n', Mod: ModCtrl},
+		string(byte(ansi.SI)):  {Rune: 'o', Mod: ModCtrl},
+		string(byte(ansi.DLE)): {Rune: 'p', Mod: ModCtrl},
+		string(byte(ansi.DC1)): {Rune: 'q', Mod: ModCtrl},
+		string(byte(ansi.DC2)): {Rune: 'r', Mod: ModCtrl},
+		string(byte(ansi.DC3)): {Rune: 's', Mod: ModCtrl},
+		string(byte(ansi.DC4)): {Rune: 't', Mod: ModCtrl},
+		string(byte(ansi.NAK)): {Rune: 'u', Mod: ModCtrl},
+		string(byte(ansi.SYN)): {Rune: 'v', Mod: ModCtrl},
+		string(byte(ansi.ETB)): {Rune: 'w', Mod: ModCtrl},
+		string(byte(ansi.CAN)): {Rune: 'x', Mod: ModCtrl},
+		string(byte(ansi.EM)):  {Rune: 'y', Mod: ModCtrl},
+		string(byte(ansi.SUB)): {Rune: 'z', Mod: ModCtrl},
 		string(byte(ansi.ESC)): esc,
-		string(byte(ansi.FS)):  {Rune: '\\', Mod: Ctrl},
-		string(byte(ansi.GS)):  {Rune: ']', Mod: Ctrl},
-		string(byte(ansi.RS)):  {Rune: '^', Mod: Ctrl},
-		string(byte(ansi.US)):  {Rune: '_', Mod: Ctrl},
+		string(byte(ansi.FS)):  {Rune: '\\', Mod: ModCtrl},
+		string(byte(ansi.GS)):  {Rune: ']', Mod: ModCtrl},
+		string(byte(ansi.RS)):  {Rune: '^', Mod: ModCtrl},
+		string(byte(ansi.US)):  {Rune: '_', Mod: ModCtrl},
 
 		// Special keys in G0
 		string(byte(ansi.SP)):  {Sym: KeySpace, Rune: ' '},
@@ -91,7 +91,7 @@ func buildKeysTable(flags int, term string) map[string]Key {
 
 		// Special keys
 
-		"\x1b[Z": {Sym: KeyTab, Mod: Shift},
+		"\x1b[Z": {Sym: KeyTab, Mod: ModShift},
 
 		"\x1b[1~": find,
 		"\x1b[2~": {Sym: KeyInsert},
@@ -194,14 +194,14 @@ func buildKeysTable(flags int, term string) map[string]Key {
 
 	// URxvt keys
 	// See https://manpages.ubuntu.com/manpages/trusty/man7/urxvt.7.html#key%20codes
-	table["\x1b[a"] = Key{Sym: KeyUp, Mod: Shift}
-	table["\x1b[b"] = Key{Sym: KeyDown, Mod: Shift}
-	table["\x1b[c"] = Key{Sym: KeyRight, Mod: Shift}
-	table["\x1b[d"] = Key{Sym: KeyLeft, Mod: Shift}
-	table["\x1bOa"] = Key{Sym: KeyUp, Mod: Ctrl}
-	table["\x1bOb"] = Key{Sym: KeyDown, Mod: Ctrl}
-	table["\x1bOc"] = Key{Sym: KeyRight, Mod: Ctrl}
-	table["\x1bOd"] = Key{Sym: KeyLeft, Mod: Ctrl}
+	table["\x1b[a"] = Key{Sym: KeyUp, Mod: ModShift}
+	table["\x1b[b"] = Key{Sym: KeyDown, Mod: ModShift}
+	table["\x1b[c"] = Key{Sym: KeyRight, Mod: ModShift}
+	table["\x1b[d"] = Key{Sym: KeyLeft, Mod: ModShift}
+	table["\x1bOa"] = Key{Sym: KeyUp, Mod: ModCtrl}
+	table["\x1bOb"] = Key{Sym: KeyDown, Mod: ModCtrl}
+	table["\x1bOc"] = Key{Sym: KeyRight, Mod: ModCtrl}
+	table["\x1bOd"] = Key{Sym: KeyLeft, Mod: ModCtrl}
 	// TODO: invistigate if shift-ctrl arrow keys collide with DECCKM keys i.e.
 	// "\x1bOA", "\x1bOB", "\x1bOC", "\x1bOD"
 
@@ -210,13 +210,13 @@ func buildKeysTable(flags int, term string) map[string]Key {
 		key := v
 		// Normal (no modifier) already defined part of VT100/VT200
 		// Shift modifier
-		key.Mod = Shift
+		key.Mod = ModShift
 		table["\x1b["+k+"$"] = key
 		// Ctrl modifier
-		key.Mod = Ctrl
+		key.Mod = ModCtrl
 		table["\x1b["+k+"^"] = key
 		// Shift-Ctrl modifier
-		key.Mod = Shift | Ctrl
+		key.Mod = ModShift | ModCtrl
 		table["\x1b["+k+"@"] = key
 	}
 
@@ -229,46 +229,46 @@ func buildKeysTable(flags int, term string) map[string]Key {
 	// different escapes like XTerm, or switch to a better terminal ¯\_(ツ)_/¯
 	//
 	// See https://manpages.ubuntu.com/manpages/trusty/man7/urxvt.7.html#key%20codes
-	table["\x1b[23$"] = Key{Sym: KeyF11, Mod: Shift}
-	table["\x1b[24$"] = Key{Sym: KeyF12, Mod: Shift}
-	table["\x1b[25$"] = Key{Sym: KeyF13, Mod: Shift}
-	table["\x1b[26$"] = Key{Sym: KeyF14, Mod: Shift}
-	table["\x1b[28$"] = Key{Sym: KeyF15, Mod: Shift}
-	table["\x1b[29$"] = Key{Sym: KeyF16, Mod: Shift}
-	table["\x1b[31$"] = Key{Sym: KeyF17, Mod: Shift}
-	table["\x1b[32$"] = Key{Sym: KeyF18, Mod: Shift}
-	table["\x1b[33$"] = Key{Sym: KeyF19, Mod: Shift}
-	table["\x1b[34$"] = Key{Sym: KeyF20, Mod: Shift}
-	table["\x1b[11^"] = Key{Sym: KeyF1, Mod: Ctrl}
-	table["\x1b[12^"] = Key{Sym: KeyF2, Mod: Ctrl}
-	table["\x1b[13^"] = Key{Sym: KeyF3, Mod: Ctrl}
-	table["\x1b[14^"] = Key{Sym: KeyF4, Mod: Ctrl}
-	table["\x1b[15^"] = Key{Sym: KeyF5, Mod: Ctrl}
-	table["\x1b[17^"] = Key{Sym: KeyF6, Mod: Ctrl}
-	table["\x1b[18^"] = Key{Sym: KeyF7, Mod: Ctrl}
-	table["\x1b[19^"] = Key{Sym: KeyF8, Mod: Ctrl}
-	table["\x1b[20^"] = Key{Sym: KeyF9, Mod: Ctrl}
-	table["\x1b[21^"] = Key{Sym: KeyF10, Mod: Ctrl}
-	table["\x1b[23^"] = Key{Sym: KeyF11, Mod: Ctrl}
-	table["\x1b[24^"] = Key{Sym: KeyF12, Mod: Ctrl}
-	table["\x1b[25^"] = Key{Sym: KeyF13, Mod: Ctrl}
-	table["\x1b[26^"] = Key{Sym: KeyF14, Mod: Ctrl}
-	table["\x1b[28^"] = Key{Sym: KeyF15, Mod: Ctrl}
-	table["\x1b[29^"] = Key{Sym: KeyF16, Mod: Ctrl}
-	table["\x1b[31^"] = Key{Sym: KeyF17, Mod: Ctrl}
-	table["\x1b[32^"] = Key{Sym: KeyF18, Mod: Ctrl}
-	table["\x1b[33^"] = Key{Sym: KeyF19, Mod: Ctrl}
-	table["\x1b[34^"] = Key{Sym: KeyF20, Mod: Ctrl}
-	table["\x1b[23@"] = Key{Sym: KeyF11, Mod: Shift | Ctrl}
-	table["\x1b[24@"] = Key{Sym: KeyF12, Mod: Shift | Ctrl}
-	table["\x1b[25@"] = Key{Sym: KeyF13, Mod: Shift | Ctrl}
-	table["\x1b[26@"] = Key{Sym: KeyF14, Mod: Shift | Ctrl}
-	table["\x1b[28@"] = Key{Sym: KeyF15, Mod: Shift | Ctrl}
-	table["\x1b[29@"] = Key{Sym: KeyF16, Mod: Shift | Ctrl}
-	table["\x1b[31@"] = Key{Sym: KeyF17, Mod: Shift | Ctrl}
-	table["\x1b[32@"] = Key{Sym: KeyF18, Mod: Shift | Ctrl}
-	table["\x1b[33@"] = Key{Sym: KeyF19, Mod: Shift | Ctrl}
-	table["\x1b[34@"] = Key{Sym: KeyF20, Mod: Shift | Ctrl}
+	table["\x1b[23$"] = Key{Sym: KeyF11, Mod: ModShift}
+	table["\x1b[24$"] = Key{Sym: KeyF12, Mod: ModShift}
+	table["\x1b[25$"] = Key{Sym: KeyF13, Mod: ModShift}
+	table["\x1b[26$"] = Key{Sym: KeyF14, Mod: ModShift}
+	table["\x1b[28$"] = Key{Sym: KeyF15, Mod: ModShift}
+	table["\x1b[29$"] = Key{Sym: KeyF16, Mod: ModShift}
+	table["\x1b[31$"] = Key{Sym: KeyF17, Mod: ModShift}
+	table["\x1b[32$"] = Key{Sym: KeyF18, Mod: ModShift}
+	table["\x1b[33$"] = Key{Sym: KeyF19, Mod: ModShift}
+	table["\x1b[34$"] = Key{Sym: KeyF20, Mod: ModShift}
+	table["\x1b[11^"] = Key{Sym: KeyF1, Mod: ModCtrl}
+	table["\x1b[12^"] = Key{Sym: KeyF2, Mod: ModCtrl}
+	table["\x1b[13^"] = Key{Sym: KeyF3, Mod: ModCtrl}
+	table["\x1b[14^"] = Key{Sym: KeyF4, Mod: ModCtrl}
+	table["\x1b[15^"] = Key{Sym: KeyF5, Mod: ModCtrl}
+	table["\x1b[17^"] = Key{Sym: KeyF6, Mod: ModCtrl}
+	table["\x1b[18^"] = Key{Sym: KeyF7, Mod: ModCtrl}
+	table["\x1b[19^"] = Key{Sym: KeyF8, Mod: ModCtrl}
+	table["\x1b[20^"] = Key{Sym: KeyF9, Mod: ModCtrl}
+	table["\x1b[21^"] = Key{Sym: KeyF10, Mod: ModCtrl}
+	table["\x1b[23^"] = Key{Sym: KeyF11, Mod: ModCtrl}
+	table["\x1b[24^"] = Key{Sym: KeyF12, Mod: ModCtrl}
+	table["\x1b[25^"] = Key{Sym: KeyF13, Mod: ModCtrl}
+	table["\x1b[26^"] = Key{Sym: KeyF14, Mod: ModCtrl}
+	table["\x1b[28^"] = Key{Sym: KeyF15, Mod: ModCtrl}
+	table["\x1b[29^"] = Key{Sym: KeyF16, Mod: ModCtrl}
+	table["\x1b[31^"] = Key{Sym: KeyF17, Mod: ModCtrl}
+	table["\x1b[32^"] = Key{Sym: KeyF18, Mod: ModCtrl}
+	table["\x1b[33^"] = Key{Sym: KeyF19, Mod: ModCtrl}
+	table["\x1b[34^"] = Key{Sym: KeyF20, Mod: ModCtrl}
+	table["\x1b[23@"] = Key{Sym: KeyF11, Mod: ModShift | ModCtrl}
+	table["\x1b[24@"] = Key{Sym: KeyF12, Mod: ModShift | ModCtrl}
+	table["\x1b[25@"] = Key{Sym: KeyF13, Mod: ModShift | ModCtrl}
+	table["\x1b[26@"] = Key{Sym: KeyF14, Mod: ModShift | ModCtrl}
+	table["\x1b[28@"] = Key{Sym: KeyF15, Mod: ModShift | ModCtrl}
+	table["\x1b[29@"] = Key{Sym: KeyF16, Mod: ModShift | ModCtrl}
+	table["\x1b[31@"] = Key{Sym: KeyF17, Mod: ModShift | ModCtrl}
+	table["\x1b[32@"] = Key{Sym: KeyF18, Mod: ModShift | ModCtrl}
+	table["\x1b[33@"] = Key{Sym: KeyF19, Mod: ModShift | ModCtrl}
+	table["\x1b[34@"] = Key{Sym: KeyF20, Mod: ModShift | ModCtrl}
 
 	// Register Alt + <key> combinations
 	// XXX: this must come after URxvt but before XTerm keys to register URxvt
@@ -276,7 +276,7 @@ func buildKeysTable(flags int, term string) map[string]Key {
 	tmap := map[string]Key{}
 	for seq, key := range table {
 		key := key
-		key.Mod |= Alt
+		key.Mod |= ModAlt
 		tmap["\x1b"+seq] = key
 	}
 	for seq, key := range tmap {
@@ -287,21 +287,21 @@ func buildKeysTable(flags int, term string) map[string]Key {
 	// These are offset by 1 to be compatible with our Mod type.
 	// See https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-PC-Style-Function-Keys
 	modifiers := []KeyMod{
-		Shift,                     // 1
-		Alt,                       // 2
-		Shift | Alt,               // 3
-		Ctrl,                      // 4
-		Shift | Ctrl,              // 5
-		Alt | Ctrl,                // 6
-		Shift | Alt | Ctrl,        // 7
-		Meta,                      // 8
-		Meta | Shift,              // 9
-		Meta | Alt,                // 10
-		Meta | Shift | Alt,        // 11
-		Meta | Ctrl,               // 12
-		Meta | Shift | Ctrl,       // 13
-		Meta | Alt | Ctrl,         // 14
-		Meta | Shift | Alt | Ctrl, // 15
+		ModShift,                              // 1
+		ModAlt,                                // 2
+		ModShift | ModAlt,                     // 3
+		ModCtrl,                               // 4
+		ModShift | ModCtrl,                    // 5
+		ModAlt | ModCtrl,                      // 6
+		ModShift | ModAlt | ModCtrl,           // 7
+		ModMeta,                               // 8
+		ModMeta | ModShift,                    // 9
+		ModMeta | ModAlt,                      // 10
+		ModMeta | ModShift | ModAlt,           // 11
+		ModMeta | ModCtrl,                     // 12
+		ModMeta | ModShift | ModCtrl,          // 13
+		ModMeta | ModAlt | ModCtrl,            // 14
+		ModMeta | ModShift | ModAlt | ModCtrl, // 15
 	}
 
 	// SS3 keypad function keys
