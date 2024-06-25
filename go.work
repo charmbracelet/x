@@ -8,6 +8,7 @@ use (
 	./errors
 	./exp/golden
 	./exp/higherorder
+	./exp/maps
 	./exp/open
 	./exp/ordered
 	./exp/slice

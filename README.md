@@ -23,6 +23,7 @@ Currently the following packages are available:
 - [`higherorder`](./exp/higherorder): generic higher order functions • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/higherorder)
 - [`input`](./input): terminal event input handler and driver • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/input)
 - [`json`](./json): JSON parsing using generics • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/json)
+- [`maps`](./exp/maps): generic maps utilities
 - [`open`](./exp/open): open a file/URL using `open`, `xdg-open`, etc • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/open)
 - [`ordered`](./exp/ordered): generic `min`, `max`, and `clamp` functions for ordered types • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/ordered)
 - [`slice`](./exp/slice): generic slice utilities • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/slice)

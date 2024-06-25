@@ -75,6 +75,15 @@ updates:
       prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
+    directory: "/exp/maps"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+  - package-ecosystem: "gomod"
     directory: "/exp/open"
     schedule:
       interval: "daily"
