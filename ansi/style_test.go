@@ -45,3 +45,11 @@ func TestColorColor(t *testing.T) {
 		t.Errorf("Unexpected sequence: %q", s)
 	}
 }
+
+func BenchmarkStyle(b *testing.B) {
+	s := ansi.Style{}.Bold().Underline().ForegroundColor(color.RGBA{255, 255, 255, 255})
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = s.String()
+	}
+}
