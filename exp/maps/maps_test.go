@@ -26,7 +26,9 @@ func TestKeys(t *testing.T) {
 	}
 
 	keys := Keys(m)
-	if slices.Compare(keys, []string{"foo", "bar", "aaaaa"}) != 0 {
-		t.Fatalf("unexpected keys: %v", keys)
+	for _, s := range []string{"aaaaa", "bar", "foo"} {
+		if !slices.Contains(keys, s) {
+			t.Fatalf("unexpected keys: %v", keys)
+		}
 	}
 }
