@@ -13,6 +13,9 @@ var tcases = []struct {
 	expect string
 }{
 	{"empty", "", "", 0, ""},
+	{"equalascii", "one", ".", 3, "one"},
+	{"equalemoji", "on👋", ".", 3, "on."},
+	{"equalcontrolemoji", "one\x1b[0m", ".", 3, "one\x1b[0m"},
 	{"simple", "foobar", "", 3, "foo"},
 	{"passthrough", "foobar", "", 10, "foobar"},
 	{"ascii", "hello", "", 3, "hel"},
