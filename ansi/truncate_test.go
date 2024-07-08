@@ -13,6 +13,9 @@ var tcases = []struct {
 	expect string
 }{
 	{"empty", "", "", 0, ""},
+	{"equalascii", "one", ".", 3, "one"},
+	{"equalemoji", "on👋", ".", 3, "on."},
+	{"equalcontrolemoji", "one\x1b[0m", ".", 3, "one\x1b[0m"},
 	{"simple", "foobar", "", 3, "foo"},
 	{"passthrough", "foobar", "", 10, "foobar"},
 	{"ascii", "hello", "", 3, "hel"},
@@ -29,8 +32,8 @@ var tcases = []struct {
 	{"double_width_runes", "你好", "", 2, "你"},
 	{"spaces_only", "    ", "…", 2, " …"},
 	{"longer_tail", "foo", "...", 2, ""},
-	{"same_tail_width", "foo", "...", 3, "..."},
-	{"same_tail_width_control", "\x1b[31mfoo\x1b[0m", "...", 3, "\x1b[31m...\x1b[0m"},
+	{"same_tail_width", "foo", "...", 3, "foo"},
+	{"same_tail_width_control", "\x1b[31mfoo\x1b[0m", "...", 3, "\x1b[31mfoo\x1b[0m"},
 	{"same_width", "foo", "", 3, "foo"},
 	{"truncate_with_tail", "foobar", ".", 4, "foo."},
 	{"style", "I really \x1B[38;2;249;38;114mlove\x1B[0m Go!", "", 8, "I really\x1B[38;2;249;38;114m\x1B[0m"},
