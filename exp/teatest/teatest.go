@@ -99,7 +99,7 @@ func doWaitFor(r io.Reader, condition func(bts []byte) bool, options ...WaitForO
 		}
 		time.Sleep(wf.CheckInterval)
 	}
-	return fmt.Errorf("WaitFor: condition not met after %s", wf.Duration)
+	return fmt.Errorf("WaitFor: condition not met after %s. Last output:\n%s", wf.Duration, b.String())
 }
 
 // TestModel is a model that is being tested.

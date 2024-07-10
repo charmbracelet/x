@@ -29,7 +29,7 @@ func TestWaitForTimeout(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error, got nil")
 	}
-	if err.Error() != "WaitFor: condition not met after 1ms" {
+	if err.Error() != "WaitFor: condition not met after 1ms. Last output:\nnope" {
 		t.Fatalf("unexpected error: %s", err.Error())
 	}
 }
