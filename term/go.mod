@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/term
 go 1.18
 
 require (
-	github.com/charmbracelet/x/ansi v0.1.2
+	github.com/charmbracelet/x/ansi v0.1.3
 	github.com/charmbracelet/x/input v0.1.2
 	golang.org/x/sys v0.22.0
 )
