@@ -31,6 +31,7 @@ var cases = []struct {
 	{"unicode", "\x1b[35m“box”\x1b[0m", "“box”", 5},
 	{"just_unicode", "Claire’s Boutique", "Claire’s Boutique", 17},
 	{"unclosed_ansi", "Hey, \x1b[7m\n猴", "Hey, \n猴", 7},
+	{"double_asian_runes", " 你\x1b[8m好.", " 你好.", 6},
 }
 
 func TestStrip(t *testing.T) {
