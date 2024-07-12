@@ -5,6 +5,7 @@ github.com/charmbracelet/bubbletea v0.26.1/go.mod h1:FzKr7sKoO8iFVcdIBM9J0sJOcQv
 github.com/charmbracelet/bubbletea v0.26.5/go.mod h1:dz8CWPlfCCGLFbBlTY4N7bjLiyOGDJEnd2Muu7pOWhk=
 github.com/charmbracelet/harmonica v0.2.0/go.mod h1:KSri/1RMQOZLbw7AHqgcBycp8pgJnQMYYT8QZRqZ1Ao=
 github.com/charmbracelet/lipgloss v0.11.0/go.mod h1:1UdRTH9gYgpcdNN5oBtjbu/IzNKtzVtb7sqN1t9LNn8=
+github.com/charmbracelet/lipgloss v0.12.0/go.mod h1:beLlcmkF7MWA+5UrKKIRo/VJ21xGXr7YJ9miWfdMRIU=
 github.com/charmbracelet/ssh v0.0.0-20240515141028-546b2ee33a4d/go.mod h1:8/Ve8iGRRIGFM1kepYfRF2pEOF5Y3TEZYoJaA54228U=
 github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81/go.mod h1:YynlIjWYF8myEu6sdkwKIvGQq+cOckRm6So2avqoYAk=
 github.com/google/go-cmp v0.5.8/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
