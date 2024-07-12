@@ -90,6 +90,10 @@ func StringWidth(s string) int {
 				continue
 			}
 			width++
+			fallthrough
+		default:
+			// Reset uniseg state when we're not in a printable state.
+			gstate = -1
 		}
 
 		pstate = state
