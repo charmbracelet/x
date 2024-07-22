@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/charmbracelet/x/ansi v0.1.4
-	github.com/charmbracelet/x/input v0.1.2
+	github.com/charmbracelet/x/input v0.1.3
 	golang.org/x/sys v0.22.0
 )
 
@@ -14,5 +14,4 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
 )
