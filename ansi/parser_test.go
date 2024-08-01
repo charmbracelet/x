@@ -105,26 +105,63 @@ func TestControlSequence(t *testing.T) {
 	}
 }
 
-func BenchmarkNext(bm *testing.B) {
-	bts, err := os.ReadFile("./fixtures/demo.vte")
-	if err != nil {
-		bm.Fatalf("Error: %v", err)
-	}
-
-	bm.ResetTimer()
-
-	var parser Parser
-	parser.Parse(nil, bts)
+var parsers = []struct {
+	name   string
+	parser *Parser
+}{
+	{
+		name:   "simple",
+		parser: &Parser{},
+	},
+	{
+		name:   "params",
+		parser: NewParser(16, 0),
+	},
+	{
+		name:   "params and data",
+		parser: NewParser(16, 1024),
+	},
 }
 
-func BenchmarkStateChanges(bm *testing.B) {
-	input := "\x1b]2;X\x1b\\ \x1b[0m \x1bP0@\x1b\\"
+func BenchmarkParser(b *testing.B) {
+	bts, err := os.ReadFile("./fixtures/demo.vte")
+	if err != nil {
+		b.Fatalf("Error: %v", err)
+	}
 
-	for i := 0; i < bm.N; i++ {
-		var parser Parser
-		for i := 0; i < 1000; i++ {
-			parser.Parse(nil, []byte(input))
-		}
+	for _, p := range parsers {
+		b.Run(p.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				p.parser.Parse(nil, bts)
+			}
+		})
+	}
+}
+
+func BenchmarkParserUTF8(b *testing.B) {
+	bts, err := os.ReadFile("./fixtures/UTF-8-demo.txt")
+	if err != nil {
+		b.Fatalf("Error: %v", err)
+	}
+
+	for _, p := range parsers {
+		b.Run(p.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				p.parser.Parse(nil, bts)
+			}
+		})
+	}
+}
+
+func BenchmarkParserStateChanges(b *testing.B) {
+	input := []byte("\x1b]2;X\x1b\\こんにちは\x1b[0m \x1bP0@\x1b\\")
+
+	for _, p := range parsers {
+		b.Run(p.name, func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				p.parser.Parse(nil, input)
+			}
+		})
 	}
 }
 
