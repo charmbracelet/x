@@ -34,19 +34,19 @@ type Parser struct {
 
 	// ParamsLen keeps track of the number of parameters.
 	// This is limited by the size of the Params buffer.
+	//
+	// This is also used when collecting UTF-8 runes to keep track of the
+	// number of rune bytes collected.
 	ParamsLen int
 
 	// Cmd contains the raw command along with the private marker and
 	// intermediate bytes of the sequence.
 	// The first lower byte contains the command byte, the next byte contains
 	// the private marker, and the next byte contains the intermediate byte.
+	//
+	// This is also used when collecting UTF-8 runes treating it as a slice of
+	// 4 bytes.
 	Cmd int
-
-	// RuneLen keeps track of the number of bytes collected for a UTF-8 rune.
-	RuneLen int
-
-	// RuneBuf contains the bytes collected for a UTF-8 rune.
-	RuneBuf [utf8.MaxRune]byte
 
 	// State is the current state of the parser.
 	State byte
@@ -79,7 +79,6 @@ func (p *Parser) clear() {
 	}
 	p.ParamsLen = 0
 	p.Cmd = 0
-	p.RuneLen = 0
 }
 
 // StateName returns the name of the current state.
@@ -106,35 +105,35 @@ func (p *Parser) Advance(dispatcher ParserDispatcher, b byte, more bool) parser.
 }
 
 func (p *Parser) collectRune(b byte) {
-	if p.RuneLen < utf8.UTFMax {
-		p.RuneBuf[p.RuneLen] = b
-		p.RuneLen++
+	if p.ParamsLen < utf8.UTFMax {
+		shift := p.ParamsLen * 8
+		p.Cmd &^= 0xff << shift
+		p.Cmd |= int(b) << shift
+		p.ParamsLen++
 	}
 }
 
 func (p *Parser) advanceUtf8(dispatcher ParserDispatcher, b byte) parser.Action {
 	// Collect UTF-8 rune bytes.
 	p.collectRune(b)
-	rw := utf8ByteLen(p.RuneBuf[0])
+	rw := utf8ByteLen(byte(p.Cmd & 0xff))
 	if rw == -1 {
 		// We panic here because the first byte comes from the state machine,
 		// if this panics, it means there is a bug in the state machine!
 		panic("invalid rune") // unreachable
 	}
 
-	if p.RuneLen < rw {
+	if p.ParamsLen < rw {
 		return parser.NoneAction
 	}
 
 	// We have enough bytes to decode the rune
-	bts := p.RuneBuf[:rw]
-	r, _ := utf8.DecodeRune(bts)
 	if dispatcher != nil {
-		dispatcher(Rune(r))
+		dispatcher(Rune(p.Cmd))
 	}
 
 	p.State = parser.GroundState
-	p.RuneLen = 0
+	p.ParamsLen = 0
 
 	return parser.NoneAction
 }
@@ -211,6 +210,7 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 
 	case parser.PrintAction:
 		if utf8ByteLen(b) > 1 {
+			p.clear()
 			p.collectRune(b)
 		} else if dispatcher != nil {
 			dispatcher(Rune(b))
