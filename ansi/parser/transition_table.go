@@ -107,9 +107,9 @@ func GenerateTransitionTable() TransitionTable {
 		// Anywhere -> OscString
 		table.AddOne(0x9D, state, StartAction, OscStringState)
 		// Anywhere -> Utf8
-		table.AddRange(0xC2, 0xDF, state, PrintAction, Utf8State) // UTF8 2 byte sequence
-		table.AddRange(0xE0, 0xEF, state, PrintAction, Utf8State) // UTF8 3 byte sequence
-		table.AddRange(0xF0, 0xF4, state, PrintAction, Utf8State) // UTF8 4 byte sequence
+		table.AddRange(0xC2, 0xDF, state, CollectAction, Utf8State) // UTF8 2 byte sequence
+		table.AddRange(0xE0, 0xEF, state, CollectAction, Utf8State) // UTF8 3 byte sequence
+		table.AddRange(0xF0, 0xF4, state, CollectAction, Utf8State) // UTF8 4 byte sequence
 	}
 
 	// Ground
