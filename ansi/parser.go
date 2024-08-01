@@ -270,8 +270,8 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 		}
 
 	case parser.StartAction:
-		if p.DataLen < 0 {
-			p.Data = make([]byte, 0)
+		if p.DataLen < 0 && p.Data != nil {
+			p.Data = p.Data[:0]
 		} else {
 			p.DataLen = 0
 		}
