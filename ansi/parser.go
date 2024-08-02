@@ -106,12 +106,14 @@ func (p *Parser) Advance(dispatcher ParserDispatcher, b byte, more bool) parser.
 }
 
 func (p *Parser) collectRune(b byte) {
-	if p.ParamsLen < utf8.UTFMax {
-		shift := p.ParamsLen * 8
-		p.Cmd &^= 0xff << shift
-		p.Cmd |= int(b) << shift
-		p.ParamsLen++
+	if p.ParamsLen >= utf8.UTFMax {
+		return
 	}
+
+	shift := p.ParamsLen * 8
+	p.Cmd &^= 0xff << shift
+	p.Cmd |= int(b) << shift
+	p.ParamsLen++
 }
 
 func (p *Parser) advanceUtf8(dispatcher ParserDispatcher, b byte) parser.Action {
@@ -150,12 +152,10 @@ func (p *Parser) advance(d ParserDispatcher, b byte, more bool) parser.Action {
 	// EscapeState. However, the parser state is not cleared in this case and
 	// we need to clear it here before dispatching the esc sequence.
 	if p.State != state {
-		switch p.State {
-		case parser.EscapeState:
+		if p.State == parser.EscapeState {
 			p.performAction(d, parser.ClearAction, state, b)
 		}
-		switch state {
-		case parser.Utf8State:
+		if state == parser.Utf8State {
 			// Clear the parser state if we're transitioning to the Utf8State.
 			p.performAction(d, parser.ClearAction, state, b)
 		}

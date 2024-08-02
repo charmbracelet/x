@@ -64,9 +64,7 @@ func Hardwrap(s string, limit int, preserveSpace bool) string {
 		}
 
 		switch action {
-		case parser.PrintAction:
-			fallthrough
-		case parser.ExecuteAction:
+		case parser.PrintAction, parser.ExecuteAction:
 			if b[i] == '\n' {
 				addNewline()
 				forceNewline = false
@@ -182,9 +180,7 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 		}
 
 		switch action {
-		case parser.PrintAction:
-			fallthrough
-		case parser.ExecuteAction:
+		case parser.PrintAction, parser.ExecuteAction:
 			r := rune(b[i])
 			switch {
 			case r == '\n':
@@ -324,9 +320,7 @@ func Wrap(s string, limit int, breakpoints string) string {
 		}
 
 		switch action {
-		case parser.PrintAction:
-			fallthrough
-		case parser.ExecuteAction:
+		case parser.PrintAction, parser.ExecuteAction:
 			switch r := rune(b[i]); {
 			case r == '\n':
 				if wordLen == 0 {

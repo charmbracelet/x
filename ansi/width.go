@@ -43,9 +43,7 @@ func Strip(s string) string {
 				buf.WriteByte(s[i])
 				ri++
 			}
-		case parser.PrintAction:
-			fallthrough
-		case parser.ExecuteAction:
+		case parser.PrintAction, parser.ExecuteAction:
 			// collects printable ASCII and non-printable characters
 			buf.WriteByte(s[i])
 		}
@@ -86,14 +84,13 @@ func StringWidth(s string) int {
 			pstate = parser.GroundState
 			continue
 		}
-		switch action {
-		case parser.PrintAction:
+
+		if action == parser.PrintAction {
 			width++
-			fallthrough
-		default:
-			// Reset uniseg state when we're not in a printable state.
-			gstate = -1
 		}
+
+		// Reset uniseg state when we're not in a printable state.
+		gstate = -1
 
 		pstate = state
 	}
