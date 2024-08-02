@@ -27,7 +27,6 @@ func Hardwrap(s string, limit int, preserveSpace bool) string {
 		buf          bytes.Buffer
 		curWidth     int
 		forceNewline bool
-		gstate       = -1
 		pstate       = parser.GroundState // initial state
 		b            = []byte(s)
 	)
@@ -42,7 +41,7 @@ func Hardwrap(s string, limit int, preserveSpace bool) string {
 		state, action := parser.Table.Transition(pstate, b[i])
 		if state == parser.Utf8State {
 			var width int
-			cluster, _, width, gstate = uniseg.FirstGraphemeCluster(b[i:], gstate)
+			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
 			i += len(cluster)
 
 			if curWidth+width > limit {
@@ -58,7 +57,6 @@ func Hardwrap(s string, limit int, preserveSpace bool) string {
 
 			buf.Write(cluster)
 			curWidth += width
-			gstate = -1 // reset grapheme state otherwise, width calculation might be off
 			pstate = parser.GroundState
 			continue
 		}
@@ -120,7 +118,6 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 		space    bytes.Buffer
 		curWidth int
 		wordLen  int
-		gstate   = -1
 		pstate   = parser.GroundState // initial state
 		b        = []byte(s)
 	)
@@ -154,7 +151,7 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 		state, action := parser.Table.Transition(pstate, b[i])
 		if state == parser.Utf8State {
 			var width int
-			cluster, _, width, gstate = uniseg.FirstGraphemeCluster(b[i:], gstate)
+			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
 			i += len(cluster)
 
 			r, _ := utf8.DecodeRune(cluster)
@@ -247,9 +244,8 @@ func Wrap(s string, limit int, breakpoints string) string {
 		buf      bytes.Buffer
 		word     bytes.Buffer
 		space    bytes.Buffer
-		curWidth int // written width of the line
-		wordLen  int // word buffer len without ANSI escape codes
-		gstate   = -1
+		curWidth int                  // written width of the line
+		wordLen  int                  // word buffer len without ANSI escape codes
 		pstate   = parser.GroundState // initial state
 		b        = []byte(s)
 	)
@@ -283,7 +279,7 @@ func Wrap(s string, limit int, breakpoints string) string {
 		state, action := parser.Table.Transition(pstate, b[i])
 		if state == parser.Utf8State {
 			var width int
-			cluster, _, width, gstate = uniseg.FirstGraphemeCluster(b[i:], gstate)
+			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
 			i += len(cluster)
 
 			r, _ := utf8.DecodeRune(cluster)

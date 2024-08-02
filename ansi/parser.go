@@ -238,9 +238,7 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 			// Collect intermediate bytes
 			// we only store the last intermediate byte
 			p.Cmd &^= 0xff << parser.IntermedShift
-			// p.Cmd[2] &^= 0xff
 			p.Cmd |= int(b) << parser.IntermedShift
-			// p.Cmd[2] |= b
 		}
 
 	case parser.ParamAction:
