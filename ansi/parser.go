@@ -155,10 +155,6 @@ func (p *Parser) advance(d ParserDispatcher, b byte, more bool) parser.Action {
 		if p.State == parser.EscapeState {
 			p.performAction(d, parser.ClearAction, state, b)
 		}
-		if state == parser.Utf8State {
-			// Clear the parser state if we're transitioning to the Utf8State.
-			p.performAction(d, parser.ClearAction, state, b)
-		}
 		if action == parser.PutAction &&
 			p.State == parser.DcsEntryState && state == parser.DcsStringState {
 			// XXX: This is a special case where we need to start collecting
@@ -233,6 +229,8 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 
 	case parser.CollectAction:
 		if state == parser.Utf8State {
+			// Reset the UTF-8 counter
+			p.ParamsLen = 0
 			p.collectRune(b)
 		} else {
 			// Collect intermediate bytes
