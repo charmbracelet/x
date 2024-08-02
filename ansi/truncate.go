@@ -26,7 +26,6 @@ func Truncate(s string, length int, tail string) string {
 	var buf bytes.Buffer
 	curWidth := 0
 	ignoring := false
-	gstate := -1
 	pstate := parser.GroundState // initial state
 	b := []byte(s)
 	i := 0
@@ -41,7 +40,7 @@ func Truncate(s string, length int, tail string) string {
 		if state == parser.Utf8State {
 			// This action happens when we transition to the Utf8State.
 			var width int
-			cluster, _, width, gstate = uniseg.FirstGraphemeCluster(b[i:], gstate)
+			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
 
 			// increment the index by the length of the cluster
 			i += len(cluster)
@@ -65,7 +64,6 @@ func Truncate(s string, length int, tail string) string {
 			curWidth += width
 			buf.Write(cluster)
 
-			gstate = -1 // reset grapheme state otherwise, width calculation might be off
 			// Done collecting, now we're back in the ground state.
 			pstate = parser.GroundState
 			continue

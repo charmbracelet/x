@@ -68,7 +68,6 @@ func StringWidth(s string) int {
 	}
 
 	var (
-		gstate  = -1
 		pstate  = parser.GroundState // initial state
 		cluster string
 		width   int
@@ -78,7 +77,7 @@ func StringWidth(s string) int {
 		state, action := parser.Table.Transition(pstate, s[i])
 		if state == parser.Utf8State {
 			var w int
-			cluster, _, w, gstate = uniseg.FirstGraphemeClusterInString(s[i:], gstate)
+			cluster, _, w, _ = uniseg.FirstGraphemeClusterInString(s[i:], -1)
 			width += w
 			i += len(cluster) - 1
 			pstate = parser.GroundState
@@ -88,9 +87,6 @@ func StringWidth(s string) int {
 		if action == parser.PrintAction {
 			width++
 		}
-
-		// Reset uniseg state when we're not in a printable state.
-		gstate = -1
 
 		pstate = state
 	}
