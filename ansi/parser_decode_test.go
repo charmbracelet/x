@@ -241,6 +241,13 @@ func TestDecodeSequence(t *testing.T) {
 				{seq: []byte{'a'}, n: 1, width: 1},
 			},
 		},
+		{
+			name:  "esc sequence with intermediate",
+			input: []byte("\x1b Q"),
+			expected: []expectedSequence{
+				{seq: []byte("\x1b Q"), n: 3},
+			},
+		},
 	}
 
 	for _, tc := range cases {
@@ -249,7 +256,7 @@ func TestDecodeSequence(t *testing.T) {
 			input := tc.input
 			results := make([]expectedSequence, 0)
 			for len(input) > 0 {
-				seq, width, n, newState := DecodeSequence(input, state)
+				seq, width, n, newState := DecodeSequence(input, state, nil)
 				state = newState
 				input = input[n:]
 				results = append(results, expectedSequence{seq: seq, width: width, n: n})
@@ -295,7 +302,7 @@ func FuzzDecodeSequence(f *testing.F) {
 		var state byte
 		var n int
 		for len(b) > 0 {
-			_, _, n, state = DecodeSequence(b, state)
+			_, _, n, state = DecodeSequence(b, state, nil)
 			if n == 0 {
 				break
 			}
@@ -308,11 +315,12 @@ func BenchmarkDecodeSequence(b *testing.B) {
 	var state byte
 	var n int
 	input := []byte("\x1b[1;2;3màbc\x90?123;456+q\x9c\x7f ")
+	p := NewParser(32, 1024)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		in := input
 		for len(in) > 0 {
-			_, _, n, state = DecodeSequence(in, state)
+			_, _, n, state = DecodeSequence(in, state, p)
 			in = in[n:]
 		}
 	}
