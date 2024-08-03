@@ -6,6 +6,7 @@ use (
 	./conpty
 	./editor
 	./errors
+	./examples
 	./exp/golden
 	./exp/higherorder
 	./exp/maps
