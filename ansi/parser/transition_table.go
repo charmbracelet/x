@@ -81,6 +81,7 @@ func r(start, end byte) []byte {
 //   - We don't ignore 0x3A (':') when building Csi and Dcs parameters and
 //     instead use it to denote sub-parameters.
 //   - Support dispatching SosPmApc sequences.
+//   - The DEL (0x7F) character is executed in the Ground state.
 func GenerateTransitionTable() TransitionTable {
 	table := NewTransitionTable(DefaultTableSize)
 	table.SetDefault(NoneAction, GroundState)
@@ -116,7 +117,8 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x00, 0x17, GroundState, ExecuteAction, GroundState)
 	table.AddOne(0x19, GroundState, ExecuteAction, GroundState)
 	table.AddRange(0x1C, 0x1F, GroundState, ExecuteAction, GroundState)
-	table.AddRange(0x20, 0x7F, GroundState, PrintAction, GroundState)
+	table.AddRange(0x20, 0x7E, GroundState, PrintAction, GroundState)
+	table.AddOne(0x7F, GroundState, ExecuteAction, GroundState)
 
 	// EscapeIntermediate
 	table.AddRange(0x00, 0x17, EscapeIntermediateState, ExecuteAction, EscapeIntermediateState)
