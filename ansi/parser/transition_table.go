@@ -82,6 +82,7 @@ func r(start, end byte) []byte {
 //     instead use it to denote sub-parameters.
 //   - Support dispatching SosPmApc sequences.
 //   - The DEL (0x7F) character is executed in the Ground state.
+//   - The ST C1 control character (0x9C) is executed and not ignored.
 func GenerateTransitionTable() TransitionTable {
 	table := NewTransitionTable(DefaultTableSize)
 	table.SetDefault(NoneAction, GroundState)
@@ -92,7 +93,7 @@ func GenerateTransitionTable() TransitionTable {
 		table.AddMany([]byte{0x18, 0x1a, 0x99, 0x9a}, state, ExecuteAction, GroundState)
 		table.AddRange(0x80, 0x8F, state, ExecuteAction, GroundState)
 		table.AddRange(0x90, 0x97, state, ExecuteAction, GroundState)
-		table.AddOne(0x9C, state, IgnoreAction, GroundState)
+		table.AddOne(0x9C, state, ExecuteAction, GroundState)
 		// Anywhere -> Escape
 		table.AddOne(0x1B, state, ClearAction, EscapeState)
 		// Anywhere -> SosStringState
