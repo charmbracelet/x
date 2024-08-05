@@ -82,6 +82,7 @@ func r(start, end byte) []byte {
 //     instead use it to denote sub-parameters.
 //   - Support dispatching SosPmApc sequences.
 //   - The DEL (0x7F) character is executed in the Ground state.
+//   - The DEL (0x7F) character is collected in the DcsPassthrough string state.
 //   - The ST C1 control character (0x9C) is executed and not ignored.
 func GenerateTransitionTable() TransitionTable {
 	table := NewTransitionTable(DefaultTableSize)
@@ -212,7 +213,7 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddOne(0x19, DcsStringState, PutAction, DcsStringState)
 	table.AddRange(0x1C, 0x1F, DcsStringState, PutAction, DcsStringState)
 	table.AddRange(0x20, 0x7E, DcsStringState, PutAction, DcsStringState)
-	table.AddOne(0x7F, DcsStringState, IgnoreAction, DcsStringState)
+	table.AddOne(0x7F, DcsStringState, PutAction, DcsStringState)
 	table.AddRange(0x80, 0xFF, DcsStringState, PutAction, DcsStringState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF
 	// ST, CAN, SUB, and ESC terminate the sequence
 	table.AddOne(0x1B, DcsStringState, DispatchAction, EscapeState)
