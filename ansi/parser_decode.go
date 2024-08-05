@@ -5,9 +5,9 @@ import (
 	"github.com/rivo/uniseg"
 )
 
-// DecodeSequence decodes a single ANSI escape sequence or a printable grapheme
-// from the given data. It returns the sequence slice, the number of bytes
-// read, the cell width for each sequence, and the new state.
+// DecodeSequence decodes the first ANSI escape sequence or a printable
+// grapheme from the given data. It returns the sequence slice, the number of
+// bytes read, the cell width for each sequence, and the new state.
 //
 // The cell width will always be 0 for control and escape sequences, 1 for
 // ASCII printable characters, and the number of cells other Unicode characters
@@ -33,23 +33,37 @@ import (
 //		input = input[n:]
 //	}
 func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
-	// log.Printf("DecodeSequence(%q, %d)", b, state)
-	// defer func() {
-	// 	log.Printf("DecodeSequence(%q, %d) -> (%q, %d, %d, %d)", b, state, seq, width, n, newState)
-	// }()
 	for i := 0; i < len(b); i++ {
 		var action byte
 		newState, action = parser.Table.Transition(state, b[i])
-		if p != nil && state != newState && state == parser.EscapeState {
-			// XXX: We need to clear the cmd when we transition from escape
-			// state to be able to properly collect any intermediate characters
-			// and the command byte in [p].
-			p.Cmd = 0
+		if state != newState {
+			if p != nil && state == parser.EscapeState {
+				// XXX: We need to clear the cmd when we transition from escape
+				// state to be able to properly collect any intermediate characters
+				// and the command byte in [p].
+				p.Cmd = 0
+			}
+			if newState == parser.Utf8State {
+				if p != nil {
+					p.clearCmd()
+				}
+				// Handle UTF-8 sequences and graphemes
+				cluster, _, width, _ := FirstGraphemeCluster(b[i:], -1)
+				i += len(cluster)
+				return b[:i], width, i, parser.GroundState
+			}
 		}
+
 		switch action {
 		case parser.PrintAction:
+			if p != nil {
+				p.clearCmd()
+			}
 			return b[:i+1], 1, i + 1, newState
 		case parser.ExecuteAction:
+			if p != nil {
+				p.clearCmd()
+			}
 			return b[:i+1], 0, i + 1, newState
 		case parser.DispatchAction:
 			// Increment the last parameter
@@ -95,11 +109,8 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			if p == nil {
 				break
 			}
-			if len(p.Params) > 0 {
-				p.Params[0] = parser.MissingParam
-			}
-			p.Cmd = 0
-			p.ParamsLen = 0
+			p.clear()
+			p.DataLen = 0
 		case parser.MarkerAction:
 			if p == nil {
 				break
@@ -190,12 +201,7 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			}
 		}
 		if state != newState {
-			switch newState {
-			case parser.Utf8State:
-				cluster, _, width, _ := FirstGraphemeCluster(b[i:], -1)
-				i += len(cluster)
-				return b[:i], width, i, parser.GroundState
-			case parser.EscapeState:
+			if newState == parser.EscapeState {
 				if i < len(b)-1 {
 					switch b[i+1] {
 					case ESC:
@@ -212,6 +218,21 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 		}
 	}
 	return b, 0, len(b), newState
+}
+
+// Equal returns true if the given byte slices are equal.
+func Equal[T string | []byte](a, b T) bool {
+	return string(a) == string(b)
+}
+
+// HasPrefix returns true if the given byte slice has prefix.
+func HasPrefix[T string | []byte](b, prefix T) bool {
+	return len(b) >= len(prefix) && Equal(b[0:len(prefix)], prefix)
+}
+
+// HasSuffix returns true if the given byte slice has suffix.
+func HasSuffix[T string | []byte](b, suffix T) bool {
+	return len(b) >= len(suffix) && Equal(b[len(b)-len(suffix):], suffix)
 }
 
 // HasCsiPrefix returns true if the given byte slice has a CSI prefix.

@@ -2,13 +2,18 @@ package ansi
 
 import (
 	"testing"
+
+	"github.com/charmbracelet/x/ansi/parser"
 )
 
 func TestDecodeSequence(t *testing.T) {
 	type expectedSequence struct {
-		seq   []byte
-		n     int
-		width int
+		seq    []byte
+		n      int
+		width  int
+		params []int
+		data   []byte
+		cmd    int
 	}
 	cases := []struct {
 		name     string
@@ -28,28 +33,28 @@ func TestDecodeSequence(t *testing.T) {
 			},
 		},
 		{
-			name:  "ascii printable",
+			name:  "ASCII printable",
 			input: []byte("a"),
 			expected: []expectedSequence{
 				{seq: []byte{'a'}, n: 1, width: 1},
 			},
 		},
 		{
-			name:  "ascii space",
+			name:  "ASCII space",
 			input: []byte(" "),
 			expected: []expectedSequence{
 				{seq: []byte{' '}, n: 1, width: 1},
 			},
 		},
 		{
-			name:  "ascii del",
+			name:  "ASCII DEL",
 			input: []byte{DEL},
 			expected: []expectedSequence{
 				{seq: []byte{DEL}, n: 1},
 			},
 		},
 		{
-			name:  "del in the middle of utf8 string",
+			name:  "DEL in the middle of UTF8 string",
 			input: []byte{'a', DEL, 'b'},
 			expected: []expectedSequence{
 				{seq: []byte{'a'}, n: 1, width: 1},
@@ -58,72 +63,81 @@ func TestDecodeSequence(t *testing.T) {
 			},
 		},
 		{
-			name:  "del in the middle of dcs",
+			name:  "DEL in the middle of DCS",
 			input: []byte("\x1bP1;2+xa\x7fb\x1b\\"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1bP1;2+xa\x7fb\x1b\\"), n: 12},
+				{seq: []byte("\x1bP1;2+xa\x7fb\x1b\\"), n: 12, params: []int{1, 2}, data: []byte{'a', DEL, 'b'}, cmd: 'x' | '+'<<16},
 			},
 		},
 		{
-			name:  "st in the middle of dcs",
+			name:  "ST in the middle of DCS",
 			input: []byte("\x1bP1;2+xa\x9cb\x1b\\"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1bP1;2+xa\x9c"), n: 9},
+				{seq: []byte("\x1bP1;2+xa\x9c"), n: 9, params: []int{1, 2}, data: []byte{'a'}, cmd: 'x' | '+'<<16},
 				{seq: []byte{'b'}, n: 1, width: 1},
-				{seq: []byte("\x1b\\"), n: 2},
+				{seq: []byte("\x1b\\"), n: 2, cmd: '\\'},
 			},
 		},
 		{
-			name:     "csi",
+			name:     "CSI style sequence",
 			input:    []byte("\x1b[1;2;3m"),
-			expected: []expectedSequence{{seq: []byte("\x1b[1;2;3m"), n: 8}},
+			expected: []expectedSequence{{seq: []byte("\x1b[1;2;3m"), n: 8, params: []int{1, 2, 3}, cmd: 'm'}},
 		},
 		{
-			name:  "csi not terminated",
+			name:  "invalid unterminated CSI sequence",
 			input: []byte("\x1b[1;2;3"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1b[1;2;3"), n: 7},
+				{seq: []byte("\x1b[1;2;3"), n: 7, params: []int{1, 2}}, // last param gets collected during DispatchAction
 			},
 		},
 		{
-			name:     "osc",
+			name:     "set title OSC sequence",
 			input:    []byte("\x1b]2;charmbracelet: ~/Source/bubbletea\x07"),
-			expected: []expectedSequence{{seq: []byte("\x1b]2;charmbracelet: ~/Source/bubbletea\x07"), n: 38}},
+			expected: []expectedSequence{{seq: []byte("\x1b]2;charmbracelet: ~/Source/bubbletea\x07"), n: 38, cmd: 2, data: []byte("2;charmbracelet: ~/Source/bubbletea")}},
 		},
 		{
-			name:     "osc st terminated",
+			name:     "set background OSC sequence with 7-bit ST terminator",
 			input:    []byte("\x1b]11;ff/00/ff\x1b\\"),
-			expected: []expectedSequence{{seq: []byte("\x1b]11;ff/00/ff\x1b\\"), n: 15}},
+			expected: []expectedSequence{{seq: []byte("\x1b]11;ff/00/ff\x1b\\"), n: 15, cmd: 11, data: []byte("11;ff/00/ff")}},
 		},
 		{
-			name:     "osc st 8-bit terminated",
-			input:    []byte("\x1b]11;ff/00/ff\x9c\x1baa\x8fa"),
-			expected: []expectedSequence{{seq: []byte("\x1b]11;ff/00/ff\x9c"), n: 14}, {seq: []byte{ESC, 'a'}, n: 2}, {seq: []byte{'a'}, n: 1, width: 1}, {seq: []byte{SS3}, n: 1}, {seq: []byte{'a'}, n: 1, width: 1}},
+			name:  "set background OSC sequence with ST 8-bit terminator",
+			input: []byte("\x1b]11;ff/00/ff\x9c\x1baa\x8fa"),
+			expected: []expectedSequence{
+				{seq: []byte("\x1b]11;ff/00/ff\x9c"), n: 14, cmd: 11, data: []byte("11;ff/00/ff")},
+				{seq: []byte{ESC, 'a'}, n: 2, cmd: 'a'},
+				{seq: []byte{'a'}, n: 1, width: 1},
+				{seq: []byte{SS3}, n: 1},
+				{seq: []byte{'a'}, n: 1, width: 1},
+			},
 		},
 		{
-			name:  "osc followed by esc sequence",
+			name:  "set background OSC sequence followed by ESC sequence",
 			input: []byte("\x1b]11;ff/00/ff\x1b[1;2;3m"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1b]11;ff/00/ff"), n: 13},
-				{seq: []byte("\x1b[1;2;3m"), n: 8},
+				{seq: []byte("\x1b]11;ff/00/ff"), n: 13, cmd: 11, data: []byte("11;ff/00/ff")},
+				{seq: []byte("\x1b[1;2;3m"), n: 8, params: []int{1, 2, 3}, cmd: 'm'},
 			},
 		},
 		{
-			name:     "osc esc terminated",
-			input:    []byte("\x1b]11;ff/00/ff\x1b"),
-			expected: []expectedSequence{{seq: []byte("\x1b]11;ff/00/ff"), n: 13}, {seq: []byte{ESC}, n: 1}},
+			name:  "set background OSC ESC terminated",
+			input: []byte("\x1b]11;ff/00/ff\x1b"),
+			expected: []expectedSequence{
+				{seq: []byte("\x1b]11;ff/00/ff"), n: 13, cmd: 11, data: []byte("11;ff/00/ff")},
+				{seq: []byte{ESC}, n: 1},
+			},
 		},
 		{
 			name:  "multiple sequences",
 			input: []byte("\x1b[1;2;3m\x1b]2;charmbracelet: ~/Source/bubbletea\x07\x1b]11;ff/00/ff\x1b\\"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1b[1;2;3m"), n: 8},
-				{seq: []byte("\x1b]2;charmbracelet: ~/Source/bubbletea\x07"), n: 38},
-				{seq: []byte("\x1b]11;ff/00/ff\x1b\\"), n: 15},
+				{seq: []byte("\x1b[1;2;3m"), n: 8, params: []int{1, 2, 3}, cmd: 'm'},
+				{seq: []byte("\x1b]2;charmbracelet: ~/Source/bubbletea\x07"), n: 38, cmd: 2, data: []byte("2;charmbracelet: ~/Source/bubbletea")},
+				{seq: []byte("\x1b]11;ff/00/ff\x1b\\"), n: 15, cmd: 11, data: []byte("11;ff/00/ff")},
 			},
 		},
 		{
-			name:  "double esc",
+			name:  "double ESC",
 			input: []byte("\x1b\x1b"),
 			expected: []expectedSequence{
 				{seq: []byte{0x1b}, n: 1},
@@ -131,15 +145,15 @@ func TestDecodeSequence(t *testing.T) {
 			},
 		},
 		{
-			name:  "double st",
+			name:  "double ST",
 			input: []byte("\x1b\\\x1b\\"),
 			expected: []expectedSequence{
-				{seq: []byte{ESC, '\\'}, n: 2},
-				{seq: []byte{ESC, '\\'}, n: 2},
+				{seq: []byte{ESC, '\\'}, n: 2, cmd: '\\'},
+				{seq: []byte{ESC, '\\'}, n: 2, cmd: '\\'},
 			},
 		},
 		{
-			name:  "double st 8-bit",
+			name:  "double ST 8-bit",
 			input: []byte("\x9c\x9c"),
 			expected: []expectedSequence{
 				{seq: []byte{ST}, n: 1},
@@ -147,7 +161,7 @@ func TestDecodeSequence(t *testing.T) {
 			},
 		},
 		{
-			name:  "ascii printables",
+			name:  "ASCII printables",
 			input: []byte("Hello, World!"),
 			expected: []expectedSequence{
 				{seq: []byte{'H'}, width: 1, n: 1},
@@ -173,19 +187,26 @@ func TestDecodeSequence(t *testing.T) {
 			},
 		},
 		{
-			name:  "multiple sequences with utf8 and double esc",
+			name:  "inavlid rune",
+			input: []byte{0xc3},
+			expected: []expectedSequence{
+				{seq: []byte{0xc3}, n: 1, width: 1},
+			},
+		},
+		{
+			name:  "multiple sequences with UTF8 and double ESC",
 			input: []byte("👨🏿‍🌾\x1b\x1b \x1b[?1:2:3mÄabc\x1b\x1bP+q\x1b\\"),
 			expected: []expectedSequence{
 				{seq: []byte("👨🏿‍🌾"), n: 15, width: 2},
 				{seq: []byte{ESC}, n: 1},
 				{seq: []byte{ESC, ' '}, n: 2},
-				{seq: []byte("\x1b[?1:2:3m"), n: 9},
+				{seq: []byte("\x1b[?1:2:3m"), n: 9, params: []int{1 | parser.HasMoreFlag, 2 | parser.HasMoreFlag, 3}, cmd: 'm' | '?'<<8},
 				{seq: []byte("Ä"), n: 2, width: 1},
 				{seq: []byte{'a'}, n: 1, width: 1},
 				{seq: []byte{'b'}, n: 1, width: 1},
 				{seq: []byte{'c'}, n: 1, width: 1},
 				{seq: []byte{ESC}, n: 1},
-				{seq: []byte("\x1bP+q\x1b\\"), n: 6},
+				{seq: []byte("\x1bP+q\x1b\\"), n: 6, cmd: 'q' | '+'<<16},
 			},
 		},
 		{
@@ -199,42 +220,42 @@ func TestDecodeSequence(t *testing.T) {
 				{seq: []byte("o"), n: 1, width: 1},
 				{seq: []byte(","), n: 1, width: 1},
 				{seq: []byte(" "), n: 1, width: 1},
-				{seq: []byte("\x1b[1;2;3m"), n: 8},
+				{seq: []byte("\x1b[1;2;3m"), n: 8, params: []int{1, 2, 3}, cmd: 'm'},
 				{seq: []byte("w"), n: 1, width: 1},
 				{seq: []byte("o"), n: 1, width: 1},
 				{seq: []byte("r"), n: 1, width: 1},
 				{seq: []byte("l"), n: 1, width: 1},
 				{seq: []byte("d"), n: 1, width: 1},
-				{seq: []byte("\x1b[0m"), n: 4},
+				{seq: []byte("\x1b[0m"), n: 4, params: []int{0}, cmd: 'm'},
 				{seq: []byte("!"), n: 1, width: 1},
 			},
 		},
 		{
-			name:  "osc with c1",
+			name:  "set background OSC with C1",
 			input: []byte("\x1b]11;\x90?\x1b\\"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1b]11;\x90?\x1b\\"), n: 9},
+				{seq: []byte("\x1b]11;\x90?\x1b\\"), n: 9, cmd: 11, data: []byte("11;\x90?")},
 			},
 		},
 		{
-			name:  "unterminated csi with escape sequence",
+			name:  "unterminated CSI with escape sequence",
 			input: []byte("\x1b[1;2;3\x1bOa"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1b[1;2;3"), n: 7},
-				{seq: []byte("\x1bO"), n: 2},
+				{seq: []byte("\x1b[1;2;3"), n: 7}, // params get reset and ignored when unterminated
+				{seq: []byte("\x1bO"), n: 2, cmd: 'O'},
 				{seq: []byte{'a'}, n: 1, width: 1},
 			},
 		},
 		{
-			name:  "ss3",
+			name:  "SS3",
 			input: []byte("\x1bOa"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1bO"), n: 2},
+				{seq: []byte("\x1bO"), n: 2, cmd: 'O'},
 				{seq: []byte{'a'}, n: 1, width: 1},
 			},
 		},
 		{
-			name:  "ss3 8-bit",
+			name:  "SS3 8-bit",
 			input: []byte("\x8fa"),
 			expected: []expectedSequence{
 				{seq: []byte{SS3}, n: 1},
@@ -242,24 +263,43 @@ func TestDecodeSequence(t *testing.T) {
 			},
 		},
 		{
-			name:  "esc sequence with intermediate",
+			name:  "ESC sequence with intermediate",
 			input: []byte("\x1b Q"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1b Q"), n: 3},
+				{seq: []byte("\x1b Q"), n: 3, cmd: 'Q' | ' '<<16},
+			},
+		},
+		{
+			name:  "unterminated DCS sequence",
+			input: []byte("\x1bP1;2+xa"),
+			expected: []expectedSequence{
+				{seq: []byte("\x1bP1;2+xa"), n: 8, params: []int{1}, data: []byte{'a'}, cmd: 'x' | '+'<<16},
+			},
+		},
+		{
+			name:  "invalid DCS sequence",
+			input: []byte("\x1bP\x1b\\ab"),
+			expected: []expectedSequence{
+				{seq: []byte("\x1bP\x1b\\"), n: 4, cmd: ESC, data: []byte{ESC, '\\'}},
+				{seq: []byte{'a'}, n: 1, width: 1},
+				{seq: []byte{'b'}, n: 1, width: 1},
 			},
 		},
 	}
 
+	p := NewParser(32, 1024)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			var state byte
 			input := tc.input
 			results := make([]expectedSequence, 0)
 			for len(input) > 0 {
-				seq, width, n, newState := DecodeSequence(input, state, nil)
+				seq, width, n, newState := DecodeSequence(input, state, p)
 				state = newState
 				input = input[n:]
-				results = append(results, expectedSequence{seq: seq, width: width, n: n})
+				params := append([]int(nil), p.Params[:p.ParamsLen]...)
+				data := append([]byte(nil), p.Data[:p.DataLen]...)
+				results = append(results, expectedSequence{seq: seq, width: width, n: n, params: params, data: data, cmd: p.Cmd})
 			}
 			if len(results) != len(tc.expected) {
 				t.Fatalf("expected %d sequences, got %d\n\n%#v\n\n%#v", len(tc.expected), len(results), tc.expected, results)
@@ -274,7 +314,22 @@ func TestDecodeSequence(t *testing.T) {
 				if string(r.seq) != string(tc.expected[i].seq) {
 					t.Errorf("expected %q, got %q", string(tc.expected[i].seq), string(r.seq))
 				}
-
+				if r.cmd != tc.expected[i].cmd {
+					t.Errorf("expected %d cmd, got %d", tc.expected[i].cmd, r.cmd)
+				}
+				if string(r.data) != string(tc.expected[i].data) {
+					t.Errorf("expected %q data, got %q", string(tc.expected[i].data), string(r.data))
+				}
+				if len(r.params) != len(tc.expected[i].params) {
+					t.Errorf("expected %d params, got %d", len(tc.expected[i].params), len(r.params))
+				}
+				if len(tc.expected[i].params) > 0 {
+					for j, p := range r.params {
+						if p != tc.expected[i].params[j] {
+							t.Errorf("expected param[%d] = %d, got %d", j, tc.expected[i].params[j], p)
+						}
+					}
+				}
 			}
 		})
 	}
