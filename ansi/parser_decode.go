@@ -54,6 +54,7 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			}
 		}
 
+	BEGIN:
 		switch action {
 		case parser.PrintAction:
 			if p != nil {
@@ -87,6 +88,19 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 						return b[:i+2], 0, i + 2, parser.GroundState
 					}
 					return b[:i+1], 0, i + 1, parser.GroundState
+				}
+				if i < len(b)-1 && b[i] == ESC && b[i+1] == ESC && HasPrefix(b, T("\x1bPtmux;")) {
+					// XXX: Tmux passthrough sequence special case handling. We
+					// need to collect "\x1b\x1b" during the DCS state because
+					// that's how tmux passes through escape sequences.
+					action = parser.PutAction
+					newState = parser.DcsStringState
+					if p != nil {
+						p.Data[p.DataLen] = b[i]
+						p.DataLen++
+					}
+					i++
+					goto BEGIN
 				}
 				if b[i] == ESC || b[i] == CAN || b[i] == SUB {
 					// Return unterminated sequence
@@ -164,6 +178,12 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 				p.Cmd = parser.MissingCommand
 			}
 		case parser.PutAction:
+			if b[i] == ESC && state == parser.DcsEntryState &&
+				newState == parser.DcsStringState && i < len(b)-1 && b[i+1] == '\\' {
+				// XXX: Handle early terminated invalid DCS sequence.
+				return b[:i+2], 0, i + 2, parser.GroundState
+			}
+
 			if p == nil {
 				break
 			}

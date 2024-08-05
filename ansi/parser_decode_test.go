@@ -280,9 +280,30 @@ func TestDecodeSequence(t *testing.T) {
 			name:  "invalid DCS sequence",
 			input: []byte("\x1bP\x1b\\ab"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1bP\x1b\\"), n: 4, cmd: ESC, data: []byte{ESC, '\\'}},
+				{seq: []byte("\x1bP\x1b\\"), n: 4},
 				{seq: []byte{'a'}, n: 1, width: 1},
 				{seq: []byte{'b'}, n: 1, width: 1},
+			},
+		},
+		{
+			name:  "special Tmux DCS passthrough sequence",
+			input: []byte("\x1bPtmux;abc\x1b\\"),
+			expected: []expectedSequence{
+				{seq: []byte("\x1bPtmux;abc\x1b\\"), n: 12, cmd: 't', data: []byte("mux;abc")},
+			},
+		},
+		{
+			name:  "special Tmux DCS passthrough sequence with OSC sequence",
+			input: []byte("\x1bPtmux;\x1b\x1b]2;charmbracelet: ~/Source/bubbletea\x07\x1b\\"),
+			expected: []expectedSequence{
+				{seq: []byte("\x1bPtmux;\x1b\x1b]2;charmbracelet: ~/Source/bubbletea\x07\x1b\\"), n: 48, cmd: 't', data: []byte("mux;\x1b\x1b]2;charmbracelet: ~/Source/bubbletea\x07")},
+			},
+		},
+		{
+			name:  "GNU Screen DCS passthrough",
+			input: []byte("\x1bP\x1b]2;charmbracelet: ~/Source/bubbletea\x07\x1b\\"),
+			expected: []expectedSequence{
+				{seq: []byte("\x1bP\x1b]2;charmbracelet: ~/Source/bubbletea\x07\x1b\\"), n: 42, cmd: ESC, data: []byte("\x1b]2;charmbracelet: ~/Source/bubbletea\x07")},
 			},
 		},
 	}
