@@ -21,6 +21,8 @@ import (
 // [Cmd] and [Param] types to unpack command intermediates and markers as well
 // as parameters.
 //
+// Note: This function will split sequences at C0 and C1 control characters.
+//
 // Example:
 //
 //	var state byte // the initial state is always zero [parser.GroundState]
@@ -65,7 +67,13 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			if p != nil {
 				p.clearCmd()
 			}
-			return b[:i+1], 0, i + 1, newState
+			if i > 0 {
+				// XXX: We treat C0 and C1 control characters as individual
+				// sequences. Any unterminated sequence is broken before the
+				// control character.
+				return b[:i], 0, i, parser.GroundState
+			}
+			return b[i : i+1], 0, i + 1, newState
 		case parser.DispatchAction:
 			// Increment the last parameter
 			if p != nil && (p.ParamsLen > 0 && p.ParamsLen < len(p.Params)-1 ||
