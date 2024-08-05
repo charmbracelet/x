@@ -270,6 +270,15 @@ func TestDecodeSequence(t *testing.T) {
 			},
 		},
 		{
+			name:  "ESC followed by C0",
+			input: []byte("\x1b[\x00a"),
+			expected: []expectedSequence{
+				{seq: []byte("\x1b["), n: 2},
+				{seq: []byte{0x00}, n: 1},
+				{seq: []byte{'a'}, n: 1, width: 1},
+			},
+		},
+		{
 			name:  "unterminated DCS sequence",
 			input: []byte("\x1bP1;2+xa"),
 			expected: []expectedSequence{
