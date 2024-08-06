@@ -60,7 +60,7 @@ func Test_Map(t *testing.T) {
 }
 
 func Test_Filter(t *testing.T) {
-	{
+	t.Run("with string slices", func(t *testing.T) {
 		got := Filter(func(a string) bool {
 			return strings.HasPrefix(a, "t")
 		}, []string{"one", "two", "three"})
@@ -70,8 +70,9 @@ func Test_Filter(t *testing.T) {
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("Expected %v, got %v", want, got)
 		}
-	}
-	{
+	})
+
+	t.Run("with int slices", func(t *testing.T) {
 		got := Filter(func(a int) bool {
 			return a%2 == 0
 		}, []int{1, 2, 3, 4, 5})
@@ -81,5 +82,5 @@ func Test_Filter(t *testing.T) {
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("Expected %v, got %v", want, got)
 		}
-	}
+	})
 }
