@@ -1,6 +1,10 @@
 package higherorder
 
-import "testing"
+import (
+	"reflect"
+	"strings"
+	"testing"
+)
 
 func Test_Foldl(t *testing.T) {
 	x := Foldl(func(a, b int) int {
@@ -51,6 +55,31 @@ func Test_Map(t *testing.T) {
 			if v != expected[i] {
 				t.Errorf("Index %d: expected %d, got %d", i, expected[i], v)
 			}
+		}
+	}
+}
+
+func Test_Filter(t *testing.T) {
+	{
+		got := Filter(func(a string) bool {
+			return strings.HasPrefix(a, "t")
+		}, []string{"one", "two", "three"})
+
+		want := []string{"two", "three"}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("Expected %v, got %v", want, got)
+		}
+	}
+	{
+		got := Filter(func(a int) bool {
+			return a%2 == 0
+		}, []int{1, 2, 3, 4, 5})
+
+		want := []int{2, 4}
+
+		if !reflect.DeepEqual(got, want) {
+			t.Errorf("Expected %v, got %v", want, got)
 		}
 	}
 }
