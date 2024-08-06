@@ -57,6 +57,15 @@ updates:
       prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
+    directory: "/examples"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+  - package-ecosystem: "gomod"
     directory: "/exp/golden"
     schedule:
       interval: "daily"
