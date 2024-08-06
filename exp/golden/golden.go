@@ -24,7 +24,7 @@ func RequireEqual(tb testing.TB, out []byte) {
 
 // RequireEqualEscape is a helper function to assert the given output is
 // the expected from the golden files, printing its diff in case it is not.
-func RequireEqualEscape(tb testing.TB, out []byte, escapse bool) {
+func RequireEqualEscape(tb testing.TB, out []byte, escapes bool) {
 	tb.Helper()
 
 	out = fixLineEndings(out)
@@ -47,9 +47,9 @@ func RequireEqualEscape(tb testing.TB, out []byte, escapse bool) {
 	goldenBts = fixLineEndings(goldenBts)
 	goldenStr := string(goldenBts)
 	outStr := string(out)
-	if escapse {
-		goldenStr = escapseSeqs(goldenStr)
-		outStr = escapseSeqs(outStr)
+	if escapes {
+		goldenStr = escapesSeqs(goldenStr)
+		outStr = escapesSeqs(outStr)
 	}
 
 	diff := udiff.Unified("golden", "run", goldenStr, outStr)
@@ -62,7 +62,7 @@ func fixLineEndings(in []byte) []byte {
 	return bytes.ReplaceAll(in, []byte("\r\n"), []byte{'\n'})
 }
 
-func escapseSeqs(in string) string {
+func escapesSeqs(in string) string {
 	s := strings.Split(in, "\n")
 	for i, l := range s {
 		q := strconv.Quote(l)
