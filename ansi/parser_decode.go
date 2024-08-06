@@ -1,8 +1,26 @@
 package ansi
 
 import (
+	"bytes"
+	"strings"
+	"unicode/utf8"
+
 	"github.com/charmbracelet/x/ansi/parser"
 	"github.com/rivo/uniseg"
+)
+
+// State represents the state of the ANSI escape sequence parser used by
+// [DecodeSequence].
+type State = byte
+
+// ANSI escape sequence states used by [DecodeSequence].
+const (
+	NormalState State = iota
+	MarkerState
+	ParamsState
+	IntermedState
+	EscapeState
+	StringState
 )
 
 // DecodeSequence decodes the first ANSI escape sequence or a printable
@@ -21,11 +39,25 @@ import (
 // [Cmd] and [Param] types to unpack command intermediates and markers as well
 // as parameters.
 //
-// Note: This function will split sequences at C0 and C1 control characters.
+// Zero [p.Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
+// validity of other data sequences, OSC, DCS, etc, will require checking for
+// the returned sequence terminator bytes such as ST (ESC \\) and BEL).
+//
+// We store the command byte in [p.Cmd] in the most significant byte, the
+// marker byte in the next byte, and the intermediate byte in the least
+// significant byte. This is done to avoid using a struct to store the command
+// and its intermediates and markers. The command byte is always the least
+// significant byte i.e. [p.Cmd & 0xff]. Use the [Cmd] type to unpack the
+// command, intermediate, and marker bytes. Note that we only collect the last
+// marker character and intermediate byte.
+//
+// The [p.Params] slice will contain the parameters of the sequence. Any
+// sub-parameter will have the [parser.HasMoreFlag] set. Use the [Param] type
+// to unpack the parameters.
 //
 // Example:
 //
-//	var state byte // the initial state is always zero [parser.GroundState]
+//	var state byte // the initial state is always zero [NormalState]
 //	p := NewParser(32, 1024) // create a new parser with a 32 params buffer and 1024 data buffer (optional)
 //	input := []byte("\x1b[31mHello, World!\x1b[0m")
 //	for len(input) > 0 {
@@ -36,186 +68,210 @@ import (
 //	}
 func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
 	for i := 0; i < len(b); i++ {
-		var action byte
-		newState, action = parser.Table.Transition(state, b[i])
-		if state != newState {
-			if p != nil && state == parser.EscapeState {
-				// XXX: We need to clear the cmd when we transition from escape
-				// state to be able to properly collect any intermediate characters
-				// and the command byte in [p].
+		c := b[i]
+
+		switch state {
+		case NormalState:
+			switch c {
+			case ESC:
+				if p != nil {
+					if len(p.Params) > 0 {
+						p.Params[0] = parser.MissingParam
+					}
+					p.Cmd = 0
+					p.ParamsLen = 0
+					p.DataLen = 0
+				}
+				state = EscapeState
+				continue
+			case CSI, DCS:
+				if p != nil {
+					if len(p.Params) > 0 {
+						p.Params[0] = parser.MissingParam
+					}
+					p.Cmd = 0
+					p.ParamsLen = 0
+					p.DataLen = 0
+				}
+				state = MarkerState
+				continue
+			case OSC, APC, SOS, PM:
+				if p != nil {
+					p.Cmd = parser.MissingCommand
+					p.DataLen = 0
+				}
+				state = StringState
+				continue
+			}
+
+			if p != nil {
+				p.DataLen = 0
+				p.ParamsLen = 0
 				p.Cmd = 0
 			}
-			if newState == parser.Utf8State {
+			if c > US && c < DEL {
+				// ASCII printable characters
+				return b[i : i+1], 1, 1, NormalState
+			}
+
+			if c <= US || c == DEL || c < 0xC0 {
+				// C0 & C1 control characters & DEL
+				return b[i : i+1], 0, 1, NormalState
+			}
+
+			if utf8.RuneStart(c) {
+				seq, _, width, _ = FirstGraphemeCluster(b, -1)
+				i += len(seq)
+				return b[:i], width, i, NormalState
+			}
+
+			// Invalid UTF-8 sequence
+			return b[:i], 0, i, NormalState
+		case MarkerState:
+			if c >= '<' && c <= '?' {
 				if p != nil {
-					p.clearCmd()
+					// We only collect the last marker character.
+					p.Cmd &^= 0xff << parser.MarkerShift
+					p.Cmd |= int(c) << parser.MarkerShift
 				}
-				// Handle UTF-8 sequences and graphemes
-				cluster, _, width, _ := FirstGraphemeCluster(b[i:], -1)
-				i += len(cluster)
-				return b[:i], width, i, parser.GroundState
-			}
-		}
-
-	BEGIN:
-		switch action {
-		case parser.PrintAction:
-			if p != nil {
-				p.clearCmd()
-			}
-			return b[:i+1], 1, i + 1, newState
-		case parser.ExecuteAction:
-			if p != nil {
-				p.clearCmd()
-			}
-			if i > 0 {
-				// XXX: We treat C0 and C1 control characters as individual
-				// sequences. Any unterminated sequence is broken before the
-				// control character.
-				return b[:i], 0, i, parser.GroundState
-			}
-			return b[i : i+1], 0, i + 1, newState
-		case parser.DispatchAction:
-			// Increment the last parameter
-			if p != nil && (p.ParamsLen > 0 && p.ParamsLen < len(p.Params)-1 ||
-				p.ParamsLen == 0 && len(p.Params) > 0 && p.Params[0] != parser.MissingParam) {
-				p.ParamsLen++
+				break
 			}
 
-			// Handle ST, CAN, SUB, ESC
-			switch {
-			case HasOscPrefix(b):
-				// Handle BEL terminated OSC
-				if b[i] == BEL {
-					return b[:i+1], 0, i + 1, newState
-				}
-				fallthrough
-			case HasApcPrefix(b), HasDcsPrefix(b), HasPmPrefix(b), HasSosPrefix(b):
-				if i < len(b) && HasStPrefix(b[i:]) {
-					// Include ST in the sequence
-					if b[i] == ESC {
-						return b[:i+2], 0, i + 2, parser.GroundState
+			state = ParamsState
+			fallthrough
+		case ParamsState:
+			if c >= '0' && c <= '9' {
+				if p != nil {
+					if p.Params[p.ParamsLen] == parser.MissingParam {
+						p.Params[p.ParamsLen] = 0
 					}
-					return b[:i+1], 0, i + 1, parser.GroundState
+
+					p.Params[p.ParamsLen] *= 10
+					p.Params[p.ParamsLen] += int(c - '0')
 				}
-				if i < len(b)-1 && b[i] == ESC && b[i+1] == ESC && HasPrefix(b, T("\x1bPtmux;")) {
-					// XXX: Tmux passthrough sequence special case handling. We
-					// need to collect "\x1b\x1b" during the DCS state because
-					// that's how tmux passes through escape sequences.
-					action = parser.PutAction
-					newState = parser.DcsStringState
+				break
+			}
+
+			if c == ':' {
+				if p != nil {
+					p.Params[p.ParamsLen] |= parser.HasMoreFlag
+				}
+			}
+
+			if c == ';' || c == ':' {
+				if p != nil {
+					p.ParamsLen++
+					if p.ParamsLen < len(p.Params) {
+						p.Params[p.ParamsLen] = parser.MissingParam
+					}
+				}
+				break
+			}
+
+			state = IntermedState
+			fallthrough
+		case IntermedState:
+			if c >= ' ' && c <= '/' {
+				if p != nil {
+					p.Cmd &^= 0xff << parser.IntermedShift
+					p.Cmd |= int(c) << parser.IntermedShift
+				}
+				break
+			}
+
+			state = NormalState
+			if c >= '@' && c <= '~' {
+				if p != nil {
+					// Increment the last parameter
+					if p.ParamsLen > 0 && p.ParamsLen < len(p.Params)-1 ||
+						p.ParamsLen == 0 && len(p.Params) > 0 && p.Params[0] != parser.MissingParam {
+						p.ParamsLen++
+					}
+
+					p.Cmd &^= 0xff
+					p.Cmd |= int(c)
+				}
+
+				if HasDcsPrefix(b) {
+					// Continue to collect DCS data
 					if p != nil {
-						p.Data[p.DataLen] = b[i]
-						p.DataLen++
+						p.DataLen = 0
 					}
-					i++
-					goto BEGIN
+					state = StringState
+					continue
 				}
-				if b[i] == ESC || b[i] == CAN || b[i] == SUB {
-					// Return unterminated sequence
-					return b[:i], 0, i, newState
-				}
-				return b[:i+1], 0, i + 1, newState
-			case HasCsiPrefix(b):
+
+				return b[:i+1], 0, i + 1, state
+			}
+
+			// Invalid CSI/DCS sequence
+			return b[:i], 0, i, NormalState
+		case EscapeState:
+			switch c {
+			case '[', 'P':
 				if p != nil {
-					p.Cmd |= int(b[i])
+					if len(p.Params) > 0 {
+						p.Params[0] = parser.MissingParam
+					}
+					p.ParamsLen = 0
+					p.Cmd = 0
 				}
-				return b[:i+1], 0, i + 1, newState
-			case HasEscPrefix(b):
+				state = MarkerState
+				continue
+			case ']', 'X', '^', '_':
 				if p != nil {
-					p.Cmd |= int(b[i])
+					p.Cmd = parser.MissingCommand
+					p.DataLen = 0
 				}
-				// Handle escape sequences
-				return b[:i+1], 0, i + 1, newState
-			}
-		case parser.ClearAction:
-			if p == nil {
-				break
-			}
-			p.clear()
-			p.DataLen = 0
-		case parser.MarkerAction:
-			if p == nil {
-				break
-			}
-			p.Cmd &^= 0xff << parser.MarkerShift
-			p.Cmd |= int(b[i]) << parser.MarkerShift
-		case parser.CollectAction:
-			if p == nil {
-				break
-			}
-			p.Cmd &^= 0xff << parser.IntermedShift
-			p.Cmd |= int(b[i]) << parser.IntermedShift
-		case parser.ParamAction:
-			if p == nil {
-				break
+				state = StringState
+				continue
 			}
 
-			if p.ParamsLen >= len(p.Params) {
-				break
+			if c >= ' ' && c <= '/' {
+				if p != nil {
+					p.Cmd &^= 0xff << parser.IntermedShift
+					p.Cmd |= int(c) << parser.IntermedShift
+				}
+				continue
+			} else if c >= '0' && c <= '~' {
+				if p != nil {
+					p.Cmd &^= 0xff
+					p.Cmd |= int(c)
+				}
+				return b[:i+1], 0, i + 1, NormalState
 			}
 
-			if b[i] >= '0' && b[i] <= '9' {
-				if p.Params[p.ParamsLen] == parser.MissingParam {
-					p.Params[p.ParamsLen] = 0
+			// Invalid escape sequence
+			return b[:i], 0, i, NormalState
+		case StringState:
+			switch c {
+			case BEL:
+				if HasOscPrefix(b) {
+					return b[:i+1], 0, i + 1, NormalState
+				}
+			case CAN, SUB:
+				// Cancel the sequence
+				return b[:i], 0, i, NormalState
+			case ST:
+				return b[:i+1], 0, i + 1, NormalState
+			case ESC:
+				if HasStPrefix(b[i:]) {
+					// End of string 7-bit (ST)
+					return b[:i+2], 0, i + 2, NormalState
 				}
 
-				p.Params[p.ParamsLen] *= 10
-				p.Params[p.ParamsLen] += int(b[i] - '0')
+				// Otherwise, cancel the sequence
+				return b[:i], 0, i, NormalState
 			}
 
-			if b[i] == ':' {
-				p.Params[p.ParamsLen] |= parser.HasMoreFlag
-			}
+			if p != nil && p.DataLen < len(p.Data) {
+				p.Data[p.DataLen] = c
+				p.DataLen++
 
-			if b[i] == ';' || b[i] == ':' {
-				p.ParamsLen++
-				if p.ParamsLen < len(p.Params) {
-					p.Params[p.ParamsLen] = parser.MissingParam
-				}
-			}
-		case parser.StartAction:
-			if p == nil {
-				break
-			}
-
-			p.DataLen = 0
-			if state >= parser.DcsEntryState && state <= parser.DcsStringState {
-				// Collect the command byte for DCS
-				p.Cmd |= int(b[i])
-			} else {
-				p.Cmd = parser.MissingCommand
-			}
-		case parser.PutAction:
-			if b[i] == ESC && state == parser.DcsEntryState &&
-				newState == parser.DcsStringState && i < len(b)-1 && b[i+1] == '\\' {
-				// XXX: Handle early terminated invalid DCS sequence.
-				return b[:i+2], 0, i + 2, parser.GroundState
-			}
-
-			if p == nil {
-				break
-			}
-
-			if state == parser.DcsEntryState && newState == parser.DcsStringState {
-				// XXX: This is a special case where we need to start collecting
-				// non-string parameterized data i.e. doesn't follow the ECMA-48 §
-				// 5.4.1 string parameters format.
-				p.Cmd |= int(b[i])
-			}
-
-			if p.DataLen >= len(p.Data) {
-				break
-			}
-
-			p.Data[p.DataLen] = b[i]
-			p.DataLen++
-
-			switch state {
-			case parser.OscStringState:
-				if b[i] == ';' && p.Cmd == parser.MissingCommand {
-					// Try to parse the command
-					for i := 0; i < len(p.Data); i++ {
-						d := p.Data[i]
+				// Parse the OSC command number
+				if c == ';' && p.Cmd == parser.MissingCommand && HasOscPrefix(b) {
+					for j := 0; j < p.DataLen; j++ {
+						d := p.Data[j]
 						if d < '0' || d > '9' {
 							break
 						}
@@ -228,24 +284,21 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 				}
 			}
 		}
-		if state != newState {
-			if newState == parser.EscapeState {
-				if i < len(b)-1 {
-					switch b[i+1] {
-					case ESC:
-						// Handle double escape
-						return b[:i+1], 0, i + 1, parser.GroundState
-					}
-					if i > 0 && i < len(b) && !HasStPrefix(b[i:]) {
-						// Handle unterminated escape sequence
-						return b[:i], 0, i, newState
-					}
-				}
-			}
-			state = newState
-		}
 	}
-	return b, 0, len(b), newState
+
+	return b, 0, len(b), state
+}
+
+// Index returns the index of the first occurrence of the given byte slice in
+// the data. It returns -1 if the byte slice is not found.
+func Index[T string | []byte](data, b T) int {
+	switch data := any(data).(type) {
+	case string:
+		return strings.Index(data, string(b))
+	case []byte:
+		return bytes.Index(data, []byte(b))
+	}
+	panic("unreachable")
 }
 
 // Equal returns true if the given byte slices are equal.

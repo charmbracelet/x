@@ -199,7 +199,7 @@ func TestDecodeSequence(t *testing.T) {
 			expected: []expectedSequence{
 				{seq: []byte("👨🏿‍🌾"), n: 15, width: 2},
 				{seq: []byte{ESC}, n: 1},
-				{seq: []byte{ESC, ' '}, n: 2},
+				{seq: []byte{ESC, ' '}, n: 2, cmd: 0 | ' '<<16},
 				{seq: []byte("\x1b[?1:2:3m"), n: 9, params: []int{1 | parser.HasMoreFlag, 2 | parser.HasMoreFlag, 3}, cmd: 'm' | '?'<<8},
 				{seq: []byte("Ä"), n: 2, width: 1},
 				{seq: []byte{'a'}, n: 1, width: 1},
@@ -241,7 +241,7 @@ func TestDecodeSequence(t *testing.T) {
 			name:  "unterminated CSI with escape sequence",
 			input: []byte("\x1b[1;2;3\x1bOa"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1b[1;2;3"), n: 7}, // params get reset and ignored when unterminated
+				{seq: []byte("\x1b[1;2;3"), n: 7, params: []int{1, 2}}, // params get reset and ignored when unterminated
 				{seq: []byte("\x1bO"), n: 2, cmd: 'O'},
 				{seq: []byte{'a'}, n: 1, width: 1},
 			},
@@ -282,54 +282,35 @@ func TestDecodeSequence(t *testing.T) {
 			name:  "unterminated DCS sequence",
 			input: []byte("\x1bP1;2+xa"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1bP1;2+xa"), n: 8, params: []int{1}, data: []byte{'a'}, cmd: 'x' | '+'<<16},
+				{seq: []byte("\x1bP1;2+xa"), n: 8, params: []int{1, 2}, data: []byte{'a'}, cmd: 'x' | '+'<<16},
 			},
 		},
 		{
 			name:  "invalid DCS sequence",
 			input: []byte("\x1bP\x1b\\ab"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1bP\x1b\\"), n: 4},
+				{seq: []byte("\x1bP"), n: 2},
+				{seq: []byte("\x1b\\"), n: 2, cmd: '\\'},
 				{seq: []byte{'a'}, n: 1, width: 1},
 				{seq: []byte{'b'}, n: 1, width: 1},
 			},
 		},
-		{
-			name:  "special Tmux DCS passthrough sequence",
-			input: []byte("\x1bPtmux;abc\x1b\\"),
-			expected: []expectedSequence{
-				{seq: []byte("\x1bPtmux;abc\x1b\\"), n: 12, cmd: 't', data: []byte("mux;abc")},
-			},
-		},
-		{
-			name:  "special Tmux DCS passthrough sequence with OSC sequence",
-			input: []byte("\x1bPtmux;\x1b\x1b]2;charmbracelet: ~/Source/bubbletea\x07\x1b\\"),
-			expected: []expectedSequence{
-				{seq: []byte("\x1bPtmux;\x1b\x1b]2;charmbracelet: ~/Source/bubbletea\x07\x1b\\"), n: 48, cmd: 't', data: []byte("mux;\x1b\x1b]2;charmbracelet: ~/Source/bubbletea\x07")},
-			},
-		},
-		{
-			name:  "GNU Screen DCS passthrough",
-			input: []byte("\x1bP\x1b]2;charmbracelet: ~/Source/bubbletea\x07\x1b\\"),
-			expected: []expectedSequence{
-				{seq: []byte("\x1bP\x1b]2;charmbracelet: ~/Source/bubbletea\x07\x1b\\"), n: 42, cmd: ESC, data: []byte("\x1b]2;charmbracelet: ~/Source/bubbletea\x07")},
-			},
-		},
 	}
 
-	p := NewParser(32, 1024)
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
+			p := NewParser(32, 1024)
+
 			var state byte
 			input := tc.input
 			results := make([]expectedSequence, 0)
 			for len(input) > 0 {
 				seq, width, n, newState := DecodeSequence(input, state, p)
-				state = newState
-				input = input[n:]
 				params := append([]int(nil), p.Params[:p.ParamsLen]...)
 				data := append([]byte(nil), p.Data[:p.DataLen]...)
 				results = append(results, expectedSequence{seq: seq, width: width, n: n, params: params, data: data, cmd: p.Cmd})
+				state = newState
+				input = input[n:]
 			}
 			if len(results) != len(tc.expected) {
 				t.Fatalf("expected %d sequences, got %d\n\n%#v\n\n%#v", len(tc.expected), len(results), tc.expected, results)
