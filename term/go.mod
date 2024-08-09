@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/charmbracelet/x/ansi v0.1.4
 	github.com/charmbracelet/x/input v0.1.3
-	golang.org/x/sys v0.23.0
+	golang.org/x/sys v0.24.0
 )
 
 require (
