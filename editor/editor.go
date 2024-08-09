@@ -35,6 +35,15 @@ func OpenAtLine(number uint) Option {
 	}
 }
 
+// OpenAtEndOfLine opens the file at the end of the line.
+func OpenAtEndOfLine(editor, _ string) (args []string, pathInArgs bool) {
+	switch editor {
+	case "vim", "nvim":
+		return []string{"+norm! $"}, false
+	}
+	return nil, false
+}
+
 // Cmd returns a *exec.Cmd editing the given path with $EDITOR or nano if no
 // $EDITOR is set.
 func Cmd(app, path string, options ...Option) (*exec.Cmd, error) {
