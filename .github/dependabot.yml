@@ -138,15 +138,6 @@ updates:
       prefix: "chore"
       include: "scope"
   - package-ecosystem: "gomod"
-    directory: "/exp/term"
-    schedule:
-      interval: "daily"
-    labels:
-      - "dependencies"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-  - package-ecosystem: "gomod"
     directory: "/input"
     schedule:
       interval: "daily"

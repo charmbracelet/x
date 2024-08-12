@@ -15,7 +15,6 @@ use (
 	./exp/slice
 	./exp/strings
 	./exp/teatest
-	./exp/term
 	./input
 	./json
 	./sshkey
