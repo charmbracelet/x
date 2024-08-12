@@ -80,6 +80,12 @@ const (
 	RequestMouseAllMotion = "\x1b[?1003$p"
 )
 
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-FocusIn_FocusOut
+const (
+	EnableReportFocus  = "\x1b[?1004h"
+	DisableReportFocus = "\x1b[?1004l"
+)
+
 // SGR Mouse Extension is a mode that determines whether the mouse reports events
 // formatted with SGR parameters.
 //

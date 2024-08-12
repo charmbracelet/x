@@ -101,6 +101,19 @@ func buildBaseSeqTests() []seqTest {
 func TestParseSequence(t *testing.T) {
 	td := buildBaseSeqTests()
 	td = append(td,
+		// focus/blur
+		seqTest{
+			[]byte{'\x1b', '[', 'I'},
+			[]Event{
+				FocusEvent{},
+			},
+		},
+		seqTest{
+			[]byte{'\x1b', '[', 'O'},
+			[]Event{
+				BlurEvent{},
+			},
+		},
 		// Mouse event.
 		seqTest{
 			[]byte{'\x1b', '[', 'M', byte(32) + 0b0100_0000, byte(65), byte(49)},
