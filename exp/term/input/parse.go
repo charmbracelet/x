@@ -290,6 +290,10 @@ func parseCsi(b []byte) (int, Event) {
 	}
 
 	switch cmd := csi.Command(); cmd {
+	case 'I':
+		return i, FocusEvent{}
+	case 'O':
+		return i, BlurEvent{}
 	case 'R':
 		// Cursor position report OR modified F3
 		if paramsLen == 0 {
