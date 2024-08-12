@@ -80,6 +80,15 @@ const (
 	RequestMouseAllMotion = "\x1b[?1003$p"
 )
 
+// Report Focus is a mode that makes the terminal report focus-in and focus-out events.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-FocusIn_FocusOut
+const (
+	EnableReportFocus  = "\x1b[?1004h"
+	DisableReportFocus = "\x1b[?1004l"
+	RequestReportFocus = "\x1b[?1004$p"
+)
+
 // SGR Mouse Extension is a mode that determines whether the mouse reports events
 // formatted with SGR parameters.
 //
