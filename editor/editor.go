@@ -18,13 +18,11 @@ type Option func(editor, filename string) (args []string, pathInArgs bool)
 
 // OpenAtLine opens the file at the given line number in supported editors.
 //
-// Deprecated: use Line instead.
-func OpenAtLine(number uint) Option {
-	return Line(number)
-}
+// Deprecated: use LineNumber instead.
+func OpenAtLine(n uint) Option { return LineNumber(n) }
 
-// Line opens the file at the given line number in supported editors.
-func Line(number uint) Option {
+// LineNumber opens the file at the given line number in supported editors.
+func LineNumber(number uint) Option {
 	plusLineEditors := []string{"vi", "vim", "nvim", "nano", "emacs", "kak", "gedit"}
 	return func(editor, filename string) ([]string, bool) {
 		for _, e := range plusLineEditors {
@@ -42,7 +40,7 @@ func Line(number uint) Option {
 	}
 }
 
-// EndOfLine opens the file at the end of the line.
+// EndOfLine opens the file at the end of the line in supported editors.
 func EndOfLine() Option {
 	return func(editor, _ string) (args []string, pathInArgs bool) {
 		switch editor {

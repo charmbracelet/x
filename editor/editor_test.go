@@ -35,7 +35,7 @@ func TestEditor(t *testing.T) {
 		} {
 			t.Run(k, func(t *testing.T) {
 				t.Setenv("EDITOR", k)
-				cmd, _ := Cmd("X", "README.md", Line(12))
+				cmd, _ := Cmd("X", "README.md", LineNumber(12))
 				got := cmd.Args
 				if !reflect.DeepEqual(got, v) {
 					t.Fatalf("expected %v; got %v", v, got)
@@ -75,7 +75,7 @@ func TestEditor(t *testing.T) {
 		} {
 			t.Run(k, func(t *testing.T) {
 				t.Setenv("EDITOR", k)
-				cmd, _ := Cmd("X", "README.md", EndOfLine(), Line(3))
+				cmd, _ := Cmd("X", "README.md", EndOfLine(), LineNumber(3))
 				got := cmd.Args
 				if !reflect.DeepEqual(got, v) {
 					t.Fatalf("expected %v; got %v", v, got)
