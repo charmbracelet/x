@@ -35,7 +35,47 @@ func TestEditor(t *testing.T) {
 		} {
 			t.Run(k, func(t *testing.T) {
 				t.Setenv("EDITOR", k)
-				cmd, _ := Cmd("X", "README.md", OpenAtLine(12))
+				cmd, _ := Cmd("X", "README.md", LineNumber(12))
+				got := cmd.Args
+				if !reflect.DeepEqual(got, v) {
+					t.Fatalf("expected %v; got %v", v, got)
+				}
+			})
+		}
+	})
+
+	t.Run("with end of line", func(t *testing.T) {
+		for k, v := range map[string][]string{
+			"":             {"nano", filename},
+			"nvim":         {"nvim", "+norm! $", filename},
+			"vim":          {"vim", "+norm! $", filename},
+			"vscode --foo": {"vscode", "--foo", filename},
+			"nvim -a -b":   {"nvim", "-a", "-b", "+norm! $", filename},
+			"code --foo":   {"code", "--foo", filename},
+		} {
+			t.Run(k, func(t *testing.T) {
+				t.Setenv("EDITOR", k)
+				cmd, _ := Cmd("X", "README.md", EndOfLine())
+				got := cmd.Args
+				if !reflect.DeepEqual(got, v) {
+					t.Fatalf("expected %v; got %v", v, got)
+				}
+			})
+		}
+	})
+
+	t.Run("with line and end of line", func(t *testing.T) {
+		for k, v := range map[string][]string{
+			"":             {"nano", "+3", filename},
+			"nvim":         {"nvim", "+norm! $", "+3", filename},
+			"vim":          {"vim", "+norm! $", "+3", filename},
+			"vscode --foo": {"vscode", "--foo", filename},
+			"nvim -a -b":   {"nvim", "-a", "-b", "+norm! $", "+3", filename},
+			"code --foo":   {"code", "--foo", "--goto", filename + ":3"},
+		} {
+			t.Run(k, func(t *testing.T) {
+				t.Setenv("EDITOR", k)
+				cmd, _ := Cmd("X", "README.md", EndOfLine(), LineNumber(3))
 				got := cmd.Args
 				if !reflect.DeepEqual(got, v) {
 					t.Fatalf("expected %v; got %v", v, got)
