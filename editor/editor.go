@@ -17,7 +17,14 @@ const defaultEditor = "nano"
 type Option func(editor, filename string) (args []string, pathInArgs bool)
 
 // OpenAtLine opens the file at the given line number in supported editors.
+//
+// Deprecated: use Line instead.
 func OpenAtLine(number uint) Option {
+	return Line(number)
+}
+
+// Line opens the file at the given line number in supported editors.
+func Line(number uint) Option {
 	plusLineEditors := []string{"vi", "vim", "nvim", "nano", "emacs", "kak", "gedit"}
 	return func(editor, filename string) ([]string, bool) {
 		for _, e := range plusLineEditors {
@@ -35,13 +42,15 @@ func OpenAtLine(number uint) Option {
 	}
 }
 
-// OpenAtEndOfLine opens the file at the end of the line.
-func OpenAtEndOfLine(editor, _ string) (args []string, pathInArgs bool) {
-	switch editor {
-	case "vim", "nvim":
-		return []string{"+norm! $"}, false
+// EndOfLine opens the file at the end of the line.
+func EndOfLine() Option {
+	return func(editor, _ string) (args []string, pathInArgs bool) {
+		switch editor {
+		case "vim", "nvim":
+			return []string{"+norm! $"}, false
+		}
+		return nil, false
 	}
-	return nil, false
 }
 
 // Cmd returns a *exec.Cmd editing the given path with $EDITOR or nano if no
