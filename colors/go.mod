@@ -14,3 +14,5 @@ require (
 	github.com/rivo/uniseg v0.4.7 // indirect
 	golang.org/x/sys v0.22.0 // indirect
 )
+
+replace github.com/charmbracelet/lipgloss => github.com/charmbracelet/lipgloss v0.12.2-0.20240722162534-2390dea254e8
