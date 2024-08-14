@@ -27,7 +27,6 @@ const RequestKittyKeyboard = "\x1b[?u"
 //
 // Possible values for flags mask:
 //
-//	0:  Disable all features
 //	1:  Disambiguate escape codes
 //	2:  Report event types
 //	4:  Report alternate keys
@@ -45,26 +44,17 @@ func KittyKeyboard(flags, mode int) string {
 	return "\x1b[=" + strconv.Itoa(flags) + ";" + strconv.Itoa(mode) + "u"
 }
 
-// SetKittyKeyboard returns a sequence to set the terminal Kitty keyboard
-// enhancement flags.
-//
-// To disable all features, use [DisableKittyKeyboard].
+// PushKittyKeyboard returns a sequence to push the given flags to the terminal
+// Kitty Keyboard stack.
 //
 // Possible values for flags mask:
 //
+//	0:  Disable all features
 //	1:  Disambiguate escape codes
 //	2:  Report event types
 //	4:  Report alternate keys
 //	8:  Report all keys as escape codes
 //	16: Report associated text
-//
-// This is equivalent to KittyKeyboard(flags, 1).
-func SetKittyKeyboard(flags int) string {
-	return KittyKeyboard(flags, 1)
-}
-
-// PushKittyKeyboard returns a sequence to push the given flags to the terminal
-// Kitty Keyboard stack.
 //
 //	CSI > flags u
 //
