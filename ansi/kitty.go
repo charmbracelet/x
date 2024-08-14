@@ -48,9 +48,10 @@ func KittyKeyboard(flags, mode int) string {
 // SetKittyKeyboard returns a sequence to set the terminal Kitty keyboard
 // enhancement flags.
 //
+// To disable all features, use [DisableKittyKeyboard].
+//
 // Possible values for flags mask:
 //
-//	0:  Disable all features
 //	1:  Disambiguate escape codes
 //	2:  Report event types
 //	4:  Report alternate keys
