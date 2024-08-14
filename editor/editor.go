@@ -17,7 +17,12 @@ const defaultEditor = "nano"
 type Option func(editor, filename string) (args []string, pathInArgs bool)
 
 // OpenAtLine opens the file at the given line number in supported editors.
-func OpenAtLine(number uint) Option {
+//
+// Deprecated: use LineNumber instead.
+func OpenAtLine(n uint) Option { return LineNumber(n) }
+
+// LineNumber opens the file at the given line number in supported editors.
+func LineNumber(number uint) Option {
 	plusLineEditors := []string{"vi", "vim", "nvim", "nano", "emacs", "kak", "gedit"}
 	return func(editor, filename string) ([]string, bool) {
 		for _, e := range plusLineEditors {
@@ -30,6 +35,17 @@ func OpenAtLine(number uint) Option {
 				"--goto",
 				fmt.Sprintf("%s:%d", filename, number),
 			}, true
+		}
+		return nil, false
+	}
+}
+
+// EndOfLine opens the file at the end of the line in supported editors.
+func EndOfLine() Option {
+	return func(editor, _ string) (args []string, pathInArgs bool) {
+		switch editor {
+		case "vim", "nvim":
+			return []string{"+norm! $"}, false
 		}
 		return nil, false
 	}
