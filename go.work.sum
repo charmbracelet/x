@@ -7,6 +7,8 @@ github.com/charmbracelet/harmonica v0.2.0/go.mod h1:KSri/1RMQOZLbw7AHqgcBycp8pgJ
 github.com/charmbracelet/lipgloss v0.11.0/go.mod h1:1UdRTH9gYgpcdNN5oBtjbu/IzNKtzVtb7sqN1t9LNn8=
 github.com/charmbracelet/lipgloss v0.12.0/go.mod h1:beLlcmkF7MWA+5UrKKIRo/VJ21xGXr7YJ9miWfdMRIU=
 github.com/charmbracelet/ssh v0.0.0-20240515141028-546b2ee33a4d/go.mod h1:8/Ve8iGRRIGFM1kepYfRF2pEOF5Y3TEZYoJaA54228U=
+github.com/charmbracelet/x/errors v0.0.0-20240117030013-d31dba354651/go.mod h1:2P0UgXMEa6TsToMSuFqKFQR+fZTO9CNGUNokkPatT/0=
+github.com/charmbracelet/x/exp/term v0.0.0-20240524151031-ff83003bf67a/go.mod h1:YBotIGhfoWhHDlnUpJMkjebGV2pdGRCn1Y4/Nk/vVcU=
 github.com/containerd/console v1.0.4-0.20230313162750-1ae8d489ac81/go.mod h1:YynlIjWYF8myEu6sdkwKIvGQq+cOckRm6So2avqoYAk=
 github.com/google/go-cmp v0.5.8/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
@@ -31,6 +33,7 @@ golang.org/x/sys v0.5.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.16.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 golang.org/x/sys v0.18.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 golang.org/x/sys v0.19.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
+golang.org/x/sys v0.20.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 golang.org/x/sys v0.21.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
 golang.org/x/telemetry v0.0.0-20240228155512-f48c80bd79b2/go.mod h1:TeRTkGYfJXctD9OcfyVLyj2J3IxLnKwHJR8f4D8a3YE=
 golang.org/x/term v0.16.0 h1:m+B6fahuftsE9qjo0VWp2FW0mB3MTJvR0BaMQrq0pmE=
