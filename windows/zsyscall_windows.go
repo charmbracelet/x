@@ -36,20 +36,42 @@ func errnoErr(e syscall.Errno) error {
 }
 
 var (
-	moduser32 = NewLazySystemDLL("user32.dll")
+	modkernel32 = NewLazySystemDLL("kernel32.dll")
 
-	procGetKeyboardLayout = moduser32.NewProc("GetKeyboardLayout")
-	procToUnicodeEx       = moduser32.NewProc("ToUnicodeEx")
+	procFlushConsoleInputBuffer       = modkernel32.NewProc("FlushConsoleInputBuffer")
+	procGetNumberOfConsoleInputEvents = modkernel32.NewProc("GetNumberOfConsoleInputEvents")
+	procPeekConsoleInputW             = modkernel32.NewProc("PeekConsoleInputW")
+	procReadConsoleInputW             = modkernel32.NewProc("ReadConsoleInputW")
 )
 
-func GetKeyboardLayout(threadId uint32) (hkl Handle) {
-	r0, _, _ := syscall.Syscall(procGetKeyboardLayout.Addr(), 1, uintptr(threadId), 0, 0)
-	hkl = Handle(r0)
+func FlushConsoleInputBuffer(console Handle) (err error) {
+	r1, _, e1 := syscall.Syscall(procFlushConsoleInputBuffer.Addr(), 1, uintptr(console), 0, 0)
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
 	return
 }
 
-func ToUnicodeEx(vkey uint32, scancode uint32, keystate *byte, pwszBuff *uint16, cchBuff int32, flags uint32, hkl Handle) (ret int32) {
-	r0, _, _ := syscall.Syscall9(procToUnicodeEx.Addr(), 7, uintptr(vkey), uintptr(scancode), uintptr(unsafe.Pointer(keystate)), uintptr(unsafe.Pointer(pwszBuff)), uintptr(cchBuff), uintptr(flags), uintptr(hkl), 0, 0)
-	ret = int32(r0)
+func GetNumberOfConsoleInputEvents(console Handle, numevents *uint32) (err error) {
+	r1, _, e1 := syscall.Syscall(procGetNumberOfConsoleInputEvents.Addr(), 2, uintptr(console), uintptr(unsafe.Pointer(numevents)), 0)
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
+func PeekConsoleInput(console Handle, buf *InputRecord, toread uint32, read *uint32) (err error) {
+	r1, _, e1 := syscall.Syscall6(procPeekConsoleInputW.Addr(), 4, uintptr(console), uintptr(unsafe.Pointer(buf)), uintptr(toread), uintptr(unsafe.Pointer(read)), 0, 0)
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
+	return
+}
+
+func ReadConsoleInput(console Handle, buf *InputRecord, toread uint32, read *uint32) (err error) {
+	r1, _, e1 := syscall.Syscall6(procReadConsoleInputW.Addr(), 4, uintptr(console), uintptr(unsafe.Pointer(buf)), uintptr(toread), uintptr(unsafe.Pointer(read)), 0, 0)
+	if r1 == 0 {
+		err = errnoErr(e1)
+	}
 	return
 }
