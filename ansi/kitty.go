@@ -8,11 +8,11 @@ const (
 	KittyDisambiguateEscapeCodes = 1 << iota
 	KittyReportEventTypes
 	KittyReportAlternateKeys
-	KittyReportAllKeys
+	KittyReportAllKeysAsEscapeCodes
 	KittyReportAssociatedKeys
 
 	KittyAllFlags = KittyDisambiguateEscapeCodes | KittyReportEventTypes |
-		KittyReportAlternateKeys | KittyReportAllKeys | KittyReportAssociatedKeys
+		KittyReportAlternateKeys | KittyReportAllKeysAsEscapeCodes | KittyReportAssociatedKeys
 )
 
 // RequestKittyKeyboard is a sequence to request the terminal Kitty keyboard
