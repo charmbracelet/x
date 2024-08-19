@@ -9,7 +9,6 @@ import (
 	"unicode/utf16"
 
 	"github.com/charmbracelet/x/ansi"
-	termwindows "github.com/charmbracelet/x/windows"
 	"github.com/erikgeiser/coninput"
 	"golang.org/x/sys/windows"
 )
@@ -141,7 +140,7 @@ func parseConInputEvent(event coninput.InputRecord, ps *coninput.ButtonState, ws
 		var keyState [256]byte
 		var utf16Buf [16]uint16
 		const dontChangeKernelKeyboardLayout = 0x4
-		ret := termwindows.ToUnicodeEx(
+		ret := windows.ToUnicodeEx(
 			uint32(e.VirtualKeyCode),
 			uint32(e.VirtualScanCode),
 			&keyState[0],
