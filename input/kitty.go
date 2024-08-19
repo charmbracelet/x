@@ -27,7 +27,7 @@ func (e KittyKeyboardEvent) IsReportAlternateKeys() bool {
 
 // IsReportAllKeys returns true if the ReportAllKeys flag is set.
 func (e KittyKeyboardEvent) IsReportAllKeys() bool {
-	return e&ansi.KittyReportAllKeys != 0
+	return e&ansi.KittyReportAllKeysAsEscapeCodes != 0
 }
 
 // IsReportAssociatedKeys returns true if the ReportAssociatedKeys flag is set.
