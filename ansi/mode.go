@@ -130,6 +130,18 @@ const (
 	RequestSyncdOutput = "\x1b[?2026$p"
 )
 
+// Grapheme Clustering Mode is a mode that determines whether the terminal
+// should look for grapheme clusters instead of single runes in the rendered
+// text. This makes the terminal properly render combining characters such as
+// emojis.
+//
+// See: https://github.com/contour-terminal/terminal-unicode-core
+const (
+	EnableGraphemeClustering  = "\x1b[?2027h"
+	DisableGraphemeClustering = "\x1b[?2027l"
+	RequestGraphemeClustering = "\x1b[?2027$p"
+)
+
 // Win32Input is a mode that determines whether input is processed by the
 // Win32 console and Conpty.
 //

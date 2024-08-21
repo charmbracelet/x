@@ -30,7 +30,8 @@ const (
 // The cell width will always be 0 for control and escape sequences, 1 for
 // ASCII printable characters, and the number of cells other Unicode characters
 // occupy. It uses the uniseg package to calculate the width of Unicode
-// graphemes and characters.
+// graphemes and characters. This means it will always do grapheme clustering
+// (mode 2027).
 //
 // Passing a non-nil [*Parser] as the last argument will allow the decoder to
 // collect sequence parameters, data, and commands. The parser cmd will have
