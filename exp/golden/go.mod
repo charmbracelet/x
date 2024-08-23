@@ -1,4 +1,4 @@
-module github.com/charmbracelet/x/exp/golden
+module github.com/pranavkrishnan02/x/exp/golden
 
 go 1.19
 
