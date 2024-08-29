@@ -47,9 +47,12 @@ func TestColorColor(t *testing.T) {
 }
 
 func BenchmarkStyle(b *testing.B) {
-	s := ansi.Style{}.Bold().Underline().ForegroundColor(color.RGBA{255, 255, 255, 255})
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		_ = s.String()
+		_ = ansi.Style{}.
+			Bold().
+			DoubleUnderline().
+			ForegroundColor(color.RGBA{255, 255, 255, 255}).
+			String()
 	}
 }
