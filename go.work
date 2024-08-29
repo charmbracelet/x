@@ -20,6 +20,7 @@ use (
 	./sshkey
 	./term
 	./termios
+	./wcwidth
 	./windows
 	./xpty
 )
