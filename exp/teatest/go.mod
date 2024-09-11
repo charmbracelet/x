@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/exp/teatest
 go 1.19
 
 require (
-	github.com/charmbracelet/bubbletea v1.1.0
+	github.com/charmbracelet/bubbletea v1.1.1
 	github.com/charmbracelet/x/exp/golden v0.0.0-20240806155701-69247e0abc2a
 )
 
