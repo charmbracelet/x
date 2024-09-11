@@ -16,6 +16,7 @@ into other repositories.
 Currently the following packages are available:
 
 - [`ansi`](./ansi): ANSI escape sequence parser and definitions • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/ansi)
+- [`cellbuf`](./cellbuf): Cell-based terminal display parser • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/cellbuf)
 - [`conpty`](./conpty): Windows Console Pseudo-terminal library • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/conpty)
 - [`editor`](./editor): open files in text editors • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/editor)
 - [`errors`](./errors): `errors.Join` in older Go versions • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/errors)
