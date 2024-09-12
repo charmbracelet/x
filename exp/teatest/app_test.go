@@ -27,8 +27,8 @@ func TestApp(t *testing.T) {
 	time.Sleep(time.Second + time.Millisecond*200)
 	tm.Type("I'm typing things, but it'll be ignored by my program")
 	tm.Send("ignored msg")
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
+	tm.Send(tea.KeyPressMsg{
+		Code: tea.KeyEnter,
 	})
 
 	if err := tm.Quit(); err != nil {
@@ -64,8 +64,8 @@ func TestAppInteractive(t *testing.T) {
 		return bytes.Contains(out, []byte("This program will exit in 7 seconds"))
 	}, teatest.WithDuration(5*time.Second), teatest.WithCheckInterval(time.Millisecond*10))
 
-	tm.Send(tea.KeyMsg{
-		Type: tea.KeyEnter,
+	tm.Send(tea.KeyPressMsg{
+		Code: tea.KeyEnter,
 	})
 
 	if err := tm.Quit(); err != nil {
@@ -93,8 +93,8 @@ type model int
 
 // Init optionally returns an initial command we should run. In this case we
 // want to start the timer.
-func (m model) Init() tea.Cmd {
-	return tick
+func (m model) Init() (tea.Model, tea.Cmd) {
+	return m, tick
 }
 
 // Update is called when messages are received. The idea is that you inspect the

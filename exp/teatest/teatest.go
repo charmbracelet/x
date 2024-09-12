@@ -253,10 +253,10 @@ func (tm *TestModel) Quit() error {
 
 // Type types the given text into the given program.
 func (tm *TestModel) Type(s string) {
-	for _, c := range []byte(s) {
-		tm.Send(tea.KeyMsg{
-			Runes: []rune{rune(c)},
-			Type:  tea.KeyRunes,
+	for _, c := range s {
+		tm.Send(tea.KeyPressMsg{
+			Code: c,
+			Text: string(c),
 		})
 	}
 }

@@ -36,7 +36,7 @@ func TestWaitForTimeout(t *testing.T) {
 
 type m string
 
-func (m m) Init() tea.Cmd                       { return nil }
+func (m m) Init() (tea.Model, tea.Cmd)          { return m, nil }
 func (m m) Update(tea.Msg) (tea.Model, tea.Cmd) { return m, nil }
 func (m m) View() string                        { return string(m) }
 
