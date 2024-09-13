@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/cellbuf
 go 1.18
 
 require (
-	github.com/charmbracelet/x/ansi v0.3.1-0.20240913141229-307a077b6071
+	github.com/charmbracelet/x/ansi v0.3.1
 	github.com/charmbracelet/x/wcwidth v0.0.0-20240910151828-580711411937
 )
 
