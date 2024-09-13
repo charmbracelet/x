@@ -29,7 +29,7 @@ func writeFrame[
 	var link Hyperlink
 	origX := x
 
-	p := GetParser()
+	p := ansi.GetParser()
 	data = replaceAll(data, T("\r\n"), T("\n"))
 
 	var state byte
@@ -228,7 +228,7 @@ func writeFrame[
 		data = data[n:]
 	}
 
-	PutParser(p)
+	ansi.PutParser(p)
 
 	return
 }
