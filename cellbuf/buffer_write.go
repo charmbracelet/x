@@ -25,8 +25,8 @@ func writeFrame[
 	decodeRune TDecodeRuneFunc,
 ) (n int, err error) {
 	var cell Cell
-	var pen Style
-	var link Hyperlink
+	var pen CellStyle
+	var link CellLink
 	origX := x
 
 	p := ansi.GetParser()

@@ -9,8 +9,8 @@ import (
 // Render returns a string representation of the buffer with ANSI escape
 // sequences. Use [ansi.Strip] to remove them.
 func (b *Buffer) Render() string {
-	var pen Style
-	var link Hyperlink
+	var pen CellStyle
+	var link CellLink
 	var buf bytes.Buffer
 	for y := 0; y < b.height; y++ {
 		for x := 0; x < b.width; x++ {

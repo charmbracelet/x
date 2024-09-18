@@ -20,10 +20,10 @@ var (
 type Cell struct {
 	// The style of the cell. Nil style means no style. Zero value prints a
 	// reset sequence.
-	Style Style
+	Style CellStyle
 
 	// Link is the hyperlink of the cell.
-	Link Hyperlink
+	Link CellLink
 
 	// Content is the string representation of the cell as a grapheme cluster.
 	Content string
@@ -85,30 +85,30 @@ func (c *Cell) Info() string {
 	return b.String()
 }
 
-// Hyperlink represents a hyperlink in the terminal screen.
-type Hyperlink struct {
+// CellLink represents a hyperlink in the terminal screen.
+type CellLink struct {
 	URL   string
 	URLID string
 }
 
 // Reset resets the hyperlink to the default state zero value.
-func (h *Hyperlink) Reset() {
+func (h *CellLink) Reset() {
 	h.URL = ""
 	h.URLID = ""
 }
 
 // Equal returns true if the hyperlink is equal to the other hyperlink.
-func (h Hyperlink) Equal(o Hyperlink) bool {
+func (h CellLink) Equal(o CellLink) bool {
 	return h.URL == o.URL && h.URLID == o.URLID
 }
 
 // IsEmpty returns true if the hyperlink is empty.
-func (h Hyperlink) IsEmpty() bool {
+func (h CellLink) IsEmpty() bool {
 	return h.URL == "" && h.URLID == ""
 }
 
 // Info returns a string representation of the hyperlink.
-func (h Hyperlink) Info() string {
+func (h CellLink) Info() string {
 	if h.URL == "" && h.URLID == "" {
 		return "Hyperlink{}"
 	} else if h.URL == "" {

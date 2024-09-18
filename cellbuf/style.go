@@ -86,8 +86,8 @@ func (u UnderlineStyle) String() string {
 	return underlineStyleNames[u]
 }
 
-// Style represents the Style of a cell.
-type Style struct {
+// CellStyle represents the CellStyle of a cell.
+type CellStyle struct {
 	Fg      ansi.Color
 	Bg      ansi.Color
 	Ul      ansi.Color
@@ -96,7 +96,7 @@ type Style struct {
 }
 
 // Sequence returns the ANSI sequence that sets the style.
-func (s Style) Sequence() string {
+func (s CellStyle) Sequence() string {
 	if s.IsEmpty() {
 		return ansi.ResetStyle
 	}
@@ -158,7 +158,7 @@ func (s Style) Sequence() string {
 
 // DiffSequence returns the ANSI sequence that sets the style as a diff from
 // another style.
-func (s Style) DiffSequence(o Style) string {
+func (s CellStyle) DiffSequence(o CellStyle) string {
 	if o.IsEmpty() {
 		return s.Sequence()
 	}
@@ -247,7 +247,7 @@ func (s Style) DiffSequence(o Style) string {
 }
 
 // Equal returns true if the style is equal to the other style.
-func (s Style) Equal(o Style) bool {
+func (s CellStyle) Equal(o CellStyle) bool {
 	return colorEqual(s.Fg, o.Fg) &&
 		colorEqual(s.Bg, o.Bg) &&
 		colorEqual(s.Ul, o.Ul) &&
@@ -268,7 +268,7 @@ func colorEqual(c, o ansi.Color) bool {
 }
 
 // Bold sets the bold attribute.
-func (s *Style) Bold(v bool) *Style {
+func (s *CellStyle) Bold(v bool) *CellStyle {
 	if v {
 		s.Attrs |= BoldAttr
 	} else {
@@ -278,7 +278,7 @@ func (s *Style) Bold(v bool) *Style {
 }
 
 // Faint sets the faint attribute.
-func (s *Style) Faint(v bool) *Style {
+func (s *CellStyle) Faint(v bool) *CellStyle {
 	if v {
 		s.Attrs |= FaintAttr
 	} else {
@@ -288,7 +288,7 @@ func (s *Style) Faint(v bool) *Style {
 }
 
 // Italic sets the italic attribute.
-func (s *Style) Italic(v bool) *Style {
+func (s *CellStyle) Italic(v bool) *CellStyle {
 	if v {
 		s.Attrs |= ItalicAttr
 	} else {
@@ -298,7 +298,7 @@ func (s *Style) Italic(v bool) *Style {
 }
 
 // SlowBlink sets the slow blink attribute.
-func (s *Style) SlowBlink(v bool) *Style {
+func (s *CellStyle) SlowBlink(v bool) *CellStyle {
 	if v {
 		s.Attrs |= SlowBlinkAttr
 	} else {
@@ -308,7 +308,7 @@ func (s *Style) SlowBlink(v bool) *Style {
 }
 
 // RapidBlink sets the rapid blink attribute.
-func (s *Style) RapidBlink(v bool) *Style {
+func (s *CellStyle) RapidBlink(v bool) *CellStyle {
 	if v {
 		s.Attrs |= RapidBlinkAttr
 	} else {
@@ -318,7 +318,7 @@ func (s *Style) RapidBlink(v bool) *Style {
 }
 
 // Reverse sets the reverse attribute.
-func (s *Style) Reverse(v bool) *Style {
+func (s *CellStyle) Reverse(v bool) *CellStyle {
 	if v {
 		s.Attrs |= ReverseAttr
 	} else {
@@ -328,7 +328,7 @@ func (s *Style) Reverse(v bool) *Style {
 }
 
 // Conceal sets the conceal attribute.
-func (s *Style) Conceal(v bool) *Style {
+func (s *CellStyle) Conceal(v bool) *CellStyle {
 	if v {
 		s.Attrs |= ConcealAttr
 	} else {
@@ -338,7 +338,7 @@ func (s *Style) Conceal(v bool) *Style {
 }
 
 // Strikethrough sets the strikethrough attribute.
-func (s *Style) Strikethrough(v bool) *Style {
+func (s *CellStyle) Strikethrough(v bool) *CellStyle {
 	if v {
 		s.Attrs |= StrikethroughAttr
 	} else {
@@ -348,14 +348,14 @@ func (s *Style) Strikethrough(v bool) *Style {
 }
 
 // UnderlineStyle sets the underline style.
-func (s *Style) UnderlineStyle(style UnderlineStyle) *Style {
+func (s *CellStyle) UnderlineStyle(style UnderlineStyle) *CellStyle {
 	s.UlStyle = style
 	return s
 }
 
 // Underline sets the underline attribute.
 // This is a syntactic sugar for [UnderlineStyle].
-func (s *Style) Underline(v bool) *Style {
+func (s *CellStyle) Underline(v bool) *CellStyle {
 	if v {
 		return s.UnderlineStyle(SingleUnderline)
 	}
@@ -363,25 +363,25 @@ func (s *Style) Underline(v bool) *Style {
 }
 
 // Foreground sets the foreground color.
-func (s *Style) Foreground(c ansi.Color) *Style {
+func (s *CellStyle) Foreground(c ansi.Color) *CellStyle {
 	s.Fg = c
 	return s
 }
 
 // Background sets the background color.
-func (s *Style) Background(c ansi.Color) *Style {
+func (s *CellStyle) Background(c ansi.Color) *CellStyle {
 	s.Bg = c
 	return s
 }
 
 // UnderlineColor sets the underline color.
-func (s *Style) UnderlineColor(c ansi.Color) *Style {
+func (s *CellStyle) UnderlineColor(c ansi.Color) *CellStyle {
 	s.Ul = c
 	return s
 }
 
 // Reset resets the style to default.
-func (s *Style) Reset() *Style {
+func (s *CellStyle) Reset() *CellStyle {
 	s.Fg = nil
 	s.Bg = nil
 	s.Ul = nil
@@ -391,12 +391,12 @@ func (s *Style) Reset() *Style {
 }
 
 // IsEmpty returns true if the style is empty.
-func (s *Style) IsEmpty() bool {
+func (s *CellStyle) IsEmpty() bool {
 	return s.Fg == nil && s.Bg == nil && s.Ul == nil && s.Attrs == ResetAttr && s.UlStyle == NoUnderline
 }
 
 // Info returns a string representation of the style.
-func (s *Style) Info() string {
+func (s *CellStyle) Info() string {
 	if s.IsEmpty() {
 		return "Style{ResetAttr}"
 	}
