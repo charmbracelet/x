@@ -7,7 +7,7 @@ import (
 	"testing/iotest"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "github.com/charmbracelet/bubbletea/v2"
 )
 
 func TestWaitForErrorReader(t *testing.T) {
