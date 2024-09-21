@@ -12,6 +12,15 @@ type Color struct {
 	v color.RGBA
 }
 
+// NewColorFromRGB creates a new color from RGB values.
+func NewColorFromRGB(r, g, b uint8) Color {
+	return Color{color.RGBA{r, g, b, 255}}
+}
+
+func NewColorFromHSV(h, s, v float64) Color {
+	return Color{HSVToRGBA(h, s, v)}
+}
+
 // RGBA returns the RGBA values of the color.
 func (c Color) RGBA() (r, g, b, a uint32) {
 	return c.v.RGBA()
