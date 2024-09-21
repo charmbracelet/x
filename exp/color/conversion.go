@@ -28,12 +28,12 @@ func (c Color) HSV() (h, s, v float64) {
 }
 
 // FromHSV sets the color from HSV values.
-func (c Color) FromHSV(h, s, v float64) {
+func (c *Color) FromHSV(h, s, v float64) {
 	c.v = HSVToRGBA(h, s, v)
 }
 
 // FromRGB sets the color from RGB values.
-func (c Color) FromRGB(r, g, b uint8) {
+func (c *Color) FromRGB(r, g, b uint8) {
 	c.v.R = r
 	c.v.G = g
 	c.v.B = b
