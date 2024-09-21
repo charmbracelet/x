@@ -8,6 +8,7 @@ use (
 	./editor
 	./errors
 	./examples
+	./exp/color
 	./exp/golden
 	./exp/higherorder
 	./exp/maps
