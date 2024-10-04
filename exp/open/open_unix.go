@@ -17,11 +17,10 @@ func buildCmd(ctx context.Context, app, path string) *exec.Cmd {
 		arg = append(arg, path)
 		return exec.CommandContext(ctx, "open", arg...)
 	}
-
+	if app != "" {
+		return exec.CommandContext(ctx, app, path)
+	}
 	if _, err := exec.LookPath("xdg-open"); err == nil {
-		if app == "" {
-			return exec.CommandContext(ctx, app, path)
-		}
 		return exec.CommandContext(ctx, "xdg-open", path)
 	}
 	return nil
