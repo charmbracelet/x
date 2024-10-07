@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -53,7 +54,20 @@ func EndOfLine() Option {
 
 // Cmd returns a *exec.Cmd editing the given path with $EDITOR or nano if no
 // $EDITOR is set.
+// Deprecated: use Command or CommandContext instead.
 func Cmd(app, path string, options ...Option) (*exec.Cmd, error) {
+	return CommandContext(context.Background(), app, path, options...)
+}
+
+// Command returns a *exec.Cmd editing the given path with $EDITOR or nano if
+// no $EDITOR is set.
+func Command(app, path string, options ...Option) (*exec.Cmd, error) {
+	return CommandContext(context.Background(), app, path, options...)
+}
+
+// CmdContext returns a *exec.Cmd editing the given path with $EDITOR or nano
+// if no $EDITOR is set.
+func CommandContext(ctx context.Context, app, path string, options ...Option) (*exec.Cmd, error) {
 	if os.Getenv("SNAP_REVISION") != "" {
 		return nil, fmt.Errorf("Did you install with Snap? %[1]s is sandboxed and unable to open an editor. Please install %[1]s with Go or another package manager to enable editing.", app)
 	}
@@ -73,7 +87,7 @@ func Cmd(app, path string, options ...Option) (*exec.Cmd, error) {
 		args = append(args, path)
 	}
 
-	return exec.Command(editor, args...), nil
+	return exec.CommandContext(ctx, editor, args...), nil
 }
 
 func getEditor() (string, []string) {
