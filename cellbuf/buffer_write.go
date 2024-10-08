@@ -2,7 +2,6 @@ package cellbuf
 
 import (
 	"bytes"
-	"io"
 	"strings"
 	"unicode/utf8"
 
@@ -10,9 +9,9 @@ import (
 	"github.com/charmbracelet/x/wcwidth"
 )
 
-// writeFrame writes the given data to the buffer starting from the first cell.
+// setContent writes the given data to the buffer starting from the first cell.
 // It accepts both string and []byte data types.
-func writeFrame[
+func setContent[
 	T string | []byte,
 	TReplaceAllFunc func(s T, old T, new T) T, //nolint:predeclared
 	TDecodeRuneFunc func(p T) (rune, int),
@@ -20,16 +19,18 @@ func writeFrame[
 	buf *Buffer,
 	data T,
 	x, y int,
+	w, h int,
 	method WidthMethod,
 	replaceAll TReplaceAllFunc,
 	decodeRune TDecodeRuneFunc,
-) (n int, err error) {
+) {
 	var cell Cell
 	var pen CellStyle
 	var link CellLink
 	origX := x
 
 	p := ansi.GetParser()
+	defer ansi.PutParser(p)
 	data = replaceAll(data, T("\r\n"), T("\n"))
 
 	var state byte
@@ -215,6 +216,12 @@ func writeFrame[
 					link.URL = string(params[2])
 				}
 			case ansi.Equal(seq, T("\n")):
+				// Reset the rest of the line
+				for x < w {
+					buf.Set(x, y, spaceCell) //nolint:errcheck
+					x++
+				}
+
 				y++
 				// XXX: We gotta reset the x position here because we're moving
 				// to the next line. We shouldn't have any "\r\n" sequences,
@@ -228,49 +235,19 @@ func writeFrame[
 		data = data[n:]
 	}
 
-	ansi.PutParser(p)
-
-	return
+	for x < w {
+		buf.Set(x, y, spaceCell) //nolint:errcheck
+		x++
+	}
 }
 
-var _ io.StringWriter = &Buffer{}
-
-// WriteString writes the given string to the buffer starting from the first cell.
-func (b *Buffer) WriteString(s string) (n int, err error) {
-	return writeFrame(b, s, 0, 0, b.method, strings.ReplaceAll, utf8.DecodeRuneInString)
-}
-
-var _ io.Writer = &Buffer{}
-
-// Write writes the given data to the buffer starting from the first cell.
-func (b *Buffer) Write(p []byte) (n int, err error) {
-	return writeFrame(b, p, 0, 0, b.method, bytes.ReplaceAll, utf8.DecodeRune)
-}
-
-var _ io.WriterAt = &Buffer{}
-
-// WriteStringAt writes the given string to the buffer starting from the given cell
-// index position.
-// To calculate the cell index position, use the following formula:
-//
-//	index = y * width + x
-//
-// Where x is the column and y is the row. For example, to write content
-// starting at cell position (2, 3), index would be 3 * width + 2.
-func (b *Buffer) WriteStringAt(s string, index int64) (n int, err error) {
-	x, y := index%int64(b.width), index/int64(b.width)
-	return writeFrame(b, s, int(x), int(y), b.method, strings.ReplaceAll, utf8.DecodeRuneInString)
-}
-
-// WriteAt writes the given data to the buffer starting from the given cell
-// index position.
-// To calculate the cell index position, use the following formula:
-//
-//	index = y * width + x
-//
-// Where x is the column and y is the row. For example, to write content
-// starting at cell position (2, 3), index would be 3 * width + 2.
-func (b *Buffer) WriteAt(p []byte, index int64) (n int, err error) {
-	x, y := index%int64(b.width), index/int64(b.width)
-	return writeFrame(b, p, int(x), int(y), b.method, bytes.ReplaceAll, utf8.DecodeRune)
+// SetContent sets the content of the buffer from a string.
+func (b *Buffer) SetContent(s string) {
+	height := Height(s)
+	if area := b.width * height; len(b.cells) < area {
+		b.cells = append(b.cells, make([]Cell, area-len(b.cells))...)
+	} else if len(b.cells) > area {
+		b.cells = b.cells[:area]
+	}
+	setContent(b, s, 0, 0, b.width, height, b.method, strings.ReplaceAll, utf8.DecodeRuneInString)
 }

@@ -2,9 +2,15 @@ package cellbuf
 
 import (
 	"image/color"
+	"strings"
 
 	"github.com/charmbracelet/x/ansi"
 )
+
+// Height returns the height of a string.
+func Height(s string) int {
+	return strings.Count(s, "\n") + 1
+}
 
 func readColor(idxp *int, params []int) (c ansi.Color) {
 	i := *idxp
