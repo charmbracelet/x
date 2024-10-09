@@ -10,6 +10,7 @@ type Buffer struct {
 // NewBuffer creates a new Buffer with the given width and height.
 func NewBuffer(width int, method WidthMethod) *Buffer {
 	return &Buffer{
+		cells:  make([]Cell, width),
 		width:  width,
 		method: method,
 	}
@@ -39,6 +40,9 @@ func (b *Buffer) Size() (width, height int) {
 
 // At returns the cell at the given x, y position.
 func (b *Buffer) At(x, y int) (Cell, error) {
+	if b.width == 0 {
+		return Cell{}, ErrOutOfBounds
+	}
 	height := len(b.cells) / b.width
 	if x < 0 || x >= b.width || y < 0 || y >= height {
 		return Cell{}, ErrOutOfBounds
@@ -52,6 +56,9 @@ func (b *Buffer) At(x, y int) (Cell, error) {
 
 // Fill fills the buffer with the given style and rune.
 func (b *Buffer) Fill(c Cell) {
+	if b.width == 0 {
+		return
+	}
 	height := len(b.cells) / b.width
 	for j := 0; j < height; j++ {
 		for i := 0; i < b.width; i++ {
@@ -62,6 +69,9 @@ func (b *Buffer) Fill(c Cell) {
 
 // Set sets the cell at the given x, y position.
 func (b *Buffer) Set(x, y int, c Cell) {
+	if b.width == 0 {
+		return
+	}
 	height := len(b.cells) / b.width
 	if x > b.width-1 || y > height-1 {
 		return
@@ -91,4 +101,12 @@ func (b *Buffer) lastInLine(x, y int) bool {
 		}
 	}
 	return true
+}
+
+// Clone returns a deep copy of the buffer.
+func (b *Buffer) Clone() *Buffer {
+	clone := NewBuffer(b.width, b.method)
+	clone.cells = make([]Cell, len(b.cells))
+	copy(clone.cells, b.cells)
+	return clone
 }

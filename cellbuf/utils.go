@@ -40,3 +40,10 @@ func readColor(idxp *int, params []int) (c ansi.Color) {
 	}
 	return
 }
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}

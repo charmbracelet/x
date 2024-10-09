@@ -1,7 +1,11 @@
 package cellbuf
 
 // Line represents a single line of cells.
-type Line string
+type Line struct {
+	Content string
+	Width   int
+	Erase   bool // Whether to erase the rest of the line.
+}
 
 // Segment represents multiple cells with the same style and link.
 type Segment struct {
@@ -17,6 +21,15 @@ type ClearScreen struct{}
 // EraseRight represents an erase right operation.
 type EraseRight struct{}
 
+// EraseLine represents an erase line operation.
+type EraseLine struct{}
+
+// SaveCursor represents a save cursor position operation.
+type SaveCursor struct{}
+
+// RestoreCursor represents a restore cursor position operation.
+type RestoreCursor struct{}
+
 // Change represents a single change between two cell buffers.
 type Change struct {
 	X, Y int // The starting position of the change.
@@ -27,7 +40,7 @@ type Change struct {
 
 // Changes returns a list of changes between two cell buffers.
 func Changes(a, b *Buffer) (chs []Change) {
-	if a == nil || b == nil {
+	if a == nil || b == nil || b.width == 0 {
 		return nil
 	}
 
@@ -36,9 +49,14 @@ func Changes(a, b *Buffer) (chs []Change) {
 		// Clear the screen and redraw everything if the widths are different.
 		chs = append(chs, Change{Change: ClearScreen{}})
 		for y := 0; y < bHeight; y++ {
+			var width int
+			for x := 0; x < b.width; x++ {
+				cell, _ := b.At(x, y)
+				width += cell.Width
+			}
 			chs = append(chs, Change{
 				X: 0, Y: y,
-				Change: Line(b.RenderLine(y)),
+				Change: Line{b.RenderLine(y), width, false},
 			})
 		}
 		return chs
@@ -90,18 +108,20 @@ func Changes(a, b *Buffer) (chs []Change) {
 				continue
 			}
 
+			seg.Content += cellB.Content
+			seg.Width += cellB.Width
+
 			if b.lastInLine(x, y) && !a.lastInLine(x, y) {
 				// PERF: This is expensive. We should find a better way to handle this.
 				chs = append(chs,
 					Change{X: startX, Y: y, Change: *seg},
-					Change{X: x, Y: y, Change: EraseRight{}},
+					Change{X: x + 1, Y: y, Change: EraseRight{}},
 				)
 				seg = nil
+
+				// Skip to the next line. We already know that the rest of the line is spaces.
 				break
 			}
-
-			seg.Content += cellB.Content
-			seg.Width += cellB.Width
 		}
 
 		if seg != nil {
@@ -109,14 +129,18 @@ func Changes(a, b *Buffer) (chs []Change) {
 		}
 	}
 
-	// Return any remaining lines.
-	aHeight := len(a.cells) / a.width
-	if aHeight > bHeight {
-		for y := bHeight; y < aHeight; y++ {
-			chs = append(chs, Change{
-				X: 0, Y: y,
-				Change: Line(""), // Empty line signals a clear line.
-			})
+	// Delete any remaining lines in a.
+	if a.width > 0 {
+		aHeight := len(a.cells) / a.width
+		if aHeight > bHeight {
+			// Ensure the cursor is at the last line of the current buffer.
+			chs = append(chs, Change{X: 0, Y: bHeight - 1, Change: Line{"", 0, false}})
+
+			chs = append(chs, Change{Change: SaveCursor{}})
+			for y := bHeight; y < aHeight; y++ {
+				chs = append(chs, Change{X: 0, Y: y, Change: EraseLine{}})
+			}
+			chs = append(chs, Change{Change: RestoreCursor{}})
 		}
 	}
 
