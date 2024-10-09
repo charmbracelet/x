@@ -171,7 +171,7 @@ func setContent[
 						case 29: // Not crossed out
 							pen.Strikethrough(false)
 						case 30, 31, 32, 33, 34, 35, 36, 37: // Set foreground
-							pen.Foreground(ansi.Black + ansi.BasicColor(param-30))
+							pen.Foreground(ansi.Black + ansi.BasicColor(param-30)) //nolint:gosec
 						case 38: // Set foreground 256 or truecolor
 							if c := readColor(&i, params); c != nil {
 								pen.Foreground(c)
@@ -179,7 +179,7 @@ func setContent[
 						case 39: // Default foreground
 							pen.Foreground(nil)
 						case 40, 41, 42, 43, 44, 45, 46, 47: // Set background
-							pen.Background(ansi.Black + ansi.BasicColor(param-40))
+							pen.Background(ansi.Black + ansi.BasicColor(param-40)) //nolint:gosec
 						case 48: // Set background 256 or truecolor
 							if c := readColor(&i, params); c != nil {
 								pen.Background(c)
@@ -193,9 +193,9 @@ func setContent[
 						case 59: // Default underline color
 							pen.UnderlineColor(nil)
 						case 90, 91, 92, 93, 94, 95, 96, 97: // Set bright foreground
-							pen.Foreground(ansi.BrightBlack + ansi.BasicColor(param-90))
+							pen.Foreground(ansi.BrightBlack + ansi.BasicColor(param-90)) //nolint:gosec
 						case 100, 101, 102, 103, 104, 105, 106, 107: // Set bright background
-							pen.Background(ansi.BrightBlack + ansi.BasicColor(param-100))
+							pen.Background(ansi.BrightBlack + ansi.BasicColor(param-100)) //nolint:gosec
 						}
 					}
 				}
@@ -241,13 +241,24 @@ func setContent[
 	}
 }
 
+func setStringContent(b *Buffer, c string, x, y, w, h int, method WidthMethod) {
+	setContent(b, c, x, y, w, h, method, strings.ReplaceAll, utf8.DecodeRuneInString)
+}
+
 // SetContent sets the content of the buffer from a string.
 func (b *Buffer) SetContent(s string) {
 	height := Height(s)
 	if area := b.width * height; len(b.cells) < area {
-		b.cells = append(b.cells, make([]Cell, area-len(b.cells))...)
+		ln := len(b.cells)
+		b.cells = append(b.cells, make([]Cell, area-ln)...)
+		// Fill the buffer with space cells
+		for i := ln; i < area; i++ {
+			b.cells[i] = spaceCell
+		}
 	} else if len(b.cells) > area {
+		// Truncate the buffer if necessary
 		b.cells = b.cells[:area]
 	}
-	setContent(b, s, 0, 0, b.width, height, b.method, strings.ReplaceAll, utf8.DecodeRuneInString)
+
+	setStringContent(b, s, 0, 0, b.width, height, b.method)
 }
