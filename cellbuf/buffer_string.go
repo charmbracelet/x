@@ -7,26 +7,29 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// Render returns a string representation of the buffer with ANSI escape
-// sequences. Use [ansi.Strip] to remove them.
-func (b *Buffer) Render() string {
+// Render returns a string representation of the grid with ANSI escape sequences.
+// Use [ansi.Strip] to remove them.
+func Render(g Grid) string {
 	var buf bytes.Buffer
-	height := len(b.cells) / b.width
+	height := g.Height()
 	for y := 0; y < height; y++ {
-		buf.WriteString(b.RenderLine(y))
-		buf.WriteString("\r\n")
+		_, line := RenderLine(g, y)
+		buf.WriteString(line)
+		if y < height-1 {
+			buf.WriteString("\r\n")
+		}
 	}
 	return buf.String()
 }
 
-// RenderLine returns a string representation of the buffer n line with ANSI escape
-// sequences. Use [ansi.Strip] to remove them.
-func (b *Buffer) RenderLine(n int) string {
+// RenderLine returns a string representation of the yth line of the grid along
+// with the width of the line.
+func RenderLine(g Grid, n int) (w int, line string) {
 	var pen CellStyle
 	var link CellLink
 	var buf bytes.Buffer
-	for x := 0; x < b.width; x++ {
-		if cell, err := b.At(x, n); err == nil && cell.Width > 0 {
+	for x := 0; x < g.Width(); x++ {
+		if cell, err := g.At(x, n); err == nil && cell.Width > 0 {
 			if cell.Style.IsEmpty() && !pen.IsEmpty() {
 				buf.WriteString(ansi.ResetStyle) //nolint:errcheck
 				pen.Reset()
@@ -47,6 +50,7 @@ func (b *Buffer) RenderLine(n int) string {
 				link = cell.Link
 			}
 
+			w += cell.Width
 			buf.WriteString(cell.Content)
 		}
 	}
@@ -56,5 +60,5 @@ func (b *Buffer) RenderLine(n int) string {
 	if !pen.IsEmpty() {
 		buf.WriteString(ansi.ResetStyle) //nolint:errcheck
 	}
-	return strings.TrimRight(buf.String(), " ") // Trim trailing spaces
+	return w, strings.TrimRight(buf.String(), " ") // Trim trailing spaces
 }

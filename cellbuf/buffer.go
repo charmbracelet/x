@@ -9,11 +9,17 @@ type Buffer struct {
 
 // NewBuffer creates a new Buffer with the given width and height.
 func NewBuffer(width int, method WidthMethod) *Buffer {
-	return &Buffer{
+	b := &Buffer{
 		cells:  make([]Cell, width),
 		width:  width,
 		method: method,
 	}
+	return b
+}
+
+// Method returns the width method used by the buffer.
+func (b *Buffer) Method() WidthMethod {
+	return b.method
 }
 
 // Equal returns true if the buffer is equal to the other buffer.
@@ -30,6 +36,16 @@ func (b *Buffer) Equal(o *Buffer) bool {
 		}
 	}
 	return true
+}
+
+// Width returns the width of the buffer.
+func (b *Buffer) Width() int {
+	return b.width
+}
+
+// Height returns the height of the buffer.
+func (b *Buffer) Height() int {
+	return len(b.cells) / b.width
 }
 
 // Size returns the width and height of the buffer.

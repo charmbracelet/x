@@ -16,14 +16,14 @@ func setContent[
 	TReplaceAllFunc func(s T, old T, new T) T, //nolint:predeclared
 	TDecodeRuneFunc func(p T) (rune, int),
 ](
-	buf *Buffer,
+	buf Grid,
 	data T,
 	x, y int,
 	w, h int,
 	method WidthMethod,
 	replaceAll TReplaceAllFunc,
 	decodeRune TDecodeRuneFunc,
-) {
+) []int {
 	var cell Cell
 	var pen CellStyle
 	var link CellLink
@@ -32,6 +32,13 @@ func setContent[
 	p := ansi.GetParser()
 	defer ansi.PutParser(p)
 	data = replaceAll(data, T("\r\n"), T("\n"))
+
+	// linew is a slice of line widths. We use this to keep track of the
+	// written widths of each line. We use this information later to optimize
+	// rendering of the buffer.
+	linew := make([]int, h)
+
+	var pendingWidth int
 
 	var state byte
 	for len(data) > 0 {
@@ -99,8 +106,14 @@ func setContent[
 
 			buf.Set(x, y, cell) //nolint:errcheck
 
-			// Advance the cursor
+			// Advance the cursor and line width
 			x += cell.Width
+			if cell.Equal(spaceCell) {
+				pendingWidth += cell.Width
+			} else {
+				linew[y] += cell.Width + pendingWidth
+				pendingWidth = 0
+			}
 
 			cell.Reset()
 		default:
@@ -239,15 +252,39 @@ func setContent[
 		buf.Set(x, y, spaceCell) //nolint:errcheck
 		x++
 	}
+
+	return linew
 }
 
-func setStringContent(b *Buffer, c string, x, y, w, h int, method WidthMethod) {
-	setContent(b, c, x, y, w, h, method, strings.ReplaceAll, utf8.DecodeRuneInString)
+// Grid represents an interface for a grid of cells that can be written to and
+// read from.
+type Grid interface {
+	// Width returns the width of the grid.
+	Width() int
+
+	// Height returns the height of the grid.
+	Height() int
+
+	// Set writes a cell to the grid at the given position.
+	Set(x, y int, c Cell)
+
+	// At returns the cell at the given position.
+	At(x, y int) (Cell, error)
+
+	// SetContent writes the given data to the grid starting from the first cell.
+	SetContent(data string) []int
+
+	// Method returns the width method used by the grid.
+	Method() WidthMethod
 }
 
-// SetContent sets the content of the buffer from a string.
-func (b *Buffer) SetContent(s string) {
-	height := Height(s)
+func setStringContent(b Grid, c string, x, y, w, h int, method WidthMethod) []int {
+	return setContent(b, c, x, y, w, h, method, strings.ReplaceAll, utf8.DecodeRuneInString)
+}
+
+// setBufferContent writes the given data to the buffer starting from the first cell.
+func setBufferContent(g Grid, b *Buffer, content string) []int {
+	height := Height(content)
 	if area := b.width * height; len(b.cells) < area {
 		ln := len(b.cells)
 		b.cells = append(b.cells, make([]Cell, area-ln)...)
@@ -260,5 +297,10 @@ func (b *Buffer) SetContent(s string) {
 		b.cells = b.cells[:area]
 	}
 
-	setStringContent(b, s, 0, 0, b.width, height, b.method)
+	return setStringContent(g, content, 0, 0, b.width, height, b.method)
+}
+
+// SetContent sets the content of the buffer from a string.
+func (b *Buffer) SetContent(s string) []int {
+	return setBufferContent(b, b, s)
 }
