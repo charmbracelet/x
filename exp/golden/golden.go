@@ -44,7 +44,6 @@ func RequireEqualEscape(tb testing.TB, out []byte, escapes bool) {
 		tb.Fatal(err)
 	}
 
-	goldenBts = fixLineEndings(goldenBts)
 	goldenStr := string(goldenBts)
 	outStr := string(out)
 	if escapes {
