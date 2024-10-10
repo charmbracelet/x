@@ -25,6 +25,11 @@ func NewDirtyBuffer(width int, method WidthMethod) *DirtyBuffer {
 	return d
 }
 
+// SetMethod sets the width method used by the buffer.
+func (d *DirtyBuffer) SetMethod(method WidthMethod) {
+	d.method = method
+}
+
 // Method returns the width method used by the buffer.
 func (d *DirtyBuffer) Method() WidthMethod {
 	return d.method
