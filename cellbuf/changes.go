@@ -49,14 +49,10 @@ func Changes(a, b *Buffer) (chs []Change) {
 		// Clear the screen and redraw everything if the widths are different.
 		chs = append(chs, Change{Change: ClearScreen{}})
 		for y := 0; y < bHeight; y++ {
-			var width int
-			for x := 0; x < b.width; x++ {
-				cell, _ := b.At(x, y)
-				width += cell.Width
-			}
+			width, line := RenderLine(b, y)
 			chs = append(chs, Change{
 				X: 0, Y: y,
-				Change: Line{b.RenderLine(y), width, false},
+				Change: Line{line, width, false},
 			})
 		}
 		return chs

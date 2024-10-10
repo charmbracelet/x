@@ -9,7 +9,7 @@ type Window interface {
 	AbsY() int
 	At(x, y int) (Cell, error)
 	Set(x, y int, c Cell)
-	SetContent(content string)
+	SetContent(content string) []int
 
 	// Child returns a new window that is a child of the current window. The
 	// child window starts at the given x, y position and has the given width
@@ -21,7 +21,7 @@ type Window interface {
 
 type childWindow struct {
 	parent Window
-	buf    *Buffer
+	buf    Grid
 	x, y   int // relative to parent
 	w, h   int
 }
@@ -29,7 +29,7 @@ type childWindow struct {
 var _ Window = &childWindow{}
 
 // newChildWindow creates a new child window.
-func newChildWindow(buf *Buffer, parent Window, x, y, width, height int) (*childWindow, error) {
+func newChildWindow(buf Grid, parent Window, x, y, width, height int) (*childWindow, error) {
 	if x < 0 || y < 0 || width <= 0 || height <= 0 {
 		return nil, ErrOutOfBounds
 	}
@@ -81,8 +81,8 @@ func (c *childWindow) Set(x int, y int, cell Cell) {
 }
 
 // SetContent implements Window.
-func (c *childWindow) SetContent(content string) {
-	setStringContent(c.buf, content, c.AbsX(), c.AbsY(), c.w, c.h, c.buf.method)
+func (c *childWindow) SetContent(content string) []int {
+	return setStringContent(c.buf, content, c.AbsX(), c.AbsY(), c.w, c.h, c.buf.Method())
 }
 
 // Width implements Window.
