@@ -30,7 +30,6 @@ func (s *Screen) changes(buf *bytes.Buffer) {
 		}
 
 		s.pos.X, s.pos.Y = x, height-1
-		buf.WriteString(Render(s.buf))
 		return
 	}
 
