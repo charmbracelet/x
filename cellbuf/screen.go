@@ -123,6 +123,10 @@ func (s *Screen) InsertAbove(line string) {
 
 // Commit returns the necessary changes and commits the buffer.
 func (s *Screen) Commit() string {
+	if s.lastContent == "" {
+		return ""
+	}
+
 	var buf bytes.Buffer
 	if !s.altScreen && len(s.queueAbove) > 0 {
 		s.moveCursor(&buf, nil, 0, 0)
@@ -147,9 +151,8 @@ func (s *Screen) Commit() string {
 
 	s.changes(&buf)
 
-	if s.lastContent != "" {
-		s.lastRender = s.lastContent
-	}
+	s.lastRender = s.lastContent
+	s.lastContent = ""
 	s.lastHeight = Height(s.lastRender)
 	s.buf.Commit()
 
