@@ -34,9 +34,18 @@ type Cell struct {
 
 // Equal returns true if the cell is equal to the other cell.
 func (c *Cell) Equal(o Cell) bool {
+	spaceStyleEqual := func(lhs, rhs CellStyle) bool {
+		return colorEqual(lhs.Bg, rhs.Bg) &&
+			colorEqual(lhs.Ul, rhs.Ul) &&
+			lhs.Attrs == rhs.Attrs &&
+			lhs.UlStyle == rhs.UlStyle
+	}
+
 	return c.Content == o.Content &&
+		// If the cell is a space, we don't care about the FG color.
+		((c.Content == " " && spaceStyleEqual(c.Style, o.Style)) ||
+			(c.Style.Equal(o.Style))) &&
 		c.Width == o.Width &&
-		c.Style.Equal(o.Style) &&
 		c.Link.Equal(o.Link)
 }
 
