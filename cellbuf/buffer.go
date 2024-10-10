@@ -17,6 +17,11 @@ func NewBuffer(width int, method WidthMethod) *Buffer {
 	return b
 }
 
+// SetMethod sets the width method used by the buffer.
+func (b *Buffer) SetMethod(method WidthMethod) {
+	b.method = method
+}
+
 // Method returns the width method used by the buffer.
 func (b *Buffer) Method() WidthMethod {
 	return b.method

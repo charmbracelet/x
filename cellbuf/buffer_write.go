@@ -276,6 +276,9 @@ type Grid interface {
 
 	// Method returns the width method used by the grid.
 	Method() WidthMethod
+
+	// SetMethod sets the width method of the grid.
+	SetMethod(method WidthMethod)
 }
 
 func setStringContent(b Grid, c string, x, y, w, h int, method WidthMethod) []int {

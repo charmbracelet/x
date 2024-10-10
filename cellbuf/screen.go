@@ -74,6 +74,11 @@ func newScreen(altScreen bool, width int, method WidthMethod) *Screen {
 	}
 }
 
+// SetMethod sets the width method of the screen.
+func (s *Screen) SetMethod(method WidthMethod) {
+	s.buf.SetMethod(method)
+}
+
 // Pos returns the x and y position of the cursor.
 func (s *Screen) Pos() (x int, y int) {
 	return s.pos.X, s.pos.Y
