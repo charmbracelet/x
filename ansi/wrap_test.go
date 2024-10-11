@@ -32,6 +32,7 @@ var cases = []struct {
 	{"preserve_style", "\x1B[38;2;249;38;114m(\x1B[0m\x1B[38;2;248;248;242mjust another test\x1B[38;2;249;38;114m)\x1B[0m", 3, "\x1B[38;2;249;38;114m(\x1B[0m\x1B[38;2;248;248;242mju\nst \nano\nthe\nr t\nest\x1B[38;2;249;38;114m\n)\x1B[0m", false},
 	{"emoji", "foo🫧foobar", 4, "foo\n🫧fo\nobar", false},
 	{"osc8_wrap", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\สวัสดีสวัสดี\x1b]8;;\x1b\\", 8, "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\\nสวัสดีสวัสดี\x1b]8;;\x1b\\", false},
+	{"column", "VERTICAL", 1, "V\nE\nR\nT\nI\nC\nA\nL", false},
 }
 
 func TestHardwrap(t *testing.T) {
