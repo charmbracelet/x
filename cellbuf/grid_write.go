@@ -2,7 +2,6 @@ package cellbuf
 
 import (
 	"bytes"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
@@ -25,8 +24,8 @@ func setContent[
 	decodeRune TDecodeRuneFunc,
 ) []int {
 	var cell Cell
-	var pen CellStyle
-	var link CellLink
+	var pen Style
+	var link Link
 	origX := x
 
 	p := ansi.GetParser()
@@ -93,7 +92,7 @@ func setContent[
 							break
 						}
 					}
-					if !wide.IsEmpty() {
+					if !wide.Empty() {
 						c := wide
 						c.Content = " "
 						c.Width = 1
@@ -254,56 +253,4 @@ func setContent[
 	}
 
 	return linew
-}
-
-// Grid represents an interface for a grid of cells that can be written to and
-// read from.
-type Grid interface {
-	// Width returns the width of the grid.
-	Width() int
-
-	// Height returns the height of the grid.
-	Height() int
-
-	// Set writes a cell to the grid at the given position.
-	Set(x, y int, c Cell)
-
-	// At returns the cell at the given position.
-	At(x, y int) (Cell, error)
-
-	// SetContent writes the given data to the grid starting from the first cell.
-	SetContent(data string) []int
-
-	// Method returns the width method used by the grid.
-	Method() WidthMethod
-
-	// SetMethod sets the width method of the grid.
-	SetMethod(method WidthMethod)
-}
-
-func setStringContent(b Grid, c string, x, y, w, h int, method WidthMethod) []int {
-	return setContent(b, c, x, y, w, h, method, strings.ReplaceAll, utf8.DecodeRuneInString)
-}
-
-// setBufferContent writes the given data to the buffer starting from the first cell.
-func setBufferContent(g Grid, b *Buffer, content string) []int {
-	height := Height(content)
-	if area := b.width * height; len(b.cells) < area {
-		ln := len(b.cells)
-		b.cells = append(b.cells, make([]Cell, area-ln)...)
-		// Fill the buffer with space cells
-		for i := ln; i < area; i++ {
-			b.cells[i] = spaceCell
-		}
-	} else if len(b.cells) > area {
-		// Truncate the buffer if necessary
-		b.cells = b.cells[:area]
-	}
-
-	return setStringContent(g, content, 0, 0, b.width, height, b.method)
-}
-
-// SetContent sets the content of the buffer from a string.
-func (b *Buffer) SetContent(s string) []int {
-	return setBufferContent(b, b, s)
 }

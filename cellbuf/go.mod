@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/charmbracelet/x/ansi v0.3.2
-	github.com/charmbracelet/x/wcwidth v0.0.0-20240910151828-580711411937
+	github.com/charmbracelet/x/wcwidth v0.0.0-20241011142426-46044092ad91
 )
 
 require (
