@@ -153,7 +153,7 @@ func CursorPreviousLine(n int) string {
 //	CSI n ; m H
 //
 // See: https://vt100.net/docs/vt510-rm/CUP.html
-func MoveCursor(row, col int) string {
+func MoveCursor(col, row int) string {
 	if row < 0 {
 		row = 0
 	}
