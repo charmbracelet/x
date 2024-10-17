@@ -47,7 +47,7 @@ func TestStrip(t *testing.T) {
 func TestStringWidth(t *testing.T) {
 	for i, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if width := StringWidth(c.input); width != c.width {
+			if width := GraphemeWidth.StringWidth(c.input); width != c.width {
 				t.Errorf("test case %d failed: expected %d, got %d", i+1, c.width, width)
 			}
 		})

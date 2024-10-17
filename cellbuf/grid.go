@@ -3,7 +3,6 @@ package cellbuf
 import (
 	"bytes"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
 )
@@ -34,13 +33,13 @@ type Grid interface {
 
 // SetContentAt writes the given data to the grid starting from the given
 // position and with the given width and height.
-func (m WidthMethod) SetContentAt(b Grid, c string, x, y, w, h int) []int {
-	return setContent(b, c, x, y, w, h, m, strings.ReplaceAll, utf8.DecodeRuneInString)
+func SetContentAt(m ansi.Method, b Grid, c string, x, y, w, h int) []int {
+	return setContent(b, c, x, y, w, h, m)
 }
 
 // SetContent writes the given data to the grid starting from the first cell.
-func (m WidthMethod) SetContent(g Grid, content string) []int {
-	return m.SetContentAt(g, content, 0, 0, g.Width(), Height(content))
+func SetContent(m ansi.Method, g Grid, content string) []int {
+	return SetContentAt(m, g, content, 0, 0, g.Width(), Height(content))
 }
 
 // Render returns a string representation of the grid with ANSI escape sequences.
