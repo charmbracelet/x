@@ -64,6 +64,8 @@ func RenderLine(g Grid, n int) (w int, line string) {
 	var pen Style
 	var link Link
 	var buf bytes.Buffer
+	var pendingLine string
+	var pendingWidth int // this ignores space cells until we hit a non-space cell
 	for x := 0; x < g.Width(); x++ {
 		if cell, err := g.At(x, n); err == nil && cell.Width > 0 {
 			if cell.Style.Empty() && !pen.Empty() {
@@ -86,8 +88,17 @@ func RenderLine(g Grid, n int) (w int, line string) {
 				link = cell.Link
 			}
 
-			w += cell.Width
-			buf.WriteString(cell.Content)
+			// We only write the cell content if it's not empty. If it is, we
+			// append it to the pending line and width to be evaluated later.
+			if len(strings.TrimSpace(cell.Content)) == 0 {
+				pendingLine += cell.Content
+				pendingWidth += cell.Width
+			} else {
+				buf.WriteString(pendingLine + cell.Content)
+				w += pendingWidth + cell.Width
+				pendingWidth = 0
+				pendingLine = ""
+			}
 		}
 	}
 	if link.URL != "" {
