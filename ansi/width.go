@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/charmbracelet/x/ansi/parser"
+	"github.com/charmbracelet/x/wcwidth"
 	"github.com/rivo/uniseg"
 )
 
@@ -63,6 +64,14 @@ func Strip(s string) string {
 // codes are ignored and wide characters (such as East Asians and emojis) are
 // accounted for.
 func StringWidth(s string) int {
+	return GraphemeWidth.StringWidth(s)
+}
+
+// StringWidth returns the width of a string in cells. This is the number of
+// cells that the string will occupy when printed in a terminal. ANSI escape
+// codes are ignored and wide characters (such as East Asians and emojis) are
+// accounted for.
+func (m Method) StringWidth(s string) int {
 	if s == "" {
 		return 0
 	}
@@ -78,7 +87,12 @@ func StringWidth(s string) int {
 		if state == parser.Utf8State {
 			var w int
 			cluster, _, w, _ = uniseg.FirstGraphemeClusterInString(s[i:], -1)
-			width += w
+			switch m {
+			case WcWidth:
+				width += wcwidth.StringWidth(cluster)
+			case GraphemeWidth:
+				width += w
+			}
 			i += len(cluster) - 1
 			pstate = parser.GroundState
 			continue
