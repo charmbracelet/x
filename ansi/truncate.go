@@ -21,11 +21,11 @@ func Truncate(s string, length int, tail string) string {
 // This function is aware of ANSI escape codes and will not break them, and
 // accounts for wide-characters (such as East Asians and emojis).
 func (m Method) Truncate(s string, length int, tail string) string {
-	if sw := StringWidth(s); sw <= length {
+	if sw := m.StringWidth(s); sw <= length {
 		return s
 	}
 
-	tw := StringWidth(tail)
+	tw := m.StringWidth(tail)
 	length -= tw
 	if length < 0 {
 		return ""
