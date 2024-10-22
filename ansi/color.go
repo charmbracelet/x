@@ -1,8 +1,6 @@
 package ansi
 
-import (
-	"image/color"
-)
+import "image/color"
 
 // Technically speaking, the 16 basic ANSI colors are arbitrary and can be
 // customized at the terminal level. Given that, we're returning what we feel
@@ -131,6 +129,18 @@ var _ Color = TrueColor(0)
 func (c TrueColor) RGBA() (uint32, uint32, uint32, uint32) {
 	r, g, b := hexToRGB(uint32(c))
 	return toRGBA(r, g, b)
+}
+
+// AdaptiveColor represents a light or dark color.
+type AdaptiveColor struct {
+	Light, Dark Color
+}
+
+// RGBA satisfies the color.Color interface.
+// Note: This is not a perfect implementation. It will always return the dark
+// color's RGBA values.
+func (c AdaptiveColor) RGBA() (uint32, uint32, uint32, uint32) {
+	return c.Dark.RGBA()
 }
 
 // ansiToRGB converts an ANSI color to a 24-bit RGB color.

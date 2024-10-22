@@ -392,6 +392,24 @@ func foregroundColorString(c Color) string {
 		// 256-color ANSI foreground
 		// "38;5;<n>"
 		return "38;5;" + strconv.FormatUint(uint64(c), 10)
+	case AdaptiveColor:
+		lc, lok := c.Light.(ExtendedColor)
+		dc, dok := c.Dark.(ExtendedColor)
+		if lok && dok {
+			return "38:10:" +
+				strconv.FormatUint(uint64(lc), 10) + ":" +
+				strconv.FormatUint(uint64(dc), 10)
+		} else {
+			lr, lg, lb, _ := c.Light.RGBA()
+			dr, dg, db, _ := c.Dark.RGBA()
+			return "38:4:" +
+				strconv.FormatUint(uint64(shift(lr)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(lg)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(lb)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(dr)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(dg)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(db)), 10)
+		}
 	case TrueColor, color.Color:
 		// 24-bit "true color" foreground
 		// "38;2;<r>;<g>;<b>"
@@ -450,6 +468,24 @@ func backgroundColorString(c Color) string {
 		// 256-color ANSI foreground
 		// "48;5;<n>"
 		return "48;5;" + strconv.FormatUint(uint64(c), 10)
+	case AdaptiveColor:
+		lc, lok := c.Light.(ExtendedColor)
+		dc, dok := c.Dark.(ExtendedColor)
+		if lok && dok {
+			return "48:10:" +
+				strconv.FormatUint(uint64(lc), 10) + ":" +
+				strconv.FormatUint(uint64(dc), 10)
+		} else {
+			lr, lg, lb, _ := c.Light.RGBA()
+			dr, dg, db, _ := c.Dark.RGBA()
+			return "48:4:" +
+				strconv.FormatUint(uint64(shift(lr)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(lg)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(lb)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(dr)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(dg)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(db)), 10)
+		}
 	case TrueColor, color.Color:
 		// 24-bit "true color" foreground
 		// "38;2;<r>;<g>;<b>"
@@ -476,6 +512,24 @@ func underlineColorString(c Color) string {
 		return "58;5;" + strconv.FormatUint(uint64(c), 10)
 	case ExtendedColor:
 		return "58;5;" + strconv.FormatUint(uint64(c), 10)
+	case AdaptiveColor:
+		lc, lok := c.Light.(ExtendedColor)
+		dc, dok := c.Dark.(ExtendedColor)
+		if lok && dok {
+			return "58:10:" +
+				strconv.FormatUint(uint64(lc), 10) + ":" +
+				strconv.FormatUint(uint64(dc), 10)
+		} else {
+			lr, lg, lb, _ := c.Light.RGBA()
+			dr, dg, db, _ := c.Dark.RGBA()
+			return "58:4:" +
+				strconv.FormatUint(uint64(shift(lr)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(lg)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(lb)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(dr)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(dg)), 10) + ":" +
+				strconv.FormatUint(uint64(shift(db)), 10)
+		}
 	case TrueColor, color.Color:
 		// 24-bit "true color" foreground
 		// "38;2;<r>;<g>;<b>"
