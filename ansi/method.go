@@ -11,3 +11,15 @@ const (
 	WcWidth Method = iota
 	GraphemeWidth
 )
+
+// String returns the string representation of the Method.
+func (m Method) String() string {
+	switch m {
+	case WcWidth:
+		return "WcWidth"
+	case GraphemeWidth:
+		return "GraphemeWidth"
+	default:
+		return "Unknown"
+	}
+}

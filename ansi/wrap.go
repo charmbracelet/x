@@ -54,6 +54,9 @@ func (m Method) Hardwrap(s string, limit int, preserveSpace bool) string {
 			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
 			i += len(cluster)
 
+			if m == WcWidth {
+				width = wcwidth.StringWidth(string(cluster))
+			}
 			if curWidth+width > limit {
 				addNewline()
 			}
@@ -66,12 +69,7 @@ func (m Method) Hardwrap(s string, limit int, preserveSpace bool) string {
 			}
 
 			buf.Write(cluster)
-			switch m {
-			case WcWidth:
-				curWidth += wcwidth.StringWidth(string(cluster))
-			case GraphemeWidth:
-				curWidth += width
-			}
+			curWidth += width
 			pstate = parser.GroundState
 			continue
 		}
@@ -180,6 +178,9 @@ func (m Method) Wordwrap(s string, limit int, breakpoints string) string {
 			var width int
 			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
 			i += len(cluster)
+			if m == WcWidth {
+				width = wcwidth.StringWidth(string(cluster))
+			}
 
 			r, _ := utf8.DecodeRune(cluster)
 			if r != utf8.RuneError && unicode.IsSpace(r) && r != nbsp {
@@ -192,12 +193,7 @@ func (m Method) Wordwrap(s string, limit int, breakpoints string) string {
 				curWidth++
 			} else {
 				word.Write(cluster)
-				switch m {
-				case WcWidth:
-					wordLen += wcwidth.StringWidth(string(cluster))
-				case GraphemeWidth:
-					wordLen += width
-				}
+				wordLen += width
 				if curWidth+space.Len()+wordLen > limit &&
 					wordLen < limit {
 					addNewline()
