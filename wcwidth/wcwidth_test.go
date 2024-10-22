@@ -67,6 +67,29 @@ var runewidthtests = []struct {
 	{'Ω', 1},
 	{'好', 2},
 	{'か', 2},
+	{'コ', 2},
+	{'ン', 2},
+	{'ニ', 2},
+	{'チ', 2},
+	{'ハ', 2},
+	{',', 1},
+	{' ', 1},
+	{'セ', 2},
+	{'カ', 2},
+	{'イ', 2},
+	{'!', 1},
+	{'a', 1},
+	{'A', 1},
+	{'z', 1},
+	{'Z', 1},
+	{'#', 1},
+	{'\u05bf', 0}, // Combining
+	{'\u0301', 0}, // Combining acute accent
+	{'\u0410', 1}, // Cyrillic Capital Letter A
+	{'\u0488', 0}, // Combining Cyrillic Hundred Thousands Sign
+	{'\u00ad', 0}, // Soft hyphen
+	{0, 0},        // Special case, width of null rune is zero
+	{'\u00a0', 0},
 }
 
 func BenchmarkRuneWidth(b *testing.B) {
@@ -100,6 +123,9 @@ func TestZeroWidthJoiner(t *testing.T) {
 		{"あ\u200dい", 4},
 		{"abc", 3},
 		{"你好", 4},
+		{"Hello!", 6},
+		{"Hello, 世界!", 12},
+		{"ᬓᬨᬮ᭄", 4},
 	}
 
 	for _, tt := range tests {
