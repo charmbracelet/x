@@ -89,7 +89,7 @@ var runewidthtests = []struct {
 	{'\u0488', 0}, // Combining Cyrillic Hundred Thousands Sign
 	{'\u00ad', 0}, // Soft hyphen
 	{0, 0},        // Special case, width of null rune is zero
-	{'\u00a0', 0},
+	{'\u00a0', 1}, // non-breaking space
 }
 
 func BenchmarkRuneWidth(b *testing.B) {

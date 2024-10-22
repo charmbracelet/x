@@ -15,6 +15,8 @@ import (
 	"golang.org/x/text/width"
 )
 
+const nbsp = 0xA0
+
 // RuneWidth returns fixed-width width of rune.
 // https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms#In_Unicode
 func RuneWidth(r rune) int {
@@ -22,6 +24,9 @@ func RuneWidth(r rune) int {
 	// Cf (Other, format). We treat Control characters (class Cc) as zero width
 	// instead of -1.
 	if r == 0 || !unicode.IsPrint(r) || unicode.In(r, unicode.Me, unicode.Mn, unicode.Cf) {
+		if r == nbsp { // Special case: non-breaking space has width 1
+			return 1
+		}
 		return 0
 	}
 	k := width.LookupRune(r)
