@@ -59,6 +59,11 @@ func Strip(s string) string {
 	return buf.String()
 }
 
+// Strip removes ANSI escape codes from a string.
+func (m Method) Strip(s string) string {
+	return Strip(s)
+}
+
 // StringWidth returns the width of a string in cells. This is the number of
 // cells that the string will occupy when printed in a terminal. ANSI escape
 // codes are ignored and wide characters (such as East Asians and emojis) are
