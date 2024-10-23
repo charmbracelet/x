@@ -41,17 +41,18 @@ const (
 // [Cmd] and [Param] types to unpack command intermediates and markers as well
 // as parameters.
 //
-// Zero [p.Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
-// validity of other data sequences, OSC, DCS, etc, will require checking for
-// the returned sequence terminator bytes such as ST (ESC \\) and BEL).
+// Zero [Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover,
+// checking the validity of other data sequences, OSC, DCS, etc, will require
+// checking for the returned sequence terminator bytes such as ST (ESC \\) and
+// BEL).
 //
-// We store the command byte in [p.Cmd] in the most significant byte, the
-// marker byte in the next byte, and the intermediate byte in the least
-// significant byte. This is done to avoid using a struct to store the command
-// and its intermediates and markers. The command byte is always the least
-// significant byte i.e. [p.Cmd & 0xff]. Use the [Cmd] type to unpack the
-// command, intermediate, and marker bytes. Note that we only collect the last
-// marker character and intermediate byte.
+// We store the command byte in [Cmd] in the most significant byte, the marker
+// byte in the next byte, and the intermediate byte in the least significant
+// byte. This is done to avoid using a struct to store the command and its
+// intermediates and markers. The command byte is always the least significant
+// byte i.e. [Cmd & 0xff]. Use the [Cmd] type to unpack the command,
+// intermediate, and marker bytes. Note that we only collect the last marker
+// character and intermediate byte.
 //
 // The [p.Params] slice will contain the parameters of the sequence. Any
 // sub-parameter will have the [parser.HasMoreFlag] set. Use the [Param] type
@@ -94,17 +95,18 @@ func DecodeSequenceInString(s string, state byte, p *Parser) (seq string, width 
 // [Cmd] and [Param] types to unpack command intermediates and markers as well
 // as parameters.
 //
-// Zero [p.Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
-// validity of other data sequences, OSC, DCS, etc, will require checking for
-// the returned sequence terminator bytes such as ST (ESC \\) and BEL).
+// Zero [Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover,
+// checking the validity of other data sequences, OSC, DCS, etc, will require
+// checking for the returned sequence terminator bytes such as ST (ESC \\) and
+// BEL).
 //
-// We store the command byte in [p.Cmd] in the most significant byte, the
-// marker byte in the next byte, and the intermediate byte in the least
-// significant byte. This is done to avoid using a struct to store the command
-// and its intermediates and markers. The command byte is always the least
-// significant byte i.e. [p.Cmd & 0xff]. Use the [Cmd] type to unpack the
-// command, intermediate, and marker bytes. Note that we only collect the last
-// marker character and intermediate byte.
+// We store the command byte in [Cmd] in the most significant byte, the marker
+// byte in the next byte, and the intermediate byte in the least significant
+// byte. This is done to avoid using a struct to store the command and its
+// intermediates and markers. The command byte is always the least significant
+// byte i.e. [Cmd & 0xff]. Use the [Cmd] type to unpack the command,
+// intermediate, and marker bytes. Note that we only collect the last marker
+// character and intermediate byte.
 //
 // The [p.Params] slice will contain the parameters of the sequence. Any
 // sub-parameter will have the [parser.HasMoreFlag] set. Use the [Param] type
