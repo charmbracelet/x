@@ -6,7 +6,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi/parser"
-	"github.com/charmbracelet/x/wcwidth"
 	"github.com/rivo/uniseg"
 )
 
@@ -41,123 +40,15 @@ const (
 // [Cmd] and [Param] types to unpack command intermediates and markers as well
 // as parameters.
 //
-// Zero [Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover,
-// checking the validity of other data sequences, OSC, DCS, etc, will require
-// checking for the returned sequence terminator bytes such as ST (ESC \\) and
-// BEL).
-//
-// We store the command byte in [Cmd] in the most significant byte, the marker
-// byte in the next byte, and the intermediate byte in the least significant
-// byte. This is done to avoid using a struct to store the command and its
-// intermediates and markers. The command byte is always the least significant
-// byte i.e. [Cmd & 0xff]. Use the [Cmd] type to unpack the command,
-// intermediate, and marker bytes. Note that we only collect the last marker
-// character and intermediate byte.
-//
-// The [p.Params] slice will contain the parameters of the sequence. Any
-// sub-parameter will have the [parser.HasMoreFlag] set. Use the [Param] type
-// to unpack the parameters.
-//
-// Example:
-//
-//	var state byte // the initial state is always zero [NormalState]
-//	p := NewParser(32, 1024) // create a new parser with a 32 params buffer and 1024 data buffer (optional)
-//	input := []byte("\x1b[31mHello, World!\x1b[0m")
-//	for len(input) > 0 {
-//		seq, width, n, newState := DecodeSequence(input, state, p)
-//		log.Printf("seq: %q, width: %d", seq, width)
-//		state = newState
-//		input = input[n:]
-//	}
-func DecodeSequence(b []byte, state byte, p *Parser) (seq []byte, width int, n int, newState byte) {
-	return GraphemeWidth.DecodeSequence(b, state, p)
-}
-
-// DecodeSequenceInString is like [DecodeSequence] but for strings.
-func DecodeSequenceInString(s string, state byte, p *Parser) (seq string, width int, n int, newState byte) {
-	return GraphemeWidth.DecodeSequenceInString(s, state, p)
-}
-
-// DecodeSequence decodes the first ANSI escape sequence or a printable
-// grapheme from the given data. It returns the sequence slice, the number of
-// bytes read, the cell width for each sequence, and the new state.
-//
-// The cell width will always be 0 for control and escape sequences, 1 for
-// ASCII printable characters, and the number of cells other Unicode characters
-// occupy. It uses the uniseg package to calculate the width of Unicode
-// graphemes and characters. This means it will always do grapheme clustering
-// (mode 2027).
-//
-// Passing a non-nil [*Parser] as the last argument will allow the decoder to
-// collect sequence parameters, data, and commands. The parser cmd will have
-// the packed command value that contains intermediate and marker characters.
-// In the case of a OSC sequence, the cmd will be the OSC command number. Use
-// [Cmd] and [Param] types to unpack command intermediates and markers as well
-// as parameters.
-//
-// Zero [Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover,
-// checking the validity of other data sequences, OSC, DCS, etc, will require
-// checking for the returned sequence terminator bytes such as ST (ESC \\) and
-// BEL).
-//
-// We store the command byte in [Cmd] in the most significant byte, the marker
-// byte in the next byte, and the intermediate byte in the least significant
-// byte. This is done to avoid using a struct to store the command and its
-// intermediates and markers. The command byte is always the least significant
-// byte i.e. [Cmd & 0xff]. Use the [Cmd] type to unpack the command,
-// intermediate, and marker bytes. Note that we only collect the last marker
-// character and intermediate byte.
-//
-// The [p.Params] slice will contain the parameters of the sequence. Any
-// sub-parameter will have the [parser.HasMoreFlag] set. Use the [Param] type
-// to unpack the parameters.
-//
-// Example:
-//
-//	var state byte // the initial state is always zero [NormalState]
-//	p := NewParser(32, 1024) // create a new parser with a 32 params buffer and 1024 data buffer (optional)
-//	input := []byte("\x1b[31mHello, World!\x1b[0m")
-//	for len(input) > 0 {
-//		seq, width, n, newState := DecodeSequence(input, state, p)
-//		log.Printf("seq: %q, width: %d", seq, width)
-//		state = newState
-//		input = input[n:]
-//	}
-func (m Method) DecodeSequence(b []byte, state byte, p *Parser) (seq []byte, width int, n int, newState byte) {
-	return decodeSequence(m, b, state, p)
-}
-
-// DecodeSequenceInString is like [DecodeSequence] but for strings.
-func (m Method) DecodeSequenceInString(s string, state byte, p *Parser) (seq string, width int, n int, newState byte) {
-	return decodeSequence(m, s, state, p)
-}
-
-// decodeSequence decodes the first ANSI escape sequence or a printable
-// grapheme from the given data. It returns the sequence slice, the number of
-// bytes read, the cell width for each sequence, and the new state.
-//
-// The cell width will always be 0 for control and escape sequences, 1 for
-// ASCII printable characters, and the number of cells other Unicode characters
-// occupy. It uses the uniseg package to calculate the width of Unicode
-// graphemes and characters. This means it will always do grapheme clustering
-// (mode 2027).
-//
-// Passing a non-nil [*Parser] as the last argument will allow the decoder to
-// collect sequence parameters, data, and commands. The parser cmd will have
-// the packed command value that contains intermediate and marker characters.
-// In the case of a OSC sequence, the cmd will be the OSC command number. Use
-// [Cmd] and [Param] types to unpack command intermediates and markers as well
-// as parameters.
-//
-// Zero [p.Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
+// Zero [Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
 // validity of other data sequences, OSC, DCS, etc, will require checking for
 // the returned sequence terminator bytes such as ST (ESC \\) and BEL).
 //
-// We store the command byte in [p.Cmd] in the most significant byte, the
+// We store the command byte in [Cmd] in the most significant byte, the
 // marker byte in the next byte, and the intermediate byte in the least
 // significant byte. This is done to avoid using a struct to store the command
 // and its intermediates and markers. The command byte is always the least
-// significant byte i.e. [p.Cmd & 0xff]. Use the [Cmd] type to unpack the
+// significant byte i.e. [Cmd & 0xff]. Use the [Cmd] type to unpack the
 // command, intermediate, and marker bytes. Note that we only collect the last
 // marker character and intermediate byte.
 //
@@ -176,7 +67,7 @@ func (m Method) DecodeSequenceInString(s string, state byte, p *Parser) (seq str
 //		state = newState
 //		input = input[n:]
 //	}
-func decodeSequence[T string | []byte](m Method, b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
+func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
 	for i := 0; i < len(b); i++ {
 		c := b[i]
 
@@ -231,9 +122,6 @@ func decodeSequence[T string | []byte](m Method, b T, state byte, p *Parser) (se
 
 			if utf8.RuneStart(c) {
 				seq, _, width, _ = FirstGraphemeCluster(b, -1)
-				if m == WcWidth {
-					width = wcwidth.StringWidth(string(seq))
-				}
 				i += len(seq)
 				return b[:i], width, i, NormalState
 			}
