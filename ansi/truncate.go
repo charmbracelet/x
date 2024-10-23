@@ -4,7 +4,6 @@ import (
 	"bytes"
 
 	"github.com/charmbracelet/x/ansi/parser"
-	"github.com/charmbracelet/x/wcwidth"
 	"github.com/rivo/uniseg"
 )
 
@@ -13,19 +12,11 @@ import (
 // This function is aware of ANSI escape codes and will not break them, and
 // accounts for wide-characters (such as East Asians and emojis).
 func Truncate(s string, length int, tail string) string {
-	return GraphemeWidth.Truncate(s, length, tail)
-}
-
-// Truncate truncates a string to a given length, adding a tail to the
-// end if the string is longer than the given length.
-// This function is aware of ANSI escape codes and will not break them, and
-// accounts for wide-characters (such as East Asians and emojis).
-func (m Method) Truncate(s string, length int, tail string) string {
-	if sw := m.StringWidth(s); sw <= length {
+	if sw := StringWidth(s); sw <= length {
 		return s
 	}
 
-	tw := m.StringWidth(tail)
+	tw := StringWidth(tail)
 	length -= tw
 	if length < 0 {
 		return ""
@@ -50,9 +41,6 @@ func (m Method) Truncate(s string, length int, tail string) string {
 			// This action happens when we transition to the Utf8State.
 			var width int
 			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
-			if m == WcWidth {
-				width = wcwidth.StringWidth(string(cluster))
-			}
 
 			// increment the index by the length of the cluster
 			i += len(cluster)

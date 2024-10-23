@@ -2,19 +2,26 @@ package cellbuf
 
 import (
 	"bytes"
-	"strings"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/wcwidth"
 )
 
 // setContent writes the given data to the buffer starting from the first cell.
 // It accepts both string and []byte data types.
-func setContent(
+func setContent[
+	T string | []byte,
+	TReplaceAllFunc func(s T, old T, new T) T, //nolint:predeclared
+	TDecodeRuneFunc func(p T) (rune, int),
+](
 	buf Grid,
-	data string,
+	data T,
 	x, y int,
 	w, h int,
-	method ansi.Method,
+	method WidthMethod,
+	replaceAll TReplaceAllFunc,
+	decodeRune TDecodeRuneFunc,
 ) []int {
 	var cell Cell
 	var pen Style
@@ -23,7 +30,7 @@ func setContent(
 
 	p := ansi.GetParser()
 	defer ansi.PutParser(p)
-	data = strings.ReplaceAll(data, "\r\n", "\n")
+	data = replaceAll(data, T("\r\n"), T("\n"))
 
 	// linew is a slice of line widths. We use this to keep track of the
 	// written widths of each line. We use this information later to optimize
@@ -34,10 +41,23 @@ func setContent(
 
 	var state byte
 	for len(data) > 0 {
-		seq, width, n, newState := method.DecodeSequenceInString(data, state, p)
+		seq, width, n, newState := ansi.DecodeSequence(data, state, p)
 
 		switch width {
 		case 2, 3, 4: // wide cells can go up to 4 cells wide
+
+			switch method {
+			case WcWidth:
+				if r, rw := decodeRune(data); r != utf8.RuneError {
+					n = rw
+					width = wcwidth.RuneWidth(r)
+					seq = T(string(r))
+					newState = 0
+				}
+			case GraphemeWidth:
+				// [ansi.DecodeSequence] already handles grapheme clusters
+			}
+
 			// Mark wide cells with emptyCell zero width
 			// We set the wide cell down below
 			for j := 1; j < width; j++ {
@@ -207,7 +227,7 @@ func setContent(
 					link.URLID = id
 					link.URL = string(params[2])
 				}
-			case ansi.Equal(seq, "\n"):
+			case ansi.Equal(seq, T("\n")):
 				// Reset the rest of the line
 				for x < w {
 					buf.Set(x, y, spaceCell) //nolint:errcheck

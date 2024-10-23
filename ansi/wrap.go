@@ -6,7 +6,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi/parser"
-	"github.com/charmbracelet/x/wcwidth"
 	"github.com/rivo/uniseg"
 )
 
@@ -19,15 +18,6 @@ const nbsp = 0xA0
 // When preserveSpace is true, spaces at the beginning of a line will be
 // preserved.
 func Hardwrap(s string, limit int, preserveSpace bool) string {
-	return GraphemeWidth.Hardwrap(s, limit, preserveSpace)
-}
-
-// Hardwrap wraps a string or a block of text to a given line length, breaking
-// word boundaries. This will preserve ANSI escape codes and will account for
-// wide-characters in the string.
-// When preserveSpace is true, spaces at the beginning of a line will be
-// preserved.
-func (m Method) Hardwrap(s string, limit int, preserveSpace bool) string {
 	if limit < 1 {
 		return s
 	}
@@ -54,9 +44,6 @@ func (m Method) Hardwrap(s string, limit int, preserveSpace bool) string {
 			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
 			i += len(cluster)
 
-			if m == WcWidth {
-				width = wcwidth.StringWidth(string(cluster))
-			}
 			if curWidth+width > limit {
 				addNewline()
 			}
@@ -120,18 +107,6 @@ func (m Method) Hardwrap(s string, limit int, preserveSpace bool) string {
 //
 // Note: breakpoints must be a string of 1-cell wide rune characters.
 func Wordwrap(s string, limit int, breakpoints string) string {
-	return GraphemeWidth.Wordwrap(s, limit, breakpoints)
-}
-
-// Wordwrap wraps a string or a block of text to a given line length, not
-// breaking word boundaries. This will preserve ANSI escape codes and will
-// account for wide-characters in the string.
-// The breakpoints string is a list of characters that are considered
-// breakpoints for word wrapping. A hyphen (-) is always considered a
-// breakpoint.
-//
-// Note: breakpoints must be a string of 1-cell wide rune characters.
-func (m Method) Wordwrap(s string, limit int, breakpoints string) string {
 	if limit < 1 {
 		return s
 	}
@@ -178,9 +153,6 @@ func (m Method) Wordwrap(s string, limit int, breakpoints string) string {
 			var width int
 			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
 			i += len(cluster)
-			if m == WcWidth {
-				width = wcwidth.StringWidth(string(cluster))
-			}
 
 			r, _ := utf8.DecodeRune(cluster)
 			if r != utf8.RuneError && unicode.IsSpace(r) && r != nbsp {
@@ -263,17 +235,6 @@ func (m Method) Wordwrap(s string, limit int, breakpoints string) string {
 //
 // Note: breakpoints must be a string of 1-cell wide rune characters.
 func Wrap(s string, limit int, breakpoints string) string {
-	return GraphemeWidth.Wrap(s, limit, breakpoints)
-}
-
-// Wrap wraps a string or a block of text to a given line length, breaking word
-// boundaries if necessary. This will preserve ANSI escape codes and will
-// account for wide-characters in the string. The breakpoints string is a list
-// of characters that are considered breakpoints for word wrapping. A hyphen
-// (-) is always considered a breakpoint.
-//
-// Note: breakpoints must be a string of 1-cell wide rune characters.
-func (m Method) Wrap(s string, limit int, breakpoints string) string {
 	if limit < 1 {
 		return s
 	}
@@ -319,9 +280,6 @@ func (m Method) Wrap(s string, limit int, breakpoints string) string {
 		if state == parser.Utf8State {
 			var width int
 			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
-			if m == WcWidth {
-				width = wcwidth.StringWidth(string(cluster))
-			}
 			i += len(cluster)
 
 			r, _ := utf8.DecodeRune(cluster)
