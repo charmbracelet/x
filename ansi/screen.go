@@ -2,12 +2,14 @@ package ansi
 
 import "strconv"
 
-// EraseDisplay (ED) clears the screen or parts of the screen. Possible values:
+// EraseDisplay (ED) clears the display or parts of the display. A screen is
+// the shown part of the terminal display excluding the scrollback buffer.
+// Possible values:
 //
 //	 0: Clear from cursor to end of screen.
 //	 1: Clear from cursor to beginning of the screen.
 //	 2: Clear entire screen (and moves cursor to upper left on DOS).
-//	 3: Clear entire screen and delete all lines saved in the scrollback buffer.
+//	 3: Clear entire display which delete all lines saved in the scrollback buffer (xterm).
 //
 //	CSI <n> J
 //
@@ -22,9 +24,10 @@ func EraseDisplay(n int) string {
 // EraseDisplay constants.
 // These are the possible values for the EraseDisplay function.
 const (
-	EraseDisplayBelow  = "\x1b[0J"
-	EraseDisplayAbove  = "\x1b[1J"
-	EraseEntireDisplay = "\x1b[2J"
+	EraseScreenBelow   = "\x1b[0J"
+	EraseScreenAbove   = "\x1b[1J"
+	EraseEntireScreen  = "\x1b[2J"
+	EraseEntireDisplay = "\x1b[3J"
 )
 
 // EraseLine (EL) clears the current line or parts of the line. Possible values:
