@@ -90,7 +90,7 @@ func RenderLine(g Grid, n int) (w int, line string) {
 
 			// We only write the cell content if it's not empty. If it is, we
 			// append it to the pending line and width to be evaluated later.
-			if len(strings.TrimSpace(cell.Content)) == 0 {
+			if cell.Style.Empty() && len(strings.TrimSpace(cell.Content)) == 0 {
 				pendingLine += cell.Content
 				pendingWidth += cell.Width
 			} else {
