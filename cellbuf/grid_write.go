@@ -70,39 +70,6 @@ func setContent[
 			cell.Style = pen
 			cell.Link = link
 
-			// When a wide cell is partially overwritten, we need
-			// to fill the rest of the cell with space cells to
-			// avoid rendering issues.
-			if prev, ok := buf.Cell(x, y); ok {
-				if !cell.Equal(prev) && prev.Width > 1 {
-					c := prev
-					c.Content = " "
-					c.Width = 1
-					for j := 0; j < prev.Width; j++ {
-						buf.SetCell(x+j, y, c) //nolint:errcheck
-					}
-				} else if prev.Width == 0 {
-					// Find the wide cell and set it to space cell.
-					var wide Cell
-					var wx, wy int
-					for j := 1; j < 4; j++ {
-						if c, ok := buf.Cell(x-j, y); ok && c.Width > 1 {
-							wide = c
-							wx, wy = x-j, y
-							break
-						}
-					}
-					if !wide.Empty() {
-						c := wide
-						c.Content = " "
-						c.Width = 1
-						for j := 0; j < wide.Width; j++ {
-							buf.SetCell(wx+j, wy, c) //nolint:errcheck
-						}
-					}
-				}
-			}
-
 			buf.SetCell(x, y, cell) //nolint:errcheck
 
 			// Advance the cursor and line width

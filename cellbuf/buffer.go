@@ -49,6 +49,34 @@ func (b *Buffer) SetCell(x, y int, c Cell) (v bool) {
 		return
 	}
 
+	// When a wide cell is partially overwritten, we need
+	// to fill the rest of the cell with space cells to
+	// avoid rendering issues.
+	prev := b.cells[idx]
+	if prev.Width > 1 {
+		// Writing to the first wide cell
+		for j := 0; j < prev.Width; j++ {
+			newCell := prev
+			newCell.Content = " "
+			newCell.Width = 1
+			b.cells[idx+j] = newCell
+		}
+	} else if prev.Width == 0 {
+		// Writing to wide cell placeholders
+		for j := 1; j < 4; j++ {
+			wide := b.cells[idx-j]
+			if wide.Width > 1 {
+				for k := 0; k < wide.Width; k++ {
+					newCell := wide
+					newCell.Content = " "
+					newCell.Width = 1
+					b.cells[idx-j+k] = newCell
+				}
+				break
+			}
+		}
+	}
+
 	b.cells[idx] = c
 	return true
 }
