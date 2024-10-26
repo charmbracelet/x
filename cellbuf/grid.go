@@ -21,12 +21,12 @@ type Grid interface {
 	// Height returns the height of the grid.
 	Height() int
 
-	// Set writes a cell to the grid at the given position. It returns true if
-	// the cell was written successfully.
-	Set(x, y int, c Cell) bool
+	// SetCell writes a cell to the grid at the given position. It returns true
+	// if the cell was written successfully.
+	SetCell(x, y int, c Cell) bool
 
-	// At returns the cell at the given position.
-	At(x, y int) (Cell, error)
+	// Cell returns the cell at the given position.
+	Cell(x, y int) (Cell, bool)
 
 	// Resize resizes the grid to the given width and height.
 	Resize(width, height int)
@@ -67,7 +67,7 @@ func RenderLine(g Grid, n int) (w int, line string) {
 	var pendingLine string
 	var pendingWidth int // this ignores space cells until we hit a non-space cell
 	for x := 0; x < g.Width(); x++ {
-		if cell, err := g.At(x, n); err == nil && cell.Width > 0 {
+		if cell, ok := g.Cell(x, n); ok && cell.Width > 0 {
 			if cell.Style.Empty() && !pen.Empty() {
 				buf.WriteString(ansi.ResetStyle) //nolint:errcheck
 				pen.Reset()
@@ -114,7 +114,7 @@ func RenderLine(g Grid, n int) (w int, line string) {
 func Fill(g Grid, c Cell) {
 	for y := 0; y < g.Height(); y++ {
 		for x := 0; x < g.Width(); x++ {
-			g.Set(x, y, c) //nolint:errcheck
+			g.SetCell(x, y, c) //nolint:errcheck
 		}
 	}
 }
@@ -126,8 +126,8 @@ func Equal(a, b Grid) bool {
 	}
 	for y := 0; y < a.Height(); y++ {
 		for x := 0; x < a.Width(); x++ {
-			ca, _ := a.At(x, y)
-			cb, _ := b.At(x, y)
+			ca, _ := a.Cell(x, y)
+			cb, _ := b.Cell(x, y)
 			if !ca.Equal(cb) {
 				return false
 			}

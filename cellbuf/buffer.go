@@ -19,24 +19,24 @@ func (b *Buffer) Height() int {
 	return len(b.cells) / b.width
 }
 
-// At returns the cell at the given x, y position.
-func (b *Buffer) At(x, y int) (Cell, error) {
+// Cell returns the cell at the given x, y position.
+func (b *Buffer) Cell(x, y int) (Cell, bool) {
 	if b.width == 0 {
-		return Cell{}, ErrOutOfBounds
+		return Cell{}, false
 	}
 	height := len(b.cells) / b.width
 	if x < 0 || x >= b.width || y < 0 || y >= height {
-		return Cell{}, ErrOutOfBounds
+		return Cell{}, false
 	}
 	idx := y*b.width + x
 	if idx < 0 || idx >= len(b.cells) {
-		return Cell{}, ErrOutOfBounds
+		return Cell{}, false
 	}
-	return b.cells[idx], nil
+	return b.cells[idx], true
 }
 
-// Set sets the cell at the given x, y position.
-func (b *Buffer) Set(x, y int, c Cell) (v bool) {
+// SetCell sets the cell at the given x, y position.
+func (b *Buffer) SetCell(x, y int, c Cell) (v bool) {
 	if b.width == 0 {
 		return
 	}

@@ -61,7 +61,7 @@ func setContent[
 			// Mark wide cells with emptyCell zero width
 			// We set the wide cell down below
 			for j := 1; j < width; j++ {
-				buf.Set(x+j, y, emptyCell) //nolint:errcheck
+				buf.SetCell(x+j, y, emptyCell) //nolint:errcheck
 			}
 			fallthrough
 		case 1:
@@ -73,20 +73,20 @@ func setContent[
 			// When a wide cell is partially overwritten, we need
 			// to fill the rest of the cell with space cells to
 			// avoid rendering issues.
-			if prev, err := buf.At(x, y); err == nil {
+			if prev, ok := buf.Cell(x, y); ok {
 				if !cell.Equal(prev) && prev.Width > 1 {
 					c := prev
 					c.Content = " "
 					c.Width = 1
 					for j := 0; j < prev.Width; j++ {
-						buf.Set(x+j, y, c) //nolint:errcheck
+						buf.SetCell(x+j, y, c) //nolint:errcheck
 					}
 				} else if prev.Width == 0 {
 					// Find the wide cell and set it to space cell.
 					var wide Cell
 					var wx, wy int
 					for j := 1; j < 4; j++ {
-						if c, err := buf.At(x-j, y); err == nil && c.Width > 1 {
+						if c, ok := buf.Cell(x-j, y); ok && c.Width > 1 {
 							wide = c
 							wx, wy = x-j, y
 							break
@@ -97,13 +97,13 @@ func setContent[
 						c.Content = " "
 						c.Width = 1
 						for j := 0; j < wide.Width; j++ {
-							buf.Set(wx+j, wy, c) //nolint:errcheck
+							buf.SetCell(wx+j, wy, c) //nolint:errcheck
 						}
 					}
 				}
 			}
 
-			buf.Set(x, y, cell) //nolint:errcheck
+			buf.SetCell(x, y, cell) //nolint:errcheck
 
 			// Advance the cursor and line width
 			x += cell.Width
@@ -230,7 +230,7 @@ func setContent[
 			case ansi.Equal(seq, T("\n")):
 				// Reset the rest of the line
 				for x < w {
-					buf.Set(x, y, spaceCell) //nolint:errcheck
+					buf.SetCell(x, y, spaceCell) //nolint:errcheck
 					x++
 				}
 
@@ -248,7 +248,7 @@ func setContent[
 	}
 
 	for x < w {
-		buf.Set(x, y, spaceCell) //nolint:errcheck
+		buf.SetCell(x, y, spaceCell) //nolint:errcheck
 		x++
 	}
 
