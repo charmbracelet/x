@@ -11,9 +11,9 @@ import (
 // attributes and hyperlink.
 type Segment = Cell
 
-// Grid represents an interface for a grid of cells that can be written to and
-// read from.
-type Grid interface {
+// Screen represents an interface for a grid of cells that can be written to
+// and read from.
+type Screen interface {
 	// Width returns the width of the grid.
 	Width() int
 
@@ -32,17 +32,17 @@ type Grid interface {
 }
 
 // SetContent writes the given data to the grid starting from the first cell.
-func (m WidthMethod) SetContent(g Grid, content string) []int {
-	return setContent(g, content, m)
+func SetContent(d Screen, m Method, content string) []int {
+	return setContent(d, content, m)
 }
 
 // Render returns a string representation of the grid with ANSI escape sequences.
 // Use [ansi.Strip] to remove them.
-func Render(g Grid) string {
+func Render(d Screen) string {
 	var buf bytes.Buffer
-	height := g.Height()
+	height := d.Height()
 	for y := 0; y < height; y++ {
-		_, line := RenderLine(g, y)
+		_, line := RenderLine(d, y)
 		buf.WriteString(line)
 		if y < height-1 {
 			buf.WriteString("\r\n")
@@ -53,7 +53,7 @@ func Render(g Grid) string {
 
 // RenderLine returns a string representation of the yth line of the grid along
 // with the width of the line.
-func RenderLine(g Grid, n int) (w int, line string) {
+func RenderLine(d Screen, n int) (w int, line string) {
 	var pen Style
 	var link Link
 	var buf bytes.Buffer
@@ -71,8 +71,8 @@ func RenderLine(g Grid, n int) (w int, line string) {
 		pendingLine = ""
 	}
 
-	for x := 0; x < g.Width(); x++ {
-		if cell, ok := g.Cell(x, n); ok && cell.Width > 0 {
+	for x := 0; x < d.Width(); x++ {
+		if cell, ok := d.Cell(x, n); ok && cell.Width > 0 {
 			if cell.Style.Empty() && !pen.Empty() {
 				writePending()
 				buf.WriteString(ansi.ResetStyle) //nolint:errcheck
@@ -119,16 +119,16 @@ func RenderLine(g Grid, n int) (w int, line string) {
 }
 
 // Fill fills the grid with the given cell.
-func Fill(g Grid, c Cell) {
-	for y := 0; y < g.Height(); y++ {
-		for x := 0; x < g.Width(); x++ {
-			g.SetCell(x, y, c) //nolint:errcheck
+func Fill(d Screen, c Cell) {
+	for y := 0; y < d.Height(); y++ {
+		for x := 0; x < d.Width(); x++ {
+			d.SetCell(x, y, c) //nolint:errcheck
 		}
 	}
 }
 
 // Equal returns whether two grids are equal.
-func Equal(a, b Grid) bool {
+func Equal(a, b Screen) bool {
 	if a.Width() != b.Width() || a.Height() != b.Height() {
 		return false
 	}
