@@ -66,13 +66,27 @@ func RenderLine(g Grid, n int) (w int, line string) {
 	var buf bytes.Buffer
 	var pendingLine string
 	var pendingWidth int // this ignores space cells until we hit a non-space cell
+
+	writePending := func() {
+		// If there's no pending line, we don't need to do anything.
+		if len(pendingLine) == 0 {
+			return
+		}
+		buf.WriteString(pendingLine)
+		w += pendingWidth
+		pendingWidth = 0
+		pendingLine = ""
+	}
+
 	for x := 0; x < g.Width(); x++ {
 		if cell, ok := g.Cell(x, n); ok && cell.Width > 0 {
 			if cell.Style.Empty() && !pen.Empty() {
+				writePending()
 				buf.WriteString(ansi.ResetStyle) //nolint:errcheck
 				pen.Reset()
 			}
 			if !cell.Style.Equal(pen) {
+				writePending()
 				seq := cell.Style.DiffSequence(pen)
 				buf.WriteString(seq) // nolint:errcheck
 				pen = cell.Style
@@ -80,24 +94,25 @@ func RenderLine(g Grid, n int) (w int, line string) {
 
 			// Write the URL escape sequence
 			if cell.Link != link && link.URL != "" {
+				writePending()
 				buf.WriteString(ansi.ResetHyperlink()) //nolint:errcheck
 				link.Reset()
 			}
 			if cell.Link != link {
+				writePending()
 				buf.WriteString(ansi.SetHyperlink(cell.Link.URL, cell.Link.URLID)) //nolint:errcheck
 				link = cell.Link
 			}
 
 			// We only write the cell content if it's not empty. If it is, we
 			// append it to the pending line and width to be evaluated later.
-			if cell.Style.Empty() && len(strings.TrimSpace(cell.Content)) == 0 {
+			if cell.Equal(spaceCell) {
 				pendingLine += cell.Content
 				pendingWidth += cell.Width
 			} else {
-				buf.WriteString(pendingLine + cell.Content)
-				w += pendingWidth + cell.Width
-				pendingWidth = 0
-				pendingLine = ""
+				writePending()
+				buf.WriteString(cell.Content)
+				w += cell.Width
 			}
 		}
 	}
