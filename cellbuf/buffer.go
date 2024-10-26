@@ -78,6 +78,15 @@ func (b *Buffer) SetCell(x, y int, c Cell) (v bool) {
 	}
 
 	b.cells[idx] = c
+
+	// Mark wide cells with emptyCell zero width
+	// We set the wide cell down below
+	if c.Width > 1 {
+		for j := 1; j < c.Width; j++ {
+			b.cells[idx+j] = emptyCell
+		}
+	}
+
 	return true
 }
 

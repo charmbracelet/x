@@ -57,12 +57,6 @@ func setContent[
 			case GraphemeWidth:
 				// [ansi.DecodeSequence] already handles grapheme clusters
 			}
-
-			// Mark wide cells with emptyCell zero width
-			// We set the wide cell down below
-			for j := 1; j < width; j++ {
-				buf.SetCell(x+j, y, emptyCell) //nolint:errcheck
-			}
 			fallthrough
 		case 1:
 			cell.Content = string(seq)
