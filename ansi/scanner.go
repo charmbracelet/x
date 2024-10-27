@@ -35,17 +35,20 @@ var (
 
 // SplitFunc is the signature of the split function used to further tokenize
 // the input. The arguments are the current substring of the remaining unprocessed
-// data, the current width of the text and the current token. The return values
-// are the number of bytes to advance the input and the next token to return to
-// the user.
+// data, and a end of file flag. The return values are the number of bytes to advance
+// the input and the next token to return to the user and an error.
 //
 // The split function is called repeatedly as the current token is read. If the
-// advance return value is 0 or less the next rune is read and the split is called
+// advance return value is 0 the next rune is read and the split is called
 // again.
-type SplitFunc func(b []byte, width int, eof bool) (advance int, token []byte, err error)
+//
+// if the advance returns a negative value or more than is in the data an error is
+// generated.
+type SplitFunc func(data []byte, eof bool) (advance int, token []byte, err error)
 
-// NewScanner creates a new Scanner for reading the string.
-func NewScanner(s string, splitters ...SplitFunc) *Scanner {
+// NewScanner creates a new [Scanner] for reading the string with [ScanAll] for the
+// [SplitFunc]
+func NewScanner[T []byte | string](s T, splitters ...SplitFunc) *Scanner {
 	scanner := &Scanner{
 		b:      []byte(s),
 		pState: parser.GroundState,
@@ -61,9 +64,9 @@ func composeSplitters(splitters []SplitFunc) SplitFunc {
 	case 1:
 		return splitters[0]
 	}
-	return func(b []byte, width int, eof bool) (int, []byte, error) {
+	return func(b []byte, eof bool) (int, []byte, error) {
 		for _, split := range splitters {
-			w, token, err := split(b, width, eof)
+			w, token, err := split(b, eof)
 			if w > 0 {
 				return w, token, err
 			}
@@ -83,8 +86,8 @@ func (s *Scanner) Text() string {
 	return string(s.Bytes())
 }
 
-// Error returns the current error.
-func (s *Scanner) Error() error {
+// Err returns the current error.
+func (s *Scanner) Err() error {
 	return s.err
 }
 
@@ -121,7 +124,7 @@ func (s *Scanner) EOF() bool {
 func (s *Scanner) advance(size, width int) bool {
 	s.end += size
 	s.width += width
-	n, tk, err := s.split(s.b[s.start:s.end], s.width, s.EOF())
+	n, tk, err := s.split(s.b[s.start:s.end], s.EOF())
 	s.token = tk
 	switch {
 	case err != nil:
@@ -226,14 +229,21 @@ func (s *Scanner) Scan() bool {
 // Splitter Functions
 
 // ScanAll is a split function for a [Scanner] that returns all data as Text.
-func ScanAll(b []byte, width int, end bool) (int, []byte, error) {
+// This is the default splitter for the [Scanner]
+//
+// scanner will emit on changes to escape status so accept nothing. Scan will
+// break with blocks of printable text or escape codes.
+func ScanAll(b []byte, end bool) (int, []byte, error) {
 	return 0, []byte(nil), nil
 }
 
 var _ SplitFunc = ScanAll
 
 // ScanRunes is a split function for a [Scanner] that returns each rune.
-func ScanRunes(b []byte, width int, end bool) (int, []byte, error) {
+//
+// The split function is called once for every rune added so just
+// accept the given values
+func ScanRunes(b []byte, end bool) (int, []byte, error) {
 	return len(b), b, nil
 }
 
@@ -241,7 +251,10 @@ var _ SplitFunc = ScanRunes
 
 // ScanWords is a split function for a [Scanner] that returns each space
 // separated word, and spaces as tokens.
-func ScanWords(b []byte, width int, end bool) (int, []byte, error) {
+//
+// Spaces are returned as separate tokens unlike [buffio.ScanWords] which
+// removes them.
+func ScanWords(b []byte, end bool) (int, []byte, error) {
 	if len(b) == 1 {
 		return 0, []byte(nil), nil
 	}
@@ -256,8 +269,12 @@ func ScanWords(b []byte, width int, end bool) (int, []byte, error) {
 var _ SplitFunc = ScanWords
 
 // ScanLines is a split function for a [Scanner] that returns lines and
-// and newlines as tokens.
-func ScanLines(b []byte, width int, end bool) (int, []byte, error) {
+// and newlines as tokens. "\r", "\n", and "\r\n" are all considered new
+// line tokens. if there multiple '\r' they are treated as a single line.
+//
+// this does not remove the new lines like [buffio.ScanLines] does, but
+// returns them as separate tokens.
+func ScanLines(b []byte, end bool) (int, []byte, error) {
 	first, _ := utf8.DecodeRune(b)
 	if len(b) == 1 {
 		if first == '\n' {
