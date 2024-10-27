@@ -105,7 +105,7 @@ func TestScannerLinesWords(t *testing.T) {
 			expected: []scanResult{
 				{true, 0, "\x1b[91m"},
 				{false, 3, "foo"},
-				{false, 1, "\n"},
+				{false, 0, "\n"},
 				{false, 3, "bar"},
 				{true, 0, "\x1b[0"},
 			},
@@ -116,7 +116,7 @@ func TestScannerLinesWords(t *testing.T) {
 			expected: []scanResult{
 				{true, 0, "\x1b[91m"},
 				{false, 3, "foo"},
-				{false, 1, "\r"},
+				{false, 0, "\r"},
 				{false, 3, "bar"},
 				{true, 0, "\x1b[0"},
 			},
@@ -127,7 +127,7 @@ func TestScannerLinesWords(t *testing.T) {
 			expected: []scanResult{
 				{true, 0, "\x1b[91m"},
 				{false, 3, "foo"},
-				{false, 2, "\r\n"},
+				{false, 0, "\r\n"},
 				{false, 3, "bar"},
 				{true, 0, "\x1b[0"},
 			},
@@ -138,7 +138,7 @@ func TestScannerLinesWords(t *testing.T) {
 			expected: []scanResult{
 				{true, 0, "\x1b[91m"},
 				{false, 3, "foo"},
-				{false, 4, "\r\r\r\n"},
+				{false, 0, "\r\r\r\n"},
 				{false, 3, "bar"},
 				{true, 0, "\x1b[0"},
 			},
@@ -150,7 +150,7 @@ func TestScannerLinesWords(t *testing.T) {
 				{true, 0, "\x1b[91m"},
 				{false, 3, "foo"},
 				{false, 1, " "},
-				{false, 2, "\r\n"},
+				{false, 0, "\r\n"},
 				{false, 1, " "},
 				{false, 3, "bar"},
 				{false, 1, " "},
@@ -163,9 +163,9 @@ func TestScannerLinesWords(t *testing.T) {
 			expected: []scanResult{
 				{true, 0, "\x1b[91m"},
 				{false, 3, "foo"},
-				{false, 1, "\n"},
-				{false, 1, "\n"},
-				{false, 2, "\r\n"},
+				{false, 0, "\n"},
+				{false, 0, "\n"},
+				{false, 0, "\r\n"},
 				{false, 3, "bar"},
 				{true, 0, "\x1b[0"},
 			},
@@ -175,10 +175,10 @@ func TestScannerLinesWords(t *testing.T) {
 			input: "   \n\n   \r\n   ",
 			expected: []scanResult{
 				{false, 3, "   "},
-				{false, 1, "\n"},
-				{false, 1, "\n"},
+				{false, 0, "\n"},
+				{false, 0, "\n"},
 				{false, 3, "   "},
-				{false, 2, "\r\n"},
+				{false, 0, "\r\n"},
 				{false, 3, "   "},
 			},
 		},
@@ -252,7 +252,7 @@ func TestScannerLines(t *testing.T) {
 			expected: []scanResult{
 				{true, 0, "\x1b[91m"},
 				{false, 3, "foo"},
-				{false, 1, "\n"},
+				{false, 0, "\n"},
 				{false, 3, "bar"},
 				{true, 0, "\x1b[0"},
 			},
@@ -263,7 +263,7 @@ func TestScannerLines(t *testing.T) {
 			expected: []scanResult{
 				{true, 0, "\x1b[91m"},
 				{false, 4, "foo "},
-				{false, 2, "\r\n"},
+				{false, 0, "\r\n"},
 				{false, 5, " bar "},
 				{true, 0, "\x1b[0"},
 			},
@@ -274,7 +274,7 @@ func TestScannerLines(t *testing.T) {
 			expected: []scanResult{
 				{true, 0, "\x1b[91m"},
 				{false, 4, "foo "},
-				{false, 1, "\r"},
+				{false, 0, "\r"},
 				{false, 5, " bar "},
 				{true, 0, "\x1b[0"},
 			},
@@ -347,7 +347,7 @@ func TestScanner(t *testing.T) {
 			input: "\x1b[91mfoo \r\n bar \x1b[0",
 			expected: []scanResult{
 				{true, 0, "\x1b[91m"},
-				{false, 11, "foo \r\n bar "},
+				{false, 9, "foo \r\n bar "},
 				{true, 0, "\x1b[0"},
 			},
 		},

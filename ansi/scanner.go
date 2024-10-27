@@ -205,8 +205,19 @@ func (s *Scanner) Scan() bool {
 				}
 				s.escape = false
 			}
-			if s.advance(1, 1) {
-				return true
+			switch c := s.b[s.end]; {
+			case c > US && c < DEL:
+				if s.advance(1, 1) {
+					return true
+				}
+			case c <= US || c == DEL || c < 0xC0:
+				if s.advance(1, 0) {
+					return true
+				}
+			default:
+				if s.advance(1, 1) {
+					return true
+				}
 			}
 		default:
 			if !s.escape {
