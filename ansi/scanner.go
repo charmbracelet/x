@@ -1,25 +1,12 @@
 package ansi
 
 import (
+	"errors"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi/parser"
 	"github.com/rivo/uniseg"
-)
-
-// ScannerToken is the scanner type identifier
-type ScannerToken int
-
-const (
-	EmptyToken ScannerToken = -iota
-	EndToken
-	ErrorToken
-	ControlToken
-	RuneToken
-	TextToken
-	SpaceToken
-	LineToken
 )
 
 // Scanner implements the reading of strings with ANSI escape and control codes and
@@ -29,16 +16,24 @@ const (
 // The default splitter ScanAll]  will split the string into separate control codes
 // and regular strings stripped of encoding.
 type Scanner struct {
-	b     []byte
-	width int
-	end   int
-	start int
-	state byte
-	split ScannerSplit
-	token ScannerToken
+	b      []byte
+	width  int
+	end    int
+	err    error
+	start  int
+	pState byte
+	escape bool
+	split  SplitFunc
+	token  []byte
 }
 
-// ScannerSplit is the signature of the split function used to further tokenize
+// Scanner Errors
+var (
+	ErrAdvanceTooFar   = errors.New("ansi.Scanner: split function returned advance larger than buffer")
+	ErrAdvanceNegative = errors.New("ansi.Scanner: split function returned negative advance")
+)
+
+// SplitFunc is the signature of the split function used to further tokenize
 // the input. The arguments are the current substring of the remaining unprocessed
 // data, the current width of the text and the current token. The return values
 // are the number of bytes to advance the input and the next token to return to
@@ -47,50 +42,60 @@ type Scanner struct {
 // The split function is called repeatedly as the current token is read. If the
 // advance return value is 0 or less the next rune is read and the split is called
 // again.
-type ScannerSplit func(b []byte, width int, token ScannerToken) (advance int, newToken ScannerToken)
+type SplitFunc func(b []byte, width int, eof bool) (advance int, token []byte, err error)
 
 // NewScanner creates a new Scanner for reading the string.
-func NewScanner(s string, splitters ...ScannerSplit) *Scanner {
+func NewScanner(s string, splitters ...SplitFunc) *Scanner {
 	scanner := &Scanner{
-		b:     []byte(s),
-		state: parser.GroundState,
-		split: composeSplitters(splitters),
+		b:      []byte(s),
+		pState: parser.GroundState,
+		split:  composeSplitters(splitters),
 	}
 	return scanner
 }
 
-func composeSplitters(splitters []ScannerSplit) ScannerSplit {
+func composeSplitters(splitters []SplitFunc) SplitFunc {
 	switch len(splitters) {
 	case 0:
 		return ScanAll
 	case 1:
 		return splitters[0]
 	}
-	return func(b []byte, width int, token ScannerToken) (advance int, newToken ScannerToken) {
-		var w int
+	return func(b []byte, width int, eof bool) (int, []byte, error) {
 		for _, split := range splitters {
-			w, token = split(b, width, token)
+			w, token, err := split(b, width, eof)
 			if w > 0 {
-				return w, token
+				return w, token, err
 			}
 		}
-		return 0, token
+		return 0, []byte(nil), nil
 	}
 }
 
 // Split sets the split function for the [Scanner].
 // The default split function is [ScanAll].
-func (s *Scanner) Split(f ScannerSplit) {
+func (s *Scanner) Split(f SplitFunc) {
 	s.split = f
 }
 
 // Text returns the string for current token.
 func (s *Scanner) Text() string {
-	return string(s.data())
+	return string(s.Bytes())
 }
 
-func (s *Scanner) data() []byte {
+// Error returns the current error.
+func (s *Scanner) Error() error {
+	return s.err
+}
+
+// Bytes returns the current token.
+func (s *Scanner) Bytes() []byte {
 	return s.b[s.start:s.end]
+}
+
+// Token returns the current token, width and escape flag.
+func (s *Scanner) Token() ([]byte, int, bool) {
+	return s.b[s.start:s.end], s.width, s.escape
 }
 
 // Len returns the length for current token.
@@ -103,6 +108,11 @@ func (s *Scanner) Width() int {
 	return s.width
 }
 
+// IsEscape returns if token is an escape sequence.
+func (s *Scanner) IsEscape() bool {
+	return s.escape
+}
+
 // EOF returns true if at the end of the input string
 func (s *Scanner) EOF() bool {
 	return s.end >= len(s.b)
@@ -111,18 +121,26 @@ func (s *Scanner) EOF() bool {
 func (s *Scanner) advance(size, width int) bool {
 	s.end += size
 	s.width += width
-	n, tk := s.split(s.b[s.start:s.end], s.width, s.token)
+	n, tk, err := s.split(s.b[s.start:s.end], s.width, s.EOF())
 	s.token = tk
-	if n > s.Len() {
-		s.token = ErrorToken
+	switch {
+	case err != nil:
+		s.token = nil
+		s.err = err
 		return false
-	}
-	switch n {
-	case 0:
+	case n < 0:
+		s.token = nil
+		s.err = ErrAdvanceNegative
 		return false
-	case s.Len():
+	case n > s.Len():
+		s.token = nil
+		s.err = ErrAdvanceTooFar
+		return false
+	case n == 0:
+		return false
+	case n == s.Len():
 		return true
-	case s.Len() - size:
+	case n == s.Len()-size:
 		// can backup if completed without accepting the last rune
 		s.end -= size
 		s.width -= width
@@ -137,137 +155,136 @@ func (s *Scanner) advance(size, width int) bool {
 }
 
 // Scan reads the next token from source and returns it.
-func (s *Scanner) Scan() (ScannerToken, string) {
-	if s.token == ErrorToken {
-		return ErrorToken, ""
+func (s *Scanner) Scan() bool {
+	if s.err != nil {
+		return false
 	}
-	s.token = EmptyToken
+	if s.EOF() {
+		return false
+	}
 	s.start = s.end
 	s.width = 0
 	if s.end >= len(s.b) {
-		return EndToken, ""
+		return false
 	}
 
 	// Here we iterate over the bytes of the string and collect characters
 	// and runes.
 	// On change of token we emit the current token.
 	for s.end < len(s.b) {
-		state, action := parser.Table.Transition(s.state, s.b[s.end])
-
+		state, action := parser.Table.Transition(s.pState, s.b[s.end])
 		if state == parser.Utf8State {
-			switch s.token {
-			case EmptyToken:
-				s.token = TextToken
-			case ControlToken:
-				// emit on a change from control type
+			if s.escape {
+				// emit on a change from escape sequence
+				// if there is a buffer
 				if s.Len() > 0 {
-					return s.token, s.Text()
+					return true
 				}
-				s.token = TextToken
+				s.escape = false
 			}
 			// This action happens when we transition to the Utf8State.
 			cluster, _, width, _ := uniseg.FirstGraphemeCluster(s.b[s.end:], -1)
 			if s.advance(len(cluster), width) {
-				return s.token, s.Text()
+				return true
 			}
 			// Done collecting, now we're back in the ground state.
-			s.state = parser.GroundState
+			s.pState = parser.GroundState
 			continue
 		}
 
 		switch action {
 		case parser.PrintAction, parser.ExecuteAction:
-			switch s.token {
-			case EmptyToken:
-				s.token = TextToken
-			case ControlToken:
-				// emit on a change from control type
+			if s.escape {
+				// emit on a change from escape sequence
+				// if there is a buffer
 				if s.Len() > 0 {
-					return s.token, s.Text()
+					return true
 				}
-				s.token = TextToken
+				s.escape = false
 			}
 			if s.advance(1, 1) {
-				return s.token, s.Text()
+				return true
 			}
-
 		default:
-			if s.token != ControlToken && s.Len() > 0 {
-				return s.token, s.Text()
+			if !s.escape {
+				// emit on a change to escape sequence
+				// if there is a buffer
+				if s.Len() > 0 {
+					return true
+				}
+				s.escape = true
 			}
-			s.token = ControlToken
 			s.end++
 		}
 		// Transition to the next state.
-		s.state = state
+		s.pState = state
 	}
 
-	return s.token, s.Text()
+	return true
 }
 
 // Splitter Functions
 
 // ScanAll is a split function for a [Scanner] that returns all data as Text.
-func ScanAll(b []byte, width int, token ScannerToken) (int, ScannerToken) {
-	return 0, TextToken
+func ScanAll(b []byte, width int, end bool) (int, []byte, error) {
+	return 0, []byte(nil), nil
 }
+
+var _ SplitFunc = ScanAll
+
+// ScanRunes is a split function for a [Scanner] that returns each rune.
+func ScanRunes(b []byte, width int, end bool) (int, []byte, error) {
+	return len(b), b, nil
+}
+
+var _ SplitFunc = ScanRunes
 
 // ScanWords is a split function for a [Scanner] that returns each space
 // separated word, and spaces as tokens.
-func ScanWords(b []byte, width int, token ScannerToken) (int, ScannerToken) {
-	r0, _ := utf8.DecodeRune(b)
+func ScanWords(b []byte, width int, end bool) (int, []byte, error) {
 	if len(b) == 1 {
-		if unicode.IsSpace(r0) {
-			return 0, SpaceToken
-		}
-		return 0, TextToken
+		return 0, []byte(nil), nil
 	}
-	r1, r1w := utf8.DecodeLastRune(b)
-	if unicode.IsSpace(r0) != unicode.IsSpace(r1) {
-		if unicode.IsSpace(r0) {
-			return len(b) - r1w, SpaceToken
-		}
-		return len(b) - r1w, TextToken
+	first, _ := utf8.DecodeRune(b)
+	last, lastWidth := utf8.DecodeLastRune(b)
+	if unicode.IsSpace(first) != unicode.IsSpace(last) {
+		return len(b) - lastWidth, b[:len(b)-lastWidth], nil
 	}
-	return 0, TextToken
+	return 0, []byte(nil), nil
 }
 
-// ScanRunes is a split function for a [Scanner] that returns each rune.
-func ScanRunes(b []byte, width int, token ScannerToken) (int, ScannerToken) {
-	return len(b), RuneToken
-}
+var _ SplitFunc = ScanWords
 
-// ScanWords is a split function for a [Scanner] that returns lines and
+// ScanLines is a split function for a [Scanner] that returns lines and
 // and newlines as tokens.
-func ScanLines(b []byte, width int, token ScannerToken) (int, ScannerToken) {
-	r0, r0w := utf8.DecodeRune(b)
-	if r0 == '\n' {
-		return r0w, LineToken
-	}
+func ScanLines(b []byte, width int, end bool) (int, []byte, error) {
+	first, _ := utf8.DecodeRune(b)
 	if len(b) == 1 {
-		if r0 == '\r' {
-			return 0, LineToken
+		if first == '\n' {
+			return len(b), b, nil
 		}
-		return 0, token
+		return 0, []byte(nil), nil
 	}
-	r1, r1w := utf8.DecodeLastRune(b)
-	if r0 == '\r' {
-		switch r1 {
+	last, lastWidth := utf8.DecodeLastRune(b)
+	if first == '\r' {
+		switch last {
 		case '\r':
-			return 0, LineToken
+			return 0, []byte(nil), nil
 		case '\n':
-			return len(b), LineToken
-		default:
-			return len(b) - r1w, LineToken
+			return len(b), b, nil
 		}
+		n := len(b) - lastWidth
+		return n, b[:n], nil
 	}
-	switch r1 {
+	switch last {
 	case '\r', '\n':
-		return len(b) - r1w, token
-	default:
-		return 0, token
+		n := len(b) - lastWidth
+		return n, b[:n], nil
 	}
+	return 0, []byte(nil), nil
 }
+
+var _ SplitFunc = ScanLines
 
 // utility functions
 
