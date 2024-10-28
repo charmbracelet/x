@@ -125,6 +125,7 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		doneCh:  make(chan bool, 1),
 	}
 
+	//nolint: staticcheck
 	tm.program = tea.NewProgram(
 		m,
 		tea.WithInput(tm.in),
