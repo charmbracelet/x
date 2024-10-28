@@ -19,24 +19,24 @@ func (b *Buffer) Height() int {
 	return len(b.cells) / b.width
 }
 
-// At returns the cell at the given x, y position.
-func (b *Buffer) At(x, y int) (Cell, error) {
+// Cell returns the cell at the given x, y position.
+func (b *Buffer) Cell(x, y int) (Cell, bool) {
 	if b.width == 0 {
-		return Cell{}, ErrOutOfBounds
+		return Cell{}, false
 	}
 	height := len(b.cells) / b.width
 	if x < 0 || x >= b.width || y < 0 || y >= height {
-		return Cell{}, ErrOutOfBounds
+		return Cell{}, false
 	}
 	idx := y*b.width + x
 	if idx < 0 || idx >= len(b.cells) {
-		return Cell{}, ErrOutOfBounds
+		return Cell{}, false
 	}
-	return b.cells[idx], nil
+	return b.cells[idx], true
 }
 
-// Set sets the cell at the given x, y position.
-func (b *Buffer) Set(x, y int, c Cell) (v bool) {
+// SetCell sets the cell at the given x, y position.
+func (b *Buffer) SetCell(x, y int, c Cell) (v bool) {
 	if b.width == 0 {
 		return
 	}
@@ -49,7 +49,44 @@ func (b *Buffer) Set(x, y int, c Cell) (v bool) {
 		return
 	}
 
+	// When a wide cell is partially overwritten, we need
+	// to fill the rest of the cell with space cells to
+	// avoid rendering issues.
+	prev := b.cells[idx]
+	if prev.Width > 1 {
+		// Writing to the first wide cell
+		for j := 0; j < prev.Width; j++ {
+			newCell := prev
+			newCell.Content = " "
+			newCell.Width = 1
+			b.cells[idx+j] = newCell
+		}
+	} else if prev.Width == 0 {
+		// Writing to wide cell placeholders
+		for j := 1; j < 4; j++ {
+			wide := b.cells[idx-j]
+			if wide.Width > 1 {
+				for k := 0; k < wide.Width; k++ {
+					newCell := wide
+					newCell.Content = " "
+					newCell.Width = 1
+					b.cells[idx-j+k] = newCell
+				}
+				break
+			}
+		}
+	}
+
 	b.cells[idx] = c
+
+	// Mark wide cells with emptyCell zero width
+	// We set the wide cell down below
+	if c.Width > 1 {
+		for j := 1; j < c.Width; j++ {
+			b.cells[idx+j] = emptyCell
+		}
+	}
+
 	return true
 }
 

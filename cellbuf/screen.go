@@ -3,7 +3,6 @@ package cellbuf
 import (
 	"bytes"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
 )
@@ -12,44 +11,38 @@ import (
 // attributes and hyperlink.
 type Segment = Cell
 
-// Grid represents an interface for a grid of cells that can be written to and
-// read from.
-type Grid interface {
+// Screen represents an interface for a grid of cells that can be written to
+// and read from.
+type Screen interface {
 	// Width returns the width of the grid.
 	Width() int
 
 	// Height returns the height of the grid.
 	Height() int
 
-	// Set writes a cell to the grid at the given position. It returns true if
-	// the cell was written successfully.
-	Set(x, y int, c Cell) bool
+	// SetCell writes a cell to the grid at the given position. It returns true
+	// if the cell was written successfully.
+	SetCell(x, y int, c Cell) bool
 
-	// At returns the cell at the given position.
-	At(x, y int) (Cell, error)
+	// Cell returns the cell at the given position.
+	Cell(x, y int) (Cell, bool)
 
 	// Resize resizes the grid to the given width and height.
 	Resize(width, height int)
 }
 
-// SetContentAt writes the given data to the grid starting from the given
-// position and with the given width and height.
-func (m WidthMethod) SetContentAt(b Grid, c string, x, y, w, h int) []int {
-	return setContent(b, c, x, y, w, h, m, strings.ReplaceAll, utf8.DecodeRuneInString)
-}
-
 // SetContent writes the given data to the grid starting from the first cell.
-func (m WidthMethod) SetContent(g Grid, content string) []int {
-	return m.SetContentAt(g, content, 0, 0, g.Width(), Height(content))
+func SetContent(d Screen, m Method, content string) []int {
+	return setContent(d, content, m)
 }
 
 // Render returns a string representation of the grid with ANSI escape sequences.
 // Use [ansi.Strip] to remove them.
-func Render(g Grid) string {
+func Render(d Screen) string {
 	var buf bytes.Buffer
-	height := g.Height()
+	height := d.Height()
 	for y := 0; y < height; y++ {
-		_, line := RenderLine(g, y)
+		_, line := RenderLine(d, y)
 		buf.WriteString(line)
 		if y < height-1 {
 			buf.WriteString("\r\n")
@@ -60,19 +53,33 @@ func Render(g Grid) string {
 
 // RenderLine returns a string representation of the yth line of the grid along
 // with the width of the line.
-func RenderLine(g Grid, n int) (w int, line string) {
+func RenderLine(d Screen, n int) (w int, line string) {
 	var pen Style
 	var link Link
 	var buf bytes.Buffer
 	var pendingLine string
 	var pendingWidth int // this ignores space cells until we hit a non-space cell
-	for x := 0; x < g.Width(); x++ {
-		if cell, err := g.At(x, n); err == nil && cell.Width > 0 {
+
+	writePending := func() {
+		// If there's no pending line, we don't need to do anything.
+		if len(pendingLine) == 0 {
+			return
+		}
+		buf.WriteString(pendingLine)
+		w += pendingWidth
+		pendingWidth = 0
+		pendingLine = ""
+	}
+
+	for x := 0; x < d.Width(); x++ {
+		if cell, ok := d.Cell(x, n); ok && cell.Width > 0 {
 			if cell.Style.Empty() && !pen.Empty() {
+				writePending()
 				buf.WriteString(ansi.ResetStyle) //nolint:errcheck
 				pen.Reset()
 			}
 			if !cell.Style.Equal(pen) {
+				writePending()
 				seq := cell.Style.DiffSequence(pen)
 				buf.WriteString(seq) // nolint:errcheck
 				pen = cell.Style
@@ -80,24 +87,25 @@ func RenderLine(g Grid, n int) (w int, line string) {
 
 			// Write the URL escape sequence
 			if cell.Link != link && link.URL != "" {
+				writePending()
 				buf.WriteString(ansi.ResetHyperlink()) //nolint:errcheck
 				link.Reset()
 			}
 			if cell.Link != link {
+				writePending()
 				buf.WriteString(ansi.SetHyperlink(cell.Link.URL, cell.Link.URLID)) //nolint:errcheck
 				link = cell.Link
 			}
 
 			// We only write the cell content if it's not empty. If it is, we
 			// append it to the pending line and width to be evaluated later.
-			if cell.Style.Empty() && len(strings.TrimSpace(cell.Content)) == 0 {
+			if cell.Equal(spaceCell) {
 				pendingLine += cell.Content
 				pendingWidth += cell.Width
 			} else {
-				buf.WriteString(pendingLine + cell.Content)
-				w += pendingWidth + cell.Width
-				pendingWidth = 0
-				pendingLine = ""
+				writePending()
+				buf.WriteString(cell.Content)
+				w += cell.Width
 			}
 		}
 	}
@@ -111,23 +119,23 @@ func RenderLine(g Grid, n int) (w int, line string) {
 }
 
 // Fill fills the grid with the given cell.
-func Fill(g Grid, c Cell) {
-	for y := 0; y < g.Height(); y++ {
-		for x := 0; x < g.Width(); x++ {
-			g.Set(x, y, c) //nolint:errcheck
+func Fill(d Screen, c Cell) {
+	for y := 0; y < d.Height(); y++ {
+		for x := 0; x < d.Width(); x++ {
+			d.SetCell(x, y, c) //nolint:errcheck
 		}
 	}
 }
 
 // Equal returns whether two grids are equal.
-func Equal(a, b Grid) bool {
+func Equal(a, b Screen) bool {
 	if a.Width() != b.Width() || a.Height() != b.Height() {
 		return false
 	}
 	for y := 0; y < a.Height(); y++ {
 		for x := 0; x < a.Width(); x++ {
-			ca, _ := a.At(x, y)
-			cb, _ := b.At(x, y)
+			ca, _ := a.Cell(x, y)
+			cb, _ := b.Cell(x, y)
 			if !ca.Equal(cb) {
 				return false
 			}
