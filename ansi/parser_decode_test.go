@@ -295,6 +295,13 @@ func TestDecodeSequence(t *testing.T) {
 				{seq: []byte{'b'}, n: 1, width: 1},
 			},
 		},
+		{
+			name:  "single param osc",
+			input: []byte("\x1b]112\x07"),
+			expected: []expectedSequence{
+				{seq: []byte("\x1b]112\x07"), n: 6, cmd: 112, data: []byte("112")},
+			},
+		},
 	}
 
 	for _, tc := range cases {

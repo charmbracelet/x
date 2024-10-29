@@ -248,15 +248,31 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			switch c {
 			case BEL:
 				if HasOscPrefix(b) {
+					parseOscCmd(p)
 					return b[:i+1], 0, i + 1, NormalState
 				}
 			case CAN, SUB:
+				if HasOscPrefix(b) {
+					// Ensure we parse the OSC command number
+					parseOscCmd(p)
+				}
+
 				// Cancel the sequence
 				return b[:i], 0, i, NormalState
 			case ST:
+				if HasOscPrefix(b) {
+					// Ensure we parse the OSC command number
+					parseOscCmd(p)
+				}
+
 				return b[:i+1], 0, i + 1, NormalState
 			case ESC:
 				if HasStPrefix(b[i:]) {
+					if HasOscPrefix(b) {
+						// Ensure we parse the OSC command number
+						parseOscCmd(p)
+					}
+
 					// End of string 7-bit (ST)
 					return b[:i+2], 0, i + 2, NormalState
 				}
@@ -270,24 +286,31 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 				p.DataLen++
 
 				// Parse the OSC command number
-				if c == ';' && p.Cmd == parser.MissingCommand && HasOscPrefix(b) {
-					for j := 0; j < p.DataLen; j++ {
-						d := p.Data[j]
-						if d < '0' || d > '9' {
-							break
-						}
-						if p.Cmd == parser.MissingCommand {
-							p.Cmd = 0
-						}
-						p.Cmd *= 10
-						p.Cmd += int(d - '0')
-					}
+				if c == ';' && HasOscPrefix(b) {
+					parseOscCmd(p)
 				}
 			}
 		}
 	}
 
 	return b, 0, len(b), state
+}
+
+func parseOscCmd(p *Parser) {
+	if p == nil || p.Cmd != parser.MissingCommand {
+		return
+	}
+	for j := 0; j < p.DataLen; j++ {
+		d := p.Data[j]
+		if d < '0' || d > '9' {
+			break
+		}
+		if p.Cmd == parser.MissingCommand {
+			p.Cmd = 0
+		}
+		p.Cmd *= 10
+		p.Cmd += int(d - '0')
+	}
 }
 
 // Index returns the index of the first occurrence of the given byte slice in
