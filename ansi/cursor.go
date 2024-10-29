@@ -163,7 +163,7 @@ func SetCursorPosition(col, row int) string {
 	return "\x1b[" + strconv.Itoa(row) + ";" + strconv.Itoa(col) + "H"
 }
 
-// SetCursorPosition (CUP) returns a sequence for setting the cursor to the
+// MoveCursor (CUP) returns a sequence for setting the cursor to the
 // given row and column.
 //
 //	CSI n ; m H
