@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"strings"
 
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -37,12 +38,17 @@ func SetContent(d Screen, m Method, content string) []int {
 }
 
 // Render returns a string representation of the grid with ANSI escape sequences.
-// Use [ansi.Strip] to remove them.
 func Render(d Screen) string {
+	return RenderWithProfile(d, colorprofile.TrueColor)
+}
+
+// RenderWithProfile returns a string representation of the grid with ANSI escape
+// sequences converting styles and colors to the given color profile.
+func RenderWithProfile(d Screen, p colorprofile.Profile) string {
 	var buf bytes.Buffer
 	height := d.Height()
 	for y := 0; y < height; y++ {
-		_, line := RenderLine(d, y)
+		_, line := RenderLineWithProfile(d, y, p)
 		buf.WriteString(line)
 		if y < height-1 {
 			buf.WriteString("\r\n")
@@ -54,6 +60,13 @@ func Render(d Screen) string {
 // RenderLine returns a string representation of the yth line of the grid along
 // with the width of the line.
 func RenderLine(d Screen, n int) (w int, line string) {
+	return RenderLineWithProfile(d, n, colorprofile.TrueColor)
+}
+
+// RenderLineWithProfile returns a string representation of the nth line of the
+// grid along with the width of the line converting styles and colors to the
+// given color profile.
+func RenderLineWithProfile(d Screen, n int, p colorprofile.Profile) (w int, line string) {
 	var pen Style
 	var link Link
 	var buf bytes.Buffer
@@ -73,28 +86,31 @@ func RenderLine(d Screen, n int) (w int, line string) {
 
 	for x := 0; x < d.Width(); x++ {
 		if cell, ok := d.Cell(x, n); ok && cell.Width > 0 {
-			if cell.Style.Empty() && !pen.Empty() {
+			// Convert the cell's style and link to the given color profile.
+			cellStyle := cell.Style.Convert(p)
+			cellLink := cell.Link.Convert(p)
+			if cellStyle.Empty() && !pen.Empty() {
 				writePending()
 				buf.WriteString(ansi.ResetStyle) //nolint:errcheck
 				pen.Reset()
 			}
-			if !cell.Style.Equal(pen) {
+			if !cellStyle.Equal(pen) {
 				writePending()
-				seq := cell.Style.DiffSequence(pen)
+				seq := cellStyle.DiffSequence(pen)
 				buf.WriteString(seq) // nolint:errcheck
-				pen = cell.Style
+				pen = cellStyle
 			}
 
 			// Write the URL escape sequence
-			if cell.Link != link && link.URL != "" {
+			if cellLink != link && link.URL != "" {
 				writePending()
 				buf.WriteString(ansi.ResetHyperlink()) //nolint:errcheck
 				link.Reset()
 			}
-			if cell.Link != link {
+			if cellLink != link {
 				writePending()
-				buf.WriteString(ansi.SetHyperlink(cell.Link.URL, cell.Link.URLID)) //nolint:errcheck
-				link = cell.Link
+				buf.WriteString(ansi.SetHyperlink(cellLink.URL, cellLink.URLID)) //nolint:errcheck
+				link = cellLink
 			}
 
 			// We only write the cell content if it's not empty. If it is, we

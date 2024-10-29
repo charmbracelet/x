@@ -1,5 +1,7 @@
 package cellbuf
 
+import "github.com/charmbracelet/colorprofile"
+
 // Link represents a hyperlink in the terminal screen.
 type Link struct {
 	URL   string
@@ -25,4 +27,13 @@ func (h Link) Equal(o Link) bool {
 // Empty returns whether the hyperlink is empty.
 func (h Link) Empty() bool {
 	return h.URL == "" && h.URLID == ""
+}
+
+// Convert converts a hyperlink to respect the given color profile.
+func (h Link) Convert(p colorprofile.Profile) Link {
+	if p == colorprofile.NoTTY {
+		return Link{}
+	}
+
+	return h
 }
