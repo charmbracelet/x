@@ -8,5 +8,5 @@ package ansi
 //
 // See: https://iterm2.com/documentation-escape-codes.html
 func Notify(s string) string {
-	return "\x1b]52;" + s + "\x07"
+	return "\x1b]9;" + s + "\x07"
 }
