@@ -227,7 +227,7 @@ func SetCursorStyle(style int) string {
 	if style < 0 {
 		style = 0
 	}
-	return "\x1b[" + strconv.Itoa(style) + " q"
+	return "\x1b[" + strconv.Itoa(style) + "q"
 }
 
 // SetPointerShape returns a sequence for changing the mouse pointer cursor
