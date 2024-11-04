@@ -437,7 +437,11 @@ type Param int
 // Param returns the parameter at the given index.
 // It returns -1 if the parameter does not exist.
 func (s Param) Param() int {
-	return int(s) & parser.ParamMask
+	p := int(s) & parser.ParamMask
+	if p == parser.MissingParam {
+		return -1
+	}
+	return p
 }
 
 // HasMore returns true if the parameter has more sub-parameters.
