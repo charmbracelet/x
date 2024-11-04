@@ -19,7 +19,7 @@ var cases = []struct {
 	{"simple", "foobarfoo", 4, "foob\narfo\no", true},
 	{"lf", "f\no\nobar", 3, "f\no\noba\nr", true},
 	{"lf_space", "foo bar\n  baz", 3, "foo\n ba\nr\n  b\naz", true},
-	{"tab", "foo\tbar", 3, "foo\n\tba\nr", true},
+	{"tab", "foo\tbar", 3, "foo\n\tbar", true},
 	{"unicode_space", "foo\xc2\xa0bar", 3, "foo\nbar", false},
 	{"style_nochange", "\x1B[38;2;249;38;114mfoo\x1B[0m\x1B[38;2;248;248;242m \x1B[0m\x1B[38;2;230;219;116mbar\x1B[0m", 7, "\x1B[38;2;249;38;114mfoo\x1B[0m\x1B[38;2;248;248;242m \x1B[0m\x1B[38;2;230;219;116mbar\x1B[0m", true},
 	{"style", "\x1B[38;2;249;38;114m(\x1B[0m\x1B[38;2;248;248;242mjust another test\x1B[38;2;249;38;114m)\x1B[0m", 3, "\x1B[38;2;249;38;114m(\x1B[0m\x1B[38;2;248;248;242mju\nst \nano\nthe\nr t\nest\x1B[38;2;249;38;114m\n)\x1B[0m", true},
@@ -210,6 +210,7 @@ var wrapCases = []struct {
 	{"style_code_dont_affect_length", "\x1B[38;2;249;38;114mfoo\x1B[0m\x1B[38;2;248;248;242m \x1B[0m\x1B[38;2;230;219;116mbar\x1B[0m", "\x1B[38;2;249;38;114mfoo\x1B[0m\x1B[38;2;248;248;242m \x1B[0m\x1B[38;2;230;219;116mbar\x1B[0m", 7},
 	{"style_code_dont_get_wrapped", "\x1B[38;2;249;38;114m(\x1B[0m\x1B[38;2;248;248;242mjust another test\x1B[38;2;249;38;114m)\x1B[0m", "\x1b[38;2;249;38;114m(\x1b[0m\x1b[38;2;248;248;242mjust\nanother\ntest\x1b[38;2;249;38;114m)\x1b[0m", 7},
 	{"osc8_wrap", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\ สวัสดีสวัสดี\x1b]8;;\x1b\\", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\\nสวัสดีสวัสดี\x1b]8;;\x1b\\", 8},
+	{"tab", "foo\tbar", "foo\nbar", 3},
 }
 
 func TestWrap(t *testing.T) {
