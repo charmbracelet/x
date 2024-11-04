@@ -163,6 +163,10 @@ func SetCursorPosition(col, row int) string {
 	return "\x1b[" + strconv.Itoa(row) + ";" + strconv.Itoa(col) + "H"
 }
 
+// HomeCursorPosition is a sequence for moving the cursor to the upper left
+// corner of the scrolling region. This is equivalent to `SetCursorPosition(1, 1)`.
+const HomeCursorPosition = "\x1b[H"
+
 // MoveCursor (CUP) returns a sequence for setting the cursor to the
 // given row and column.
 //
