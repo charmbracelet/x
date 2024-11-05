@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea/v2"
-	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/charmbracelet/x/cellbuf"
 	"github.com/lucasb-eyer/go-colorful"
 	"github.com/rivo/uniseg"
@@ -114,7 +114,7 @@ var _ tea.Model = &model{}
 
 // Init implements tea.Model.
 func (m model) Init() (tea.Model, tea.Cmd) {
-	return m, tea.BackgroundColor
+	return m, tea.RequestBackgroundColor
 }
 
 const (
