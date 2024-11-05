@@ -69,7 +69,6 @@ func RenderLine(d Screen, n int) (w int, line string) {
 func RenderLineWithProfile(d Screen, n int, p colorprofile.Profile) (w int, line string) {
 	var pen Style
 	var link Link
-	var zone int
 	var buf bytes.Buffer
 	var pendingLine string
 	var pendingWidth int // this ignores space cells until we hit a non-space cell
@@ -112,17 +111,6 @@ func RenderLineWithProfile(d Screen, n int, p colorprofile.Profile) (w int, line
 				writePending()
 				buf.WriteString(ansi.SetHyperlink(cellLink.URL, cellLink.URLID)) //nolint:errcheck
 				link = cellLink
-			}
-
-			// Write the Bubblezone escape sequence
-			if cell.Zone != zone {
-				writePending()
-				if cell.Zone == 0 {
-					buf.WriteString(ansi.SetZone(zone)) //nolint:errcheck
-				} else {
-					buf.WriteString(ansi.SetZone(cell.Zone)) //nolint:errcheck
-				}
-				zone = cell.Zone
 			}
 
 			// We only write the cell content if it's not empty. If it is, we
