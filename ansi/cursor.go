@@ -181,6 +181,8 @@ func MoveCursor(col, row int) string {
 
 // CursorOrigin is a sequence for moving the cursor to the upper left corner of
 // the display. This is equivalent to `SetCursorPosition(1, 1)`.
+//
+// Deprecated: use [HomeCursorPosition] instead.
 const CursorOrigin = "\x1b[1;1H"
 
 // MoveCursorOrigin is a sequence for moving the cursor to the upper left
