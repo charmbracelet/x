@@ -25,12 +25,16 @@ type Cell struct {
 
 	// Width is the mono-space width of the grapheme cluster.
 	Width int
+
+	// Zone is the zone id of the cell.
+	Zone int
 }
 
 // Equal returns whether the cell is equal to the other cell.
 func (c Cell) Equal(o Cell) bool {
 	return c.Width == o.Width &&
 		c.Content == o.Content &&
+		c.Zone == o.Zone &&
 		c.Style.Equal(o.Style) &&
 		c.Link.Equal(o.Link)
 }
@@ -39,6 +43,7 @@ func (c Cell) Equal(o Cell) bool {
 func (c Cell) Empty() bool {
 	return c.Content == "" &&
 		c.Width == 0 &&
+		c.Zone == 0 &&
 		c.Style.Empty() &&
 		c.Link.Empty()
 }
@@ -47,6 +52,7 @@ func (c Cell) Empty() bool {
 func (c *Cell) Reset() {
 	c.Content = ""
 	c.Width = 0
+	c.Zone = 0
 	c.Style.Reset()
 	c.Link.Reset()
 }

@@ -19,6 +19,7 @@ func setContent(
 	var cell Cell
 	var pen Style
 	var link Link
+	var zone int
 	var x, y int
 
 	p := ansi.GetParser()
@@ -56,6 +57,7 @@ func setContent(
 			cell.Width = width
 			cell.Style = pen
 			cell.Link = link
+			cell.Zone = zone
 
 			dis.SetCell(x, y, cell) //nolint:errcheck
 
@@ -76,6 +78,8 @@ func setContent(
 				switch p.Cmd {
 				case 'm': // SGR - Select Graphic Rendition
 					handleSgr(p, &pen)
+				case 'z': // Bubblezone
+					handleZone(p, &zone)
 				}
 			case ansi.HasOscPrefix(seq) && p.Cmd != 0:
 				switch p.Cmd {
@@ -217,4 +221,18 @@ func handleHyperlinks(p *ansi.Parser, link *Link) {
 		}
 	}
 	link.URL = string(params[2])
+}
+
+// handleZone handles Bubblezone escape sequences.
+func handleZone(p *ansi.Parser, zone *int) {
+	if p.ParamsLen == 0 {
+		return
+	}
+
+	z := ansi.Param(p.Params[0]).Param()
+	if *zone == z {
+		*zone = 0
+	} else {
+		*zone = z
+	}
 }
