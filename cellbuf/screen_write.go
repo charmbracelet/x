@@ -12,14 +12,15 @@ import (
 // setContent writes the given data to the buffer starting from the first cell.
 // It accepts both string and []byte data types.
 func setContent(
-	dis Screen,
+	d Drawable,
 	data string,
 	method Method,
+	rect Rectangle,
 ) []int {
 	var cell Cell
 	var pen Style
 	var link Link
-	var x, y int
+	x, y := rect.X, rect.Y
 
 	p := ansi.GetParser()
 	defer ansi.PutParser(p)
@@ -28,7 +29,7 @@ func setContent(
 	// linew is a slice of line widths. We use this to keep track of the
 	// written widths of each line. We use this information later to optimize
 	// rendering of the buffer.
-	linew := make([]int, dis.Height())
+	linew := make([]int, rect.Height)
 
 	var pendingWidth int
 
@@ -52,18 +53,22 @@ func setContent(
 			}
 			fallthrough
 		case 1:
+			if x >= rect.X+rect.Width || y >= rect.Y+rect.Height {
+				break
+			}
+
 			cell.Content = seq
 			cell.Width = width
 			cell.Style = pen
 			cell.Link = link
 
-			dis.SetCell(x, y, cell) //nolint:errcheck
+			d.Draw(x, y, cell) //nolint:errcheck
 
 			// Advance the cursor and line width
 			x += cell.Width
 			if cell.Equal(spaceCell) {
 				pendingWidth += cell.Width
-			} else if y < len(linew) {
+			} else if y := y - rect.Y; y < len(linew) {
 				linew[y] += cell.Width + pendingWidth
 				pendingWidth = 0
 			}
@@ -84,8 +89,8 @@ func setContent(
 				}
 			case ansi.Equal(seq, "\n"):
 				// Reset the rest of the line
-				for x < dis.Width() {
-					dis.SetCell(x, y, spaceCell) //nolint:errcheck
+				for x < rect.X+rect.Width {
+					d.Draw(x, y, spaceCell) //nolint:errcheck
 					x++
 				}
 
@@ -102,8 +107,8 @@ func setContent(
 		data = data[n:]
 	}
 
-	for x < dis.Width() {
-		dis.SetCell(x, y, spaceCell) //nolint:errcheck
+	for x < rect.X+rect.Width {
+		d.Draw(x, y, spaceCell) //nolint:errcheck
 		x++
 	}
 
