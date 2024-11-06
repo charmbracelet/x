@@ -35,8 +35,8 @@ func (b *Buffer) Cell(x, y int) (Cell, bool) {
 	return b.cells[idx], true
 }
 
-// SetCell sets the cell at the given x, y position.
-func (b *Buffer) SetCell(x, y int, c Cell) (v bool) {
+// Draw sets the cell at the given x, y position.
+func (b *Buffer) Draw(x, y int, c Cell) (v bool) {
 	if b.width == 0 {
 		return
 	}
@@ -55,7 +55,7 @@ func (b *Buffer) SetCell(x, y int, c Cell) (v bool) {
 	prev := b.cells[idx]
 	if prev.Width > 1 {
 		// Writing to the first wide cell
-		for j := 0; j < prev.Width; j++ {
+		for j := 0; j < prev.Width && idx+j < len(b.cells); j++ {
 			newCell := prev
 			newCell.Content = " "
 			newCell.Width = 1
@@ -82,7 +82,7 @@ func (b *Buffer) SetCell(x, y int, c Cell) (v bool) {
 	// Mark wide cells with emptyCell zero width
 	// We set the wide cell down below
 	if c.Width > 1 {
-		for j := 1; j < c.Width; j++ {
+		for j := 1; j < c.Width && idx+j < len(b.cells); j++ {
 			b.cells[idx+j] = emptyCell
 		}
 	}
@@ -115,4 +115,40 @@ func (b *Buffer) Resize(width, height int) {
 		// Truncate the buffer if necessary
 		b.cells = b.cells[:area]
 	}
+}
+
+// Bounds returns the bounds of the buffer.
+func (b *Buffer) Bounds() Rectangle {
+	return Rect(0, 0, b.Width(), b.Height())
+}
+
+// Fill fills the buffer with the given cell. If rect is not nil, it fills the
+// rectangle with the cell. Otherwise, it fills the whole buffer.
+func (b *Buffer) Fill(c Cell, rect *Rectangle) {
+	Fill(b, c, rect)
+}
+
+// Clear clears the buffer with space cells. If rect is not nil, it clears the
+// rectangle. Otherwise, it clears the whole buffer.
+func (b *Buffer) Clear(rect *Rectangle) {
+	Clear(b, rect)
+}
+
+// Paint writes the given data to the buffer. If rect is not nil, it writes the
+// data within the rectangle. Otherwise, it writes the data to the whole
+// buffer.
+func (b *Buffer) Paint(m Method, data string, rect *Rectangle) []int {
+	return Paint(b, m, data, rect)
+}
+
+// Render returns a string representation of the buffer with ANSI escape
+// sequences.
+func (b *Buffer) Render(opts ...RenderOption) string {
+	return Render(b, opts...)
+}
+
+// RenderLine returns a string representation of the yth line of the buffer along
+// with the width of the line.
+func (b *Buffer) RenderLine(n int, opts ...RenderOption) (w int, line string) {
+	return RenderLine(b, n, opts...)
 }
