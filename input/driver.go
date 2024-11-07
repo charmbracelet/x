@@ -53,6 +53,13 @@ func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
 	return d, nil
 }
 
+// ReadQueryResponses is equivalent to ReadEvents on non-Windows systems.  However,
+// on windows systems this method will pull ansi responses from the tty instead of trying
+// to pull key/mouse input from windows' ReadConsoleInput syscall, which is what ReadEvents does
+func (d *Driver) ReadQueryResponses() (e []Event, err error) {
+	return d.readEvents()
+}
+
 // Cancel cancels the underlying reader.
 func (d *Driver) Cancel() bool {
 	return d.rd.Cancel()
