@@ -148,7 +148,7 @@ func (t *Terminal) handleCursor() {
 // handleSgr handles SGR escape sequences.
 // handleSgr handles Select Graphic Rendition (SGR) escape sequences.
 func (t *Terminal) handleSgr() {
-	p, pen := t.parser, t.scr.cur.Pen
+	p, pen := t.parser, &t.scr.cur.Pen
 	if p.ParamsLen == 0 {
 		pen.Reset()
 		return
