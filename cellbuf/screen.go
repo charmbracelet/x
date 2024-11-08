@@ -12,8 +12,7 @@ import (
 // attributes and hyperlink.
 type Segment = Cell
 
-// Screen represents an interface for a grid of cells that can be written to
-// and read from.
+// Screen represents a screen grid of cells.
 type Screen interface {
 	// Width returns the width of the grid.
 	Width() int
@@ -21,34 +20,49 @@ type Screen interface {
 	// Height returns the height of the grid.
 	Height() int
 
-	// SetCell writes a cell to the grid at the given position. It returns true
-	// if the cell was written successfully.
-	SetCell(x, y int, c Cell) bool
-
 	// Cell returns the cell at the given position.
 	Cell(x, y int) (Cell, bool)
 
-	// Resize resizes the grid to the given width and height.
-	Resize(width, height int)
+	// Draw writes a cell to the grid at the given position. It returns true if
+	// the cell was written successfully.
+	Draw(x, y int, c Cell) bool
 }
 
-// SetContent writes the given data to the grid starting from the first cell.
-func SetContent(d Screen, m Method, content string) []int {
-	return setContent(d, content, m)
+// Paint writes the given data to the canvas. If rect is not nil, it only
+// writes to the rectangle. Otherwise, it writes to the whole canvas.
+func Paint(d Screen, m Method, content string, rect *Rectangle) []int {
+	if rect == nil {
+		rect = &Rectangle{0, 0, d.Width(), d.Height()}
+	}
+	return setContent(d, content, m, *rect)
+}
+
+// RenderOptions represents options for rendering a canvas.
+type RenderOptions struct {
+	// Profile is the color profile to use when rendering the canvas.
+	Profile colorprofile.Profile
+}
+
+// RenderOption is a function that configures a RenderOptions.
+type RenderOption func(*RenderOptions)
+
+// WithRenderProfile sets the color profile to use when rendering the canvas.
+func WithRenderProfile(p colorprofile.Profile) RenderOption {
+	return func(o *RenderOptions) {
+		o.Profile = p
+	}
 }
 
 // Render returns a string representation of the grid with ANSI escape sequences.
-func Render(d Screen) string {
-	return RenderWithProfile(d, colorprofile.TrueColor)
-}
-
-// RenderWithProfile returns a string representation of the grid with ANSI escape
-// sequences converting styles and colors to the given color profile.
-func RenderWithProfile(d Screen, p colorprofile.Profile) string {
+func Render(d Screen, opts ...RenderOption) string {
+	var opt RenderOptions
+	for _, o := range opts {
+		o(&opt)
+	}
 	var buf bytes.Buffer
 	height := d.Height()
 	for y := 0; y < height; y++ {
-		_, line := RenderLineWithProfile(d, y, p)
+		_, line := renderLine(d, y, opt)
 		buf.WriteString(line)
 		if y < height-1 {
 			buf.WriteString("\r\n")
@@ -59,14 +73,15 @@ func RenderWithProfile(d Screen, p colorprofile.Profile) string {
 
 // RenderLine returns a string representation of the yth line of the grid along
 // with the width of the line.
-func RenderLine(d Screen, n int) (w int, line string) {
-	return RenderLineWithProfile(d, n, colorprofile.TrueColor)
+func RenderLine(d Screen, n int, opts ...RenderOption) (w int, line string) {
+	var opt RenderOptions
+	for _, o := range opts {
+		o(&opt)
+	}
+	return renderLine(d, n, opt)
 }
 
-// RenderLineWithProfile returns a string representation of the nth line of the
-// grid along with the width of the line converting styles and colors to the
-// given color profile.
-func RenderLineWithProfile(d Screen, n int, p colorprofile.Profile) (w int, line string) {
+func renderLine(d Screen, n int, opt RenderOptions) (w int, line string) {
 	var pen Style
 	var link Link
 	var buf bytes.Buffer
@@ -87,8 +102,8 @@ func RenderLineWithProfile(d Screen, n int, p colorprofile.Profile) (w int, line
 	for x := 0; x < d.Width(); x++ {
 		if cell, ok := d.Cell(x, n); ok && cell.Width > 0 {
 			// Convert the cell's style and link to the given color profile.
-			cellStyle := cell.Style.Convert(p)
-			cellLink := cell.Link.Convert(p)
+			cellStyle := cell.Style.Convert(opt.Profile)
+			cellLink := cell.Link.Convert(opt.Profile)
 			if cellStyle.Empty() && !pen.Empty() {
 				writePending()
 				buf.WriteString(ansi.ResetStyle) //nolint:errcheck
@@ -134,13 +149,24 @@ func RenderLineWithProfile(d Screen, n int, p colorprofile.Profile) (w int, line
 	return w, strings.TrimRight(buf.String(), " ") // Trim trailing spaces
 }
 
-// Fill fills the grid with the given cell.
-func Fill(d Screen, c Cell) {
-	for y := 0; y < d.Height(); y++ {
-		for x := 0; x < d.Width(); x++ {
-			d.SetCell(x, y, c) //nolint:errcheck
+// Fill fills the canvas with the given cell. If rect is not nil, it only fills
+// the rectangle. Otherwise, it fills the whole canvas.
+func Fill(d Screen, c Cell, rect *Rectangle) {
+	if rect == nil {
+		rect = &Rectangle{0, 0, d.Width(), d.Height()}
+	}
+
+	for y := rect.Y; y < rect.Y+rect.Height; y++ {
+		for x := rect.X; x < rect.X+rect.Width; x += c.Width {
+			d.Draw(x, y, c) //nolint:errcheck
 		}
 	}
+}
+
+// Clear clears the canvas with space cells. If rect is not nil, it only clears
+// the rectangle. Otherwise, it clears the whole canvas.
+func Clear(d Screen, rect *Rectangle) {
+	Fill(d, spaceCell, rect)
 }
 
 // Equal returns whether two grids are equal.
