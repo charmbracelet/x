@@ -40,15 +40,15 @@ const (
 // [Cmd] and [Param] types to unpack command intermediates and markers as well
 // as parameters.
 //
-// Zero [p.Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
+// Zero [Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
 // validity of other data sequences, OSC, DCS, etc, will require checking for
 // the returned sequence terminator bytes such as ST (ESC \\) and BEL).
 //
-// We store the command byte in [p.Cmd] in the most significant byte, the
+// We store the command byte in [Cmd] in the most significant byte, the
 // marker byte in the next byte, and the intermediate byte in the least
 // significant byte. This is done to avoid using a struct to store the command
 // and its intermediates and markers. The command byte is always the least
-// significant byte i.e. [p.Cmd & 0xff]. Use the [Cmd] type to unpack the
+// significant byte i.e. [Cmd & 0xff]. Use the [Cmd] type to unpack the
 // command, intermediate, and marker bytes. Note that we only collect the last
 // marker character and intermediate byte.
 //
@@ -248,15 +248,31 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			switch c {
 			case BEL:
 				if HasOscPrefix(b) {
+					parseOscCmd(p)
 					return b[:i+1], 0, i + 1, NormalState
 				}
 			case CAN, SUB:
+				if HasOscPrefix(b) {
+					// Ensure we parse the OSC command number
+					parseOscCmd(p)
+				}
+
 				// Cancel the sequence
 				return b[:i], 0, i, NormalState
 			case ST:
+				if HasOscPrefix(b) {
+					// Ensure we parse the OSC command number
+					parseOscCmd(p)
+				}
+
 				return b[:i+1], 0, i + 1, NormalState
 			case ESC:
 				if HasStPrefix(b[i:]) {
+					if HasOscPrefix(b) {
+						// Ensure we parse the OSC command number
+						parseOscCmd(p)
+					}
+
 					// End of string 7-bit (ST)
 					return b[:i+2], 0, i + 2, NormalState
 				}
@@ -270,24 +286,31 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 				p.DataLen++
 
 				// Parse the OSC command number
-				if c == ';' && p.Cmd == parser.MissingCommand && HasOscPrefix(b) {
-					for j := 0; j < p.DataLen; j++ {
-						d := p.Data[j]
-						if d < '0' || d > '9' {
-							break
-						}
-						if p.Cmd == parser.MissingCommand {
-							p.Cmd = 0
-						}
-						p.Cmd *= 10
-						p.Cmd += int(d - '0')
-					}
+				if c == ';' && HasOscPrefix(b) {
+					parseOscCmd(p)
 				}
 			}
 		}
 	}
 
 	return b, 0, len(b), state
+}
+
+func parseOscCmd(p *Parser) {
+	if p == nil || p.Cmd != parser.MissingCommand {
+		return
+	}
+	for j := 0; j < p.DataLen; j++ {
+		d := p.Data[j]
+		if d < '0' || d > '9' {
+			break
+		}
+		if p.Cmd == parser.MissingCommand {
+			p.Cmd = 0
+		}
+		p.Cmd *= 10
+		p.Cmd += int(d - '0')
+	}
 }
 
 // Index returns the index of the first occurrence of the given byte slice in
@@ -414,7 +437,11 @@ type Param int
 // Param returns the parameter at the given index.
 // It returns -1 if the parameter does not exist.
 func (s Param) Param() int {
-	return int(s) & parser.ParamMask
+	p := int(s) & parser.ParamMask
+	if p == parser.MissingParam {
+		return -1
+	}
+	return p
 }
 
 // HasMore returns true if the parameter has more sub-parameters.

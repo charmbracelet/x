@@ -4,6 +4,8 @@
 //
 // Unlike go-runewidth, wcwidth treats East Asian ambiguous characters as
 // single-width characters. This is consistent with the behavior of wcwidth(3).
+//
+// See https://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c
 
 package wcwidth
 
@@ -13,15 +15,18 @@ import (
 	"golang.org/x/text/width"
 )
 
-// IsComb returns true if r is a Unicode combining character. Alias of:
-//
-//	unicode.Is(unicode.Mn, r)
-func IsComb(r rune) bool { return unicode.Is(unicode.Mn, r) }
+const nbsp = 0xA0
 
 // RuneWidth returns fixed-width width of rune.
 // https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms#In_Unicode
 func RuneWidth(r rune) int {
-	if r == 0 || !unicode.IsPrint(r) || IsComb(r) {
+	// No width for categories Me (Mark, enclosing), Mn (Mark, non-spacing), and
+	// Cf (Other, format). We treat Control characters (class Cc) as zero width
+	// instead of -1.
+	if r == 0 || !unicode.IsPrint(r) || unicode.In(r, unicode.Me, unicode.Mn, unicode.Cf) {
+		if r == nbsp { // Special case: non-breaking space has width 1
+			return 1
+		}
 		return 0
 	}
 	k := width.LookupRune(r)
@@ -41,5 +46,5 @@ func StringWidth(s string) (n int) {
 	for _, r := range s {
 		n += RuneWidth(r)
 	}
-	return n
+	return
 }

@@ -1,10 +1,7 @@
 package cellbuf
 
 import (
-	"fmt"
-	"strconv"
-	"strings"
-
+	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -39,26 +36,6 @@ var attrMaskNames = map[AttrMask]string{
 	ResetAttr:         "ResetAttr",
 }
 
-// Info returns a string representation of the attribute mask.
-func (a AttrMask) Info() string {
-	if a == ResetAttr {
-		return "ResetAttr"
-	}
-
-	var b strings.Builder
-	var i int
-	for i = int(BoldAttr); i <= int(StrikethroughAttr); i <<= 1 {
-		if int(a)&i != 0 {
-			if b.Len() > 0 {
-				b.WriteByte('|')
-			}
-			b.WriteString(attrMaskNames[AttrMask(i)])
-		}
-	}
-
-	return b.String()
-}
-
 // UnderlineStyle is the style of underline to use for text.
 type UnderlineStyle uint8
 
@@ -86,8 +63,8 @@ func (u UnderlineStyle) String() string {
 	return underlineStyleNames[u]
 }
 
-// CellStyle represents the CellStyle of a cell.
-type CellStyle struct {
+// Style represents the Style of a cell.
+type Style struct {
 	Fg      ansi.Color
 	Bg      ansi.Color
 	Ul      ansi.Color
@@ -96,8 +73,8 @@ type CellStyle struct {
 }
 
 // Sequence returns the ANSI sequence that sets the style.
-func (s CellStyle) Sequence() string {
-	if s.IsEmpty() {
+func (s Style) Sequence() string {
+	if s.Empty() {
 		return ansi.ResetStyle
 	}
 
@@ -158,8 +135,8 @@ func (s CellStyle) Sequence() string {
 
 // DiffSequence returns the ANSI sequence that sets the style as a diff from
 // another style.
-func (s CellStyle) DiffSequence(o CellStyle) string {
-	if o.IsEmpty() {
+func (s Style) DiffSequence(o Style) string {
+	if o.Empty() {
 		return s.Sequence()
 	}
 
@@ -247,7 +224,7 @@ func (s CellStyle) DiffSequence(o CellStyle) string {
 }
 
 // Equal returns true if the style is equal to the other style.
-func (s CellStyle) Equal(o CellStyle) bool {
+func (s Style) Equal(o Style) bool {
 	return colorEqual(s.Fg, o.Fg) &&
 		colorEqual(s.Bg, o.Bg) &&
 		colorEqual(s.Ul, o.Ul) &&
@@ -268,7 +245,7 @@ func colorEqual(c, o ansi.Color) bool {
 }
 
 // Bold sets the bold attribute.
-func (s *CellStyle) Bold(v bool) *CellStyle {
+func (s *Style) Bold(v bool) *Style {
 	if v {
 		s.Attrs |= BoldAttr
 	} else {
@@ -278,7 +255,7 @@ func (s *CellStyle) Bold(v bool) *CellStyle {
 }
 
 // Faint sets the faint attribute.
-func (s *CellStyle) Faint(v bool) *CellStyle {
+func (s *Style) Faint(v bool) *Style {
 	if v {
 		s.Attrs |= FaintAttr
 	} else {
@@ -288,7 +265,7 @@ func (s *CellStyle) Faint(v bool) *CellStyle {
 }
 
 // Italic sets the italic attribute.
-func (s *CellStyle) Italic(v bool) *CellStyle {
+func (s *Style) Italic(v bool) *Style {
 	if v {
 		s.Attrs |= ItalicAttr
 	} else {
@@ -298,7 +275,7 @@ func (s *CellStyle) Italic(v bool) *CellStyle {
 }
 
 // SlowBlink sets the slow blink attribute.
-func (s *CellStyle) SlowBlink(v bool) *CellStyle {
+func (s *Style) SlowBlink(v bool) *Style {
 	if v {
 		s.Attrs |= SlowBlinkAttr
 	} else {
@@ -308,7 +285,7 @@ func (s *CellStyle) SlowBlink(v bool) *CellStyle {
 }
 
 // RapidBlink sets the rapid blink attribute.
-func (s *CellStyle) RapidBlink(v bool) *CellStyle {
+func (s *Style) RapidBlink(v bool) *Style {
 	if v {
 		s.Attrs |= RapidBlinkAttr
 	} else {
@@ -318,7 +295,7 @@ func (s *CellStyle) RapidBlink(v bool) *CellStyle {
 }
 
 // Reverse sets the reverse attribute.
-func (s *CellStyle) Reverse(v bool) *CellStyle {
+func (s *Style) Reverse(v bool) *Style {
 	if v {
 		s.Attrs |= ReverseAttr
 	} else {
@@ -328,7 +305,7 @@ func (s *CellStyle) Reverse(v bool) *CellStyle {
 }
 
 // Conceal sets the conceal attribute.
-func (s *CellStyle) Conceal(v bool) *CellStyle {
+func (s *Style) Conceal(v bool) *Style {
 	if v {
 		s.Attrs |= ConcealAttr
 	} else {
@@ -338,7 +315,7 @@ func (s *CellStyle) Conceal(v bool) *CellStyle {
 }
 
 // Strikethrough sets the strikethrough attribute.
-func (s *CellStyle) Strikethrough(v bool) *CellStyle {
+func (s *Style) Strikethrough(v bool) *Style {
 	if v {
 		s.Attrs |= StrikethroughAttr
 	} else {
@@ -348,14 +325,14 @@ func (s *CellStyle) Strikethrough(v bool) *CellStyle {
 }
 
 // UnderlineStyle sets the underline style.
-func (s *CellStyle) UnderlineStyle(style UnderlineStyle) *CellStyle {
+func (s *Style) UnderlineStyle(style UnderlineStyle) *Style {
 	s.UlStyle = style
 	return s
 }
 
 // Underline sets the underline attribute.
 // This is a syntactic sugar for [UnderlineStyle].
-func (s *CellStyle) Underline(v bool) *CellStyle {
+func (s *Style) Underline(v bool) *Style {
 	if v {
 		return s.UnderlineStyle(SingleUnderline)
 	}
@@ -363,25 +340,25 @@ func (s *CellStyle) Underline(v bool) *CellStyle {
 }
 
 // Foreground sets the foreground color.
-func (s *CellStyle) Foreground(c ansi.Color) *CellStyle {
+func (s *Style) Foreground(c ansi.Color) *Style {
 	s.Fg = c
 	return s
 }
 
 // Background sets the background color.
-func (s *CellStyle) Background(c ansi.Color) *CellStyle {
+func (s *Style) Background(c ansi.Color) *Style {
 	s.Bg = c
 	return s
 }
 
 // UnderlineColor sets the underline color.
-func (s *CellStyle) UnderlineColor(c ansi.Color) *CellStyle {
+func (s *Style) UnderlineColor(c ansi.Color) *Style {
 	s.Ul = c
 	return s
 }
 
 // Reset resets the style to default.
-func (s *CellStyle) Reset() *CellStyle {
+func (s *Style) Reset() *Style {
 	s.Fg = nil
 	s.Bg = nil
 	s.Ul = nil
@@ -390,106 +367,33 @@ func (s *CellStyle) Reset() *CellStyle {
 	return s
 }
 
-// IsEmpty returns true if the style is empty.
-func (s *CellStyle) IsEmpty() bool {
+// Empty returns true if the style is empty.
+func (s *Style) Empty() bool {
 	return s.Fg == nil && s.Bg == nil && s.Ul == nil && s.Attrs == ResetAttr && s.UlStyle == NoUnderline
 }
 
-// Info returns a string representation of the style.
-func (s *CellStyle) Info() string {
-	if s.IsEmpty() {
-		return "Style{ResetAttr}"
+// Convert converts a style to respect the given color profile.
+func (s Style) Convert(p colorprofile.Profile) Style {
+	switch p {
+	case colorprofile.TrueColor:
+		return s
+	case colorprofile.Ascii:
+		s.Fg = nil
+		s.Bg = nil
+		s.Ul = nil
+	case colorprofile.NoTTY:
+		return Style{}
 	}
 
-	var b strings.Builder
-
-	b.WriteString("Style{")
-
-	if s.UlStyle != NoUnderline {
-		if b.Len() > 6 {
-			b.WriteString(", ")
-		}
-		b.WriteString(s.UlStyle.String())
-	}
 	if s.Fg != nil {
-		if b.Len() > 6 {
-			b.WriteString(", ")
-		}
-		b.WriteString("Fg: " + colorString(s.Fg))
+		s.Fg = p.Convert(s.Fg)
 	}
 	if s.Bg != nil {
-		if b.Len() > 6 {
-			b.WriteString(", ")
-		}
-		b.WriteString("Bg: " + colorString(s.Bg))
+		s.Bg = p.Convert(s.Bg)
 	}
 	if s.Ul != nil {
-		if b.Len() > 6 {
-			b.WriteString(", ")
-		}
-		b.WriteString("Ul: " + colorString(s.Ul))
+		s.Ul = p.Convert(s.Ul)
 	}
 
-	b.WriteByte('}')
-
-	return b.String()
-}
-
-func colorString(c ansi.Color) string {
-	if c == nil {
-		return ""
-	}
-	switch c := c.(type) {
-	case ansi.BasicColor:
-		switch c {
-		case 0:
-			return "Black"
-		case 1:
-			return "Red"
-		case 2:
-			return "Green"
-		case 3:
-			return "Yellow"
-		case 4:
-			return "Blue"
-		case 5:
-			return "Magenta"
-		case 6:
-			return "Cyan"
-		case 7:
-			return "White"
-		case 8:
-			return "BrightBlack"
-		case 9:
-			return "BrightRed"
-		case 10:
-			return "BrightGreen"
-		case 11:
-			return "BrightYellow"
-		case 12:
-			return "BrightBlue"
-		case 13:
-			return "BrightMagenta"
-		case 14:
-			return "BrightCyan"
-		case 15:
-			return "BrightWhite"
-		default:
-			return "UnknownColor"
-		}
-	case ansi.ExtendedColor:
-		return strconv.Itoa(int(c))
-	default:
-		r, g, b, _ := c.RGBA()
-		if r > 255 {
-			r >>= 8
-		}
-		if g > 255 {
-			g >>= 8
-		}
-		if b > 255 {
-			b >>= 8
-		}
-		return fmt.Sprintf("#%02x%02x%02x", r, g, b)
-	}
+	return s
 }

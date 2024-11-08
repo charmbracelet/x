@@ -8,7 +8,7 @@ import (
 
 var parserPool = sync.Pool{
 	New: func() any {
-		return NewParser(parser.MaxParamsSize, 1024*4) // 4MB data buffer
+		return NewParser(parser.MaxParamsSize, 1024*1024*4) // 4MB of data buffer
 	},
 }
 

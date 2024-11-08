@@ -2,9 +2,15 @@ package cellbuf
 
 import (
 	"image/color"
+	"strings"
 
 	"github.com/charmbracelet/x/ansi"
 )
+
+// Height returns the height of a string.
+func Height(s string) int {
+	return strings.Count(s, "\n") + 1
+}
 
 func readColor(idxp *int, params []int) (c ansi.Color) {
 	i := *idxp
@@ -19,9 +25,9 @@ func readColor(idxp *int, params []int) (c ansi.Color) {
 			return
 		}
 		c = color.RGBA{
-			R: uint8(ansi.Param(params[i+2])),
-			G: uint8(ansi.Param(params[i+3])),
-			B: uint8(ansi.Param(params[i+4])),
+			R: uint8(ansi.Param(params[i+2])), //nolint:gosec
+			G: uint8(ansi.Param(params[i+3])), //nolint:gosec
+			B: uint8(ansi.Param(params[i+4])), //nolint:gosec
 			A: 0xff,
 		}
 		*idxp += 4
@@ -29,7 +35,7 @@ func readColor(idxp *int, params []int) (c ansi.Color) {
 		if i > paramsLen-2 {
 			return
 		}
-		c = ansi.ExtendedColor(ansi.Param(params[i+2]))
+		c = ansi.ExtendedColor(ansi.Param(params[i+2])) //nolint:gosec
 		*idxp += 2
 	}
 	return
