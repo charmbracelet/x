@@ -12,7 +12,7 @@ import (
 // setContent writes the given data to the buffer starting from the first cell.
 // It accepts both string and []byte data types.
 func setContent(
-	d Drawable,
+	d Screen,
 	data string,
 	method Method,
 	rect Rectangle,

@@ -12,8 +12,8 @@ import (
 // attributes and hyperlink.
 type Segment = Cell
 
-// Drawable represents a drawable grid of cells.
-type Drawable interface {
+// Screen represents a screen grid of cells.
+type Screen interface {
 	// Width returns the width of the grid.
 	Width() int
 
@@ -30,7 +30,7 @@ type Drawable interface {
 
 // Paint writes the given data to the canvas. If rect is not nil, it only
 // writes to the rectangle. Otherwise, it writes to the whole canvas.
-func Paint(d Drawable, m Method, content string, rect *Rectangle) []int {
+func Paint(d Screen, m Method, content string, rect *Rectangle) []int {
 	if rect == nil {
 		rect = &Rectangle{0, 0, d.Width(), d.Height()}
 	}
@@ -54,7 +54,7 @@ func WithRenderProfile(p colorprofile.Profile) RenderOption {
 }
 
 // Render returns a string representation of the grid with ANSI escape sequences.
-func Render(d Drawable, opts ...RenderOption) string {
+func Render(d Screen, opts ...RenderOption) string {
 	var opt RenderOptions
 	for _, o := range opts {
 		o(&opt)
@@ -73,7 +73,7 @@ func Render(d Drawable, opts ...RenderOption) string {
 
 // RenderLine returns a string representation of the yth line of the grid along
 // with the width of the line.
-func RenderLine(d Drawable, n int, opts ...RenderOption) (w int, line string) {
+func RenderLine(d Screen, n int, opts ...RenderOption) (w int, line string) {
 	var opt RenderOptions
 	for _, o := range opts {
 		o(&opt)
@@ -81,7 +81,7 @@ func RenderLine(d Drawable, n int, opts ...RenderOption) (w int, line string) {
 	return renderLine(d, n, opt)
 }
 
-func renderLine(d Drawable, n int, opt RenderOptions) (w int, line string) {
+func renderLine(d Screen, n int, opt RenderOptions) (w int, line string) {
 	var pen Style
 	var link Link
 	var buf bytes.Buffer
@@ -151,7 +151,7 @@ func renderLine(d Drawable, n int, opt RenderOptions) (w int, line string) {
 
 // Fill fills the canvas with the given cell. If rect is not nil, it only fills
 // the rectangle. Otherwise, it fills the whole canvas.
-func Fill(d Drawable, c Cell, rect *Rectangle) {
+func Fill(d Screen, c Cell, rect *Rectangle) {
 	if rect == nil {
 		rect = &Rectangle{0, 0, d.Width(), d.Height()}
 	}
@@ -165,12 +165,12 @@ func Fill(d Drawable, c Cell, rect *Rectangle) {
 
 // Clear clears the canvas with space cells. If rect is not nil, it only clears
 // the rectangle. Otherwise, it clears the whole canvas.
-func Clear(d Drawable, rect *Rectangle) {
+func Clear(d Screen, rect *Rectangle) {
 	Fill(d, spaceCell, rect)
 }
 
 // Equal returns whether two grids are equal.
-func Equal(a, b Drawable) bool {
+func Equal(a, b Screen) bool {
 	if a.Width() != b.Width() || a.Height() != b.Height() {
 		return false
 	}
