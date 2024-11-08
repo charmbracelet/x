@@ -1,14 +1,18 @@
-module github.com/charmbracelet/x/vt
+module github.com/charmbracelet/x/vt/examples
 
-go 1.19
+go 1.22.8
+
+replace github.com/charmbracelet/x/vt => ../
 
 require (
-	github.com/charmbracelet/x/ansi v0.4.5
-	github.com/charmbracelet/x/cellbuf v0.0.6-0.20241106170917-eb0997d7d743
+	github.com/charmbracelet/x/vt v0.0.0-00010101000000-000000000000
+	golang.org/x/image v0.22.0
 )
 
 require (
 	github.com/charmbracelet/colorprofile v0.1.6 // indirect
+	github.com/charmbracelet/x/ansi v0.4.5 // indirect
+	github.com/charmbracelet/x/cellbuf v0.0.6-0.20241106170917-eb0997d7d743 // indirect
 	github.com/charmbracelet/x/term v0.2.0 // indirect
 	github.com/charmbracelet/x/wcwidth v0.0.0-20241011142426-46044092ad91 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
