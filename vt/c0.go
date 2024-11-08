@@ -14,7 +14,10 @@ func (t *Terminal) handleControl(r rune) {
 			t.scr.cur.Pos.X--
 		}
 	case ansi.HT: // HT - Horizontal Tab
-	case ansi.LF: // LF - Line Feed
+	case ansi.LF, ansi.FF, ansi.VT:
+		// LF - Line Feed
+		// FF - Form Feed
+		// VT - Vertical Tab
 		if t.scr.cur.Pos.Y < t.scr.Height()-1 {
 			t.scr.cur.Pos.Y++
 		}

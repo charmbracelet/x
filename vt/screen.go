@@ -10,7 +10,7 @@ type Screen struct {
 	cur, saved Cursor
 }
 
-var _ cellbuf.Grid = &Screen{}
+var _ cellbuf.Screen = &Screen{}
 
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
@@ -19,9 +19,14 @@ func NewScreen(w, h int) *Screen {
 	return s
 }
 
-// At implements cellbuf.Grid.
-func (s *Screen) At(x int, y int) (cellbuf.Cell, error) {
-	return s.buf.At(x, y)
+// Cell implements cellbuf.Screen.
+func (s *Screen) Cell(x int, y int) (cellbuf.Cell, bool) {
+	return s.buf.Cell(x, y)
+}
+
+// SetCell implements cellbuf.Screen.
+func (s *Screen) SetCell(x int, y int, c cellbuf.Cell) bool {
+	return s.buf.SetCell(x, y, c)
 }
 
 // Height implements cellbuf.Grid.
@@ -32,11 +37,6 @@ func (s *Screen) Height() int {
 // Resize implements cellbuf.Grid.
 func (s *Screen) Resize(width int, height int) {
 	s.buf.Resize(width, height)
-}
-
-// Set implements cellbuf.Grid.
-func (s *Screen) Set(x int, y int, c cellbuf.Cell) bool {
-	return s.buf.Set(x, y, c)
 }
 
 // Width implements cellbuf.Grid.

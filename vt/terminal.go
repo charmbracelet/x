@@ -51,8 +51,8 @@ func NewTerminal(w, h int) *Terminal {
 }
 
 // At returns the cell at the given position.
-func (t *Terminal) At(x int, y int) (cellbuf.Cell, error) {
-	return t.scr.At(x, y)
+func (t *Terminal) At(x int, y int) (cellbuf.Cell, bool) {
+	return t.scr.Cell(x, y)
 }
 
 // Height returns the height of the terminal.
@@ -92,7 +92,7 @@ func (t *Terminal) Write(p []byte) (n int, err error) {
 			t.handleDcs(seq)
 		case ansi.HasEscPrefix(seq):
 			t.handleEsc(seq)
-		case unicode.IsControl(r):
+		case len(seq) == 1 && unicode.IsControl(r):
 			t.handleControl(r)
 		default:
 			t.handleUtf8(seq, width, r, rw)
@@ -101,6 +101,9 @@ func (t *Terminal) Write(p []byte) (n int, err error) {
 		state = newState
 		p = p[m:]
 		n += m
+
+		// x, y := t.Cursor().Pos.X, t.Cursor().Pos.Y
+		// fmt.Printf("%q: %d %d\n", seq, x, y)
 	}
 
 	return
