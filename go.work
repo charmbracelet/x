@@ -22,6 +22,7 @@ use (
 	./sshkey
 	./term
 	./termios
+	./vt
 	./wcwidth
 	./windows
 	./xpty
