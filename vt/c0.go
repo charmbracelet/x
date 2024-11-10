@@ -14,6 +14,7 @@ func (t *Terminal) handleControl(r rune) {
 			t.scr.cur.Pos.X--
 		}
 	case ansi.HT: // HT - Horizontal Tab
+		t.scr.cur.Pos.X = t.scr.tabstops.Next(t.scr.cur.Pos.X)
 	case ansi.LF, ansi.FF, ansi.VT:
 		// LF - Line Feed
 		// FF - Form Feed

@@ -8,6 +8,9 @@ type Screen struct {
 	buf cellbuf.Buffer
 	// The cur of the screen.
 	cur, saved Cursor
+
+	// tabstop is the list of tab stops.
+	tabstops TabStops
 }
 
 var _ cellbuf.Screen = &Screen{}
@@ -16,6 +19,7 @@ var _ cellbuf.Screen = &Screen{}
 func NewScreen(w, h int) *Screen {
 	s := new(Screen)
 	s.buf.Resize(w, h)
+	s.tabstops = DefaultTabStops(w)
 	return s
 }
 
@@ -24,9 +28,9 @@ func (s *Screen) Cell(x int, y int) (cellbuf.Cell, bool) {
 	return s.buf.Cell(x, y)
 }
 
-// SetCell implements cellbuf.Screen.
-func (s *Screen) SetCell(x int, y int, c cellbuf.Cell) bool {
-	return s.buf.SetCell(x, y, c)
+// Draw implements cellbuf.Screen.
+func (s *Screen) Draw(x int, y int, c cellbuf.Cell) bool {
+	return s.buf.Draw(x, y, c)
 }
 
 // Height implements cellbuf.Grid.
@@ -37,11 +41,22 @@ func (s *Screen) Height() int {
 // Resize implements cellbuf.Grid.
 func (s *Screen) Resize(width int, height int) {
 	s.buf.Resize(width, height)
+	s.tabstops = DefaultTabStops(width)
 }
 
 // Width implements cellbuf.Grid.
 func (s *Screen) Width() int {
 	return s.buf.Width()
+}
+
+// Clear clears the screen or part of it.
+func (s *Screen) Clear(rect *cellbuf.Rectangle) {
+	s.buf.Clear(rect)
+}
+
+// Fill fills the screen or part of it.
+func (s *Screen) Fill(c cellbuf.Cell, rect *cellbuf.Rectangle) {
+	s.buf.Fill(c, rect)
 }
 
 // Pos returns the cursor position.
