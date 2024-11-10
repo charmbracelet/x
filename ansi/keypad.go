@@ -1,19 +1,28 @@
 package ansi
 
-// SetApplicationKeypadMode sets the application keypad mode.
-// Application Keypad Mode (DECKPAM) is a mode that determines whether the
+// Keypad Application Mode (DECKPAM) is a mode that determines whether the
 // keypad sends application sequences or ANSI sequences.
 //
-// Use [SetNumericKeypadMode] to set the numeric keypad mode.
+// This works like enabling [DECNKM].
+// Use [NumericKeypadMode] to set the numeric keypad mode.
+//
+//	ESC =
 //
 // See: https://vt100.net/docs/vt510-rm/DECKPAM.html
-const SetApplicationKeypadMode = "\x1b="
+const (
+	KeypadApplicationMode = "\x1b="
+	DECKPAM               = KeypadApplicationMode
+)
 
-// SetNumericKeypadMode sets the numeric keypad mode.
-// Numeric Keypad Mode (DECKPNM) is a mode that determines whether the keypad
+// Keypad Numeric Mode (DECKPNM) is a mode that determines whether the keypad
 // sends application sequences or ANSI sequences.
 //
-// Use [SetApplicationKeypadMode] to set the application keypad mode.
+// This works the same as disabling [DECNKM].
+//
+//	ESC >
 //
 // See: https://vt100.net/docs/vt510-rm/DECKPNM.html
-const SetNumericKeypadMode = "\x1b>"
+const (
+	KeypadNumericMode = "\x1b>"
+	DECKPNM           = KeypadNumericMode
+)
