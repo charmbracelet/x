@@ -17,3 +17,4 @@
 !go.work
 
 testdata
+*.png
