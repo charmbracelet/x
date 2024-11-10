@@ -9,7 +9,7 @@ import (
 func (t *Terminal) handleUtf8(seq []byte, width int, r rune, rw int) {
 	cur := t.scr.cur
 	x, y := cur.Pos.X, cur.Pos.Y
-	if autowrap, ok := t.pmodes[ansi.AutoWrapMode]; ok && autowrap.IsSet() {
+	if autowrap, ok := t.pmodes[ansi.AutowrapMode]; ok && autowrap.IsSet() {
 		if x+width > t.scr.Width() {
 			x = 0
 			y++

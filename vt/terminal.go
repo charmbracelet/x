@@ -30,8 +30,8 @@ type Terminal struct {
 	scrs [2]Screen
 
 	// Terminal modes.
-	modes  map[ansi.Mode]ModeSetting
-	pmodes map[ansi.PrivateMode]ModeSetting
+	modes  map[ansi.ANSIMode]ModeSetting
+	pmodes map[ansi.DECMode]ModeSetting
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
@@ -51,10 +51,10 @@ func NewTerminal(w, h int) *Terminal {
 	t.scrs[1] = *NewScreen(w, h)
 	t.scr = &t.scrs[0]
 	t.parser = ansi.NewParser(parser.MaxParamsSize, 1024*4) // 4MB data buffer
-	t.modes = map[ansi.Mode]ModeSetting{}
-	t.pmodes = map[ansi.PrivateMode]ModeSetting{
+	t.modes = map[ansi.ANSIMode]ModeSetting{}
+	t.pmodes = map[ansi.DECMode]ModeSetting{
 		// These modes are set by default.
-		ansi.AutoWrapMode:     ModeSet,
+		ansi.AutowrapMode:     ModeSet,
 		ansi.CursorEnableMode: ModeSet,
 	}
 	return t

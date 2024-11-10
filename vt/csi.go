@@ -44,7 +44,7 @@ func (t *Terminal) handleMode() {
 	}
 
 	if cmd.Marker() == '?' {
-		mode := ansi.PrivateMode(mode)
+		mode := ansi.DECMode(mode)
 		t.pmodes[mode] = setting
 		switch mode {
 		case ansi.CursorEnableMode:
@@ -64,7 +64,7 @@ func (t *Terminal) handleMode() {
 			}
 		}
 	} else {
-		mode := ansi.Mode(mode)
+		mode := ansi.ANSIMode(mode)
 		t.modes[mode] = setting
 	}
 }
