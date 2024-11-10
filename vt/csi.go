@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/ansi/parser"
 	"github.com/charmbracelet/x/cellbuf"
 )
 
@@ -17,7 +18,7 @@ func (t *Terminal) handleCsi(seq []byte) {
 	// params := t.parser.Params[:t.parser.ParamsLen]
 	cmd := t.parser.Cmd
 	switch cmd { // cursor
-	case 'A', 'B', 'C', 'D', 'E', 'F', 'H':
+	case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'X', 'd', 'e':
 		t.handleCursor()
 	case 'm': // SGR - Select Graphic Rendition
 		t.handleSgr()
@@ -25,6 +26,46 @@ func (t *Terminal) handleCsi(seq []byte) {
 		t.handleScreen()
 	case 'K', 'L', 'M', 'S', 'T':
 		t.handleLine()
+	case 'l', 'h', 'l' | '?'<<parser.MarkerShift, 'h' | '?'<<parser.MarkerShift:
+		t.handleMode()
+	}
+}
+
+func (t *Terminal) handleMode() {
+	if t.parser.ParamsLen == 0 {
+		return
+	}
+
+	cmd := ansi.Cmd(t.parser.Cmd)
+	mode := ansi.Param(t.parser.Params[0]).Param()
+	setting := ModeReset
+	if cmd.Command() == 'h' {
+		setting = ModeSet
+	}
+
+	if cmd.Marker() == '?' {
+		mode := ansi.PrivateMode(mode)
+		t.pmodes[mode] = setting
+		switch mode {
+		case ansi.CursorEnableMode:
+			t.scr.cur.Visible = setting.IsSet()
+		case 1047: // Alternate Screen Buffer
+			if setting == ModeSet {
+				t.scr = &t.scrs[1]
+			} else {
+				t.scr = &t.scrs[0]
+			}
+		case ansi.AltScreenBufferMode:
+			if setting == ModeSet {
+				t.scr = &t.scrs[1]
+				t.scr.Clear(nil)
+			} else {
+				t.scr = &t.scrs[0]
+			}
+		}
+	} else {
+		mode := ansi.Mode(mode)
+		t.modes[mode] = setting
 	}
 }
 
@@ -37,34 +78,21 @@ func (t *Terminal) handleScreen() {
 	scr := t.scr
 	cur := scr.Cursor()
 	w, h := scr.Width(), scr.Height()
-	x, y := cur.Pos.X, cur.Pos.Y
+	_, y := cur.Pos.X, cur.Pos.Y
 
 	cmd := ansi.Cmd(t.parser.Cmd)
 	switch cmd.Command() {
 	case 'J':
 		switch count {
 		case 0: // Erase screen below (including cursor)
-			for i := y; i < h; i++ {
-				for j := 0; j < w; j++ {
-					if i == y && j < x {
-						continue
-					}
-					t.scr.SetCell(j, i, spaceCell)
-				}
-			}
+			t.scr.Clear(&cellbuf.Rectangle{X: 0, Y: y, Width: w, Height: h - y})
 		case 1: // Erase screen above (including cursor)
-			for i := 0; i <= y; i++ {
-				for j := 0; j < w; j++ {
-					if i == y && j > x {
-						break
-					}
-					t.scr.SetCell(j, i, spaceCell)
-				}
-			}
+			t.scr.Clear(&cellbuf.Rectangle{X: 0, Y: 0, Width: w, Height: y + 1})
 		case 2: // erase screen
-			t.scr = NewScreen(w, h)
+			fallthrough
 		case 3: // erase display
-			t.scr = NewScreen(w, h)
+			// TODO: Scrollback buffer support?
+			t.scr.Clear(&cellbuf.Rectangle{X: 0, Y: 0, Width: w, Height: h})
 		}
 	}
 }
@@ -78,22 +106,25 @@ func (t *Terminal) handleLine() {
 	cmd := ansi.Cmd(t.parser.Cmd)
 	switch cmd.Command() {
 	case 'K':
+		// NOTE: Erase Line (EL) is a bit confusing. Erasing the line erases
+		// the characters on the line while applying the cursor pen style
+		// like background color and so on. The cursor position is not changed.
 		cur := t.scr.Cursor()
 		x, y := cur.Pos.X, cur.Pos.Y
 		w := t.scr.Width()
 		switch count {
 		case 0: // Erase from cursor to end of line
-			for i := x; i < w; i++ {
-				t.scr.SetCell(i, y, cellbuf.Cell{})
-			}
+			c := spaceCell
+			c.Style = t.scr.cur.Pen
+			t.scr.Fill(c, &cellbuf.Rectangle{X: x, Y: y, Width: w - x, Height: 1})
 		case 1: // Erase from start of line to cursor
-			for i := 0; i <= x; i++ {
-				t.scr.SetCell(i, y, cellbuf.Cell{})
-			}
+			c := spaceCell
+			c.Style = t.scr.cur.Pen
+			t.scr.Fill(c, &cellbuf.Rectangle{X: 0, Y: y, Width: x + 1, Height: 1})
 		case 2: // Erase entire line
-			for i := 0; i < w; i++ {
-				t.scr.SetCell(i, y, cellbuf.Cell{})
-			}
+			c := spaceCell
+			c.Style = t.scr.cur.Pen
+			t.scr.Fill(c, &cellbuf.Rectangle{X: 0, Y: y, Width: w, Height: 1})
 		}
 	case 'L': // TODO: insert n blank lines
 	case 'M': // TODO: delete n lines
@@ -108,7 +139,7 @@ func (t *Terminal) handleCursor() {
 	cmd := ansi.Cmd(p.Cmd)
 	n := 1
 	if p.ParamsLen > 0 {
-		n = int(p.Params[0])
+		n = p.Params[0]
 	}
 
 	x, y := t.scr.cur.Pos.X, t.scr.cur.Pos.Y
@@ -126,21 +157,43 @@ func (t *Terminal) handleCursor() {
 		// CUB - Cursor Back
 		x = max(0, x-n)
 	case 'E':
-		// Cursor next line
+		// CNL - Cursor Next Line
 		y = min(height-1, y+n)
 		x = 0
 	case 'F':
-		// Cursor previous line
+		// CPL - Cursor Previous Line
 		y = max(0, y-n)
 		x = 0
-	case 'H':
-		// Set cursor position
+	case 'G':
+		// CHA - Cursor Character Absolute
+		x = min(width-1, max(0, n-1))
+	case 'H', 'f':
+		// CUP - Cursor Position
+		// HVP - Horizontal and Vertical Position
 		if p.ParamsLen >= 2 {
-			y = min(height-1, max(0, int(p.Params[0])-1))
-			x = min(width-1, max(0, int(p.Params[1])-1))
+			row, col := ansi.Param(p.Params[0]).Param(), ansi.Param(p.Params[1]).Param()
+			y = min(height-1, max(0, row-1))
+			x = min(width-1, max(0, col-1))
 		} else {
 			x, y = 0, 0
 		}
+	case 'I':
+		// CHT - Cursor Forward Tabulation
+		for i := 0; i < n; i++ {
+			x = t.scr.tabstops.Next(x)
+		}
+	case 'X':
+		// ECH - Erase Character
+		c := spaceCell
+		c.Style = t.scr.cur.Pen
+		t.scr.Fill(c, &cellbuf.Rectangle{X: x, Y: y, Width: n, Height: 1})
+		x = min(width-1, x+n)
+	case 'd':
+		// VPA - Vertical Line Position Absolute
+		y = min(height-1, max(0, n-1))
+	case 'e':
+		// VPR - Vertical Line Position Relative
+		y = min(height-1, max(0, y+n))
 	}
 	t.scr.moveCursor(x, y)
 }
@@ -283,4 +336,11 @@ func min(a, b int) int {
 		return b
 	}
 	return a
+}
+
+func clamp(v, low, high int) int {
+	if high < low {
+		low, high = high, low
+	}
+	return min(high, max(low, v))
 }
