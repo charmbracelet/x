@@ -51,6 +51,18 @@ const (
 	RequestCursorKeys = "\x1b[?1$p"
 )
 
+// Auto Wrap Mode (DECAWM) is a mode that determines whether the cursor wraps
+// to the next line when it reaches the right margin.
+//
+// See: https://vt100.net/docs/vt510-rm/DECAWM.html
+const (
+	AutoWrapMode = PrivateMode(7)
+
+	EnableAutoWrap  = "\x1b[?7h"
+	DisableAutoWrap = "\x1b[?7l"
+	RequestAutoWrap = "\x1b[?7$p"
+)
+
 // Text Cursor Enable Mode (DECTCEM) is a mode that shows/hides the cursor.
 //
 // See: https://vt100.net/docs/vt510-rm/DECTCEM.html

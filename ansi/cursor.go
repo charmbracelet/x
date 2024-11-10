@@ -147,6 +147,20 @@ func CursorPreviousLine(n int) string {
 	return "\x1b[" + s + "F"
 }
 
+// SetCursorColumn (CHA) returns a sequence for moving the cursor to the
+// given column.
+//
+//	CSI n G
+//
+// See: https://vt100.net/docs/vt510-rm/CHA.html
+func SetCursorColumn(col int) string {
+	var s string
+	if col > 0 {
+		s = strconv.Itoa(col)
+	}
+	return "\x1b[" + s + "G"
+}
+
 // SetCursorPosition (CUP) returns a sequence for setting the cursor to the
 // given row and column.
 //
@@ -154,13 +168,18 @@ func CursorPreviousLine(n int) string {
 //
 // See: https://vt100.net/docs/vt510-rm/CUP.html
 func SetCursorPosition(col, row int) string {
-	if row < 0 {
-		row = 0
+	if row <= 0 && col <= 0 {
+		return HomeCursorPosition
 	}
-	if col < 0 {
-		col = 0
+
+	var r, c string
+	if row > 0 {
+		r = strconv.Itoa(row)
 	}
-	return "\x1b[" + strconv.Itoa(row) + ";" + strconv.Itoa(col) + "H"
+	if col > 0 {
+		c = strconv.Itoa(col)
+	}
+	return "\x1b[" + r + ";" + c + "H"
 }
 
 // HomeCursorPosition is a sequence for moving the cursor to the upper left
@@ -190,6 +209,80 @@ const CursorOrigin = "\x1b[1;1H"
 //
 // Deprecated: use CursorOrigin instead.
 const MoveCursorOrigin = CursorOrigin
+
+// CursorNextTab (CHT) returns a sequence for moving the cursor to the next tab
+// stop n times.
+//
+//	CSI n I
+//
+// See: https://vt100.net/docs/vt510-rm/CHT.html
+func CursorNextTab(n int) string {
+	var s string
+	if n > 1 {
+		s = strconv.Itoa(n)
+	}
+	return "\x1b[" + s + "I"
+}
+
+// EraseCharacter (ECH) returns a sequence for erasing n characters and moving
+// the cursor to the right.
+//
+//	CSI n X
+//
+// See: https://vt100.net/docs/vt510-rm/ECH.html
+func EraseCharacter(n int) string {
+	var s string
+	if n > 1 {
+		s = strconv.Itoa(n)
+	}
+	return "\x1b[" + s + "X"
+}
+
+// VerticalPositionAbsolute (VPA) returns a sequence for moving the cursor to
+// the given row.
+//
+//	CSI n d
+//
+// See: https://vt100.net/docs/vt510-rm/VPA.html
+func VerticalPositionAbsolute(row int) string {
+	var s string
+	if row > 0 {
+		s = strconv.Itoa(row)
+	}
+	return "\x1b[" + s + "d"
+}
+
+// VerticalPositionRelative (VPR) returns a sequence for moving the cursor down
+// n rows relative to the current position.
+//
+//	CSI n e
+//
+// See: https://vt100.net/docs/vt510-rm/VPR.html
+func VerticalPositionRelative(n int) string {
+	var s string
+	if n > 1 {
+		s = strconv.Itoa(n)
+	}
+	return "\x1b[" + s + "e"
+}
+
+// HorizontalVerticalPosition (HVP) returns a sequence for moving the cursor to
+// the given row and column.
+//
+//	CSI n ; m f
+//
+// This is equivalent to [CursorPosition].
+// See: https://vt100.net/docs/vt510-rm/HVP.html
+func HorizontalVerticalPosition(col, row int) string {
+	var r, c string
+	if row > 0 {
+		r = strconv.Itoa(row)
+	}
+	if col > 0 {
+		c = strconv.Itoa(col)
+	}
+	return "\x1b[" + r + ";" + c + "f"
+}
 
 // SaveCursorPosition (SCP or SCOSC) is a sequence for saving the cursor
 // position.
