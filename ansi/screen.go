@@ -197,6 +197,28 @@ func SetScrollingRegion(t, b int) string {
 	return "\x1b[" + strconv.Itoa(t) + ";" + strconv.Itoa(b) + "r"
 }
 
+// InsertCharacter (ICH) inserts n blank characters at the current cursor
+// position. Existing characters move to the right. Characters moved past the
+// right margin are lost. ICH has no effect outside the scrolling margins.
+//
+// Default is 1.
+//
+//	CSI Pn @
+//
+// See: https://vt100.net/docs/vt510-rm/ICH.html
+func InsertCharacter(n int) string {
+	var s string
+	if n > 1 {
+		s = strconv.Itoa(n)
+	}
+	return "\x1b[" + s + "@"
+}
+
+// ICH is an alias for [InsertCharacter].
+func ICH(n int) string {
+	return InsertCharacter(n)
+}
+
 // DeleteCharacter (DCH) deletes n characters at the current cursor position.
 // As the characters are deleted, the remaining characters move to the left and
 // the cursor remains at the same position.
