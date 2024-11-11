@@ -197,6 +197,7 @@ const (
 // See: https://vt100.net/docs/vt510-rm/DECOM.html
 const (
 	OriginMode = DECMode(6)
+	DECOM      = OriginMode
 
 	SetOriginMode     = "\x1b[?6h"
 	ResetOriginMode   = "\x1b[?6l"
@@ -414,7 +415,7 @@ const (
 	RequestReportFocus = "\x1b[?1004$p"
 )
 
-// Mouse SGR Extended Mode is a mode that changes the mouse tracking encoding
+// SGR Extended Mouse Mode is a mode that changes the mouse tracking encoding
 // to use SGR parameters.
 //
 // The terminal responds with the following encoding:
@@ -425,19 +426,58 @@ const (
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
 const (
-	MouseSgrExtMode = DECMode(1006)
+	SgrExtMouseMode = DECMode(1006)
 
 	SetSgrExtMouseMode     = "\x1b[?1006h"
 	ResetSgrExtMouseMode   = "\x1b[?1006l"
 	RequestSgrExtMouseMode = "\x1b[?1006$p"
 )
 
-// Deprecated: use [SetSgrExtMouseMode], [ResetSgrExtMouseMode], and
-// [RequestSgrExtMouseMode] instead.
+// Deprecated: use [SgrExtMouseMode] [SetSgrExtMouseMode],
+// [ResetSgrExtMouseMode], and [RequestSgrExtMouseMode] instead.
 const (
+	MouseSgrExtMode    = DECMode(1006)
 	EnableMouseSgrExt  = "\x1b[?1006h"
 	DisableMouseSgrExt = "\x1b[?1006l"
 	RequestMouseSgrExt = "\x1b[?1006$p"
+)
+
+// UTF-8 Extended Mouse Mode is a mode that changes the mouse tracking encoding
+// to use UTF-8 parameters.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+const (
+	Utf8ExtMouseMode = DECMode(1005)
+
+	SetUtf8ExtMouseMode     = "\x1b[?1005h"
+	ResetUtf8ExtMouseMode   = "\x1b[?1005l"
+	RequestUtf8ExtMouseMode = "\x1b[?1005$p"
+)
+
+// URXVT Extended Mouse Mode is a mode that changes the mouse tracking encoding
+// to use an alternate encoding.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+const (
+	UrxvtExtMouseMode = DECMode(1015)
+
+	SetUrxvtExtMouseMode     = "\x1b[?1015h"
+	ResetUrxvtExtMouseMode   = "\x1b[?1015l"
+	RequestUrxvtExtMouseMode = "\x1b[?1015$p"
+)
+
+// SGR Pixel Extended Mouse Mode is a mode that changes the mouse tracking
+// encoding to use SGR parameters with pixel coordinates.
+//
+// This is similar to [SgrExtMouseMode], but also reports pixel coordinates.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+const (
+	SgrPixelExtMouseMode = DECMode(1016)
+
+	SetSgrPixelExtMouseMode     = "\x1b[?1016h"
+	ResetSgrPixelExtMouseMode   = "\x1b[?1016l"
+	RequestSgrPixelExtMouseMode = "\x1b[?1016$p"
 )
 
 // Alternate Screen Buffer is a mode that determines whether the alternate screen

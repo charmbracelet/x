@@ -1,6 +1,9 @@
 package ansi
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 // EraseDisplay (ED) clears the display or parts of the display. A screen is
 // the shown part of the terminal display excluding the scrollback buffer.
@@ -250,3 +253,107 @@ const (
 	SetTabEvery8Columns = "\x1b[?5W"
 	DECST8C             = SetTabEvery8Columns
 )
+
+// HorizontalTabSet (HTS) sets a horizontal tab stop at the current cursor
+// column.
+//
+// This is equivalent to [HTS].
+//
+//	ESC H
+//
+// See: https://vt100.net/docs/vt510-rm/HTS.html
+const HorizontalTabSet = "\x1bH"
+
+// TabClear (TBC) clears tab stops.
+//
+// Default is 0.
+//
+// Possible values:
+// 0: Clear tab stop at the current column. (default)
+// 3: Clear all tab stops.
+//
+//	CSI Pn g
+//
+// See: https://vt100.net/docs/vt510-rm/TBC.html
+func TabClear(n int) string {
+	var s string
+	if n > 0 {
+		s = strconv.Itoa(n)
+	}
+	return "\x1b[" + s + "g"
+}
+
+// RequestPresentationStateReport (DECRQPSR) requests the terminal to send a
+// report of the presentation state. This includes the cursor information [DECCIR],
+// and tab stop [DECTABSR] reports.
+//
+// Default is 0.
+//
+// Possible values:
+// 0: Error, request ignored.
+// 1: Cursor information report [DECCIR].
+// 2: Tab stop report [DECTABSR].
+//
+//	CSI Ps $ w
+//
+// See: https://vt100.net/docs/vt510-rm/DECRQPSR.html
+func RequestPresentationStateReport(n int) string {
+	var s string
+	if n > 0 {
+		s = strconv.Itoa(n)
+	}
+	return "\x1b[" + s + "$w"
+}
+
+// DECRQPSR is an alias for [RequestPresentationStateReport].
+func DECRQPSR(n int) string {
+	return RequestPresentationStateReport(n)
+}
+
+// TabStopReport (DECTABSR) is the response to a tab stop report request.
+// It reports the tab stops set in the terminal.
+//
+// The response is a list of tab stops separated by a slash (/) character.
+//
+//	DCS 2 $ u D ... D ST
+//
+// Where D is a decimal number representing a tab stop.
+//
+// See: https://vt100.net/docs/vt510-rm/DECTABSR.html
+func TabStopReport(stops ...int) string {
+	var s []string
+	for _, v := range stops {
+		s = append(s, strconv.Itoa(v))
+	}
+	return "\x1bP2$u" + strings.Join(s, "/") + "\x1b\\"
+}
+
+// DECTABSR is an alias for [TabStopReport].
+func DECTABSR(stops ...int) string {
+	return TabStopReport(stops...)
+}
+
+// CursorInformationReport (DECCIR) is the response to a cursor information
+// report request. It reports the cursor position, visual attributes, and
+// character protection attributes. It also reports the status of origin mode
+// [DECOM] and the current active character set.
+//
+// The response is a list of values separated by a semicolon (;) character.
+//
+//	DCS 1 $ u D ... D ST
+//
+// Where D is a decimal number representing a value.
+//
+// See: https://vt100.net/docs/vt510-rm/DECCIR.html
+func CursorInformationReport(values ...int) string {
+	var s []string
+	for _, v := range values {
+		s = append(s, strconv.Itoa(v))
+	}
+	return "\x1bP1$u" + strings.Join(s, ";") + "\x1b\\"
+}
+
+// DECCIR is an alias for [CursorInformationReport].
+func DECCIR(values ...int) string {
+	return CursorInformationReport(values...)
+}

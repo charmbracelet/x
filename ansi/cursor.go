@@ -568,3 +568,10 @@ func DECSCUSR(style int) string {
 func SetPointerShape(shape string) string {
 	return "\x1b]22;" + shape + "\x07"
 }
+
+// ReverseIndex (RI) is an escape sequence for moving the cursor up one line in
+// the same column. If the cursor is at the top margin, the screen scrolls
+// down.
+//
+// This has the same effect as [RI].
+const ReverseIndex = "\x1bM"
