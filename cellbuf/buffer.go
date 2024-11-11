@@ -63,7 +63,7 @@ func (b *Buffer) Draw(x, y int, c Cell) (v bool) {
 		}
 	} else if prev.Width == 0 {
 		// Writing to wide cell placeholders
-		for j := 1; j < 4; j++ {
+		for j := 1; j < 4 && idx-j >= 0; j++ {
 			wide := b.cells[idx-j]
 			if wide.Width > 1 {
 				for k := 0; k < wide.Width; k++ {
@@ -151,4 +151,34 @@ func (b *Buffer) Render(opts ...RenderOption) string {
 // with the width of the line.
 func (b *Buffer) RenderLine(n int, opts ...RenderOption) (w int, line string) {
 	return RenderLine(b, n, opts...)
+}
+
+// ScrollUp scrolls the buffer up by n lines pushing the top lines out and
+// filling the bottom lines with space cells.
+func (b *Buffer) ScrollUp(n int, rect *Rectangle) {
+	ScrollUp(b, n, rect)
+}
+
+// ScrollDown scrolls the buffer down by n lines pushing the bottom lines out
+// and filling the top lines with space cells.
+func (b *Buffer) ScrollDown(n int, rect *Rectangle) {
+	ScrollDown(b, n, rect)
+}
+
+// InsertLine inserts n blank lines at the given y position.
+func (b *Buffer) InsertLine(y, n int, rect *Rectangle) {
+	InsertLine(b, y, n, rect)
+}
+
+// InsertCell inserts n blank cells at the given x, y position.
+// It moves the cells on the right to the right.
+// This will push the cells out of the buffer if necessary.
+func (b *Buffer) InsertCell(x, y, n int) {
+	InsertCell(b, x, y, n)
+}
+
+// DeleteCell deletes n cells at the given x, y position.
+// It moves the cells on the right to the left.
+func (b *Buffer) DeleteCell(x, y, n int) {
+	DeleteCell(b, x, y, n)
 }

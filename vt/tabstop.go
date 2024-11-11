@@ -1,5 +1,7 @@
 package vt
 
+import "slices"
+
 // DefaultTabInterval is the default tab interval.
 const DefaultTabInterval = 8
 
@@ -39,4 +41,34 @@ func (ts TabStops) Prev(col int) int {
 		}
 	}
 	return col
+}
+
+// Set adds a tab stop at the given column.
+func (ts *TabStops) Set(col int) {
+	i, ok := binarySearch(*ts, col)
+	if !ok {
+		return
+	}
+
+	*ts = slices.Insert(*ts, i, col)
+}
+
+// Reset removes the tab stop at the given column.
+func (ts *TabStops) Reset(col int) {
+	i, ok := binarySearch(*ts, col)
+	if !ok {
+		return
+	}
+
+	*ts = slices.Delete(*ts, i, i+1)
+}
+
+// Clear removes all tab stops.
+func (ts *TabStops) Clear() {
+	*ts = (*ts)[:0]
+}
+
+// resetTabStops resets the terminal tab stops to the default set.
+func (t *Terminal) resetTabStops() {
+	t.tabstops = DefaultTabStops(t.Width())
 }

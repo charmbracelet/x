@@ -8,9 +8,6 @@ type Screen struct {
 	buf cellbuf.Buffer
 	// The cur of the screen.
 	cur, saved Cursor
-
-	// tabstop is the list of tab stops.
-	tabstops TabStops
 }
 
 var _ cellbuf.Screen = &Screen{}
@@ -19,7 +16,6 @@ var _ cellbuf.Screen = &Screen{}
 func NewScreen(w, h int) *Screen {
 	s := new(Screen)
 	s.buf.Resize(w, h)
-	s.tabstops = DefaultTabStops(w)
 	return s
 }
 
@@ -41,7 +37,6 @@ func (s *Screen) Height() int {
 // Resize implements cellbuf.Grid.
 func (s *Screen) Resize(width int, height int) {
 	s.buf.Resize(width, height)
-	s.tabstops = DefaultTabStops(width)
 }
 
 // Width implements cellbuf.Grid.
@@ -87,6 +82,16 @@ func (s *Screen) ShowCursor() {
 // HideCursor hides the cursor.
 func (s *Screen) HideCursor() {
 	s.cur.Visible = false
+}
+
+// ScrollUp scrolls the screen up n lines.
+func (s *Screen) ScrollUp(n int, rect *cellbuf.Rectangle) {
+	s.buf.ScrollUp(n, rect)
+}
+
+// ScrollDown scrolls the screen down n lines.
+func (s *Screen) ScrollDown(n int, rect *cellbuf.Rectangle) {
+	s.buf.ScrollDown(n, rect)
 }
 
 // moveCursor moves the cursor.

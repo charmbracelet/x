@@ -173,27 +173,6 @@ func (p *Parser) advance(d ParserDispatcher, b byte, more bool) parser.Action {
 			// Two ESCs at the end of the buffer
 			p.performAction(d, parser.ExecuteAction, state, b)
 		}
-	case b == ESC && !more:
-		// Last byte is an ESC
-		p.performAction(d, parser.ExecuteAction, state, b)
-	case p.State == parser.EscapeState && b == 'P' && !more:
-		// ESC P (DCS) at the end of the buffer
-		p.performAction(d, parser.DispatchAction, state, b)
-	case p.State == parser.EscapeState && b == 'X' && !more:
-		// ESC X (SOS) at the end of the buffer
-		p.performAction(d, parser.DispatchAction, state, b)
-	case p.State == parser.EscapeState && b == '[' && !more:
-		// ESC [ (CSI) at the end of the buffer
-		p.performAction(d, parser.DispatchAction, state, b)
-	case p.State == parser.EscapeState && b == ']' && !more:
-		// ESC ] (OSC) at the end of the buffer
-		p.performAction(d, parser.DispatchAction, state, b)
-	case p.State == parser.EscapeState && b == '^' && !more:
-		// ESC ^ (PM) at the end of the buffer
-		p.performAction(d, parser.DispatchAction, state, b)
-	case p.State == parser.EscapeState && b == '_' && !more:
-		// ESC _ (APC) at the end of the buffer
-		p.performAction(d, parser.DispatchAction, state, b)
 	default:
 		p.performAction(d, action, state, b)
 	}

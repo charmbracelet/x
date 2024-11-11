@@ -115,6 +115,17 @@ func main() {
 		log.Fatal(err)
 	}
 
+	go func() {
+		vt.SendText("/")
+		time.Sleep(1 * time.Second)
+		vt.SendText("htop")
+		time.Sleep(1 * time.Second)
+		vt.SendText("\r")
+		time.Sleep(1 * time.Second)
+		vt.SendText("q")
+	}()
+
+	// go io.Copy(vt.InputPipe(), os.Stdin)
 	go io.Copy(ptm, vt)
 	go io.Copy(vt, ptm)
 

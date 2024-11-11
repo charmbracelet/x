@@ -37,6 +37,27 @@ func (r Rune) Clone() Sequence {
 	return r
 }
 
+// Grapheme represents a grapheme cluster.
+type Grapheme struct {
+	Cluster string
+	Width   int
+}
+
+// Bytes implements Sequence.
+func (g Grapheme) Bytes() []byte {
+	return []byte(g.Cluster)
+}
+
+// String implements Sequence.
+func (g Grapheme) String() string {
+	return g.Cluster
+}
+
+// Clone implements Sequence.
+func (g Grapheme) Clone() Sequence {
+	return g
+}
+
 // ControlCode represents a control code character. This is a character that
 // is not printable and is used to control the terminal. This would be a
 // character in the C0 or C1 set in the range of 0x00-0x1F and 0x80-0x9F.

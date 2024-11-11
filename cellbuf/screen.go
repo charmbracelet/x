@@ -32,7 +32,8 @@ type Screen interface {
 // writes to the rectangle. Otherwise, it writes to the whole canvas.
 func Paint(d Screen, m Method, content string, rect *Rectangle) []int {
 	if rect == nil {
-		rect = &Rectangle{0, 0, d.Width(), d.Height()}
+		r := Rect(0, 0, d.Width(), d.Height())
+		rect = &r
 	}
 	return setContent(d, content, m, *rect)
 }
@@ -153,11 +154,12 @@ func renderLine(d Screen, n int, opt RenderOptions) (w int, line string) {
 // the rectangle. Otherwise, it fills the whole canvas.
 func Fill(d Screen, c Cell, rect *Rectangle) {
 	if rect == nil {
-		rect = &Rectangle{0, 0, d.Width(), d.Height()}
+		r := Rect(0, 0, d.Width(), d.Height())
+		rect = &r
 	}
 
-	for y := rect.Y; y < rect.Y+rect.Height; y++ {
-		for x := rect.X; x < rect.X+rect.Width; x += c.Width {
+	for y := rect.Y(); y < rect.Y()+rect.Height(); y++ {
+		for x := rect.X(); x < rect.X()+rect.Width(); x += c.Width {
 			d.Draw(x, y, c) //nolint:errcheck
 		}
 	}
@@ -184,4 +186,109 @@ func Equal(a, b Screen) bool {
 		}
 	}
 	return true
+}
+
+// InsertLine inserts a new line at the given position. If rect is not nil, it
+// only inserts the line in the rectangle. Otherwise, it inserts the line in the
+// whole screen.
+//
+// It pushes the lines below down and fills the new line with space cells.
+func InsertLine(s Screen, y, n int, rect *Rectangle) {
+	if n <= 0 {
+		return
+	}
+	if rect == nil {
+		r := Rect(0, 0, s.Width(), s.Height())
+		rect = &r
+	}
+
+	for i := 0; i < n; i++ {
+		for x := rect.X(); x < rect.X()+rect.Width(); x++ {
+			for j := rect.Y() + rect.Height() - 1; j > y; j-- {
+				c, _ := s.Cell(x, j-1)
+				s.Draw(x, j, c) //nolint:errcheck
+			}
+			s.Draw(x, y, spaceCell) //nolint:errcheck
+		}
+	}
+}
+
+// ScrollUp scrolls the screen up by n lines. If rect is not nil, it only
+// scrolls the rectangle. Otherwise, it scrolls the whole canvas.
+//
+// It pushes the top lines out and fills the new lines with space cells.
+func ScrollUp(s Screen, n int, rect *Rectangle) {
+	if n <= 0 {
+		return
+	}
+	if rect == nil {
+		r := Rect(0, 0, s.Width(), s.Height())
+		rect = &r
+	}
+
+	for i := 0; i < n; i++ {
+		for x := rect.X(); x < rect.X()+rect.Width(); x++ {
+			for y := rect.Y(); y < rect.Y()+rect.Height()-1; y++ {
+				c, _ := s.Cell(x, y+1)
+				s.Draw(x, y, c) //nolint:errcheck
+			}
+			s.Draw(x, rect.Y()+rect.Height()-1, spaceCell) //nolint:errcheck
+		}
+	}
+}
+
+// ScrollDown scrolls the screen down by n lines. If rect is not nil, it only
+// scrolls the rectangle. Otherwise, it scrolls the whole canvas.
+//
+// It pushes the bottom lines out and fills the new lines with space cells.
+func ScrollDown(s Screen, n int, rect *Rectangle) {
+	if n <= 0 {
+		return
+	}
+	if rect == nil {
+		r := Rect(0, 0, s.Width(), s.Height())
+		rect = &r
+	}
+
+	for i := 0; i < n; i++ {
+		for x := rect.X(); x < rect.X()+rect.Width(); x++ {
+			for y := rect.Y() + rect.Height() - 1; y > rect.Y(); y-- {
+				c, _ := s.Cell(x, y-1)
+				s.Draw(x, y, c) //nolint:errcheck
+			}
+			s.Draw(x, rect.Y(), spaceCell) //nolint:errcheck
+		}
+	}
+}
+
+// InsertCell inserts n blank cell at the given position moving the cells on
+// the same line after the column to the right. This will push the cells out of
+// the screen if necessary i.e. the cells will be lost.
+func InsertCell(s Screen, x, y, n int) {
+	if n <= 0 {
+		return
+	}
+	for i := s.Width() - 1; i >= x; i-- {
+		c, _ := s.Cell(i, y)
+		s.Draw(i+n, y, c) //nolint:errcheck
+	}
+	for i := 0; i < n; i++ {
+		s.Draw(x+i, y, spaceCell) //nolint:errcheck
+	}
+}
+
+// DeleteCell deletes n cells at the given position moving the cells on the same
+// line to the left and adding space cells at the end.
+func DeleteCell(s Screen, x, y, n int) {
+	if n <= 0 {
+		return
+	}
+	for i := x; i < s.Width(); i++ {
+		if i+n < s.Width() {
+			c, _ := s.Cell(i+n, y)
+			s.Draw(i, y, c) //nolint:errcheck
+		} else {
+			s.Draw(i, y, spaceCell) //nolint:errcheck
+		}
+	}
 }

@@ -20,7 +20,7 @@ func setContent(
 	var cell Cell
 	var pen Style
 	var link Link
-	x, y := rect.X, rect.Y
+	x, y := rect.X(), rect.Y()
 
 	p := ansi.GetParser()
 	defer ansi.PutParser(p)
@@ -29,13 +29,13 @@ func setContent(
 	// linew is a slice of line widths. We use this to keep track of the
 	// written widths of each line. We use this information later to optimize
 	// rendering of the buffer.
-	linew := make([]int, rect.Height)
+	linew := make([]int, rect.Height())
 
 	var pendingWidth int
 
 	var state byte
 	for len(data) > 0 {
-		seq, width, n, newState := ansi.DecodeSequence(data, state, p)
+		seq, width, n, newState, _ := ansi.DecodeSequence(data, state, p)
 
 		switch width {
 		case 2, 3, 4: // wide cells can go up to 4 cells wide
@@ -53,7 +53,7 @@ func setContent(
 			}
 			fallthrough
 		case 1:
-			if x >= rect.X+rect.Width || y >= rect.Y+rect.Height {
+			if x >= rect.X()+rect.Width() || y >= rect.Y()+rect.Height() {
 				break
 			}
 
@@ -68,7 +68,7 @@ func setContent(
 			x += cell.Width
 			if cell.Equal(spaceCell) {
 				pendingWidth += cell.Width
-			} else if y := y - rect.Y; y < len(linew) {
+			} else if y := y - rect.Y(); y < len(linew) {
 				linew[y] += cell.Width + pendingWidth
 				pendingWidth = 0
 			}
@@ -89,7 +89,7 @@ func setContent(
 				}
 			case ansi.Equal(seq, "\n"):
 				// Reset the rest of the line
-				for x < rect.X+rect.Width {
+				for x < rect.X()+rect.Width() {
 					d.Draw(x, y, spaceCell) //nolint:errcheck
 					x++
 				}
@@ -107,7 +107,7 @@ func setContent(
 		data = data[n:]
 	}
 
-	for x < rect.X+rect.Width {
+	for x < rect.X()+rect.Width() {
 		d.Draw(x, y, spaceCell) //nolint:errcheck
 		x++
 	}
@@ -125,7 +125,7 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 	params := p.Params[:p.ParamsLen]
 	for i := 0; i < len(params); i++ {
 		r := ansi.Param(params[i])
-		param, hasMore := r.Param(), r.HasMore() // Are there more subparameters i.e. separated by ":"?
+		param, hasMore := r.Param(0), r.HasMore() // Are there more subparameters i.e. separated by ":"?
 		switch param {
 		case 0: // Reset
 			pen.Reset()
@@ -137,7 +137,7 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 			pen.Italic(true)
 		case 4: // Underline
 			if hasMore { // Only accept subparameters i.e. separated by ":"
-				nextParam := ansi.Param(params[i+1]).Param()
+				nextParam := ansi.Param(params[i+1]).Param(0)
 				switch nextParam {
 				case 0: // No Underline
 					pen.UnderlineStyle(NoUnderline)
