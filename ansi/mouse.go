@@ -1,6 +1,8 @@
 package ansi
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // MouseX10 returns an escape sequence representing a mouse event in X10 mode.
 // Note that this requires the terminal support X10 mouse modes.
@@ -10,7 +12,7 @@ import "fmt"
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
 func MouseX10(b byte, x, y int) string {
 	const x10Offset = 32
-	return fmt.Sprintf("\x1b[M%c%c%c", b, byte(x)+x10Offset+1, byte(y)+x10Offset+1)
+	return "\x1b[M" + string(b+x10Offset) + string(byte(x)+x10Offset+1) + string(byte(y)+x10Offset+1)
 }
 
 // MouseSgr returns an escape sequence representing a mouse event in SGR mode.
@@ -24,5 +26,5 @@ func MouseSgr(b byte, x, y int, release bool) string {
 	if release {
 		s = "m"
 	}
-	return fmt.Sprintf("\x1b[%d;%d;%d%s", b, x, y, s)
+	return fmt.Sprintf("\x1b[<%d;%d;%d%s", b, x, y, s)
 }
