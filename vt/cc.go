@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"log"
-
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -55,6 +53,6 @@ func (t *Terminal) handleControl(r rune) {
 	case ansi.SI: // SI - Shift In
 	// TODO: Handle Shift In
 	default:
-		log.Printf("unhandled control: %q", r)
+		t.logf("unhandled control: %q", r)
 	}
 }

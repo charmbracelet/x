@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"log"
-
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -18,7 +16,7 @@ func (t *Terminal) handleMode() {
 		setting = ModeSet
 	}
 
-	log.Printf("setting mode %v to %v", mode, setting)
+	t.logf("setting mode %v to %v", mode, setting)
 	if cmd.Marker() == '?' {
 		mode := ansi.DECMode(mode)
 		t.pmodes[mode] = setting

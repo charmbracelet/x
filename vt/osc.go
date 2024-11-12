@@ -1,7 +1,5 @@
 package vt
 
-import "log"
-
 // handleOsc handles an OSC escape sequence.
 func (t *Terminal) handleOsc(seq []byte) {
 	cmd := t.parser.Cmd
@@ -16,6 +14,6 @@ func (t *Terminal) handleOsc(seq []byte) {
 		name := string(t.parser.Data[:t.parser.DataLen])
 		t.title = name
 	default:
-		log.Printf("unhandled OSC: %q", seq)
+		t.logf("unhandled OSC: %q", seq)
 	}
 }

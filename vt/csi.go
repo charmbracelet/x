@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"log"
-
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
 	"github.com/charmbracelet/x/cellbuf"
@@ -69,6 +67,6 @@ func (t *Terminal) handleCsi(seq []byte) {
 
 		t.scr.DeleteCell(n)
 	default:
-		log.Printf("unhandled CSI: %q", seq)
+		t.logf("unhandled CSI: %q", seq)
 	}
 }

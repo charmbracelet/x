@@ -3,6 +3,7 @@ package vt
 import (
 	"bytes"
 	"io"
+	"log"
 	"sync"
 	"unicode"
 	"unicode/utf8"
@@ -46,6 +47,9 @@ type Terminal struct {
 	// The ANSI parser to use.
 	parser *ansi.Parser
 
+	// log is the logger to use.
+	logger *log.Logger
+
 	// The terminal's icon name and title.
 	iconName, title string
 
@@ -59,7 +63,7 @@ type Terminal struct {
 }
 
 // NewTerminal creates a new terminal.
-func NewTerminal(w, h int) *Terminal {
+func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t := new(Terminal)
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
@@ -72,6 +76,11 @@ func NewTerminal(w, h int) *Terminal {
 		ansi.CursorEnableMode: ModeSet,
 	}
 	t.tabstops = DefaultTabStops(w)
+
+	for _, opt := range opts {
+		opt(t)
+	}
+
 	return t
 }
 

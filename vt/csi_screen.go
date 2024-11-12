@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"log"
-
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/cellbuf"
 )
@@ -102,7 +100,7 @@ func (t *Terminal) handleLine() {
 		t.scr.ScrollDown(n)
 
 	case 'r': // DECSTBM - Set Top and Bottom Margins
-		log.Printf("scrolling region %d, %d", t.parser.Params[0], t.parser.Params[1])
+		t.logf("scrolling region %d, %d", t.parser.Params[0], t.parser.Params[1])
 		if t.parser.ParamsLen == 2 {
 			top := ansi.Param(t.parser.Params[0]).Param(1)
 			bottom := ansi.Param(t.parser.Params[1]).Param(t.Height())

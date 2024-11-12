@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"log"
-
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -27,6 +25,6 @@ func (t *Terminal) handleEsc(seq []byte) {
 	case '8': // DECRC - Restore Cursor
 		t.scr.RestoreCursor()
 	default:
-		log.Printf("unhandled ESC: %q", seq)
+		t.logf("unhandled ESC: %q", seq)
 	}
 }
