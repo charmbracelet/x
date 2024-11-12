@@ -62,11 +62,10 @@ type Terminal struct {
 	picture    pixel.Picture
 	font       font.Face
 	lastCursor vt.Cursor
-	dirty      bool
 }
 
 func NewTerminal(width, height int) *Terminal {
-	vterm := vt.NewTerminal(width, height)
+	vterm := vt.NewTerminal(width, height, vt.WithLogger(log.Default()))
 	term := &Terminal{
 		vt:      vterm,
 		context: gg.NewContext(width*cellWidth, height*cellHeight),
@@ -80,28 +79,9 @@ func NewTerminal(width, height int) *Terminal {
 	// term.font = face
 	// term.context.SetFontFace(face)
 
-	term.vt.Damage = term.Damage
-	term.context.SetColor(color.Black)
+	term.context.SetColor(term.vt.BackgroundColor())
 	term.context.Clear()
 	return term
-}
-
-func (t *Terminal) Damage(d vt.Damage) {
-	switch d := d.(type) {
-	case vt.CellDamage:
-		t.DrawAt(d.X, d.Y, d.Cell)
-	case vt.ScreenDamage:
-		t.context.SetColor(color.Black)
-		t.context.Clear()
-	case vt.RectDamage:
-		t.context.SetColor(color.Black)
-		rect := d.Bounds()
-		t.context.DrawRectangle(float64(rect.Min.X*cellWidth), float64(rect.Min.Y*cellHeight),
-			float64(rect.Width()*cellWidth), float64(rect.Height()*cellHeight))
-		t.context.Fill()
-	}
-
-	t.dirty = true
 }
 
 func (t *Terminal) DrawAt(x, y int, cell cellbuf.Cell) {
@@ -141,54 +121,55 @@ func (t *Terminal) DrawAt(x, y int, cell cellbuf.Cell) {
 }
 
 func (t *Terminal) Draw() {
-	// Only update sprite if terminal is dirty
-	if !t.dirty {
-		return
+	for y := 0; y < t.vt.Height(); y++ {
+		for x := 0; x < t.vt.Width(); x++ {
+			cell, ok := t.vt.At(x, y)
+			if !ok {
+				continue
+			}
+
+			t.DrawAt(x, y, cell)
+		}
 	}
 
 	// Get current cursor
 	cursor := t.vt.Cursor()
 
-	if false && cursor != t.lastCursor {
-		// FIXME: This causes a crash
-
-		// Restore the previous cursor cell if it was visible
-		if !t.lastCursor.Hidden {
-			if cell, ok := t.vt.At(t.lastCursor.X, t.lastCursor.Y); ok {
-				t.DrawAt(t.lastCursor.X, t.lastCursor.Y, cell)
-			}
+	// Restore the previous cursor cell if it was visible
+	if !t.lastCursor.Hidden {
+		if cell, ok := t.vt.At(t.lastCursor.X, t.lastCursor.Y); ok {
+			t.DrawAt(t.lastCursor.X, t.lastCursor.Y, cell)
 		}
-
-		// Draw new cursor
-		if !cursor.Hidden {
-			px := float64(cursor.X * cellWidth)
-			py := float64(cursor.Y * cellHeight)
-
-			// Get the cell at cursor position
-			cell, _ := t.vt.At(cursor.X, cursor.Y)
-
-			// Draw cursor background
-			t.context.SetColor(t.vt.CursorColor())
-			t.context.DrawRectangle(px, py, cellWidth, cellHeight)
-			t.context.Fill()
-
-			// Draw cursor text in inverted color
-			if len(cell.Content) > 0 {
-				// TODO: Invert [CursorColor].
-				t.context.SetColor(color.Black)
-				t.context.DrawString(cell.Content, px, py+cellHeight-4)
-			}
-		}
-
-		// Store current cursor for next frame
-		t.lastCursor = cursor
 	}
+
+	// Draw new cursor
+	if !cursor.Hidden {
+		px := float64(cursor.X * cellWidth)
+		py := float64(cursor.Y * cellHeight)
+
+		// Get the cell at cursor position
+		cell, _ := t.vt.At(cursor.X, cursor.Y)
+
+		// Draw cursor background
+		t.context.SetColor(t.vt.CursorColor())
+		t.context.DrawRectangle(px, py, cellWidth, cellHeight)
+		t.context.Fill()
+
+		// Draw cursor text in inverted color
+		if len(cell.Content) > 0 {
+			// TODO: Invert [CursorColor].
+			t.context.SetColor(color.Black)
+			t.context.DrawString(cell.Content, px, py+cellHeight-4)
+		}
+	}
+
+	// Store current cursor for next frame
+	t.lastCursor = cursor
 
 	img := t.context.Image()
 	pic := pixel.PictureDataFromImage(img)
 	t.picture = pic
 	t.sprite = pixel.NewSprite(t.picture, t.picture.Bounds())
-	t.dirty = false
 }
 
 func run() {
@@ -206,9 +187,9 @@ func run() {
 	term := NewTerminal(width, height)
 	lastBounds := win.Bounds()
 	// cmd := exec.Command("nvim")
-	cmd := exec.Command("htop")
+	// cmd := exec.Command("htop")
 	// cmd := exec.Command("ssh", "git.charm.sh")
-	// cmd := exec.Command("zsh", "-i", "-l")
+	cmd := exec.Command("zsh", "-i", "-l")
 
 	attrs := syscall.SysProcAttr{
 		Setsid:  true,
@@ -219,7 +200,6 @@ func run() {
 		log.Fatal(err)
 	}
 
-	// TODO: Handle window resize
 	go io.Copy(ptm, term.vt)
 	go io.Copy(term.vt, ptm)
 
@@ -309,7 +289,6 @@ func run() {
 			})
 
 			lastBounds = bounds
-			term.dirty = true
 		}
 
 		time.Sleep(time.Second/time.Duration(60) - time.Duration(dt*float64(time.Second)))
