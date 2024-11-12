@@ -89,12 +89,26 @@ func (s *Screen) Fill(c Cell, rects ...Rectangle) {
 	s.buf.Fill(c, rects...)
 }
 
-// setCursor moves the cursor.
+// setCursorX sets the cursor X position.
+func (s *Screen) setCursorX(x int) {
+	s.mu.Lock()
+	s.cur.X = x
+	s.mu.Unlock()
+}
+
+// setCursorY sets the cursor Y position.
+func (s *Screen) setCursorY(y int) {
+	s.mu.Lock()
+	s.cur.Y = y
+	s.mu.Unlock()
+}
+
+// setCursor sets the cursor position.
 func (s *Screen) setCursor(x, y int) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.cur.X = x
 	s.cur.Y = y
+	s.mu.Unlock()
 }
 
 // Cursor returns the cursor.

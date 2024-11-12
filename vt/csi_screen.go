@@ -53,8 +53,7 @@ func (t *Terminal) handleLine() {
 	case 'K': // EL - Erase in Line
 		// NOTE: Erase Line (EL) erases all character attributes but not cell
 		// bg color.
-		cur := t.scr.Cursor()
-		x, y := cur.X, cur.Y
+		x, y := t.scr.CursorPosition()
 		w := t.scr.Width()
 		c := spaceCell
 		c.Style = t.scr.cur.Pen
