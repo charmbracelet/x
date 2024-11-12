@@ -112,7 +112,7 @@ func (t *Terminal) DrawAt(x, y int, cell cellbuf.Cell) {
 	// Draw background
 	bg := cell.Style.Bg
 	if bg == nil {
-		bg = color.Black
+		bg = t.vt.BackgroundColor()
 	}
 	t.context.SetColor(bg)
 	t.context.DrawRectangle(px, py, cellWidth, cellHeight)
@@ -122,7 +122,7 @@ func (t *Terminal) DrawAt(x, y int, cell cellbuf.Cell) {
 	if len(cell.Content) != 0 {
 		fg := cell.Style.Fg
 		if fg == nil {
-			fg = color.White
+			fg = t.vt.ForegroundColor()
 		}
 		t.context.SetColor(fg)
 		t.context.DrawString(cell.Content, px, py+cellHeight-4) // Adjust Y for baseline
@@ -132,7 +132,7 @@ func (t *Terminal) DrawAt(x, y int, cell cellbuf.Cell) {
 	if cell.Style.UlStyle > cellbuf.NoUnderline {
 		ul := cell.Style.Ul
 		if ul == nil {
-			ul = color.White
+			ul = t.vt.ForegroundColor()
 		}
 		t.context.SetColor(ul)
 		t.context.DrawLine(px, py+cellHeight-2, px+cellWidth, py+cellHeight-2)
@@ -168,12 +168,13 @@ func (t *Terminal) Draw() {
 			cell, _ := t.vt.At(cursor.X, cursor.Y)
 
 			// Draw cursor background
-			t.context.SetColor(color.White)
+			t.context.SetColor(t.vt.CursorColor())
 			t.context.DrawRectangle(px, py, cellWidth, cellHeight)
 			t.context.Fill()
 
 			// Draw cursor text in inverted color
 			if len(cell.Content) > 0 {
+				// TODO: Invert [CursorColor].
 				t.context.SetColor(color.Black)
 				t.context.DrawString(cell.Content, px, py+cellHeight-4)
 			}
@@ -192,9 +193,10 @@ func (t *Terminal) Draw() {
 
 func run() {
 	cfg := pixelgl.WindowConfig{
-		Title:  "Terminal",
-		Bounds: pixel.R(0, 0, float64(width*cellWidth), float64(height*cellHeight)),
-		VSync:  true,
+		Title:     "Terminal",
+		Bounds:    pixel.R(0, 0, float64(width*cellWidth), float64(height*cellHeight)),
+		VSync:     true,
+		Resizable: true,
 	}
 	win, err := pixelgl.NewWindow(cfg)
 	if err != nil {
@@ -202,6 +204,7 @@ func run() {
 	}
 
 	term := NewTerminal(width, height)
+	lastBounds := win.Bounds()
 	// cmd := exec.Command("nvim")
 	cmd := exec.Command("htop")
 	// cmd := exec.Command("ssh", "git.charm.sh")
@@ -216,6 +219,7 @@ func run() {
 		log.Fatal(err)
 	}
 
+	// TODO: Handle window resize
 	go io.Copy(ptm, term.vt)
 	go io.Copy(term.vt, ptm)
 
@@ -282,6 +286,31 @@ func run() {
 			term.sprite.Draw(win, pixel.IM.Moved(win.Bounds().Center()))
 		}
 		win.Update()
+
+		// Handle window resize
+		bounds := win.Bounds()
+		if bounds != lastBounds {
+			newWidth := int(bounds.W() / cellWidth)
+			newHeight := int(bounds.H() / cellHeight)
+
+			// Resize the terminal
+			term.vt.Resize(newWidth, newHeight)
+
+			// Create new context with new size
+			term.context = gg.NewContext(newWidth*cellWidth, newHeight*cellHeight)
+			if term.font != nil {
+				term.context.SetFontFace(term.font)
+			}
+
+			// Resize the pty
+			pty.Setsize(ptm, &pty.Winsize{
+				Rows: uint16(newHeight),
+				Cols: uint16(newWidth),
+			})
+
+			lastBounds = bounds
+			term.dirty = true
+		}
 
 		time.Sleep(time.Second/time.Duration(60) - time.Duration(dt*float64(time.Second)))
 	}

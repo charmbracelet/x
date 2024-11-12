@@ -1,6 +1,8 @@
 package vt
 
 import (
+	"image/color"
+
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/cellbuf"
 )
@@ -73,31 +75,64 @@ func (t *Terminal) handleSgr() {
 		case 29: // Not crossed out
 			pen.Strikethrough(false)
 		case 30, 31, 32, 33, 34, 35, 36, 37: // Set foreground
-			pen.Foreground(ansi.Black + ansi.BasicColor(param-30)) //nolint:gosec
+			col := t.IndexedColor(param - 30)
+			pen.Foreground(col) //nolint:gosec
 		case 38: // Set foreground 256 or truecolor
-			if c := readColor(&i, params); c != nil {
+			if c := t.readColor(&i, params); c != nil {
 				pen.Foreground(c)
 			}
 		case 39: // Default foreground
 			pen.Foreground(nil)
 		case 40, 41, 42, 43, 44, 45, 46, 47: // Set background
-			pen.Background(ansi.Black + ansi.BasicColor(param-40)) //nolint:gosec
+			col := t.IndexedColor(param - 40)
+			pen.Background(col) //nolint:gosec
 		case 48: // Set background 256 or truecolor
-			if c := readColor(&i, params); c != nil {
+			if c := t.readColor(&i, params); c != nil {
 				pen.Background(c)
 			}
 		case 49: // Default Background
 			pen.Background(nil)
 		case 58: // Set underline color
-			if c := readColor(&i, params); c != nil {
+			if c := t.readColor(&i, params); c != nil {
 				pen.UnderlineColor(c)
 			}
 		case 59: // Default underline color
 			pen.UnderlineColor(nil)
 		case 90, 91, 92, 93, 94, 95, 96, 97: // Set bright foreground
-			pen.Foreground(ansi.BrightBlack + ansi.BasicColor(param-90)) //nolint:gosec
+			col := t.IndexedColor(param - 90 + 8) // Bright colors start at 8
+			pen.Foreground(col)                   //nolint:gosec
 		case 100, 101, 102, 103, 104, 105, 106, 107: // Set bright background
-			pen.Background(ansi.BrightBlack + ansi.BasicColor(param-100)) //nolint:gosec
+			col := t.IndexedColor(param - 100 + 8) // Bright colors start at 8
+			pen.Background(col)                    //nolint:gosec
 		}
 	}
+}
+
+func (t *Terminal) readColor(idxp *int, params []int) (c ansi.Color) {
+	i := *idxp
+	paramsLen := len(params)
+	if i > paramsLen-1 {
+		return
+	}
+	// Note: we accept both main and subparams here
+	switch param := ansi.Param(params[i+1]).Param(0); param {
+	case 2: // RGB
+		if i > paramsLen-4 {
+			return
+		}
+		c = color.RGBA{
+			R: uint8(ansi.Param(params[i+2]).Param(0)), //nolint:gosec
+			G: uint8(ansi.Param(params[i+3]).Param(0)), //nolint:gosec
+			B: uint8(ansi.Param(params[i+4]).Param(0)), //nolint:gosec
+			A: 0xff,
+		}
+		*idxp += 4
+	case 5: // 256 colors
+		if i > paramsLen-2 {
+			return
+		}
+		c = t.IndexedColor(ansi.Param(params[i+2]).Param(0))
+		*idxp += 2
+	}
+	return
 }

@@ -2,6 +2,7 @@ package vt
 
 import (
 	"bytes"
+	"image/color"
 	"io"
 	"log"
 	"sync"
@@ -53,6 +54,10 @@ type Terminal struct {
 	// The terminal's icon name and title.
 	iconName, title string
 
+	// terminal default colors.
+	fg, bg, cur color.Color
+	colors      [256]color.Color
+
 	// Bell handler. When set, this function is called when a bell character is
 	// received.
 	Bell func()
@@ -76,6 +81,9 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 		ansi.CursorEnableMode: ModeSet,
 	}
 	t.tabstops = DefaultTabStops(w)
+	t.cur = color.White
+	t.fg = color.White
+	t.bg = color.Black
 
 	for _, opt := range opts {
 		opt(t)
@@ -250,4 +258,68 @@ func (t *Terminal) SendKeys(keys ...Key) {
 	for _, k := range keys {
 		t.SendKey(k)
 	}
+}
+
+// ForegroundColor returns the terminal's foreground color.
+func (t *Terminal) ForegroundColor() color.Color {
+	return t.fg
+}
+
+// SetForegroundColor sets the terminal's foreground color.
+func (t *Terminal) SetForegroundColor(c color.Color) {
+	t.mu.Lock()
+	t.fg = c
+	t.mu.Unlock()
+}
+
+// BackgroundColor returns the terminal's background color.
+func (t *Terminal) BackgroundColor() color.Color {
+	return t.bg
+}
+
+// SetBackgroundColor sets the terminal's background color.
+func (t *Terminal) SetBackgroundColor(c color.Color) {
+	t.mu.Lock()
+	t.bg = c
+	t.mu.Unlock()
+}
+
+// CursorColor returns the terminal's cursor color.
+func (t *Terminal) CursorColor() color.Color {
+	return t.cur
+}
+
+// SetCursorColor sets the terminal's cursor color.
+func (t *Terminal) SetCursorColor(c color.Color) {
+	t.mu.Lock()
+	t.cur = c
+	t.mu.Unlock()
+}
+
+// IndexedColor returns a terminal's indexed color. An indexed color is a color
+// between 0 and 255.
+func (t *Terminal) IndexedColor(i int) color.Color {
+	if i < 0 || i > 255 {
+		return nil
+	}
+
+	c := t.colors[i]
+	if c == nil {
+		// Return the default color.
+		return ansi.ExtendedColor(i) //nolint:gosec
+	}
+
+	return c
+}
+
+// SetIndexedColor sets a terminal's indexed color.
+// The index must be between 0 and 255.
+func (t *Terminal) SetIndexedColor(i int, c color.Color) {
+	if i < 0 || i > 255 {
+		return
+	}
+
+	t.mu.Lock()
+	t.colors[i] = c
+	t.mu.Unlock()
 }
