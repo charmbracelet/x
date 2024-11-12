@@ -68,7 +68,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
 	t.scr = &t.scrs[0]
-	t.parser = ansi.NewParser(parser.MaxParamsSize, 1024*4) // 4MB data buffer
+	t.parser = ansi.NewParser(parser.MaxParamsSize, 1024*1024*4) // 4MB data buffer
 	t.modes = map[ansi.ANSIMode]ModeSetting{}
 	t.pmodes = map[ansi.DECMode]ModeSetting{
 		// These modes are set by default.
