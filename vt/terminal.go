@@ -115,11 +115,9 @@ func (t *Terminal) Width() int {
 
 // Resize resizes the terminal.
 func (t *Terminal) Resize(width int, height int) {
-	t.mu.Lock()
 	t.scrs[0].Resize(width, height)
 	t.scrs[1].Resize(width, height)
 	t.tabstops = DefaultTabStops(width)
-	t.mu.Unlock()
 }
 
 // Read reads data from the terminal input buffer.
@@ -132,6 +130,8 @@ func (t *Terminal) Read(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	return t.buf.Read(p)
 }
 
@@ -273,9 +273,7 @@ func (t *Terminal) ForegroundColor() color.Color {
 
 // SetForegroundColor sets the terminal's foreground color.
 func (t *Terminal) SetForegroundColor(c color.Color) {
-	t.mu.Lock()
 	t.fg = c
-	t.mu.Unlock()
 }
 
 // BackgroundColor returns the terminal's background color.
@@ -285,9 +283,7 @@ func (t *Terminal) BackgroundColor() color.Color {
 
 // SetBackgroundColor sets the terminal's background color.
 func (t *Terminal) SetBackgroundColor(c color.Color) {
-	t.mu.Lock()
 	t.bg = c
-	t.mu.Unlock()
 }
 
 // CursorColor returns the terminal's cursor color.
@@ -297,9 +293,7 @@ func (t *Terminal) CursorColor() color.Color {
 
 // SetCursorColor sets the terminal's cursor color.
 func (t *Terminal) SetCursorColor(c color.Color) {
-	t.mu.Lock()
 	t.cur = c
-	t.mu.Unlock()
 }
 
 // IndexedColor returns a terminal's indexed color. An indexed color is a color
@@ -325,7 +319,5 @@ func (t *Terminal) SetIndexedColor(i int, c color.Color) {
 		return
 	}
 
-	t.mu.Lock()
 	t.colors[i] = c
-	t.mu.Unlock()
 }
