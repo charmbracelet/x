@@ -3,13 +3,7 @@ package vt
 import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
-	"github.com/charmbracelet/x/cellbuf"
 )
-
-var spaceCell = cellbuf.Cell{
-	Content: " ",
-	Width:   1,
-}
 
 // handleCsi handles a CSI escape sequences.
 func (t *Terminal) handleCsi(seq []byte) {

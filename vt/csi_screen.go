@@ -55,7 +55,7 @@ func (t *Terminal) handleLine() {
 		// bg color.
 		x, y := t.scr.CursorPosition()
 		w := t.scr.Width()
-		c := spaceCell
+		c := blankCell
 		c.Style = t.scr.cur.Pen
 		c.Style.Attrs = 0
 

@@ -61,7 +61,7 @@ func (t *Terminal) handleCursor() {
 	case 'X':
 		// ECH - Erase Character
 		// It clears character attributes as well but not colors.
-		c := spaceCell
+		c := blankCell
 		c.Style = t.scr.cur.Pen
 		c.Style.Attrs = 0
 		rect := Rect(x, y, n, 1)
