@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"log"
-
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/cellbuf"
 )
@@ -10,18 +8,20 @@ import (
 // handleUtf8 handles a UTF-8 characters.
 func (t *Terminal) handleUtf8(seq []byte, width int) {
 	var autowrap bool
-	cur := t.scr.cur
-	x, y := cur.Pos.X, cur.Pos.Y
+	x, y := t.scr.cur.X, t.scr.cur.Y
 	if mode, ok := t.pmodes[ansi.AutowrapMode]; ok && mode.IsSet() {
 		autowrap = true
 	}
 
+	// Handle wide chars at the edge - wrap them entirely
 	if autowrap && x+width > t.scr.Width() {
 		x = 0
 		y++
-		sr := t.scrollregion
-		log.Printf("utf8: scrolling region %d, %d", sr.Min.Y, sr.Max.Y)
-		t.scr.ScrollUp(1, &sr)
+		// Only scroll if we're past the last line
+		if y >= t.scr.Height() {
+			t.scr.ScrollUp(1)
+			y = t.scr.Height() - 1
+		}
 	}
 
 	cell := cellbuf.Cell{
@@ -30,6 +30,7 @@ func (t *Terminal) handleUtf8(seq []byte, width int) {
 		Content: string(seq),
 		Width:   width,
 	}
+
 	if t.scr.Draw(x, y, cell) && t.Damage != nil {
 		t.Damage(CellDamage{X: x, Y: y, Cell: cell})
 	}

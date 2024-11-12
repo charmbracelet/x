@@ -16,30 +16,27 @@ func (t *Terminal) handleControl(r rune) {
 			t.Bell()
 		}
 	case ansi.BS: // BS - Backspace
-		if t.scr.cur.Pos.X > 0 {
-			t.scr.cur.Pos.X--
+		if t.scr.cur.X > 0 {
+			t.scr.cur.X--
 		}
 	case ansi.HT: // HT - Horizontal Tab
-		t.scr.cur.Pos.X = t.tabstops.Next(t.scr.cur.Pos.X)
+		t.scr.cur.X = t.tabstops.Next(t.scr.cur.X)
 	case ansi.LF:
 		// LF - Line Feed
-		if t.scr.cur.Pos.Y < t.scr.Height()-1 {
-			t.scr.cur.Pos.Y++
+		if t.scr.cur.Y < t.scr.Height()-1 {
+			t.scr.cur.Y++
 		} else {
-			sr := t.scrollregion
-			log.Printf("LF: scrolling region %d, %d", sr.Min.Y, sr.Max.Y)
-			t.scr.ScrollUp(1, &sr)
+			t.scr.ScrollUp(1)
 		}
 	case ansi.CR: // CR - Carriage Return
-		t.scr.cur.Pos.X = 0
+		t.scr.cur.X = 0
 	case ansi.HTS: // HTS - Horizontal Tab Set
-		t.tabstops.Set(t.scr.cur.Pos.X)
+		t.tabstops.Set(t.scr.cur.X)
 	case ansi.RI: // RI - Reverse Index
-		if t.scr.cur.Pos.Y > 0 {
-			t.scr.cur.Pos.Y--
+		if t.scr.cur.Y > 0 {
+			t.scr.cur.Y--
 		} else {
-			sr := t.scrollregion
-			t.scr.ScrollDown(1, &sr)
+			t.scr.ScrollDown(1)
 		}
 	case ansi.SO: // SO - Shift Out
 	// TODO: Handle Shift Out

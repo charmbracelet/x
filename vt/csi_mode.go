@@ -24,7 +24,7 @@ func (t *Terminal) handleMode() {
 		t.pmodes[mode] = setting
 		switch mode {
 		case ansi.CursorEnableMode:
-			t.scr.cur.Visible = setting.IsSet()
+			t.scr.cur.Hidden = setting.IsReset()
 		case 1047: // Alternate Screen Buffer
 			if setting == ModeSet {
 				t.scr = &t.scrs[1]
@@ -34,7 +34,7 @@ func (t *Terminal) handleMode() {
 		case ansi.AltScreenBufferMode:
 			if setting == ModeSet {
 				t.scr = &t.scrs[1]
-				t.scr.Clear(nil)
+				t.scr.Clear()
 				if t.Damage != nil {
 					t.Damage(ScreenDamage{t.scr.Width(), t.scr.Height()})
 				}

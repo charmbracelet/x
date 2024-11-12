@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"log"
-
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -95,7 +93,7 @@ func (m MouseMotion) Mouse() mouse {
 func (t *Terminal) SendMouse(m Mouse) {
 	var (
 		enc  ansi.Mode
-		mode ansi.DECMode
+		mode ansi.Mode
 	)
 
 	for _, m := range []ansi.DECMode{
@@ -108,6 +106,10 @@ func (t *Terminal) SendMouse(m Mouse) {
 		if mm, ok := t.pmodes[m]; ok && mm.IsSet() {
 			mode = m
 		}
+	}
+
+	if mode == nil {
+		return
 	}
 
 	for _, e := range []ansi.DECMode{
@@ -188,9 +190,7 @@ func (t *Terminal) SendMouse(m Mouse) {
 
 			t.buf.WriteString(ansi.MouseX10(b, m.X, m.Y))
 		case ansi.SgrExtMouseMode: // SGR mouse encoding
-			seq := ansi.MouseSgr(b, m.X, m.Y, release)
-			log.Printf("Mouse SGR: %q", seq)
-			t.buf.WriteString(seq)
+			t.buf.WriteString(ansi.MouseSgr(b, m.X, m.Y, release))
 		}
 	}
 }

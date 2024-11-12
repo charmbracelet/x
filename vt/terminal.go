@@ -3,6 +3,7 @@ package vt
 import (
 	"bytes"
 	"io"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -22,6 +23,8 @@ type (
 
 // Terminal represents a virtual terminal.
 type Terminal struct {
+	mu sync.Mutex
+
 	tmp []byte
 	// The input buffer of the terminal.
 	buf    bytes.Buffer
@@ -35,9 +38,6 @@ type Terminal struct {
 
 	// tabstop is the list of tab stops.
 	tabstops TabStops
-
-	// scrollregion is the scroll region.
-	scrollregion cellbuf.Rectangle
 
 	// Terminal modes.
 	modes  map[ansi.ANSIMode]ModeSetting
@@ -71,10 +71,7 @@ func NewTerminal(w, h int) *Terminal {
 		ansi.AutowrapMode:     ModeSet,
 		ansi.CursorEnableMode: ModeSet,
 	}
-	t.scrs[0].cur.Visible = true
-	t.scrs[1].cur.Visible = true
 	t.tabstops = DefaultTabStops(w)
-	t.scrollregion = cellbuf.Rect(0, 0, w, h)
 	return t
 }
 
@@ -95,9 +92,11 @@ func (t *Terminal) Width() int {
 
 // Resize resizes the terminal.
 func (t *Terminal) Resize(width int, height int) {
+	t.mu.Lock()
 	t.scrs[0].Resize(width, height)
 	t.scrs[1].Resize(width, height)
 	t.tabstops = DefaultTabStops(width)
+	t.mu.Unlock()
 }
 
 // Read reads data from the terminal input buffer.
@@ -146,6 +145,9 @@ func (t *Terminal) dispatcher(seq ansi.Sequence) {
 
 // Write writes data to the terminal output buffer.
 func (t *Terminal) Write(p []byte) (n int, err error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	// TODO: Use just a parser and a dispatcher. We gotta make [ansi.Parser]
 	// support graphemes first tho.
 	t.parser.Parse(t.dispatcher, p)

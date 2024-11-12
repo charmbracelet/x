@@ -11,12 +11,12 @@ func (t *Terminal) handleEsc(seq []byte) {
 	cmd := t.parser.Cmd
 	switch cmd {
 	case 'H': // HTS - Horizontal Tab Set
-		t.tabstops.Set(t.scr.cur.Pos.X)
+		t.tabstops.Set(t.scr.cur.X)
 	case 'M': // RI - Reverse Index
-		if t.scr.cur.Pos.Y > 0 {
-			t.scr.cur.Pos.Y--
+		if t.scr.cur.Y > 0 {
+			t.scr.cur.Y--
 		} else {
-			// TODO: Scroll down
+			t.scr.ScrollDown(1)
 		}
 	case '=': // DECKPAM - Keypad Application Mode
 		t.pmodes[ansi.NumericKeypadMode] = ModeSet

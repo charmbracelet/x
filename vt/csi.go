@@ -15,14 +15,13 @@ var spaceCell = cellbuf.Cell{
 
 // handleCsi handles a CSI escape sequences.
 func (t *Terminal) handleCsi(seq []byte) {
-	// params := t.parser.Params[:t.parser.ParamsLen]
 	cmd := t.parser.Cmd
 	switch cmd { // cursor
-	case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'X', 'd', 'e':
+	case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'X', 'a', 'd', 'e', 'f', '`':
 		t.handleCursor()
 	case 'm': // SGR - Select Graphic Rendition
 		t.handleSgr()
-	case 'J':
+	case 'J', 'r':
 		t.handleScreen()
 	case 'K', 'S', 'T':
 		t.handleLine()
@@ -37,7 +36,8 @@ func (t *Terminal) handleCsi(seq []byte) {
 		if t.parser.ParamsLen > 0 {
 			style = ansi.Param(t.parser.Params[0]).Param(0)
 		}
-		t.scr.cur.Style = style
+		t.scr.cur.Style = CursorStyle((style / 2) + 1)
+		t.scr.cur.Steady = style%2 != 1
 	case 'g': // TBC - Tab Clear
 		var param int
 		if t.parser.ParamsLen > 0 {
@@ -46,7 +46,7 @@ func (t *Terminal) handleCsi(seq []byte) {
 
 		switch param {
 		case 0:
-			t.tabstops.Reset(t.scr.cur.Pos.X)
+			t.tabstops.Reset(t.scr.cur.X)
 		case 3:
 			t.tabstops.Clear()
 		}
@@ -58,35 +58,16 @@ func (t *Terminal) handleCsi(seq []byte) {
 			}
 		}
 
-		x, y := t.scr.cur.Pos.X, t.scr.cur.Pos.Y
-		t.scr.buf.InsertCell(x, y, n)
+		t.scr.InsertCell(n)
 	case 'P': // DCH - Delete Character
 		n := 1
 		if t.parser.ParamsLen > 0 {
-			if param := ansi.Param(t.parser.Params[0]).Param(0); param > 0 {
+			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
 				n = param
 			}
 		}
 
-		x, y := t.scr.cur.Pos.X, t.scr.cur.Pos.Y
-		t.scr.buf.DeleteCell(x, y, n)
-	case 'r': // DECSTBM - Set Top and Bottom Margins
-		log.Printf("scrolling region %d, %d", t.parser.Params[0], t.parser.Params[1])
-		if t.parser.ParamsLen == 2 {
-			top := ansi.Param(t.parser.Params[0]).Param(1)
-			bottom := ansi.Param(t.parser.Params[1]).Param(t.Height())
-			if top >= bottom {
-				break
-			}
-
-			t.scrollregion.Min.Y = top - 1
-			t.scrollregion.Max.Y = bottom - 1
-		} else {
-			t.scrollregion.Min.Y = 0
-			t.scrollregion.Max.Y = t.Height() - 1
-		}
-
-		t.scr.moveCursor(t.scrollregion.Min.X, t.scrollregion.Min.Y)
+		t.scr.DeleteCell(n)
 	default:
 		log.Printf("unhandled CSI: %q", seq)
 	}

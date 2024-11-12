@@ -16,7 +16,7 @@ func (t *Terminal) handleScreen() {
 	scr := t.scr
 	cur := scr.Cursor()
 	w, h := scr.Width(), scr.Height()
-	_, y := cur.Pos.X, cur.Pos.Y
+	_, y := cur.X, cur.Y
 
 	cmd := ansi.Cmd(t.parser.Cmd)
 	switch cmd.Command() {
@@ -24,13 +24,13 @@ func (t *Terminal) handleScreen() {
 		switch count {
 		case 0: // Erase screen below (including cursor)
 			rect := cellbuf.Rect(0, y, w, h-y)
-			t.scr.Clear(&rect)
+			t.scr.Clear(rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
 		case 1: // Erase screen above (including cursor)
 			rect := cellbuf.Rect(0, 0, w, y+1)
-			t.scr.Clear(&rect)
+			t.scr.Clear(rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
@@ -38,8 +38,7 @@ func (t *Terminal) handleScreen() {
 			fallthrough
 		case 3: // erase display
 			// TODO: Scrollback buffer support?
-			rect := cellbuf.Rect(0, 0, w, h)
-			t.scr.Clear(&rect)
+			t.scr.Clear()
 			if t.Damage != nil {
 				t.Damage(ScreenDamage{w, h})
 			}
@@ -56,34 +55,31 @@ func (t *Terminal) handleLine() {
 	cmd := ansi.Cmd(t.parser.Cmd)
 	switch cmd.Command() {
 	case 'K': // EL - Erase in Line
-		// NOTE: Erase Line (EL) is a bit confusing. Erasing the line erases
-		// the characters on the line while applying the cursor pen style
-		// like background color and so on. The cursor position is not changed.
+		// NOTE: Erase Line (EL) erases all character attributes but not cell
+		// bg color.
 		cur := t.scr.Cursor()
-		x, y := cur.Pos.X, cur.Pos.Y
+		x, y := cur.X, cur.Y
 		w := t.scr.Width()
+		c := spaceCell
+		c.Style = t.scr.cur.Pen
+		c.Style.Attrs = 0
+
 		switch count {
 		case 0: // Erase from cursor to end of line
-			c := spaceCell
-			c.Style = t.scr.cur.Pen
 			rect := cellbuf.Rect(x, y, w-x, 1)
-			t.scr.Fill(c, &rect)
+			t.scr.Fill(c, rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
 		case 1: // Erase from start of line to cursor
-			c := spaceCell
-			c.Style = t.scr.cur.Pen
 			rect := cellbuf.Rect(0, y, x+1, 1)
-			t.scr.Fill(c, &rect)
+			t.scr.Fill(c, rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
 		case 2: // Erase entire line
-			c := spaceCell
-			c.Style = t.scr.cur.Pen
 			rect := cellbuf.Rect(0, y, w, 1)
-			t.scr.Fill(c, &rect)
+			t.scr.Fill(c, rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
@@ -96,9 +92,7 @@ func (t *Terminal) handleLine() {
 			}
 		}
 
-		sr := t.scrollregion
-		log.Printf("SU: scrolling region %d, %d", sr.Min.Y, sr.Max.Y)
-		t.scr.ScrollUp(n, &sr)
+		t.scr.ScrollUp(n)
 	case 'T': // SD - Scroll Down
 		n := 1
 		if t.parser.ParamsLen > 0 {
@@ -107,7 +101,24 @@ func (t *Terminal) handleLine() {
 			}
 		}
 
-		sr := t.scrollregion
-		t.scr.ScrollDown(n, &sr)
+		t.scr.ScrollDown(n)
+
+	case 'r': // DECSTBM - Set Top and Bottom Margins
+		log.Printf("scrolling region %d, %d", t.parser.Params[0], t.parser.Params[1])
+		if t.parser.ParamsLen == 2 {
+			top := ansi.Param(t.parser.Params[0]).Param(1)
+			bottom := ansi.Param(t.parser.Params[1]).Param(t.Height())
+			if top > bottom {
+				top, bottom = bottom, top
+			}
+
+			t.scr.scroll.Min.Y = top - 1
+			t.scr.scroll.Max.Y = bottom - 1
+		} else {
+			t.scr.scroll.Min.Y = 0
+			t.scr.scroll.Max.Y = t.Height() - 1
+		}
+
+		t.scr.moveCursor(t.scr.scroll.Min.X, t.scr.scroll.Min.Y)
 	}
 }

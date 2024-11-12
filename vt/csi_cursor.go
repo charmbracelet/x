@@ -2,7 +2,6 @@ package vt
 
 import (
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/cellbuf"
 )
 
 func (t *Terminal) handleCursor() {
@@ -16,16 +15,18 @@ func (t *Terminal) handleCursor() {
 		}
 	}
 
-	x, y := t.scr.cur.Pos.X, t.scr.cur.Pos.Y
+	x, y := t.scr.cur.X, t.scr.cur.Y
 	switch cmd.Command() {
 	case 'A':
 		// CUU - Cursor Up
 		y = max(0, y-n)
-	case 'B':
+	case 'B', 'e':
 		// CUD - Cursor Down
+		// VPR - Vertical Position Relative
 		y = min(height-1, y+n)
-	case 'C':
+	case 'C', 'a':
 		// CUF - Cursor Forward
+		// HPR - Horizontal Position Relative
 		x = min(width-1, x+n)
 	case 'D':
 		// CUB - Cursor Back
@@ -38,16 +39,17 @@ func (t *Terminal) handleCursor() {
 		// CPL - Cursor Previous Line
 		y = max(0, y-n)
 		x = 0
-	case 'G':
+	case 'G', '`':
 		// CHA - Cursor Character Absolute
-		x = min(width-1, max(0, n-1))
+		// HPA - Horizontal Position Absolute
+		x = min(width-1, n-1)
 	case 'H', 'f':
 		// CUP - Cursor Position
 		// HVP - Horizontal and Vertical Position
 		if p.ParamsLen >= 2 {
 			row, col := ansi.Param(p.Params[0]).Param(1), ansi.Param(p.Params[1]).Param(1)
-			y = min(height-1, max(0, row-1))
-			x = min(width-1, max(0, col-1))
+			y = min(height-1, row-1)
+			x = min(width-1, col-1)
 		} else {
 			x, y = 0, 0
 		}
@@ -58,17 +60,16 @@ func (t *Terminal) handleCursor() {
 		}
 	case 'X':
 		// ECH - Erase Character
+		// It clears character attributes as well but not colors.
 		c := spaceCell
 		c.Style = t.scr.cur.Pen
-		rect := cellbuf.Rect(x, y, n, 1)
-		t.scr.Fill(c, &rect)
-		x = min(width-1, x+n)
+		c.Style.Attrs = 0
+		rect := Rect(x, y, n, 1)
+		t.scr.Fill(c, rect)
+		// ECH does not move the cursor.
 	case 'd':
 		// VPA - Vertical Line Position Absolute
 		y = min(height-1, max(0, n-1))
-	case 'e':
-		// VPR - Vertical Line Position Relative
-		y = min(height-1, max(0, y+n))
 	}
 
 	t.scr.moveCursor(x, y)
