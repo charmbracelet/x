@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"image/color"
 	"io"
-	"log"
 	"sync"
 	"unicode"
 	"unicode/utf8"
@@ -49,7 +48,7 @@ type Terminal struct {
 	parser *ansi.Parser
 
 	// log is the logger to use.
-	logger *log.Logger
+	logger Logger
 
 	// The terminal's icon name and title.
 	iconName, title string
