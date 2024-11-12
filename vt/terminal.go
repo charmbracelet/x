@@ -67,6 +67,12 @@ type Terminal struct {
 	Damage func(Damage)
 }
 
+var (
+	defaultFg  = color.White
+	defaultBg  = color.Black
+	defaultCur = color.White
+)
+
 // NewTerminal creates a new terminal.
 func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t := new(Terminal)
@@ -81,9 +87,9 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 		ansi.CursorEnableMode: ModeSet,
 	}
 	t.tabstops = DefaultTabStops(w)
-	t.cur = color.White
-	t.fg = color.White
-	t.bg = color.Black
+	t.fg = defaultFg
+	t.bg = defaultBg
+	t.cur = defaultCur
 
 	for _, opt := range opts {
 		opt(t)
