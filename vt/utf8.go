@@ -32,7 +32,7 @@ func (t *Terminal) handleUtf8(seq []byte, width int) {
 	}
 
 	if t.scr.Draw(x, y, cell) && t.Damage != nil {
-		t.Damage(CellDamage{X: x, Y: y, Cell: cell})
+		t.Damage(CellDamage{X: x, Y: y})
 	}
 
 	t.scr.setCursor(x+width, y)

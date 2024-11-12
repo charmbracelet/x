@@ -28,11 +28,10 @@ func (t *Terminal) handleControl(r rune) {
 		// LF - Line Feed
 		_, y := t.scr.CursorPosition()
 		if y < t.scr.Height()-1 {
-			y++
+			t.scr.setCursorY(y + 1)
 		} else {
 			t.scr.ScrollUp(1)
 		}
-		t.scr.setCursorY(y)
 	case ansi.CR: // CR - Carriage Return
 		t.scr.setCursorX(0)
 	case ansi.HTS: // HTS - Horizontal Tab Set
