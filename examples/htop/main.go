@@ -116,14 +116,10 @@ func main() {
 	}
 
 	go func() {
-		time.Sleep(1 * time.Second)
-		vt.SendText("\x1bOB\x1bOB\x1bOC\x1bOC\x1bOC\x1bOC")
-		time.Sleep(1 * time.Second)
-		vt.SendText("/")
-		time.Sleep(1 * time.Second)
-		vt.SendText("htop")
-		time.Sleep(1 * time.Second)
-		vt.SendText("\r")
+		for i := 0; i < 50; i++ {
+			time.Sleep(100 * time.Millisecond)
+			vt.SendText("\x1bOB")
+		}
 	}()
 
 	// go io.Copy(vt.InputPipe(), os.Stdin)
