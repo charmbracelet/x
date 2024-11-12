@@ -201,7 +201,10 @@ func (s *Screen) ScrollUp(n int) {
 		s.mu.Lock()
 		// OPTIM: for scrolling the whole screen.
 		// Move lines up, dropping the top n lines
-		copy(s.buf.lines[0:], s.buf.lines[n:])
+		s.buf.lines = s.buf.lines[n:]
+		for i := 0; i < n; i++ {
+			s.buf.lines = append(s.buf.lines, make(Line, s.buf.Width()))
+		}
 		s.mu.Unlock()
 	} else {
 		// Copy lines up within scroll region
@@ -234,7 +237,10 @@ func (s *Screen) ScrollDown(n int) {
 		s.mu.Lock()
 		// OPTIM: for scrolling the whole screen.
 		// Move lines down, dropping the bottom n lines
-		copy(s.buf.lines[n:], s.buf.lines[0:len(s.buf.lines)-n])
+		s.buf.lines = s.buf.lines[:len(s.buf.lines)-n]
+		for i := 0; i < n; i++ {
+			s.buf.lines = append([]Line{make(Line, s.buf.Width())}, s.buf.lines...)
+		}
 		s.mu.Unlock()
 	} else {
 		// Copy lines down within scroll region
