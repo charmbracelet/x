@@ -13,10 +13,8 @@ func (t *Terminal) handleScreen() {
 		count = ansi.Param(t.parser.Params[0]).Param(0)
 	}
 
-	scr := t.scr
-	cur := scr.Cursor()
-	w, h := scr.Width(), scr.Height()
-	_, y := cur.X, cur.Y
+	w, h := t.Width(), t.Height()
+	_, y := t.scr.CursorPosition()
 
 	cmd := ansi.Cmd(t.parser.Cmd)
 	switch cmd.Command() {
@@ -119,6 +117,6 @@ func (t *Terminal) handleLine() {
 			t.scr.scroll.Max.Y = t.Height() - 1
 		}
 
-		t.scr.moveCursor(t.scr.scroll.Min.X, t.scr.scroll.Min.Y)
+		t.scr.setCursor(t.scr.scroll.Min.X, t.scr.scroll.Min.Y)
 	}
 }

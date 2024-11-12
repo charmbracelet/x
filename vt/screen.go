@@ -1,11 +1,14 @@
 package vt
 
 import (
+	"sync"
+
 	"github.com/charmbracelet/x/cellbuf"
 )
 
 // Screen represents a virtual terminal screen.
 type Screen struct {
+	mu sync.RWMutex
 	// The buffer of the screen.
 	buf Buffer
 	// The cur of the screen.
@@ -25,79 +28,118 @@ func NewScreen(w, h int) *Screen {
 
 // Bounds returns the bounds of the screen.
 func (s *Screen) Bounds() Rectangle {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.buf.Bounds()
 }
 
 // Cell implements cellbuf.Screen.
 func (s *Screen) Cell(x int, y int) (Cell, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.buf.Cell(x, y)
 }
 
 // Draw implements cellbuf.Screen.
 func (s *Screen) Draw(x int, y int, c Cell) bool {
+	return s.SetCell(x, y, c)
+}
+
+// SetCell sets the cell at the given x, y position.
+// It returns true if the cell was set successfully.
+func (s *Screen) SetCell(x, y int, c Cell) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.buf.Draw(x, y, c)
 }
 
 // Height implements cellbuf.Grid.
 func (s *Screen) Height() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.buf.Height()
 }
 
 // Resize implements cellbuf.Grid.
 func (s *Screen) Resize(width int, height int) {
+	s.mu.Lock()
 	s.buf.Resize(width, height)
+	s.mu.Unlock()
 	s.scroll = s.Bounds()
 }
 
 // Width implements cellbuf.Grid.
 func (s *Screen) Width() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.buf.Width()
 }
 
 // Clear clears the screen or part of it.
 func (s *Screen) Clear(rects ...Rectangle) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.buf.Clear(rects...)
 }
 
 // Fill fills the screen or part of it.
 func (s *Screen) Fill(c Cell, rects ...Rectangle) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.buf.Fill(c, rects...)
 }
 
-// Pos returns the cursor position.
-func (s *Screen) Pos() (int, int) {
-	return s.cur.X, s.cur.Y
-}
-
-// moveCursor moves the cursor.
-func (s *Screen) moveCursor(x, y int) {
+// setCursor moves the cursor.
+func (s *Screen) setCursor(x, y int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.cur.X = x
 	s.cur.Y = y
 }
 
 // Cursor returns the cursor.
 func (s *Screen) Cursor() Cursor {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
 	return s.cur
+}
+
+// CursorPosition returns the cursor position.
+func (s *Screen) CursorPosition() (x, y int) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.cur.X, s.cur.Y
 }
 
 // SaveCursor saves the cursor.
 func (s *Screen) SaveCursor() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.saved = s.cur
 }
 
 // RestoreCursor restores the cursor.
 func (s *Screen) RestoreCursor() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.cur = s.saved
+}
+
+// setCursorHidden sets the cursor hidden.
+func (s *Screen) setCursorHidden(hidden bool) {
+	s.mu.Lock()
+	s.cur.Hidden = hidden
+	s.mu.Unlock()
 }
 
 // ShowCursor shows the cursor.
 func (s *Screen) ShowCursor() {
-	s.cur.Hidden = false
+	s.setCursorHidden(false)
 }
 
 // HideCursor hides the cursor.
 func (s *Screen) HideCursor() {
-	s.cur.Hidden = true
+	s.setCursorHidden(true)
 }
 
 // InsertCell inserts n blank characters at the cursor position pushing out
@@ -107,6 +149,8 @@ func (s *Screen) InsertCell(n int) {
 		return
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	x, y := s.cur.X, s.cur.Y
 
 	s.buf.InsertCell(x, y, n, s.scroll)
@@ -119,6 +163,8 @@ func (s *Screen) DeleteCell(n int) {
 		return
 	}
 
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	x, y := s.cur.X, s.cur.Y
 
 	s.buf.DeleteCell(x, y, n, s.scroll)
@@ -131,14 +177,18 @@ func (s *Screen) ScrollUp(n int) {
 		return
 	}
 
+	s.mu.RLock()
 	if n > s.scroll.Height() {
 		n = s.scroll.Height()
 	}
+	s.mu.RUnlock()
 
 	if s.scroll == s.Bounds() {
+		s.mu.Lock()
 		// OPTIM: for scrolling the whole screen.
 		// Move lines up, dropping the top n lines
 		copy(s.buf.lines[0:], s.buf.lines[n:])
+		s.mu.Unlock()
 	} else {
 		// Copy lines up within scroll region
 		for i := s.scroll.Min.Y; i < s.scroll.Max.Y-n; i++ {
@@ -160,14 +210,18 @@ func (s *Screen) ScrollDown(n int) {
 		return
 	}
 
+	s.mu.RLock()
 	if n > s.scroll.Height() {
 		n = s.scroll.Height()
 	}
+	s.mu.RUnlock()
 
 	if s.scroll == s.Bounds() {
+		s.mu.Lock()
 		// OPTIM: for scrolling the whole screen.
 		// Move lines down, dropping the bottom n lines
 		copy(s.buf.lines[n:], s.buf.lines[0:len(s.buf.lines)-n])
+		s.mu.Unlock()
 	} else {
 		// Copy lines down within scroll region
 		for i := s.scroll.Max.Y - 1; i >= s.scroll.Min.Y+n; i-- {

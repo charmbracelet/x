@@ -198,11 +198,6 @@ func (t *Terminal) Cursor() Cursor {
 	return t.scr.Cursor()
 }
 
-// Pos returns the cursor position.
-func (t *Terminal) Pos() (int, int) {
-	return t.scr.Pos()
-}
-
 // Title returns the terminal's title.
 func (t *Terminal) Title() string {
 	return t.title

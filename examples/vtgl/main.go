@@ -202,8 +202,8 @@ func run() {
 	}
 
 	term := NewTerminal(width, height)
-	cmd := exec.Command("nvim")
-	// cmd := exec.Command("htop")
+	// cmd := exec.Command("nvim")
+	cmd := exec.Command("htop")
 	// cmd := exec.Command("ssh", "git.charm.sh")
 	// cmd := exec.Command("zsh", "-i", "-l")
 

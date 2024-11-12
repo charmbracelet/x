@@ -8,7 +8,7 @@ import (
 // handleUtf8 handles a UTF-8 characters.
 func (t *Terminal) handleUtf8(seq []byte, width int) {
 	var autowrap bool
-	x, y := t.scr.cur.X, t.scr.cur.Y
+	x, y := t.scr.CursorPosition()
 	if mode, ok := t.pmodes[ansi.AutowrapMode]; ok && mode.IsSet() {
 		autowrap = true
 	}
@@ -35,5 +35,5 @@ func (t *Terminal) handleUtf8(seq []byte, width int) {
 		t.Damage(CellDamage{X: x, Y: y, Cell: cell})
 	}
 
-	t.scr.moveCursor(x+width, y)
+	t.scr.setCursor(x+width, y)
 }

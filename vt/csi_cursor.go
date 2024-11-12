@@ -6,7 +6,7 @@ import (
 
 func (t *Terminal) handleCursor() {
 	p := t.parser
-	width, height := t.scr.Width(), t.scr.Height()
+	width, height := t.Width(), t.Height()
 	cmd := ansi.Cmd(p.Cmd)
 	n := 1
 	if p.ParamsLen > 0 {
@@ -72,5 +72,5 @@ func (t *Terminal) handleCursor() {
 		y = min(height-1, max(0, n-1))
 	}
 
-	t.scr.moveCursor(x, y)
+	t.scr.setCursor(x, y)
 }
