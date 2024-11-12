@@ -47,8 +47,10 @@ func mapKey(key pixelgl.Button) (k vt.Key, ok bool) {
 }
 
 const (
-	width      = 165
-	height     = 45
+	// width      = 165
+	// height     = 45
+	width      = 80
+	height     = 24
 	cellWidth  = 8
 	cellHeight = 16
 )
@@ -151,19 +153,19 @@ func (t *Terminal) Draw() {
 		// FIXME: This causes a crash
 
 		// Restore the previous cursor cell if it was visible
-		if t.lastCursor.Visible {
-			if cell, ok := t.vt.At(t.lastCursor.Pos.X, t.lastCursor.Pos.Y); ok {
-				t.DrawAt(t.lastCursor.Pos.X, t.lastCursor.Pos.Y, cell)
+		if !t.lastCursor.Hidden {
+			if cell, ok := t.vt.At(t.lastCursor.X, t.lastCursor.Y); ok {
+				t.DrawAt(t.lastCursor.X, t.lastCursor.Y, cell)
 			}
 		}
 
 		// Draw new cursor
-		if cursor.Visible {
-			px := float64(cursor.Pos.X * cellWidth)
-			py := float64(cursor.Pos.Y * cellHeight)
+		if !cursor.Hidden {
+			px := float64(cursor.X * cellWidth)
+			py := float64(cursor.Y * cellHeight)
 
 			// Get the cell at cursor position
-			cell, _ := t.vt.At(cursor.Pos.X, cursor.Pos.Y)
+			cell, _ := t.vt.At(cursor.X, cursor.Y)
 
 			// Draw cursor background
 			t.context.SetColor(color.White)
@@ -200,10 +202,10 @@ func run() {
 	}
 
 	term := NewTerminal(width, height)
-	// cmd := exec.Command("nvim")
+	cmd := exec.Command("nvim")
 	// cmd := exec.Command("htop")
 	// cmd := exec.Command("ssh", "git.charm.sh")
-	cmd := exec.Command("zsh", "-i", "-l")
+	// cmd := exec.Command("zsh", "-i", "-l")
 
 	attrs := syscall.SysProcAttr{
 		Setsid:  true,
