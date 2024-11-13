@@ -2,6 +2,7 @@ package vt
 
 import (
 	"bytes"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -22,6 +23,7 @@ type (
 type Terminal struct {
 	// The input buffer of the terminal.
 	buf bytes.Buffer
+	mu  sync.Mutex
 
 	// The current focused screen.
 	scr *Screen
@@ -83,11 +85,15 @@ func (t *Terminal) Resize(width int, height int) {
 
 // Read reads data from the terminal input buffer.
 func (t *Terminal) Read(p []byte) (n int, err error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	return t.buf.Read(p)
 }
 
 // Write writes data to the terminal output buffer.
 func (t *Terminal) Write(p []byte) (n int, err error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	var state byte
 	for len(p) > 0 {
 		seq, width, m, newState := ansi.DecodeSequence(p, state, t.parser)
@@ -111,9 +117,6 @@ func (t *Terminal) Write(p []byte) (n int, err error) {
 		state = newState
 		p = p[m:]
 		n += m
-
-		// x, y := t.Cursor().Pos.X, t.Cursor().Pos.Y
-		// fmt.Printf("%q: %d %d\n", seq, x, y)
 	}
 
 	return
@@ -141,5 +144,7 @@ func (t *Terminal) IconName() string {
 
 // String returns the terminal's content as a string.
 func (t *Terminal) String() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 	return cellbuf.Render(t.scr)
 }
