@@ -2,11 +2,19 @@ package vt
 
 import (
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/cellbuf"
+	"github.com/charmbracelet/x/wcwidth"
 )
 
 // handleUtf8 handles a UTF-8 characters.
-func (t *Terminal) handleUtf8(seq []byte, width int) {
+func (t *Terminal) handleUtf8(seq ansi.Sequence) {
+	var width int
+	switch seq := seq.(type) {
+	case ansi.Rune:
+		width = wcwidth.RuneWidth(rune(seq))
+	case ansi.Grapheme:
+		width = seq.Width
+	}
+
 	var autowrap bool
 	x, y := t.scr.CursorPosition()
 	if mode, ok := t.pmodes[ansi.AutowrapMode]; ok && mode.IsSet() {
@@ -24,14 +32,14 @@ func (t *Terminal) handleUtf8(seq []byte, width int) {
 		}
 	}
 
-	cell := cellbuf.Cell{
+	cell := &Cell{
 		Style:   t.scr.cur.Pen,
-		Link:    cellbuf.Link{}, // TODO: Link support
-		Content: string(seq),
+		Link:    Link{}, // TODO: Link support
+		Content: seq.String(),
 		Width:   width,
 	}
 
-	if t.scr.Draw(x, y, cell) && t.Damage != nil {
+	if t.scr.SetCell(x, y, cell) && t.Damage != nil {
 		t.Damage(CellDamage{X: x, Y: y})
 	}
 

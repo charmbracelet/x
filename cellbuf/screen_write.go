@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/vt"
 	"github.com/charmbracelet/x/wcwidth"
 )
 
@@ -124,7 +125,7 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 
 	params := p.Params[:p.ParamsLen]
 	for i := 0; i < len(params); i++ {
-		r := ansi.Param(params[i])
+		r := ansi.Parameter(params[i])
 		param, hasMore := r.Param(0), r.HasMore() // Are there more subparameters i.e. separated by ":"?
 		switch param {
 		case 0: // Reset
@@ -137,20 +138,20 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 			pen.Italic(true)
 		case 4: // Underline
 			if hasMore { // Only accept subparameters i.e. separated by ":"
-				nextParam := ansi.Param(params[i+1]).Param(0)
+				nextParam := ansi.Parameter(params[i+1]).Param(0)
 				switch nextParam {
 				case 0: // No Underline
-					pen.UnderlineStyle(NoUnderline)
+					pen.UnderlineStyle(vt.NoUnderline)
 				case 1: // Single Underline
-					pen.UnderlineStyle(SingleUnderline)
+					pen.UnderlineStyle(vt.SingleUnderline)
 				case 2: // Double Underline
-					pen.UnderlineStyle(DoubleUnderline)
+					pen.UnderlineStyle(vt.DoubleUnderline)
 				case 3: // Curly Underline
-					pen.UnderlineStyle(CurlyUnderline)
+					pen.UnderlineStyle(vt.CurlyUnderline)
 				case 4: // Dotted Underline
-					pen.UnderlineStyle(DottedUnderline)
+					pen.UnderlineStyle(vt.DottedUnderline)
 				case 5: // Dashed Underline
-					pen.UnderlineStyle(DashedUnderline)
+					pen.UnderlineStyle(vt.DashedUnderline)
 				}
 			} else {
 				// Single Underline

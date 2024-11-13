@@ -9,8 +9,8 @@ func (t *Terminal) handleMode() {
 		return
 	}
 
-	cmd := ansi.Cmd(t.parser.Cmd)
-	mode := ansi.Param(t.parser.Params[0]).Param(-1)
+	cmd := ansi.Command(t.parser.Cmd)
+	mode := ansi.Parameter(t.parser.Params[0]).Param(-1)
 	setting := ModeReset
 	if cmd.Command() == 'h' {
 		setting = ModeSet

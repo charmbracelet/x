@@ -6,7 +6,7 @@ import (
 )
 
 // handleCsi handles a CSI escape sequences.
-func (t *Terminal) handleCsi(seq []byte) {
+func (t *Terminal) handleCsi(seq ansi.Sequence) {
 	cmd := t.parser.Cmd
 	switch cmd { // cursor
 	case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'a', 'd', 'e', 'f', '`':
@@ -26,14 +26,14 @@ func (t *Terminal) handleCsi(seq []byte) {
 	case 'q' | ' '<<parser.IntermedShift: // DECSCUSR - Set Cursor Style
 		style := 1
 		if t.parser.ParamsLen > 0 {
-			style = ansi.Param(t.parser.Params[0]).Param(0)
+			style = ansi.Parameter(t.parser.Params[0]).Param(0)
 		}
 		t.scr.cur.Style = CursorStyle((style / 2) + 1)
 		t.scr.cur.Steady = style%2 != 1
 	case 'g': // TBC - Tab Clear
 		var param int
 		if t.parser.ParamsLen > 0 {
-			param = ansi.Param(t.parser.Params[0]).Param(0)
+			param = ansi.Parameter(t.parser.Params[0]).Param(0)
 		}
 
 		switch param {
@@ -45,7 +45,7 @@ func (t *Terminal) handleCsi(seq []byte) {
 	case '@': // ICH - Insert Character
 		n := 1
 		if t.parser.ParamsLen > 0 {
-			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
+			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
 				n = param
 			}
 		}
@@ -54,7 +54,7 @@ func (t *Terminal) handleCsi(seq []byte) {
 	case 'P': // DCH - Delete Character
 		n := 1
 		if t.parser.ParamsLen > 0 {
-			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
+			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
 				n = param
 			}
 		}

@@ -8,16 +8,6 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
-	"github.com/charmbracelet/x/cellbuf"
-	"github.com/charmbracelet/x/wcwidth"
-)
-
-type (
-	// Style represents a style.
-	Style = cellbuf.Style
-
-	// Link represents a hyperlink.
-	Link = cellbuf.Link
 )
 
 // Terminal represents a virtual terminal.
@@ -95,7 +85,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 }
 
 // At returns the cell at the given position.
-func (t *Terminal) At(x int, y int) (cellbuf.Cell, bool) {
+func (t *Terminal) At(x int, y int) (Cell, bool) {
 	return t.scr.Cell(x, y)
 }
 
@@ -148,17 +138,17 @@ func (t *Terminal) dispatcher(seq ansi.Sequence) {
 	case ansi.PmSequence:
 	case ansi.SosSequence:
 	case ansi.OscSequence:
-		t.handleOsc(seq.Bytes())
+		t.handleOsc(seq)
 	case ansi.CsiSequence:
-		t.handleCsi(seq.Bytes())
+		t.handleCsi(seq)
 	case ansi.EscSequence:
-		t.handleEsc(seq.Bytes())
+		t.handleEsc(seq)
 	case ansi.ControlCode:
 		t.handleControl(rune(seq))
 	case ansi.Rune:
-		t.handleUtf8([]byte{byte(seq)}, wcwidth.RuneWidth(rune(seq)))
+		t.handleUtf8(seq)
 	case ansi.Grapheme:
-		t.handleUtf8([]byte(seq.Cluster), seq.Width)
+		t.handleUtf8(seq)
 	}
 }
 
@@ -167,49 +157,14 @@ func (t *Terminal) Write(p []byte) (n int, err error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	// TODO: Use just a parser and a dispatcher. We gotta make [ansi.Parser]
-	// support graphemes first tho.
-	t.parser.Parse(t.dispatcher, p)
-	return len(p), nil
-	//
-	// t.tmp = append(t.tmp, p...)
-	// n += len(p)
-	//
-	// var state byte
-	// for len(t.tmp) > 0 {
-	// 	seq, width, m, newState, ok := ansi.DecodeSequence(t.tmp, state, t.parser)
-	// 	if !ok {
-	// 		// Incomplete sequence.
-	// 		return
-	// 	}
-	//
-	// 	switch {
-	// 	case ansi.HasSosPrefix(seq): /* Ignore */
-	// 	case ansi.HasApcPrefix(seq): /* Ignore */
-	// 	case ansi.HasPmPrefix(seq): /* Ignore */
-	// 	case ansi.HasCsiPrefix(seq):
-	// 		t.handleCsi(seq)
-	// 	case ansi.HasOscPrefix(seq):
-	// 		t.handleOsc(seq)
-	// 	case ansi.HasDcsPrefix(seq):
-	// 		t.handleDcs(seq)
-	// 	case ansi.HasEscPrefix(seq):
-	// 		t.handleEsc(seq)
-	// 	default:
-	// 		r, _ := utf8.DecodeRune(seq)
-	// 		if len(seq) == 1 && unicode.IsControl(r) {
-	// 			t.handleControl(r)
-	// 		} else {
-	// 			t.handleUtf8(seq, width)
-	// 		}
-	// 	}
-	//
-	// 	state = newState
-	// 	t.tmp = t.tmp[m:]
-	// 	// n += m
-	// }
-	//
-	// return
+	var i int
+	for i < len(p) {
+		t.parser.Advance(t.dispatcher, p[i], i < len(p)-1)
+		// TODO: Support grapheme clusters (mode 2027).
+		i++
+	}
+
+	return i, nil
 }
 
 // Cursor returns the cursor.
@@ -225,11 +180,6 @@ func (t *Terminal) Title() string {
 // IconName returns the terminal's icon name.
 func (t *Terminal) IconName() string {
 	return t.iconName
-}
-
-// String returns the terminal's content as a string.
-func (t *Terminal) String() string {
-	return cellbuf.Render(t.scr)
 }
 
 // InputPipe returns the terminal's input pipe.

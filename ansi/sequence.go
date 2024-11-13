@@ -113,12 +113,12 @@ func (e EscSequence) Clone() Sequence {
 
 // Command returns the command byte of the escape sequence.
 func (e EscSequence) Command() int {
-	return parser.Command(int(e))
+	return Command(e).Command()
 }
 
 // Intermediate returns the intermediate byte of the escape sequence.
 func (e EscSequence) Intermediate() int {
-	return parser.Intermediate(int(e))
+	return Command(e).Intermediate()
 }
 
 // SosSequence represents a SOS sequence.

@@ -25,7 +25,7 @@ func main() {
 			fmt.Printf("OSC sequence: %q, cmd: %d, data: %q", seq, p.Cmd, p.Data[:p.DataLen])
 			fmt.Println()
 		case ansi.HasDcsPrefix(seq):
-			c := ansi.Cmd(p.Cmd)
+			c := ansi.Command(p.Cmd)
 			intermed, marker, cmd := c.Intermediate(), c.Marker(), c.Command()
 			fmt.Printf("DCS sequence: %q,", seq)
 			if intermed != 0 {
@@ -40,7 +40,7 @@ func main() {
 			fmt.Print(" params: [")
 			var more bool
 			for i := 0; i < p.ParamsLen; i++ {
-				r := ansi.Param(p.Params[i])
+				r := ansi.Parameter(p.Params[i])
 				param, hasMore := r.Param(-1), r.HasMore()
 				if more != hasMore {
 					fmt.Print("[")
@@ -71,7 +71,7 @@ func main() {
 			fmt.Printf("APC sequence: %q, data: %q", seq, p.Data[:p.DataLen])
 			fmt.Println()
 		case ansi.HasCsiPrefix(seq):
-			c := ansi.Cmd(p.Cmd)
+			c := ansi.Command(p.Cmd)
 			intermed, marker, cmd := c.Intermediate(), c.Marker(), c.Command()
 			fmt.Printf("CSI sequence: %q,", seq)
 			if intermed != 0 {
@@ -86,7 +86,7 @@ func main() {
 			fmt.Print(" params: [")
 			var more bool
 			for i := 0; i < p.ParamsLen; i++ {
-				r := ansi.Param(p.Params[i])
+				r := ansi.Parameter(p.Params[i])
 				param, hasMore := r.Param(-1), r.HasMore()
 				if hasMore && more != hasMore {
 					fmt.Print("[")
@@ -109,7 +109,7 @@ func main() {
 
 		case ansi.HasEscPrefix(seq):
 			if !bytes.Equal(seq, []byte{ansi.ESC}) {
-				c := ansi.Cmd(p.Cmd)
+				c := ansi.Command(p.Cmd)
 				intermed, cmd := c.Intermediate(), c.Command()
 				fmt.Printf("ESC sequence: %q", seq)
 				if intermed != 0 {

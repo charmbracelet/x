@@ -12,9 +12,10 @@ const (
 
 // Cursor represents a cursor in a terminal.
 type Cursor struct {
+	Pen Style
+
 	Position
 
-	Pen    Style
 	Style  CursorStyle
 	Steady bool // Not blinking
 	Hidden bool

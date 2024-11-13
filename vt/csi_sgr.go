@@ -4,7 +4,6 @@ import (
 	"image/color"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/cellbuf"
 )
 
 // handleSgr handles SGR escape sequences.
@@ -18,7 +17,7 @@ func (t *Terminal) handleSgr() {
 
 	params := p.Params[:p.ParamsLen]
 	for i := 0; i < len(params); i++ {
-		r := ansi.Param(params[i])
+		r := ansi.Parameter(params[i])
 		param, hasMore := r.Param(0), r.HasMore() // Are there more subparameters i.e. separated by ":"?
 		switch param {
 		case 0: // Reset
@@ -31,20 +30,20 @@ func (t *Terminal) handleSgr() {
 			pen.Italic(true)
 		case 4: // Underline
 			if hasMore { // Only accept subparameters i.e. separated by ":"
-				nextParam := ansi.Param(params[i+1]).Param(0)
+				nextParam := ansi.Parameter(params[i+1]).Param(0)
 				switch nextParam {
 				case 0: // No Underline
-					pen.UnderlineStyle(cellbuf.NoUnderline)
+					pen.UnderlineStyle(NoUnderline)
 				case 1: // Single Underline
-					pen.UnderlineStyle(cellbuf.SingleUnderline)
+					pen.UnderlineStyle(SingleUnderline)
 				case 2: // Double Underline
-					pen.UnderlineStyle(cellbuf.DoubleUnderline)
+					pen.UnderlineStyle(DoubleUnderline)
 				case 3: // Curly Underline
-					pen.UnderlineStyle(cellbuf.CurlyUnderline)
+					pen.UnderlineStyle(CurlyUnderline)
 				case 4: // Dotted Underline
-					pen.UnderlineStyle(cellbuf.DottedUnderline)
+					pen.UnderlineStyle(DottedUnderline)
 				case 5: // Dashed Underline
-					pen.UnderlineStyle(cellbuf.DashedUnderline)
+					pen.UnderlineStyle(DashedUnderline)
 				}
 			} else {
 				// Single Underline
@@ -115,15 +114,15 @@ func (t *Terminal) readColor(idxp *int, params []int) (c ansi.Color) {
 		return
 	}
 	// Note: we accept both main and subparams here
-	switch param := ansi.Param(params[i+1]).Param(0); param {
+	switch param := ansi.Parameter(params[i+1]).Param(0); param {
 	case 2: // RGB
 		if i > paramsLen-4 {
 			return
 		}
 		c = color.RGBA{
-			R: uint8(ansi.Param(params[i+2]).Param(0)), //nolint:gosec
-			G: uint8(ansi.Param(params[i+3]).Param(0)), //nolint:gosec
-			B: uint8(ansi.Param(params[i+4]).Param(0)), //nolint:gosec
+			R: uint8(ansi.Parameter(params[i+2]).Param(0)), //nolint:gosec
+			G: uint8(ansi.Parameter(params[i+3]).Param(0)), //nolint:gosec
+			B: uint8(ansi.Parameter(params[i+4]).Param(0)), //nolint:gosec
 			A: 0xff,
 		}
 		*idxp += 4
@@ -131,7 +130,7 @@ func (t *Terminal) readColor(idxp *int, params []int) (c ansi.Color) {
 		if i > paramsLen-2 {
 			return
 		}
-		c = t.IndexedColor(ansi.Param(params[i+2]).Param(0))
+		c = t.IndexedColor(ansi.Parameter(params[i+2]).Param(0))
 		*idxp += 2
 	}
 	return

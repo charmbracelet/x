@@ -6,7 +6,7 @@ import (
 )
 
 // handleEsc handles an escape sequence.
-func (t *Terminal) handleEsc(seq []byte) {
+func (t *Terminal) handleEsc(seq ansi.Sequence) {
 	cmd := t.parser.Cmd
 	switch cmd {
 	case 'H': // Horizontal Tab Set [ansi.HTS]

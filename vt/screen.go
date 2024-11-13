@@ -2,8 +2,6 @@ package vt
 
 import (
 	"sync"
-
-	"github.com/charmbracelet/x/cellbuf"
 )
 
 // Screen represents a virtual terminal screen.
@@ -16,8 +14,6 @@ type Screen struct {
 	// scroll is the scroll region.
 	scroll Rectangle
 }
-
-var _ cellbuf.Screen = &Screen{}
 
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
@@ -33,16 +29,11 @@ func (s *Screen) Bounds() Rectangle {
 	return s.buf.Bounds()
 }
 
-// Cell implements cellbuf.Screen.
+// Cell returns the cell at the given x, y position.
 func (s *Screen) Cell(x int, y int) (Cell, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.buf.Cell(x, y)
-}
-
-// Draw implements cellbuf.Screen.
-func (s *Screen) Draw(x int, y int, c Cell) bool {
-	return s.SetCell(x, y, &c)
 }
 
 // SetCell sets the cell at the given x, y position.
@@ -53,14 +44,14 @@ func (s *Screen) SetCell(x, y int, c *Cell) bool {
 	return s.buf.SetCell(x, y, c)
 }
 
-// Height implements cellbuf.Grid.
+// Height returns the height of the screen.
 func (s *Screen) Height() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.buf.Height()
 }
 
-// Resize implements cellbuf.Grid.
+// Resize resizes the screen.
 func (s *Screen) Resize(width int, height int) {
 	s.mu.Lock()
 	s.buf.Resize(width, height)
@@ -68,7 +59,7 @@ func (s *Screen) Resize(width int, height int) {
 	s.mu.Unlock()
 }
 
-// Width implements cellbuf.Grid.
+// Width returns the width of the screen.
 func (s *Screen) Width() int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

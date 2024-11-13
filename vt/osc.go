@@ -7,11 +7,12 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/charmbracelet/x/ansi"
 	"github.com/lucasb-eyer/go-colorful"
 )
 
 // handleOsc handles an OSC escape sequence.
-func (t *Terminal) handleOsc(seq []byte) {
+func (t *Terminal) handleOsc(seq ansi.Sequence) {
 	cmd := t.parser.Cmd
 	switch cmd {
 	case 0, 1, 3, 10, 11, 12:

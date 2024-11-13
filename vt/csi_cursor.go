@@ -7,10 +7,10 @@ import (
 func (t *Terminal) handleCursor() {
 	p := t.parser
 	width, height := t.Width(), t.Height()
-	cmd := ansi.Cmd(p.Cmd)
+	cmd := ansi.Command(p.Cmd)
 	n := 1
 	if p.ParamsLen > 0 {
-		if param := ansi.Param(p.Params[0]).Param(1); param > 0 {
+		if param := ansi.Parameter(p.Params[0]).Param(1); param > 0 {
 			n = param
 		}
 	}
@@ -43,7 +43,7 @@ func (t *Terminal) handleCursor() {
 	case 'H':
 		// Cursor Position [ansi.CUP]
 		if p.ParamsLen >= 2 {
-			row, col := ansi.Param(p.Params[0]).Param(1), ansi.Param(p.Params[1]).Param(1)
+			row, col := ansi.Parameter(p.Params[0]).Param(1), ansi.Parameter(p.Params[1]).Param(1)
 			y = min(height-1, row-1)
 			x = min(width-1, col-1)
 		} else {
@@ -73,7 +73,7 @@ func (t *Terminal) handleCursor() {
 	case 'f':
 		// Horizontal and Vertical Position [ansi.HVP]
 		if p.ParamsLen >= 2 {
-			row, col := ansi.Param(p.Params[0]).Param(1), ansi.Param(p.Params[1]).Param(1)
+			row, col := ansi.Parameter(p.Params[0]).Param(1), ansi.Parameter(p.Params[1]).Param(1)
 			y = min(height-1, row-1)
 			x = min(width-1, col-1)
 		} else {

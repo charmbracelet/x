@@ -103,8 +103,8 @@ func renderLine(d Screen, n int, opt RenderOptions) (w int, line string) {
 	for x := 0; x < d.Width(); x++ {
 		if cell, ok := d.Cell(x, n); ok && cell.Width > 0 {
 			// Convert the cell's style and link to the given color profile.
-			cellStyle := cell.Style.Convert(opt.Profile)
-			cellLink := cell.Link.Convert(opt.Profile)
+			cellStyle := ConvertStyle(cell.Style, opt.Profile)
+			cellLink := ConvertLink(cell.Link, opt.Profile)
 			if cellStyle.Empty() && !pen.Empty() {
 				writePending()
 				buf.WriteString(ansi.ResetStyle) //nolint:errcheck

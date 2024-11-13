@@ -2,30 +2,29 @@ package vt
 
 import (
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/cellbuf"
 )
 
 func (t *Terminal) handleScreen() {
 	var count int
 	if t.parser.ParamsLen > 0 {
-		count = ansi.Param(t.parser.Params[0]).Param(0)
+		count = ansi.Parameter(t.parser.Params[0]).Param(0)
 	}
 
 	w, h := t.Width(), t.Height()
 	_, y := t.scr.CursorPosition()
 
-	cmd := ansi.Cmd(t.parser.Cmd)
+	cmd := ansi.Command(t.parser.Cmd)
 	switch cmd.Command() {
 	case 'J':
 		switch count {
 		case 0: // Erase screen below (including cursor)
-			rect := cellbuf.Rect(0, y, w, h-y)
+			rect := Rect(0, y, w, h-y)
 			t.scr.Fill(t.scr.blankCell(), rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
 		case 1: // Erase screen above (including cursor)
-			rect := cellbuf.Rect(0, 0, w, y+1)
+			rect := Rect(0, 0, w, y+1)
 			t.scr.Fill(t.scr.blankCell(), rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
@@ -42,7 +41,7 @@ func (t *Terminal) handleScreen() {
 	case 'L': // IL - Insert Line
 		n := 1
 		if t.parser.ParamsLen > 0 {
-			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
+			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
 				n = param
 			}
 		}
@@ -54,7 +53,7 @@ func (t *Terminal) handleScreen() {
 	case 'M': // DL - Delete Line
 		n := 1
 		if t.parser.ParamsLen > 0 {
-			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
+			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
 				n = param
 			}
 		}
@@ -68,7 +67,7 @@ func (t *Terminal) handleScreen() {
 		// It clears character attributes as well but not colors.
 		n := 1
 		if t.parser.ParamsLen > 0 {
-			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
+			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
 				n = param
 			}
 		}
@@ -76,8 +75,8 @@ func (t *Terminal) handleScreen() {
 
 	case 'r': // DECSTBM - Set Top and Bottom Margins
 		if t.parser.ParamsLen == 2 {
-			top := ansi.Param(t.parser.Params[0]).Param(1)
-			bottom := ansi.Param(t.parser.Params[1]).Param(t.Height())
+			top := ansi.Parameter(t.parser.Params[0]).Param(1)
+			bottom := ansi.Parameter(t.parser.Params[1]).Param(t.Height())
 			if top > bottom {
 				top, bottom = bottom, top
 			}
@@ -102,10 +101,10 @@ func (t *Terminal) handleScreen() {
 func (t *Terminal) handleLine() {
 	var count int
 	if t.parser.ParamsLen > 0 {
-		count = ansi.Param(t.parser.Params[0]).Param(0)
+		count = ansi.Parameter(t.parser.Params[0]).Param(0)
 	}
 
-	cmd := ansi.Cmd(t.parser.Cmd)
+	cmd := ansi.Command(t.parser.Cmd)
 	switch cmd.Command() {
 	case 'K': // EL - Erase in Line
 		// NOTE: Erase Line (EL) erases all character attributes but not cell
@@ -120,13 +119,13 @@ func (t *Terminal) handleLine() {
 				t.Damage(RectDamage(Rect(x, y, w-x, 1)))
 			}
 		case 1: // Erase from start of line to cursor
-			rect := cellbuf.Rect(0, y, x+1, 1)
+			rect := Rect(0, y, x+1, 1)
 			t.scr.Fill(t.scr.blankCell(), rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
 		case 2: // Erase entire line
-			rect := cellbuf.Rect(0, y, w, 1)
+			rect := Rect(0, y, w, 1)
 			t.scr.Fill(t.scr.blankCell(), rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
@@ -135,7 +134,7 @@ func (t *Terminal) handleLine() {
 	case 'S': // SU - Scroll Up
 		n := 1
 		if t.parser.ParamsLen > 0 {
-			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
+			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
 				n = param
 			}
 		}
@@ -144,7 +143,7 @@ func (t *Terminal) handleLine() {
 	case 'T': // SD - Scroll Down
 		n := 1
 		if t.parser.ParamsLen > 0 {
-			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
+			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
 				n = param
 			}
 		}

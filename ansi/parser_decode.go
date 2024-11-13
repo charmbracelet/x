@@ -37,23 +37,23 @@ const (
 // collect sequence parameters, data, and commands. The parser cmd will have
 // the packed command value that contains intermediate and marker characters.
 // In the case of a OSC sequence, the cmd will be the OSC command number. Use
-// [Cmd] and [Param] types to unpack command intermediates and markers as well
+// [Command] and [Parameter] types to unpack command intermediates and markers as well
 // as parameters.
 //
-// Zero [Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
+// Zero [Command] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
 // validity of other data sequences, OSC, DCS, etc, will require checking for
 // the returned sequence terminator bytes such as ST (ESC \\) and BEL).
 //
-// We store the command byte in [Cmd] in the most significant byte, the
+// We store the command byte in [Command] in the most significant byte, the
 // marker byte in the next byte, and the intermediate byte in the least
 // significant byte. This is done to avoid using a struct to store the command
 // and its intermediates and markers. The command byte is always the least
-// significant byte i.e. [Cmd & 0xff]. Use the [Cmd] type to unpack the
+// significant byte i.e. [Cmd & 0xff]. Use the [Command] type to unpack the
 // command, intermediate, and marker bytes. Note that we only collect the last
 // marker character and intermediate byte.
 //
 // The [p.Params] slice will contain the parameters of the sequence. Any
-// sub-parameter will have the [parser.HasMoreFlag] set. Use the [Param] type
+// sub-parameter will have the [parser.HasMoreFlag] set. Use the [Parameter] type
 // to unpack the parameters.
 //
 // Example:
@@ -401,16 +401,16 @@ func FirstGraphemeCluster[T string | []byte](b T, state int) (T, T, int, int) {
 	panic("unreachable")
 }
 
-// Cmd represents a sequence command. This is used to pack/unpack a sequence
+// Command represents a sequence command. This is used to pack/unpack a sequence
 // command with its intermediate and marker characters. Those are commonly
 // found in CSI and DCS sequences.
-type Cmd int
+type Command int
 
 // Marker returns the marker byte of the CSI sequence.
 // This is always gonna be one of the following '<' '=' '>' '?' and in the
 // range of 0x3C-0x3F.
 // Zero is returned if the sequence does not have a marker.
-func (c Cmd) Marker() int {
+func (c Command) Marker() int {
 	return parser.Marker(int(c))
 }
 
@@ -419,23 +419,23 @@ func (c Cmd) Marker() int {
 // characters from ' ', '!', '"', '#', '$', '%', '&', ”', '(', ')', '*', '+',
 // ',', '-', '.', '/'.
 // Zero is returned if the sequence does not have an intermediate byte.
-func (c Cmd) Intermediate() int {
+func (c Command) Intermediate() int {
 	return parser.Intermediate(int(c))
 }
 
 // Command returns the command byte of the CSI sequence.
-func (c Cmd) Command() int {
+func (c Command) Command() int {
 	return parser.Command(int(c))
 }
 
-// Param represents a sequence parameter. Sequence parameters with
+// Parameter represents a sequence parameter. Sequence parameters with
 // sub-parameters are packed with the HasMoreFlag set. This is used to unpack
 // the parameters from a CSI and DCS sequences.
-type Param int
+type Parameter int
 
 // Param returns the parameter at the given index.
 // It returns the default value if the parameter is missing.
-func (s Param) Param(def int) int {
+func (s Parameter) Param(def int) int {
 	p := int(s) & parser.ParamMask
 	if p == parser.MissingParam {
 		return def
@@ -444,6 +444,6 @@ func (s Param) Param(def int) int {
 }
 
 // HasMore returns true if the parameter has more sub-parameters.
-func (s Param) HasMore() bool {
+func (s Parameter) HasMore() bool {
 	return int(s)&parser.HasMoreFlag != 0
 }

@@ -1,29 +1,9 @@
 package vt
 
 import (
-	"github.com/charmbracelet/x/cellbuf"
 	"github.com/charmbracelet/x/wcwidth"
 	"github.com/rivo/uniseg"
 )
-
-// Position represents a position in the terminal.
-type Position = cellbuf.Position
-
-// Pos returns a new position.
-func Pos(x int, y int) Position {
-	return cellbuf.Pos(x, y)
-}
-
-// Rectangle represents a rectangle in the terminal.
-type Rectangle = cellbuf.Rectangle
-
-// Rect returns a new rectangle.
-func Rect(x, y, w, h int) Rectangle {
-	return cellbuf.Rect(x, y, w, h)
-}
-
-// Cell represents a cell in the terminal.
-type Cell = cellbuf.Cell
 
 // NewCell returns a new cell. This is a convenience function that initializes a
 // new cell with the given content. The cell's width is determined by the
@@ -44,7 +24,7 @@ func NewGraphemeCell(s string) *Cell {
 	return &Cell{Content: c, Width: w}
 }
 
-var blankCell = cellbuf.Cell{
+var blankCell = Cell{
 	Content: " ",
 	Width:   1,
 }
@@ -73,8 +53,6 @@ func NewBuffer(width int, height int) *Buffer {
 	b.Resize(width, height)
 	return b
 }
-
-var _ cellbuf.Screen = &Buffer{}
 
 // Cell implements Screen.
 func (b *Buffer) Cell(x int, y int) (Cell, bool) {
@@ -209,7 +187,7 @@ func (b *Buffer) Resize(width int, height int) {
 }
 
 // fill fills the buffer with the given cell and rectangle.
-func (b *Buffer) fill(c *Cell, rect cellbuf.Rectangle) {
+func (b *Buffer) fill(c *Cell, rect Rectangle) {
 	cellWidth := 1
 	if c != nil {
 		cellWidth = c.Width
@@ -222,7 +200,7 @@ func (b *Buffer) fill(c *Cell, rect cellbuf.Rectangle) {
 }
 
 // Fill fills the buffer with the given cell and rectangle.
-func (b *Buffer) Fill(c *Cell, rects ...cellbuf.Rectangle) {
+func (b *Buffer) Fill(c *Cell, rects ...Rectangle) {
 	if len(rects) == 0 {
 		b.fill(c, b.Bounds())
 		return
