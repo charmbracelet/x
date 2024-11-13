@@ -274,7 +274,7 @@ func (b *Buffer) insertLineInRect(y, n int, c *Cell, rect Rectangle) {
 	// Move existing lines down within the bounds
 	for i := rect.Max.Y - 1; i >= y+n; i-- {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
-			b.lines[i] = b.lines[i-n]
+			b.lines[i][x] = b.lines[i-n][x]
 		}
 	}
 
@@ -365,10 +365,6 @@ func (b *Buffer) insertCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 		c = &newCell
 	}
 
-	// Create a new line copying cells from outside the rectangle bounds
-	newLine := make(Line, b.Width())
-	copy(newLine, b.lines[y])
-
 	// Limit number of cells to insert to available space
 	if x+n > rect.Max.X {
 		n = rect.Max.X - x
@@ -376,15 +372,13 @@ func (b *Buffer) insertCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 
 	// Move existing cells within rectangle bounds to the right
 	for i := rect.Max.X - 1; i >= x+n && i-n >= rect.Min.X; i-- {
-		newLine[i] = b.lines[y][i-n]
+		b.lines[y][i] = b.lines[y][i-n]
 	}
 
 	// Clear the newly inserted cells within rectangle bounds
 	for i := x; i < x+n && i < rect.Max.X; i++ {
-		newLine[i] = c
+		b.lines[y][i] = c
 	}
-
-	b.lines[y] = newLine
 }
 
 // DeleteCell deletes cells at the given position, with the given optional
@@ -416,10 +410,6 @@ func (b *Buffer) deleteCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 		c = &newCell
 	}
 
-	// Create a new line preserving cells outside rectangle
-	newLine := make(Line, b.Width())
-	copy(newLine, b.lines[y])
-
 	// Calculate how many positions we can actually delete
 	remainingCells := rect.Max.X - x
 	if n > remainingCells {
@@ -429,14 +419,12 @@ func (b *Buffer) deleteCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 	// Shift the remaining cells to the left
 	for i := x; i < rect.Max.X-n; i++ {
 		if i+n < rect.Max.X {
-			newLine[i] = b.lines[y][i+n]
+			b.lines[y][i] = b.lines[y][i+n]
 		}
 	}
 
 	// Fill the vacated positions with the given cell
 	for i := rect.Max.X - n; i < rect.Max.X; i++ {
-		newLine[i] = c
+		b.lines[y][i] = c
 	}
-
-	b.lines[y] = newLine
 }
