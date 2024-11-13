@@ -28,8 +28,8 @@ type Cell = cellbuf.Cell
 // NewCell returns a new cell. This is a convenience function that initializes a
 // new cell with the given content. The cell's width is determined by the
 // content using [wcwidth.RuneWidth].
-func NewCell(r rune) Cell {
-	return Cell{Content: string(r), Width: wcwidth.RuneWidth(r)}
+func NewCell(r rune) *Cell {
+	return &Cell{Content: string(r), Width: wcwidth.RuneWidth(r)}
 }
 
 // NewGraphemeCell returns a new cell. This is a convenience function that
@@ -39,9 +39,9 @@ func NewCell(r rune) Cell {
 // that form a single visual unit.
 // This will only return the first grapheme cluster in the string. If the
 // string is empty, it will return an empty cell with a width of 0.
-func NewGraphemeCell(s string) Cell {
+func NewGraphemeCell(s string) *Cell {
 	c, _, w, _ := uniseg.FirstGraphemeClusterInString(s, -1)
-	return Cell{Content: c, Width: w}
+	return &Cell{Content: c, Width: w}
 }
 
 var blankCell = cellbuf.Cell{
@@ -95,15 +95,15 @@ func (b *Buffer) Cell(x int, y int) (Cell, bool) {
 
 // Draw implements Screen.
 func (b *Buffer) Draw(x int, y int, c Cell) bool {
-	return b.SetCell(x, y, c)
+	return b.SetCell(x, y, &c)
 }
 
 // maxCellWidth is the maximum width a terminal cell can get.
 const maxCellWidth = 4
 
 // SetCell sets the cell at the given x, y position.
-func (b *Buffer) SetCell(x, y int, c Cell) bool {
-	return b.setCell(x, y, &c)
+func (b *Buffer) SetCell(x, y int, c *Cell) bool {
+	return b.setCell(x, y, c)
 }
 
 // setCell sets the cell at the given x, y position.
@@ -143,6 +143,11 @@ func (b *Buffer) setCell(x, y int, c *Cell) bool {
 		}
 	}
 
+	if c != nil {
+		// Clone the cell if not nil.
+		newCell := *c
+		c = &newCell
+	}
 	b.lines[y][x] = c
 
 	// Mark wide cells with an empty cell zero width
@@ -216,13 +221,13 @@ func (b *Buffer) fill(c *Cell, rect cellbuf.Rectangle) {
 }
 
 // Fill fills the buffer with the given cell and rectangle.
-func (b *Buffer) Fill(c Cell, rects ...cellbuf.Rectangle) {
+func (b *Buffer) Fill(c *Cell, rects ...cellbuf.Rectangle) {
 	if len(rects) == 0 {
-		b.fill(&c, b.Bounds())
+		b.fill(c, b.Bounds())
 		return
 	}
 	for _, rect := range rects {
-		b.fill(&c, rect)
+		b.fill(c, rect)
 	}
 }
 
@@ -260,12 +265,6 @@ func (b *Buffer) insertLineInRect(y, n int, c *Cell, rect Rectangle) {
 		return
 	}
 
-	// Clone the cell if not nil.
-	if c != nil {
-		newCell := *c
-		c = &newCell
-	}
-
 	// Limit number of lines to insert to available space
 	if y+n > rect.Max.Y {
 		n = rect.Max.Y - y
@@ -274,14 +273,14 @@ func (b *Buffer) insertLineInRect(y, n int, c *Cell, rect Rectangle) {
 	// Move existing lines down within the bounds
 	for i := rect.Max.Y - 1; i >= y+n; i-- {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
-			b.lines[i][x] = b.lines[i-n][x]
+			b.setCell(x, i, b.lines[i-n][x])
 		}
 	}
 
 	// Clear the newly inserted lines within bounds
 	for i := y; i < y+n; i++ {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
-			b.lines[i][x] = c
+			b.setCell(x, i, c)
 		}
 	}
 }
@@ -296,12 +295,6 @@ func (b *Buffer) deleteLineInRect(y, n int, c *Cell, rect Rectangle) {
 		return
 	}
 
-	// Clone the cell if not nil.
-	if c != nil {
-		newCell := *c
-		c = &newCell
-	}
-
 	// Limit deletion count to available space in scroll region
 	if n > rect.Max.Y-y {
 		n = rect.Max.Y - y
@@ -311,14 +304,14 @@ func (b *Buffer) deleteLineInRect(y, n int, c *Cell, rect Rectangle) {
 	for dst := y; dst < rect.Max.Y-n; dst++ {
 		src := dst + n
 		for x := rect.Min.X; x < rect.Max.X; x++ {
-			b.lines[dst][x] = b.lines[src][x]
+			b.setCell(x, dst, b.lines[src][x])
 		}
 	}
 
 	// Fill the bottom n lines with blank cells
 	for i := rect.Max.Y - n; i < rect.Max.Y; i++ {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
-			b.lines[i][x] = c
+			b.setCell(x, i, c)
 		}
 	}
 }
@@ -359,12 +352,6 @@ func (b *Buffer) insertCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 		return
 	}
 
-	// Clone the cell if not nil.
-	if c != nil {
-		newCell := *c
-		c = &newCell
-	}
-
 	// Limit number of cells to insert to available space
 	if x+n > rect.Max.X {
 		n = rect.Max.X - x
@@ -372,12 +359,12 @@ func (b *Buffer) insertCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 
 	// Move existing cells within rectangle bounds to the right
 	for i := rect.Max.X - 1; i >= x+n && i-n >= rect.Min.X; i-- {
-		b.lines[y][i] = b.lines[y][i-n]
+		b.setCell(i, y, b.lines[y][i-n])
 	}
 
 	// Clear the newly inserted cells within rectangle bounds
 	for i := x; i < x+n && i < rect.Max.X; i++ {
-		b.lines[y][i] = c
+		b.setCell(i, y, c)
 	}
 }
 
@@ -404,12 +391,6 @@ func (b *Buffer) deleteCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 		return
 	}
 
-	// Clone the cell if not nil.
-	if c != nil {
-		newCell := *c
-		c = &newCell
-	}
-
 	// Calculate how many positions we can actually delete
 	remainingCells := rect.Max.X - x
 	if n > remainingCells {
@@ -419,12 +400,12 @@ func (b *Buffer) deleteCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 	// Shift the remaining cells to the left
 	for i := x; i < rect.Max.X-n; i++ {
 		if i+n < rect.Max.X {
-			b.lines[y][i] = b.lines[y][i+n]
+			b.setCell(i, y, b.lines[y][i+n])
 		}
 	}
 
 	// Fill the vacated positions with the given cell
 	for i := rect.Max.X - n; i < rect.Max.X; i++ {
-		b.lines[y][i] = c
+		b.setCell(i, y, c)
 	}
 }

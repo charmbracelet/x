@@ -42,12 +42,12 @@ func (s *Screen) Cell(x int, y int) (Cell, bool) {
 
 // Draw implements cellbuf.Screen.
 func (s *Screen) Draw(x int, y int, c Cell) bool {
-	return s.SetCell(x, y, c)
+	return s.SetCell(x, y, &c)
 }
 
 // SetCell sets the cell at the given x, y position.
 // It returns true if the cell was set successfully.
-func (s *Screen) SetCell(x, y int, c Cell) bool {
+func (s *Screen) SetCell(x, y int, c *Cell) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.buf.SetCell(x, y, c)
@@ -83,7 +83,7 @@ func (s *Screen) Clear(rects ...Rectangle) {
 }
 
 // Fill fills the screen or part of it.
-func (s *Screen) Fill(c Cell, rects ...Rectangle) {
+func (s *Screen) Fill(c *Cell, rects ...Rectangle) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.buf.Fill(c, rects...)

@@ -20,13 +20,13 @@ func (t *Terminal) handleScreen() {
 		switch count {
 		case 0: // Erase screen below (including cursor)
 			rect := cellbuf.Rect(0, y, w, h-y)
-			t.scr.Clear(rect)
+			t.scr.Fill(t.scr.blankCell(), rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
 		case 1: // Erase screen above (including cursor)
 			rect := cellbuf.Rect(0, 0, w, y+1)
-			t.scr.Clear(rect)
+			t.scr.Fill(t.scr.blankCell(), rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
@@ -72,13 +72,7 @@ func (t *Terminal) handleScreen() {
 				n = param
 			}
 		}
-		x, y := t.scr.CursorPosition()
-		c := blankCell
-		c.Style = t.scr.cur.Pen
-		c.Style.Attrs = 0
-		rect := Rect(x, y, n, 1)
-		t.scr.Fill(c, rect)
-		// ECH does not move the cursor.
+		t.eraseCharacter(n)
 
 	case 'r': // DECSTBM - Set Top and Bottom Margins
 		if t.parser.ParamsLen == 2 {
@@ -118,26 +112,22 @@ func (t *Terminal) handleLine() {
 		// bg color.
 		x, y := t.scr.CursorPosition()
 		w := t.scr.Width()
-		c := blankCell
-		c.Style = t.scr.cur.Pen
-		c.Style.Attrs = 0
 
 		switch count {
 		case 0: // Erase from cursor to end of line
-			rect := cellbuf.Rect(x, y, w-x, 1)
-			t.scr.Fill(c, rect)
+			t.eraseCharacter(w - x)
 			if t.Damage != nil {
-				t.Damage(RectDamage(rect))
+				t.Damage(RectDamage(Rect(x, y, w-x, 1)))
 			}
 		case 1: // Erase from start of line to cursor
 			rect := cellbuf.Rect(0, y, x+1, 1)
-			t.scr.Fill(c, rect)
+			t.scr.Fill(t.scr.blankCell(), rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
 		case 2: // Erase entire line
 			rect := cellbuf.Rect(0, y, w, 1)
-			t.scr.Fill(c, rect)
+			t.scr.Fill(t.scr.blankCell(), rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
@@ -161,4 +151,13 @@ func (t *Terminal) handleLine() {
 
 		t.scr.ScrollDown(n)
 	}
+}
+
+// eraseCharacter erases n characters starting from the cursor position. It
+// does not move the cursor. This is equivalent to [ansi.ECH].
+func (t *Terminal) eraseCharacter(n int) {
+	x, y := t.scr.CursorPosition()
+	rect := Rect(x, y, n, 1)
+	t.scr.Fill(t.scr.blankCell(), rect)
+	// ECH does not move the cursor.
 }
