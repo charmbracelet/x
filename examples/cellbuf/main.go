@@ -82,7 +82,8 @@ func main() {
 
 func reset(buf *cellbuf.Buffer, x, y int) {
 	buf.Fill(cellbuf.Cell{Content: "你", Width: 2}, nil)
-	buf.Paint(0, "\x1b[7m !Hello, world! \x1b[m", &cellbuf.Rectangle{X: x, Y: y, Width: 16, Height: 1})
+	rect := cellbuf.Rect(x, y, 16, 1)
+	buf.Paint(0, "\x1b[7m !Hello, world! \x1b[m", &rect)
 	os.Stdout.WriteString(ansi.SetCursorPosition(1, 1) + buf.Render())
 }
 

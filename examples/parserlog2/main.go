@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/ansi/parser"
 )
 
 func main() {
@@ -88,11 +87,11 @@ func main() {
 			var more bool
 			for i := 0; i < p.ParamsLen; i++ {
 				r := ansi.Param(p.Params[i])
-				param, hasMore := r.Param(), r.HasMore()
+				param, hasMore := r.Param(-1), r.HasMore()
 				if hasMore && more != hasMore {
 					fmt.Print("[")
 				}
-				if param == parser.MissingParam {
+				if param == -1 {
 					fmt.Print("MISSING")
 				} else {
 					fmt.Printf("%d", param)
