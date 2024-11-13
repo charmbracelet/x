@@ -5,8 +5,6 @@ import (
 	"image/color"
 	"io"
 	"sync"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
@@ -26,7 +24,6 @@ type (
 type Terminal struct {
 	mu sync.Mutex
 
-	tmp []byte
 	// The input buffer of the terminal.
 	buf    bytes.Buffer
 	closed bool
@@ -174,45 +171,45 @@ func (t *Terminal) Write(p []byte) (n int, err error) {
 	// support graphemes first tho.
 	t.parser.Parse(t.dispatcher, p)
 	return len(p), nil
-
-	t.tmp = append(t.tmp, p...)
-	n += len(p)
-
-	var state byte
-	for len(t.tmp) > 0 {
-		seq, width, m, newState, ok := ansi.DecodeSequence(t.tmp, state, t.parser)
-		if !ok {
-			// Incomplete sequence.
-			return
-		}
-
-		switch {
-		case ansi.HasSosPrefix(seq): /* Ignore */
-		case ansi.HasApcPrefix(seq): /* Ignore */
-		case ansi.HasPmPrefix(seq): /* Ignore */
-		case ansi.HasCsiPrefix(seq):
-			t.handleCsi(seq)
-		case ansi.HasOscPrefix(seq):
-			t.handleOsc(seq)
-		case ansi.HasDcsPrefix(seq):
-			t.handleDcs(seq)
-		case ansi.HasEscPrefix(seq):
-			t.handleEsc(seq)
-		default:
-			r, _ := utf8.DecodeRune(seq)
-			if len(seq) == 1 && unicode.IsControl(r) {
-				t.handleControl(r)
-			} else {
-				t.handleUtf8(seq, width)
-			}
-		}
-
-		state = newState
-		t.tmp = t.tmp[m:]
-		// n += m
-	}
-
-	return
+	//
+	// t.tmp = append(t.tmp, p...)
+	// n += len(p)
+	//
+	// var state byte
+	// for len(t.tmp) > 0 {
+	// 	seq, width, m, newState, ok := ansi.DecodeSequence(t.tmp, state, t.parser)
+	// 	if !ok {
+	// 		// Incomplete sequence.
+	// 		return
+	// 	}
+	//
+	// 	switch {
+	// 	case ansi.HasSosPrefix(seq): /* Ignore */
+	// 	case ansi.HasApcPrefix(seq): /* Ignore */
+	// 	case ansi.HasPmPrefix(seq): /* Ignore */
+	// 	case ansi.HasCsiPrefix(seq):
+	// 		t.handleCsi(seq)
+	// 	case ansi.HasOscPrefix(seq):
+	// 		t.handleOsc(seq)
+	// 	case ansi.HasDcsPrefix(seq):
+	// 		t.handleDcs(seq)
+	// 	case ansi.HasEscPrefix(seq):
+	// 		t.handleEsc(seq)
+	// 	default:
+	// 		r, _ := utf8.DecodeRune(seq)
+	// 		if len(seq) == 1 && unicode.IsControl(r) {
+	// 			t.handleControl(r)
+	// 		} else {
+	// 			t.handleUtf8(seq, width)
+	// 		}
+	// 	}
+	//
+	// 	state = newState
+	// 	t.tmp = t.tmp[m:]
+	// 	// n += m
+	// }
+	//
+	// return
 }
 
 // Cursor returns the cursor.
