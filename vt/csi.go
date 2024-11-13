@@ -13,7 +13,7 @@ func (t *Terminal) handleCsi(seq []byte) {
 		t.handleCursor()
 	case 'm': // SGR - Select Graphic Rendition
 		t.handleSgr()
-	case 'J', 'r':
+	case 'J', 'L', 'M', 'r':
 		t.handleScreen()
 	case 'K', 'S', 'T':
 		t.handleLine()

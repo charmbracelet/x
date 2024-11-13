@@ -50,7 +50,7 @@ func (s *Screen) Draw(x int, y int, c Cell) bool {
 func (s *Screen) SetCell(x, y int, c Cell) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.buf.Draw(x, y, c)
+	return s.buf.SetCell(x, y, c)
 }
 
 // Height implements cellbuf.Grid.
@@ -64,8 +64,8 @@ func (s *Screen) Height() int {
 func (s *Screen) Resize(width int, height int) {
 	s.mu.Lock()
 	s.buf.Resize(width, height)
+	s.scroll = s.buf.Bounds()
 	s.mu.Unlock()
-	s.scroll = s.Bounds()
 }
 
 // Width implements cellbuf.Grid.
@@ -78,8 +78,8 @@ func (s *Screen) Width() int {
 // Clear clears the screen or part of it.
 func (s *Screen) Clear(rects ...Rectangle) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.buf.Clear(rects...)
+	s.mu.Unlock()
 }
 
 // Fill fills the screen or part of it.
@@ -167,7 +167,7 @@ func (s *Screen) InsertCell(n int) {
 	defer s.mu.Unlock()
 	x, y := s.cur.X, s.cur.Y
 
-	s.buf.InsertCell(x, y, n, s.scroll)
+	s.buf.InsertCell(x, y, n, s.blankCell(), s.scroll)
 }
 
 // DeleteCell deletes n cells at the cursor position moving cells to the left.
@@ -181,77 +181,135 @@ func (s *Screen) DeleteCell(n int) {
 	defer s.mu.Unlock()
 	x, y := s.cur.X, s.cur.Y
 
-	s.buf.DeleteCell(x, y, n, s.scroll)
+	s.buf.DeleteCell(x, y, n, s.blankCell(), s.scroll)
 }
 
-// ScrollUp scrolls the screen up n lines within the scroll region.
+// ScrollUp scrolls the content up n lines within the given region.
 // Lines scrolled past the top margin are lost.
 func (s *Screen) ScrollUp(n int) {
+	s.mu.Lock()
+	s.scrollUp(n, s.scroll)
+	s.mu.Unlock()
+}
+
+func (s *Screen) scrollUp(n int, rect Rectangle) {
 	if n <= 0 {
 		return
 	}
 
-	s.mu.RLock()
-	if n > s.scroll.Height() {
-		n = s.scroll.Height()
+	if n > rect.Height() {
+		n = rect.Height()
 	}
-	s.mu.RUnlock()
 
-	if s.scroll == s.Bounds() {
-		s.mu.Lock()
+	if rect == s.buf.Bounds() {
 		// OPTIM: for scrolling the whole screen.
 		// Move lines up, dropping the top n lines
 		s.buf.lines = s.buf.lines[n:]
 		for i := 0; i < n; i++ {
 			s.buf.lines = append(s.buf.lines, make(Line, s.buf.Width()))
 		}
-		s.mu.Unlock()
 	} else {
-		// Copy lines up within scroll region
-		for i := s.scroll.Min.Y; i < s.scroll.Max.Y-n; i++ {
-			for x := s.scroll.Min.X; x < s.scroll.Max.X; x++ {
-				c, _ := s.Cell(x, i+n)
-				s.Draw(x, i, c)
+		// Copy lines up within region
+		for i := rect.Min.Y; i < rect.Max.Y-n; i++ {
+			for x := rect.Min.X; x < rect.Max.X; x++ {
+				c, _ := s.buf.Cell(x, i+n)
+				s.buf.SetCell(x, i, c)
 			}
 		}
 	}
 
-	// Clear the bottom n lines of the scroll region
-	s.Clear(Rect(s.scroll.Min.X, s.scroll.Max.Y-n, s.scroll.Max.X, s.scroll.Max.Y))
+	// Clear the bottom n lines of the region
+	s.buf.Clear(Rect(rect.Min.X, rect.Max.Y-n, rect.Max.X, rect.Max.Y))
 }
 
-// ScrollDown scrolls the screen down n lines within the scroll region.
+// ScrollDown scrolls the content down n lines within the given region.
 // Lines scrolled past the bottom margin are lost.
 func (s *Screen) ScrollDown(n int) {
+	s.mu.Lock()
+	s.scrollDown(n, s.scroll)
+	s.mu.Unlock()
+}
+
+func (s *Screen) scrollDown(n int, rect Rectangle) {
 	if n <= 0 {
 		return
 	}
 
-	s.mu.RLock()
-	if n > s.scroll.Height() {
-		n = s.scroll.Height()
+	if n > rect.Height() {
+		n = rect.Height()
 	}
-	s.mu.RUnlock()
 
-	if s.scroll == s.Bounds() {
-		s.mu.Lock()
+	if rect == s.buf.Bounds() {
 		// OPTIM: for scrolling the whole screen.
 		// Move lines down, dropping the bottom n lines
 		s.buf.lines = s.buf.lines[:len(s.buf.lines)-n]
 		for i := 0; i < n; i++ {
 			s.buf.lines = append([]Line{make(Line, s.buf.Width())}, s.buf.lines...)
 		}
-		s.mu.Unlock()
 	} else {
-		// Copy lines down within scroll region
-		for i := s.scroll.Max.Y - 1; i >= s.scroll.Min.Y+n; i-- {
-			for x := s.scroll.Min.X; x < s.scroll.Max.X; x++ {
-				c, _ := s.Cell(x, i-n)
-				s.Draw(x, i, c)
+		// Copy lines down within region
+		for i := rect.Max.Y - 1; i >= rect.Min.Y+n; i-- {
+			for x := rect.Min.X; x < rect.Max.X; x++ {
+				c, _ := s.buf.Cell(x, i-n)
+				s.buf.SetCell(x, i, c)
 			}
 		}
 	}
 
-	// Clear the top n lines of the scroll region
-	s.Clear(Rect(s.scroll.Min.X, s.scroll.Min.Y, s.scroll.Max.X, s.scroll.Min.Y+n))
+	// Clear the top n lines of the region
+	s.buf.Clear(Rect(rect.Min.X, rect.Min.Y, rect.Max.X, rect.Min.Y+n))
+}
+
+// InsertLine inserts n blank lines at the cursor position Y coordinate.
+// Only operates if cursor is within scroll region. Lines below cursor Y
+// are moved down, with those past bottom margin being discarded.
+func (s *Screen) InsertLine(n int) {
+	if n <= 0 {
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, y := s.cur.X, s.cur.Y
+
+	// Only operate if cursor Y is within scroll region
+	if y < s.scroll.Min.Y || y >= s.scroll.Max.Y {
+		return
+	}
+
+	s.buf.InsertLine(y, n, s.blankCell(), s.scroll)
+}
+
+// DeleteLine deletes n lines at the cursor position Y coordinate.
+// Only operates if cursor is within scroll region. Lines below cursor Y
+// are moved up, with blank lines inserted at the bottom of scroll region.
+func (s *Screen) DeleteLine(n int) {
+	if n <= 0 {
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	_, y := s.cur.X, s.cur.Y
+
+	// Only operate if cursor Y is within scroll region
+	if y < s.scroll.Min.Y || y >= s.scroll.Max.Y {
+		return
+	}
+
+	s.buf.DeleteLine(y, n, s.blankCell(), s.scroll)
+}
+
+// blankCell returns the cursor blank cell with the background color set to the
+// current pen background color. If the pen background color is nil, the return
+// value is nil.
+func (s *Screen) blankCell() (c *Cell) {
+	if s.cur.Pen.Bg == nil {
+		return
+	}
+
+	c = new(Cell)
+	*c = blankCell
+	c.Style.Bg = s.cur.Pen.Bg
+	return
 }

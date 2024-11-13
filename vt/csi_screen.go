@@ -39,6 +39,45 @@ func (t *Terminal) handleScreen() {
 				t.Damage(ScreenDamage{w, h})
 			}
 		}
+	case 'L': // IL - Insert Line
+		n := 1
+		if t.parser.ParamsLen > 0 {
+			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
+				n = param
+			}
+		}
+
+		t.scr.InsertLine(n)
+	case 'M': // DL - Delete Line
+		n := 1
+		if t.parser.ParamsLen > 0 {
+			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
+				n = param
+			}
+		}
+
+		t.scr.DeleteLine(n)
+
+	case 'r': // DECSTBM - Set Top and Bottom Margins
+		if t.parser.ParamsLen == 2 {
+			top := ansi.Param(t.parser.Params[0]).Param(1)
+			bottom := ansi.Param(t.parser.Params[1]).Param(t.Height())
+			if top > bottom {
+				top, bottom = bottom, top
+			}
+
+			// Rect is [x, y) which means y is exclusive. So the top margin
+			// is the top of the screen minus one.
+			t.scr.scroll.Min.Y = top - 1
+			t.scr.scroll.Max.Y = bottom
+		} else {
+			// Rect is [x, y) which means y is exclusive. So the bottom margin
+			// is the height of the screen.
+			t.scr.scroll.Min.Y = 0
+			t.scr.scroll.Max.Y = t.Height()
+		}
+
+		t.scr.setCursor(t.scr.scroll.Min.X, t.scr.scroll.Min.Y)
 	}
 }
 
@@ -97,23 +136,5 @@ func (t *Terminal) handleLine() {
 		}
 
 		t.scr.ScrollDown(n)
-
-	case 'r': // DECSTBM - Set Top and Bottom Margins
-		t.logf("scrolling region %d, %d", t.parser.Params[0], t.parser.Params[1])
-		if t.parser.ParamsLen == 2 {
-			top := ansi.Param(t.parser.Params[0]).Param(1)
-			bottom := ansi.Param(t.parser.Params[1]).Param(t.Height())
-			if top > bottom {
-				top, bottom = bottom, top
-			}
-
-			t.scr.scroll.Min.Y = top - 1
-			t.scr.scroll.Max.Y = bottom - 1
-		} else {
-			t.scr.scroll.Min.Y = 0
-			t.scr.scroll.Max.Y = t.Height() - 1
-		}
-
-		t.scr.setCursor(t.scr.scroll.Min.X, t.scr.scroll.Min.Y)
 	}
 }

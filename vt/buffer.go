@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"slices"
-
 	"github.com/charmbracelet/x/cellbuf"
 	"github.com/charmbracelet/x/wcwidth"
 	"github.com/rivo/uniseg"
@@ -132,13 +130,13 @@ func (b *Buffer) setCell(x, y int, c *Cell) bool {
 	} else if ok && prev.Width == 0 {
 		// Writing to wide cell placeholders
 		for j := 1; j < maxCellWidth && x-j >= 0; j++ {
-			wide := b.lines[y][x-j]
-			if wide.Width > 1 {
+			wide, ok := b.Cell(x-j, y)
+			if ok && wide.Width > 1 {
 				for k := 0; k < wide.Width; k++ {
 					newCell := wide
 					newCell.Content = " "
 					newCell.Width = 1
-					b.lines[y][x-j+k] = newCell
+					b.lines[y][x-j+k] = &newCell
 				}
 				break
 			}
@@ -239,21 +237,33 @@ func (b *Buffer) Clear(rects ...Rectangle) {
 	}
 }
 
-// insertLine inserts a new line at the given position.
-func (b *Buffer) InsertLine(y, n int, rects ...Rectangle) {
+// InsertLine inserts n lines at the given line position, with the given
+// optional cell, within the specified rectangles. If no rectangles are
+// specified, it inserts lines in the entire buffer. Only cells within the
+// rectangle's horizontal bounds are affected. Lines are pushed out of the
+// rectangle bounds and lost. This follows terminal [ansi.IL] behavior.
+func (b *Buffer) InsertLine(y, n int, c *Cell, rects ...Rectangle) {
 	if len(rects) == 0 {
-		b.insertLineInRect(y, n, b.Bounds())
+		b.insertLineInRect(y, n, c, b.Bounds())
 	}
 	for _, rect := range rects {
-		b.insertLineInRect(y, n, rect)
+		b.insertLineInRect(y, n, c, rect)
 	}
 }
 
-// insertLineInRect inserts new lines at the given position within the rectangle bounds.
-// Only cells within the rectangle's horizontal bounds are affected.
-func (b *Buffer) insertLineInRect(y, n int, rect Rectangle) {
+// insertLineInRect inserts new lines at the given line position, with the
+// given optional cell, within the rectangle bounds. Only cells within the
+// rectangle's horizontal bounds are affected. Lines are pushed out of the
+// rectangle bounds and lost. This follows terminal [ansi.IL] behavior.
+func (b *Buffer) insertLineInRect(y, n int, c *Cell, rect Rectangle) {
 	if n <= 0 || y < rect.Min.Y || y >= rect.Max.Y || y >= b.Height() {
 		return
+	}
+
+	// Clone the cell if not nil.
+	if c != nil {
+		newCell := *c
+		c = &newCell
 	}
 
 	// Limit number of lines to insert to available space
@@ -261,112 +271,149 @@ func (b *Buffer) insertLineInRect(y, n int, rect Rectangle) {
 		n = rect.Max.Y - y
 	}
 
-	// For each line we need to insert
-	for i := 0; i < n; i++ {
-		// Create a new line copying cells from outside the rectangle bounds
-		newLine := make(Line, b.Width())
-		copy(newLine, b.lines[y])
-
-		// Clear only the cells within rectangle bounds
-		for x := rect.Min.X; x < rect.Max.X && x < len(newLine); x++ {
-			newLine[x] = nil
+	// Move existing lines down within the bounds
+	for i := rect.Max.Y - 1; i >= y+n; i-- {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			b.lines[i] = b.lines[i-n]
 		}
-
-		// Insert the new line
-		b.lines = slices.Insert(b.lines, y, newLine)
 	}
 
-	// Remove excess lines that got pushed below rectangle bounds
-	if y+n < b.Height() && rect.Max.Y < b.Height() {
-		b.lines = slices.Delete(b.lines, rect.Max.Y, rect.Max.Y+n)
-	}
-}
-
-// deleteLine deletes n lines at the given position in the rectangle.
-func (b *Buffer) deleteLine(y, n int) {
-	if n <= 0 || y < 0 || y >= b.Height() {
-		return
-	}
-
-	// Delete n lines at the given y position.
-	b.lines = slices.Delete(b.lines, y, y+n)
-}
-
-// DeleteLine deletes n lines at the given position within the specified rectangles.
-// If no rectangles are specified, it deletes lines in the entire buffer.
-func (b *Buffer) DeleteLine(y, n int, rects ...Rectangle) {
-	if len(rects) == 0 {
-		b.deleteLine(y, n)
-		return
-	}
-	for _, rect := range rects {
-		for i := 0; i < n; i++ {
-			b.deleteCellInRect(rect.Min.X, y+i, rect.Width(), rect)
+	// Clear the newly inserted lines within bounds
+	for i := y; i < y+n; i++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			b.lines[i][x] = c
 		}
 	}
 }
 
-// InsertCell inserts new cells at the given position within the specified rectangles.
-// If no rectangles are specified, it inserts cells in the entire buffer.
-func (b *Buffer) InsertCell(x, y, n int, rects ...Rectangle) {
-	if len(rects) == 0 {
-		b.insertCellInRect(x, y, n, b.Bounds())
+// deleteLineInRect deletes lines at the given line position, with the given
+// optional cell, within the rectangle bounds. Only cells within the
+// rectangle's bounds are affected. Lines are shifted up within the bounds and
+// new blank lines are created at the bottom. This follows terminal [ansi.DL]
+// behavior.
+func (b *Buffer) deleteLineInRect(y, n int, c *Cell, rect Rectangle) {
+	if n <= 0 || y < rect.Min.Y || y >= rect.Max.Y || y >= b.Height() {
 		return
 	}
-	for _, rect := range rects {
-		b.insertCellInRect(x, y, n, rect)
+
+	// Clone the cell if not nil.
+	if c != nil {
+		newCell := *c
+		c = &newCell
+	}
+
+	// Limit deletion count to available space in scroll region
+	if n > rect.Max.Y-y {
+		n = rect.Max.Y - y
+	}
+
+	// Shift cells up within the bounds
+	for dst := y; dst < rect.Max.Y-n; dst++ {
+		src := dst + n
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			b.lines[dst][x] = b.lines[src][x]
+		}
+	}
+
+	// Fill the bottom n lines with blank cells
+	for i := rect.Max.Y - n; i < rect.Max.Y; i++ {
+		for x := rect.Min.X; x < rect.Max.X; x++ {
+			b.lines[i][x] = c
+		}
 	}
 }
 
-// insertCellInRect inserts new cells at the given position within the rectangle bounds.
-// Only cells within the rectangle's bounds are affected, following terminal ICH behavior.
-func (b *Buffer) insertCellInRect(x, y, n int, rect Rectangle) {
+// DeleteLine deletes n lines at the given line position, with the given
+// optional cell, within the specified rectangles. If no rectangles are
+// specified, it deletes lines in the entire buffer.
+func (b *Buffer) DeleteLine(y, n int, c *Cell, rects ...Rectangle) {
+	if len(rects) == 0 {
+		b.deleteLineInRect(y, n, c, b.Bounds())
+		return
+	}
+	for _, rect := range rects {
+		b.deleteLineInRect(y, n, c, rect)
+	}
+}
+
+// InsertCell inserts new cells at the given position, with the given optional
+// cell, within the specified rectangles. If no rectangles are specified, it
+// inserts cells in the entire buffer. This follows terminal [ansi.ICH]
+// behavior.
+func (b *Buffer) InsertCell(x, y, n int, c *Cell, rects ...Rectangle) {
+	if len(rects) == 0 {
+		b.insertCellInRect(x, y, n, c, b.Bounds())
+		return
+	}
+	for _, rect := range rects {
+		b.insertCellInRect(x, y, n, c, rect)
+	}
+}
+
+// insertCellInRect inserts new cells at the given position, with the given
+// optional cell, within the rectangle bounds. Only cells within the
+// rectangle's bounds are affected, following terminal [ansi.ICH] behavior.
+func (b *Buffer) insertCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 	if n <= 0 || y < rect.Min.Y || y >= rect.Max.Y || y >= b.Height() ||
 		x < rect.Min.X || x >= rect.Max.X || x >= b.Width() {
 		return
 	}
 
-	// Create a new line preserving cells outside rectangle
+	// Clone the cell if not nil.
+	if c != nil {
+		newCell := *c
+		c = &newCell
+	}
+
+	// Create a new line copying cells from outside the rectangle bounds
 	newLine := make(Line, b.Width())
 	copy(newLine, b.lines[y])
 
-	// Calculate how many positions we can actually insert
-	remainingSpace := rect.Max.X - x
-	if n > remainingSpace {
-		n = remainingSpace
+	// Limit number of cells to insert to available space
+	if x+n > rect.Max.X {
+		n = rect.Max.X - x
 	}
 
-	// Shift cells to the right starting from the right edge
-	for i := rect.Max.X - 1; i >= x+n; i-- {
+	// Move existing cells within rectangle bounds to the right
+	for i := rect.Max.X - 1; i >= x+n && i-n >= rect.Min.X; i-- {
 		newLine[i] = b.lines[y][i-n]
 	}
 
-	// Insert spaces at the insertion point
-	for i := x; i < x+n; i++ {
-		newLine[i] = nil
+	// Clear the newly inserted cells within rectangle bounds
+	for i := x; i < x+n && i < rect.Max.X; i++ {
+		newLine[i] = c
 	}
 
 	b.lines[y] = newLine
 }
 
-// DeleteCell deletes cells at the given position within the specified rectangles.
-// If no rectangles are specified, it deletes cells in the entire buffer.
-func (b *Buffer) DeleteCell(x, y, n int, rects ...Rectangle) {
+// DeleteCell deletes cells at the given position, with the given optional
+// cell, within the specified rectangles. If no rectangles are specified, it
+// deletes cells in the entire buffer. This follows terminal [ansi.DCH]
+// behavior.
+func (b *Buffer) DeleteCell(x, y, n int, c *Cell, rects ...Rectangle) {
 	if len(rects) == 0 {
-		b.deleteCellInRect(x, y, n, b.Bounds())
+		b.deleteCellInRect(x, y, n, c, b.Bounds())
 		return
 	}
 	for _, rect := range rects {
-		b.deleteCellInRect(x, y, n, rect)
+		b.deleteCellInRect(x, y, n, c, rect)
 	}
 }
 
-// deleteCellInRect deletes cells at the given position within the rectangle bounds.
-// Only cells within the rectangle's bounds are affected, following terminal DCH behavior.
-func (b *Buffer) deleteCellInRect(x, y, n int, rect Rectangle) {
+// deleteCellInRect deletes cells at the given position, with the given
+// optional cell, within the rectangle bounds. Only cells within the
+// rectangle's bounds are affected, following terminal [ansi.DCH] behavior.
+func (b *Buffer) deleteCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 	if n <= 0 || y < rect.Min.Y || y >= rect.Max.Y || y >= b.Height() ||
 		x < rect.Min.X || x >= rect.Max.X || x >= b.Width() {
 		return
+	}
+
+	// Clone the cell if not nil.
+	if c != nil {
+		newCell := *c
+		c = &newCell
 	}
 
 	// Create a new line preserving cells outside rectangle
@@ -386,9 +433,9 @@ func (b *Buffer) deleteCellInRect(x, y, n int, rect Rectangle) {
 		}
 	}
 
-	// Fill the vacated positions with spaces
+	// Fill the vacated positions with the given cell
 	for i := rect.Max.X - n; i < rect.Max.X; i++ {
-		newLine[i] = nil
+		newLine[i] = c
 	}
 
 	b.lines[y] = newLine
