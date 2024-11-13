@@ -35,7 +35,7 @@ func setContent(
 
 	var state byte
 	for len(data) > 0 {
-		seq, width, n, newState, _ := ansi.DecodeSequence(data, state, p)
+		seq, width, n, newState := ansi.DecodeSequence(data, state, p)
 
 		switch width {
 		case 2, 3, 4: // wide cells can go up to 4 cells wide
