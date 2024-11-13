@@ -213,80 +213,20 @@ func (s *Screen) DeleteCell(n int) {
 	s.buf.DeleteCell(x, y, n, s.blankCell(), s.scroll)
 }
 
-// ScrollUp scrolls the content up n lines within the given region.
-// Lines scrolled past the top margin are lost.
+// ScrollUp scrolls the content up n lines within the given region. Lines
+// scrolled past the top margin are lost. This is equivalent to [ansi.SU] which
+// moves the cursor to the top margin and performs a [ansi.DL] operation.
 func (s *Screen) ScrollUp(n int) {
-	s.mu.Lock()
-	s.scrollUp(n, s.scroll)
-	s.mu.Unlock()
+	s.setCursor(s.cur.X, 0, true)
+	s.DeleteLine(n)
 }
 
-func (s *Screen) scrollUp(n int, rect Rectangle) {
-	if n <= 0 {
-		return
-	}
-
-	if n > rect.Height() {
-		n = rect.Height()
-	}
-
-	if rect == s.buf.Bounds() {
-		// OPTIM: for scrolling the whole screen.
-		// Move lines up, dropping the top n lines
-		s.buf.lines = s.buf.lines[n:]
-		for i := 0; i < n; i++ {
-			s.buf.lines = append(s.buf.lines, make(Line, s.buf.Width()))
-		}
-	} else {
-		// Copy lines up within region
-		for i := rect.Min.Y; i < rect.Max.Y-n; i++ {
-			for x := rect.Min.X; x < rect.Max.X; x++ {
-				c, _ := s.buf.Cell(x, i+n)
-				s.buf.SetCell(x, i, c)
-			}
-		}
-	}
-
-	// Clear the bottom n lines of the region
-	s.buf.Clear(Rect(rect.Min.X, rect.Max.Y-n, rect.Max.X, rect.Max.Y))
-}
-
-// ScrollDown scrolls the content down n lines within the given region.
-// Lines scrolled past the bottom margin are lost.
+// ScrollDown scrolls the content down n lines within the given region. Lines
+// scrolled past the bottom margin are lost. This is equivalent to [ansi.SD]
+// which moves the cursor to top margin and performs a [ansi.IL] operation.
 func (s *Screen) ScrollDown(n int) {
-	s.mu.Lock()
-	s.scrollDown(n, s.scroll)
-	s.mu.Unlock()
-}
-
-func (s *Screen) scrollDown(n int, rect Rectangle) {
-	if n <= 0 {
-		return
-	}
-
-	if n > rect.Height() {
-		n = rect.Height()
-	}
-
-	if rect == s.buf.Bounds() {
-		// OPTIM: for scrolling the whole screen.
-		// Move lines down, dropping the bottom n lines
-		s.buf.lines = s.buf.lines[:len(s.buf.lines)-n]
-		for i := 0; i < n; i++ {
-			s.buf.lines = append([]Line{make(Line, s.buf.Width())}, s.buf.lines...)
-		}
-	} else {
-		// Copy lines down within region
-		for i := rect.Max.Y - 1; i >= rect.Min.Y+n; i-- {
-			for x := rect.Min.X; x < rect.Max.X; x++ {
-				c, _ := s.buf.Cell(x, i-n)
-				s.buf.SetCell(x, i, c)
-			}
-		}
-	}
-
-	// Clear the top n lines of the region
-	s.buf.Clear(Rect(rect.Min.X, rect.Min.Y, rect.Max.X, rect.Min.Y+n))
+	s.setCursor(s.cur.X, 0, true)
+	s.InsertLine(n)
 }
 
 // InsertLine inserts n blank lines at the cursor position Y coordinate.
