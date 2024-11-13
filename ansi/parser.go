@@ -175,6 +175,13 @@ func (p *Parser) advance(d ParserDispatcher, b byte, more bool) parser.Action {
 		}
 	default:
 		p.performAction(d, action, state, b)
+		if !more {
+			switch state {
+			case parser.EscapeState:
+				// ESC at the end of the buffer
+				p.performAction(d, parser.ExecuteAction, state, b)
+			}
+		}
 	}
 
 	p.State = state

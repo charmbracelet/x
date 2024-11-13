@@ -67,7 +67,7 @@ const (
 //		state = newState
 //		input = input[n:]
 //	}
-func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte, ok bool) {
+func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
 	for i := 0; i < len(b); i++ {
 		c := b[i]
 
@@ -112,22 +112,22 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			}
 			if c > US && c < DEL {
 				// ASCII printable characters
-				return b[i : i+1], 1, 1, NormalState, true
+				return b[i : i+1], 1, 1, NormalState
 			}
 
 			if c <= US || c == DEL || c < 0xC0 {
 				// C0 & C1 control characters & DEL
-				return b[i : i+1], 0, 1, NormalState, true
+				return b[i : i+1], 0, 1, NormalState
 			}
 
 			if utf8.RuneStart(c) {
 				seq, _, width, _ = FirstGraphemeCluster(b, -1)
 				i += len(seq)
-				return b[:i], width, i, NormalState, true
+				return b[:i], width, i, NormalState
 			}
 
 			// Invalid UTF-8 sequence
-			return b[:i], 0, i, NormalState, false
+			return b[:i], 0, i, NormalState
 		case MarkerState:
 			if c >= '<' && c <= '?' {
 				if p != nil {
@@ -201,11 +201,11 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 					continue
 				}
 
-				return b[:i+1], 0, i + 1, NormalState, true
+				return b[:i+1], 0, i + 1, NormalState
 			}
 
 			// Invalid CSI/DCS sequence
-			return b[:i], 0, i, NormalState, false
+			return b[:i], 0, i, NormalState
 		case EscapeState:
 			switch c {
 			case '[', 'P':
@@ -238,17 +238,17 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 					p.Cmd &^= 0xff
 					p.Cmd |= int(c)
 				}
-				return b[:i+1], 0, i + 1, NormalState, true
+				return b[:i+1], 0, i + 1, NormalState
 			}
 
 			// Invalid escape sequence
-			return b[:i], 0, i, NormalState, false
+			return b[:i], 0, i, NormalState
 		case StringState:
 			switch c {
 			case BEL:
 				if HasOscPrefix(b) {
 					parseOscCmd(p)
-					return b[:i+1], 0, i + 1, NormalState, true
+					return b[:i+1], 0, i + 1, NormalState
 				}
 			case CAN, SUB:
 				if HasOscPrefix(b) {
@@ -257,14 +257,14 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 				}
 
 				// Cancel the sequence
-				return b[:i], 0, i, NormalState, true
+				return b[:i], 0, i, NormalState
 			case ST:
 				if HasOscPrefix(b) {
 					// Ensure we parse the OSC command number
 					parseOscCmd(p)
 				}
 
-				return b[:i+1], 0, i + 1, NormalState, true
+				return b[:i+1], 0, i + 1, NormalState
 			case ESC:
 				if HasStPrefix(b[i:]) {
 					if HasOscPrefix(b) {
@@ -273,11 +273,11 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 					}
 
 					// End of string 7-bit (ST)
-					return b[:i+2], 0, i + 2, NormalState, true
+					return b[:i+2], 0, i + 2, NormalState
 				}
 
 				// Otherwise, cancel the sequence
-				return b[:i], 0, i, NormalState, true
+				return b[:i], 0, i, NormalState
 			}
 
 			if p != nil && p.DataLen < len(p.Data) {
@@ -292,7 +292,7 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 		}
 	}
 
-	return b, 0, len(b), state, false
+	return b, 0, len(b), state
 }
 
 func parseOscCmd(p *Parser) {

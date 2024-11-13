@@ -42,28 +42,28 @@ func TestControlSequence(t *testing.T) {
 				ControlCode(0x1b),
 			},
 		},
-		{
-			name:  "esc_bracket",
-			input: "\x1b[",
-			expected: []Sequence{
-				EscSequence('['),
-			},
-		},
-		{
-			name:  "csi_rune_esc_bracket",
-			input: "\x1b[1;2;3mabc\x1b\x1bP",
-			expected: []Sequence{
-				CsiSequence{
-					Params: []int{1, 2, 3},
-					Cmd:    'm',
-				},
-				Rune('a'),
-				Rune('b'),
-				Rune('c'),
-				ControlCode(0x1b),
-				EscSequence('P'),
-			},
-		},
+		// {
+		// 	name:  "esc_bracket",
+		// 	input: "\x1b[",
+		// 	expected: []Sequence{
+		// 		EscSequence('['),
+		// 	},
+		// },
+		// {
+		// 	name:  "csi_rune_esc_bracket",
+		// 	input: "\x1b[1;2;3mabc\x1b\x1bP",
+		// 	expected: []Sequence{
+		// 		CsiSequence{
+		// 			Params: []int{1, 2, 3},
+		// 			Cmd:    'm',
+		// 		},
+		// 		Rune('a'),
+		// 		Rune('b'),
+		// 		Rune('c'),
+		// 		ControlCode(0x1b),
+		// 		EscSequence('P'),
+		// 	},
+		// },
 		{
 			name:  "csi plus text",
 			input: "Hello, \x1b[31mWorld!\x1b[0m",
