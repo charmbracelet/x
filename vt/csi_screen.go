@@ -48,6 +48,9 @@ func (t *Terminal) handleScreen() {
 		}
 
 		t.scr.InsertLine(n)
+		// Move the cursor to the left margin.
+		t.scr.setCursorX(0, true)
+
 	case 'M': // DL - Delete Line
 		n := 1
 		if t.parser.ParamsLen > 0 {
@@ -57,6 +60,8 @@ func (t *Terminal) handleScreen() {
 		}
 
 		t.scr.DeleteLine(n)
+		// Move the cursor to the left margin.
+		t.scr.setCursorX(0, true)
 
 	case 'X':
 		// ECH - Erase Character
@@ -94,7 +99,9 @@ func (t *Terminal) handleScreen() {
 			t.scr.scroll.Max.Y = t.Height()
 		}
 
-		t.scr.setCursor(t.scr.scroll.Min.X, t.scr.scroll.Min.Y)
+		// Move the cursor to the top-left of the screen or scroll region
+		// depending on [ansi.DECOM].
+		t.setCursorPosition(0, 0)
 	}
 }
 

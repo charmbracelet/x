@@ -35,5 +35,6 @@ func (t *Terminal) handleUtf8(seq []byte, width int) {
 		t.Damage(CellDamage{X: x, Y: y})
 	}
 
-	t.scr.setCursor(x+width, y)
+	// TODO: Is this correct?
+	t.scr.setCursor(x+width, y, true)
 }

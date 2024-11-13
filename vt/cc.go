@@ -7,50 +7,55 @@ import (
 // handleControl handles a control character.
 func (t *Terminal) handleControl(r rune) {
 	switch r {
-	case ansi.NUL: // NUL - Null
+	case ansi.NUL: // Null [ansi.NUL]
 		// Ignored
-	case ansi.BEL: // BEL - Bell
+	case ansi.BEL: // Bell [ansi.BEL]
 		if t.Bell != nil {
 			t.Bell()
 		}
-	case ansi.BS: // BS - Backspace
-		x, _ := t.scr.CursorPosition()
-		if x > 0 {
-			x--
-		}
-
-		t.scr.setCursorX(x)
-	case ansi.HT: // HT - Horizontal Tab
+	case ansi.BS: // Backspace [ansi.BS]
+		t.scr.moveCursor(-1, 0)
+	case ansi.HT: // Horizontal Tab [ansi.HT]
 		x, _ := t.scr.CursorPosition()
 		x = t.tabstops.Next(x)
-		t.scr.setCursorX(x)
+		t.scr.setCursorX(x, false)
 	case ansi.LF:
-		// LF - Line Feed
-		_, y := t.scr.CursorPosition()
-		if y < t.scr.Height()-1 {
-			t.scr.setCursorY(y + 1)
-		} else {
+		// Line Feed [ansi.LF]
+		x, y := t.scr.CursorPosition()
+		scroll := t.scr.ScrollRegion()
+		if y == scroll.Max.Y-1 && x >= scroll.Min.X && x < scroll.Max.X {
 			t.scr.ScrollUp(1)
-		}
-	case ansi.CR: // CR - Carriage Return
-		t.scr.setCursorX(0)
-	case ansi.HTS: // HTS - Horizontal Tab Set
-		x, _ := t.scr.CursorPosition()
-		t.tabstops.Set(x)
-		t.scr.setCursorX(x)
-	case ansi.RI: // RI - Reverse Index
-		_, y := t.scr.CursorPosition()
-		if y > 0 {
-			y--
 		} else {
-			t.scr.ScrollDown(1)
+			t.scr.moveCursor(0, 1)
 		}
-		t.scr.setCursorY(y)
-	case ansi.SO: // SO - Shift Out
+	case ansi.CR: // Carriage Return [ansi.CR]
+		t.carriageReturn()
+	case ansi.HTS: // Horizontal Tab Set [ansi.HTS]
+		t.horizontalTabSet()
+	case ansi.RI: // Reverse Index [ansi.RI]
+		t.reverseIndex()
+	case ansi.SO: // Shift Out [ansi.SO]
 	// TODO: Handle Shift Out
-	case ansi.SI: // SI - Shift In
+	case ansi.SI: // Shift In [ansi.SI]
 	// TODO: Handle Shift In
 	default:
 		t.logf("unhandled control: %q", r)
+	}
+}
+
+// horizontalTabSet sets a horizontal tab stop at the current cursor position.
+func (t *Terminal) horizontalTabSet() {
+	x, _ := t.scr.CursorPosition()
+	t.tabstops.Set(x)
+}
+
+// reverseIndex moves the cursor up one line, or scrolling down.
+func (t *Terminal) reverseIndex() {
+	x, y := t.scr.CursorPosition()
+	scroll := t.scr.ScrollRegion()
+	if y == scroll.Min.Y && x >= scroll.Min.X && x < scroll.Max.X {
+		t.scr.ScrollDown(1)
+	} else {
+		t.scr.moveCursor(0, -1)
 	}
 }

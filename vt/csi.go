@@ -9,11 +9,11 @@ import (
 func (t *Terminal) handleCsi(seq []byte) {
 	cmd := t.parser.Cmd
 	switch cmd { // cursor
-	case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'X', 'a', 'd', 'e', 'f', '`':
+	case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'a', 'd', 'e', 'f', '`':
 		t.handleCursor()
 	case 'm': // SGR - Select Graphic Rendition
 		t.handleSgr()
-	case 'J', 'L', 'M', 'r':
+	case 'J', 'L', 'M', 'X', 'r':
 		t.handleScreen()
 	case 'K', 'S', 'T':
 		t.handleLine()
