@@ -1,11 +1,11 @@
 module github.com/charmbracelet/x/exp/teatest/v2
 
-go 1.22.8
+go 1.19
 
 require (
 	github.com/charmbracelet/bubbletea/v2 v2.0.0-alpha.2.0.20241113134142-c71ad13e23d6
 	github.com/charmbracelet/x/exp/golden v0.0.0-20240806155701-69247e0abc2a
-	github.com/charmbracelet/x/vt v0.0.0-20241017211702-84fa5b7bb18e
+	github.com/charmbracelet/x/vt v0.0.0-20241110171603-a30b032a5ae2
 )
 
 require (
@@ -24,7 +24,3 @@ require (
 	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
 )
-
-replace github.com/charmbracelet/x/vt => ../../../vt
-
-replace github.com/charmbracelet/x/cellbuf => ../../../cellbuf
