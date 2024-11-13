@@ -15,37 +15,33 @@ func (t *Terminal) handleCursor() {
 		}
 	}
 
-	x, y := t.scr.cur.X, t.scr.cur.Y
+	x, y := t.scr.CursorPosition()
 	switch cmd.Command() {
 	case 'A':
-		// CUU - Cursor Up
-		y = max(0, y-n)
-	case 'B', 'e':
-		// CUD - Cursor Down
-		// VPR - Vertical Position Relative
-		y = min(height-1, y+n)
-	case 'C', 'a':
-		// CUF - Cursor Forward
-		// HPR - Horizontal Position Relative
-		x = min(width-1, x+n)
+		// Cursor Up [ansi.CUU]
+		t.scr.moveCursor(0, -n)
+	case 'B':
+		// Cursor Down [ansi.CUD]
+		t.scr.moveCursor(0, n)
+	case 'C':
+		// Cursor Forward [ansi.CUF]
+		t.scr.moveCursor(n, 0)
 	case 'D':
-		// CUB - Cursor Back
-		x = max(0, x-n)
+		// Cursor Backward [ansi.CUB]
+		t.scr.moveCursor(-n, 0)
 	case 'E':
-		// CNL - Cursor Next Line
-		y = min(height-1, y+n)
-		x = 0
+		// Cursor Next Line [ansi.CNL]
+		t.scr.moveCursor(0, n)
+		t.carriageReturn()
 	case 'F':
-		// CPL - Cursor Previous Line
-		y = max(0, y-n)
-		x = 0
-	case 'G', '`':
-		// CHA - Cursor Character Absolute
-		// HPA - Horizontal Position Absolute
-		x = min(width-1, n-1)
-	case 'H', 'f':
-		// CUP - Cursor Position
-		// HVP - Horizontal and Vertical Position
+		// Cursor Previous Line [ansi.CPL]
+		t.scr.moveCursor(0, -n)
+		t.carriageReturn()
+	case 'G':
+		// Cursor Horizontal Absolute [ansi.CHA]
+		t.scr.setCursor(min(width-1, n-1), y, false)
+	case 'H':
+		// Cursor Position [ansi.CUP]
 		if p.ParamsLen >= 2 {
 			row, col := ansi.Param(p.Params[0]).Param(1), ansi.Param(p.Params[1]).Param(1)
 			y = min(height-1, row-1)
@@ -53,24 +49,65 @@ func (t *Terminal) handleCursor() {
 		} else {
 			x, y = 0, 0
 		}
+		t.setCursorPosition(x, y)
 	case 'I':
-		// CHT - Cursor Forward Tabulation
+		// Cursor Horizontal Tabulation [ansi.CHT]
+		scroll := t.scr.ScrollRegion()
 		for i := 0; i < n; i++ {
-			x = t.tabstops.Next(x)
+			ts := t.tabstops.Next(x)
+			if ts >= scroll.Max.X {
+				break
+			}
+			x = ts
 		}
-	case 'X':
-		// ECH - Erase Character
-		// It clears character attributes as well but not colors.
-		c := blankCell
-		c.Style = t.scr.cur.Pen
-		c.Style.Attrs = 0
-		rect := Rect(x, y, n, 1)
-		t.scr.Fill(c, rect)
-		// ECH does not move the cursor.
+		t.scr.setCursor(x, y, false)
+	case '`':
+		// Horizontal Position Absolute [ansi.HPA]
+		t.setCursorPosition(min(width-1, n-1), y)
+	case 'a':
+		// Horizontal Position Relative [ansi.HPR]
+		t.setCursorPosition(min(width-1, x+n), y)
+	case 'e':
+		// Vertical Position Relative [ansi.VPR]
+		t.setCursorPosition(x, min(height-1, y+n))
+	case 'f':
+		// Horizontal and Vertical Position [ansi.HVP]
+		if p.ParamsLen >= 2 {
+			row, col := ansi.Param(p.Params[0]).Param(1), ansi.Param(p.Params[1]).Param(1)
+			y = min(height-1, row-1)
+			x = min(width-1, col-1)
+		} else {
+			x, y = 0, 0
+		}
+		t.scr.setCursor(x, y, false)
 	case 'd':
-		// VPA - Vertical Line Position Absolute
-		y = min(height-1, max(0, n-1))
+		// Vertical Position Absolute [ansi.VPA]
+		t.setCursorPosition(x, min(height-1, n-1))
 	}
+}
 
-	t.scr.setCursor(x, y)
+// setCursorPosition sets the cursor position. This respects [ansi.DECOM],
+// Origin Mode. This performs the same function as [ansi.CUP].
+func (t *Terminal) setCursorPosition(x, y int) {
+	mode, ok := t.pmodes[ansi.DECOM]
+	margins := ok && mode.IsSet()
+	t.scr.setCursor(x, y, margins)
+}
+
+// carriageReturn moves the cursor to the leftmost column. If [ansi.DECOM] is
+// set, the cursor is set to the left margin. If not, and the cursor is on or
+// to the right of the left margin, the cursor is set to the left margin.
+// Otherwise, the cursor is set to the leftmost column of the screen.
+// This performs the same function as [ansi.CR].
+func (t *Terminal) carriageReturn() {
+	mode, ok := t.pmodes[ansi.DECOM]
+	margins := ok && mode.IsSet()
+	x, y := t.scr.CursorPosition()
+	if margins {
+		t.scr.setCursor(0, y, true)
+	} else if region := t.scr.ScrollRegion(); region.Contains(Pos(x, y)) {
+		t.scr.setCursor(region.Min.X, y, false)
+	} else {
+		t.scr.setCursor(0, y, false)
+	}
 }

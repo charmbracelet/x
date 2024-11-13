@@ -89,26 +89,48 @@ func (s *Screen) Fill(c Cell, rects ...Rectangle) {
 	s.buf.Fill(c, rects...)
 }
 
-// setCursorX sets the cursor X position.
-func (s *Screen) setCursorX(x int) {
-	s.mu.Lock()
-	s.cur.X = x
-	s.mu.Unlock()
+// setCursorX sets the cursor X position. If margins is true, the cursor is
+// only set if it is within the scroll margins.
+func (s *Screen) setCursorX(x int, margins bool) {
+	s.setCursor(x, s.cur.Y, margins)
 }
 
-// setCursorY sets the cursor Y position.
-func (s *Screen) setCursorY(y int) {
-	s.mu.Lock()
-	s.cur.Y = y
-	s.mu.Unlock()
+// setCursorY sets the cursor Y position. If margins is true, the cursor is
+// only set if it is within the scroll margins.
+func (s *Screen) setCursorY(y int, margins bool) {
+	s.setCursor(s.cur.X, y, margins)
 }
 
-// setCursor sets the cursor position.
-func (s *Screen) setCursor(x, y int) {
+// setCursor sets the cursor position. If margins is true, the cursor is only
+// set if it is within the scroll margins. This follows how [ansi.CUP] works.
+func (s *Screen) setCursor(x, y int, margins bool) {
 	s.mu.Lock()
-	s.cur.X = x
-	s.cur.Y = y
-	s.mu.Unlock()
+	defer s.mu.Unlock()
+	if !margins {
+		s.cur.Y = clamp(y, 0, s.buf.Height()-1)
+		s.cur.X = clamp(x, 0, s.buf.Width()-1)
+	} else {
+		s.cur.Y = clamp(s.scroll.Min.Y+y, s.scroll.Min.Y, s.scroll.Max.Y-1)
+		s.cur.X = clamp(s.scroll.Min.X+x, s.scroll.Min.X, s.scroll.Max.X-1)
+	}
+}
+
+// moveCursor moves the cursor by the given x and y deltas. If the cursor
+// position is inside the scroll region, it is bounded by the scroll region.
+// Otherwise, it is bounded by the screen bounds.
+// This follows how [ansi.CUU], [ansi.CUD], [ansi.CUF], [ansi.CUB], [ansi.CNL],
+// [ansi.CPL].
+func (s *Screen) moveCursor(dx, dy int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	pt := Pos(s.cur.X+dx, s.cur.Y+dy)
+	if s.scroll.Contains(pt) {
+		s.cur.Y = clamp(pt.Y, s.scroll.Min.Y, s.scroll.Max.Y-1)
+		s.cur.X = clamp(pt.X, s.scroll.Min.X, s.scroll.Max.X-1)
+	} else {
+		s.cur.Y = clamp(pt.Y, 0, s.buf.Height()-1)
+		s.cur.X = clamp(pt.X, 0, s.buf.Width()-1)
+	}
 }
 
 // Cursor returns the cursor.
@@ -123,6 +145,13 @@ func (s *Screen) CursorPosition() (x, y int) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.cur.X, s.cur.Y
+}
+
+// ScrollRegion returns the scroll region.
+func (s *Screen) ScrollRegion() Rectangle {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.scroll
 }
 
 // SaveCursor saves the cursor.

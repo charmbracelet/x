@@ -58,6 +58,23 @@ func (t *Terminal) handleScreen() {
 
 		t.scr.DeleteLine(n)
 
+	case 'X':
+		// ECH - Erase Character
+		// It clears character attributes as well but not colors.
+		n := 1
+		if t.parser.ParamsLen > 0 {
+			if param := ansi.Param(t.parser.Params[0]).Param(1); param > 0 {
+				n = param
+			}
+		}
+		x, y := t.scr.CursorPosition()
+		c := blankCell
+		c.Style = t.scr.cur.Pen
+		c.Style.Attrs = 0
+		rect := Rect(x, y, n, 1)
+		t.scr.Fill(c, rect)
+		// ECH does not move the cursor.
+
 	case 'r': // DECSTBM - Set Top and Bottom Margins
 		if t.parser.ParamsLen == 2 {
 			top := ansi.Param(t.parser.Params[0]).Param(1)
