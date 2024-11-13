@@ -25,20 +25,25 @@ func DefaultTabStops(cols int) TabStops {
 
 // Next returns the next tab stop after the given column.
 func (ts TabStops) Next(col int) int {
-	for _, t := range ts {
-		if t > col {
-			return t
-		}
+	// Use col+1 to ensure we get the next tab stop after the current column if
+	// one exists.
+	i, _ := binarySearch(ts, col+1)
+	if i < len(ts) {
+		return ts[i]
 	}
 	return col
 }
 
 // Prev returns the previous tab stop before the given column.
 func (ts TabStops) Prev(col int) int {
-	for i := len(ts) - 1; i >= 0; i-- {
-		if ts[i] < col {
-			return ts[i]
-		}
+	i, _ := binarySearch(ts, col)
+	// Ensure we get the previous tab stop before the current column if one
+	// exists.
+	for i > 0 && ts[i-1] >= col {
+		i--
+	}
+	if i > 0 {
+		return ts[i-1]
 	}
 	return col
 }
@@ -46,7 +51,7 @@ func (ts TabStops) Prev(col int) int {
 // Set adds a tab stop at the given column.
 func (ts *TabStops) Set(col int) {
 	i, ok := binarySearch(*ts, col)
-	if !ok {
+	if ok {
 		return
 	}
 
