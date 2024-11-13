@@ -35,7 +35,7 @@ func TestApp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out := tm.FinalOutput(t, teatest.WithFinalTimeout(time.Second))
+	out := teatest.TrimEmptyLines(tm.FinalOutput(t, teatest.WithFinalTimeout(time.Second)))
 	if !regexp.MustCompile(`This program will exit in \d+ seconds`).MatchString(out) {
 		t.Fatalf("output does not match the given regular expression: %q", out)
 	}
