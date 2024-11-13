@@ -39,8 +39,8 @@ func TestAppSendToOtherProgram(t *testing.T) {
 	tm1.Type("q")
 	tm2.Type("q")
 
-	out1 := tm1.FinalOutput(t, teatest.WithFinalTimeout(time.Second))
-	out2 := tm2.FinalOutput(t, teatest.WithFinalTimeout(time.Second))
+	out1 := teatest.TrimEmptyLines(tm1.FinalOutput(t, teatest.WithFinalTimeout(time.Second)))
+	out2 := teatest.TrimEmptyLines(tm2.FinalOutput(t, teatest.WithFinalTimeout(time.Second)))
 
 	if string(out1) != string(out2) {
 		t.Errorf("output of both models should be the same, got:\n%v\nand:\n%v\n", string(out1), string(out2))

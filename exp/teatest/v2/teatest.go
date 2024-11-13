@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -154,19 +155,23 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 	return tm
 }
 
-func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
+func mergeOpts(opts []FinalOpt) FinalOpts {
+	r := FinalOpts{}
+	for _, opt := range opts {
+		opt(&r)
+	}
+	return r
+}
+
+func (tm *TestModel) waitDone(tb testing.TB, opts FinalOpts) {
 	tm.done.Do(func() {
-		fopts := FinalOpts{}
-		for _, opt := range opts {
-			opt(&fopts)
-		}
-		if fopts.timeout > 0 {
+		if opts.timeout > 0 {
 			select {
-			case <-time.After(fopts.timeout):
-				if fopts.onTimeout == nil {
-					tb.Fatalf("timeout after %s", fopts.timeout)
+			case <-time.After(opts.timeout):
+				if opts.onTimeout == nil {
+					tb.Fatalf("timeout after %s", opts.timeout)
 				}
-				fopts.onTimeout(tb)
+				opts.onTimeout(tb)
 			case <-tm.doneCh:
 			}
 		} else {
@@ -179,6 +184,7 @@ func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
 type FinalOpts struct {
 	timeout   time.Duration
 	onTimeout func(tb testing.TB)
+	trim      bool
 }
 
 // FinalOpt changes FinalOpts.
@@ -203,14 +209,14 @@ func WithFinalTimeout(d time.Duration) FinalOpt {
 // This method only returns once the program has finished running or when it
 // times out.
 func (tm *TestModel) WaitFinished(tb testing.TB, opts ...FinalOpt) {
-	tm.waitDone(tb, opts)
+	tm.waitDone(tb, mergeOpts(opts))
 }
 
 // FinalModel returns the resulting model, resulting from program.Run().
 // This method only returns once the program has finished running or when it
 // times out.
 func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
-	tm.waitDone(tb, opts)
+	tm.waitDone(tb, mergeOpts(opts))
 	select {
 	case m := <-tm.modelCh:
 		tm.model = m
@@ -224,7 +230,8 @@ func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
 // This method only returns once the program has finished running or when it
 // times out.
 func (tm *TestModel) FinalOutput(tb testing.TB, opts ...FinalOpt) string {
-	tm.waitDone(tb, opts)
+	opt := mergeOpts(opts)
+	tm.waitDone(tb, opt)
 	return tm.Output()
 }
 
@@ -268,4 +275,16 @@ func (tm *TestModel) GetProgram() *tea.Program {
 func RequireEqualOutput(tb testing.TB, out string) {
 	tb.Helper()
 	golden.RequireEqualEscape(tb, []byte(out), true)
+}
+
+// TrimEmptyLines removes trailing empty lines from the given output.
+func TrimEmptyLines(out string) string {
+	// trim empty trailing lines from the output
+	lines := strings.Split(out, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		if strings.TrimSpace(lines[i]) != "" {
+			return strings.Join(lines[:i], "\n")
+		}
+	}
+	return out
 }
