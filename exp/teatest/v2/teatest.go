@@ -216,7 +216,7 @@ func (tm *TestModel) WaitFinished(tb testing.TB, opts ...FinalOpt) {
 // This method only returns once the program has finished running or when it
 // times out.
 func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
-	tm.waitDone(tb, mergeOpts(opts))
+	tm.WaitFinished(tb, opts...)
 	select {
 	case m := <-tm.modelCh:
 		tm.model = m
@@ -226,16 +226,16 @@ func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
 	}
 }
 
-// FinalOutput returns the program's final output io.Reader.
+// FinalOutput returns the program's final output.
 // This method only returns once the program has finished running or when it
 // times out.
+// It's the equivalent of calling both `tm.WaitFinished` and `tm.Output()`.
 func (tm *TestModel) FinalOutput(tb testing.TB, opts ...FinalOpt) string {
-	opt := mergeOpts(opts)
-	tm.waitDone(tb, opt)
+	tm.WaitFinished(tb, opts...)
 	return tm.Output()
 }
 
-// Output returns the program's current output io.Reader.
+// Output returns the program's current output.
 func (tm *TestModel) Output() string {
 	return tm.term.String()
 }
