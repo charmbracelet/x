@@ -408,3 +408,98 @@ func BenchmarkDecodeParser(b *testing.B) {
 		}, input)
 	}
 }
+
+func TestCommand(t *testing.T) {
+	cases := []struct {
+		name     string
+		cmd      int
+		mark     int
+		inter    int
+		expected Command
+	}{
+		{
+			name:     "CUU", // Cursor Up
+			cmd:      'A',
+			expected: 'A',
+		},
+		{
+			name:     "DECAWM", // Auto Wrap Mode
+			cmd:      'h',
+			mark:     '?',
+			expected: 'h' | '?'<<parser.MarkerShift,
+		},
+		{
+			name:     "DECSCUSR", // Set Cursor Style
+			cmd:      'q',
+			inter:    ' ',
+			expected: 'q' | ' '<<parser.IntermedShift,
+		},
+		{
+			name:     "imaginary cmd with both marker and intermed",
+			cmd:      'x',
+			mark:     '>',
+			inter:    '(',
+			expected: 'x' | '>'<<parser.MarkerShift | '('<<parser.IntermedShift,
+		},
+		{
+			name:     "ignore bytes beyond the lower 8 bites",
+			cmd:      256 + 'x',
+			mark:     256 + '>',
+			inter:    256 + '(',
+			expected: 'x' | '>'<<parser.MarkerShift | '('<<parser.IntermedShift,
+		},
+		{
+			name:     "OSC11", // Set background color
+			cmd:      11,
+			expected: 11,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if cmd := Cmd(tc.mark, tc.inter, tc.cmd); cmd != tc.expected {
+				t.Errorf("expected %d, got %d", tc.expected, cmd)
+			}
+		})
+	}
+}
+
+func TestParameter(t *testing.T) {
+	cases := []struct {
+		name     string
+		param    int
+		hasMore  bool
+		expected Parameter
+	}{
+		{
+			name:     "single param",
+			param:    1,
+			expected: 1,
+		},
+		{
+			name:     "single param with hasMore",
+			param:    1,
+			hasMore:  true,
+			expected: 1 | parser.HasMoreFlag,
+		},
+		{
+			name:     "negative param",
+			param:    -1,
+			expected: parser.ParamMask,
+		},
+		{
+			name:     "negative param has more",
+			param:    -1,
+			hasMore:  true,
+			expected: -1,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if p := Param(tc.param, tc.hasMore); p != tc.expected {
+				t.Errorf("expected %d, got %d", tc.expected, p)
+			}
+		})
+	}
+}

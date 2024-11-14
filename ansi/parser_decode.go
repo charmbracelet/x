@@ -428,6 +428,20 @@ func (c Command) Command() int {
 	return parser.Command(int(c))
 }
 
+// Cmd returns a packed [Command] with the given command, marker, and
+// intermediate.
+// The first byte is the command, the next shift is the marker, and the next
+// shift is the intermediate.
+//
+// Even though this function takes integers, it only uses the lower 8 bits of
+// each integer.
+func Cmd(marker, inter, cmd int) (c Command) {
+	c = Command(cmd & parser.CommandMask)
+	c |= Command(marker&parser.CommandMask) << parser.MarkerShift
+	c |= Command(inter&parser.CommandMask) << parser.IntermedShift
+	return
+}
+
 // Parameter represents a sequence parameter. Sequence parameters with
 // sub-parameters are packed with the HasMoreFlag set. This is used to unpack
 // the parameters from a CSI and DCS sequences.
@@ -446,4 +460,14 @@ func (s Parameter) Param(def int) int {
 // HasMore returns true if the parameter has more sub-parameters.
 func (s Parameter) HasMore() bool {
 	return int(s)&parser.HasMoreFlag != 0
+}
+
+// Param returns a packed [Parameter] with the given parameter and whether this
+// parameter has following sub-parameters.
+func Param(p int, hasMore bool) (s Parameter) {
+	s = Parameter(p & parser.ParamMask)
+	if hasMore {
+		s |= Parameter(parser.HasMoreFlag)
+	}
+	return
 }
