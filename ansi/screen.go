@@ -283,6 +283,11 @@ func TabClear(n int) string {
 	return "\x1b[" + s + "g"
 }
 
+// TBC is an alias for [TabClear].
+func TBC(n int) string {
+	return TabClear(n)
+}
+
 // RequestPresentationStateReport (DECRQPSR) requests the terminal to send a
 // report of the presentation state. This includes the cursor information [DECCIR],
 // and tab stop [DECTABSR] reports.
