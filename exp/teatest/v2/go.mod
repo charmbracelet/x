@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/charmbracelet/bubbletea/v2 v2.0.0-alpha.2.0.20241113134142-c71ad13e23d6
 	github.com/charmbracelet/x/exp/golden v0.0.0-20240806155701-69247e0abc2a
-	github.com/charmbracelet/x/vt v0.0.0-20241110171603-a30b032a5ae2
+	github.com/charmbracelet/x/vt v0.0.0-20241113201228-12f9eedf8aa6
 )
 
 require (
