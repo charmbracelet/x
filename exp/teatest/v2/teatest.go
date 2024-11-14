@@ -23,11 +23,20 @@ type Program interface {
 
 // TestModelOptions defines all options available to the test function.
 type TestModelOptions struct {
-	size tea.WindowSizeMsg
+	size  tea.WindowSizeMsg
+	topts []tea.ProgramOption
 }
 
 // TestOption is a functional option.
 type TestOption func(opts *TestModelOptions)
+
+// WithProgramOptions allows to give the program additional
+// [tea.ProgramOption]s.
+func WithProgramOptions(topts ...tea.ProgramOption) TestOption {
+	return func(opts *TestModelOptions) {
+		opts.topts = append(opts.topts, topts...)
+	}
+}
 
 // WithInitialTermSize ...
 func WithInitialTermSize(x, y int) TestOption {
@@ -127,11 +136,14 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		doneCh:  make(chan bool, 1),
 	}
 
-	tm.program = tea.NewProgram(
-		m,
+	topts := []tea.ProgramOption{
 		tea.WithInput(tm.term),
 		tea.WithOutput(tm.term),
 		tea.WithoutSignals(),
+	}
+	tm.program = tea.NewProgram(
+		m,
+		append(topts, opts.topts...)...,
 	)
 
 	interruptions := make(chan os.Signal, 1)
@@ -232,6 +244,8 @@ func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
 // It's the equivalent of calling both `tm.WaitFinished` and `tm.Output()`.
 func (tm *TestModel) FinalOutput(tb testing.TB, opts ...FinalOpt) string {
 	tm.WaitFinished(tb, opts...)
+	// FIXME: need to check here if term was using alt screen and get that
+	// output instead.
 	return tm.Output()
 }
 
