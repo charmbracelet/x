@@ -55,20 +55,21 @@ func NewBuffer(width int, height int) *Buffer {
 }
 
 // Cell implements Screen.
-func (b *Buffer) Cell(x int, y int) (Cell, bool) {
+func (b *Buffer) Cell(x int, y int) *Cell {
 	if y < 0 || y >= len(b.lines) {
-		return Cell{}, false
+		return nil
 	}
 	if x < 0 || x >= b.lines[y].Width() {
-		return Cell{}, false
+		return nil
 	}
 
 	c := b.lines[y][x]
 	if c == nil {
-		return blankCell, true
+		newCell := blankCell
+		return &newCell
 	}
 
-	return *c, true
+	return c
 }
 
 // Draw implements Screen.
@@ -90,29 +91,30 @@ func (b *Buffer) setCell(x, y int, c *Cell) bool {
 	if y < 0 || y >= len(b.lines) {
 		return false
 	}
-	if x < 0 || x >= b.lines[y].Width() {
+	width := b.lines[y].Width()
+	if x < 0 || x >= width {
 		return false
 	}
 
 	// When a wide cell is partially overwritten, we need
 	// to fill the rest of the cell with space cells to
 	// avoid rendering issues.
-	prev, ok := b.Cell(x, y)
-	if ok && prev.Width > 1 {
+	prev := b.Cell(x, y)
+	if prev != nil && prev.Width > 1 {
 		// Writing to the first wide cell
 		for j := 0; j < prev.Width && x+j < b.lines[y].Width(); j++ {
-			newCell := prev
+			newCell := *prev
 			newCell.Content = " "
 			newCell.Width = 1
 			b.lines[y][x+j] = &newCell
 		}
-	} else if ok && prev.Width == 0 {
+	} else if prev != nil && prev.Width == 0 {
 		// Writing to wide cell placeholders
 		for j := 1; j < maxCellWidth && x-j >= 0; j++ {
-			wide, ok := b.Cell(x-j, y)
-			if ok && wide.Width > 1 {
+			wide := b.Cell(x-j, y)
+			if wide != nil && wide.Width > 1 {
 				for k := 0; k < wide.Width; k++ {
-					newCell := wide
+					newCell := *wide
 					newCell.Content = " "
 					newCell.Width = 1
 					b.lines[y][x-j+k] = &newCell
@@ -127,14 +129,25 @@ func (b *Buffer) setCell(x, y int, c *Cell) bool {
 		newCell := *c
 		c = &newCell
 	}
-	b.lines[y][x] = c
 
-	// Mark wide cells with an empty cell zero width
-	// We set the wide cell down below
-	if c != nil && c.Width > 1 {
-		for j := 1; j < c.Width && x+j < b.lines[y].Width(); j++ {
-			var wide Cell
-			b.lines[y][x+j] = &wide
+	if c != nil && x+c.Width > width {
+		// If the cell is too wide, we write blanks with the same style.
+		for i := 0; i < c.Width && x+i < width; i++ {
+			newCell := *c
+			newCell.Content = " "
+			newCell.Width = 1
+			b.lines[y][x+i] = &newCell
+		}
+	} else {
+		b.lines[y][x] = c
+
+		// Mark wide cells with an empty cell zero width
+		// We set the wide cell down below
+		if c != nil && c.Width > 1 {
+			for j := 1; j < c.Width && x+j < b.lines[y].Width(); j++ {
+				var wide Cell
+				b.lines[y][x+j] = &wide
+			}
 		}
 	}
 

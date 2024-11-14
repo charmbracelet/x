@@ -84,8 +84,9 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	return t
 }
 
-// At returns the cell at the given position.
-func (t *Terminal) At(x int, y int) (Cell, bool) {
+// Cell returns the cell at the given x, y position. It returns nil if the cell
+// is out of bounds.
+func (t *Terminal) Cell(x, y int) *Cell {
 	return t.scr.Cell(x, y)
 }
 

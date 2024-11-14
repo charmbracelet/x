@@ -21,8 +21,9 @@ type Cell struct {
 }
 
 // Equal returns whether the cell is equal to the other cell.
-func (c Cell) Equal(o Cell) bool {
-	return c.Width == o.Width &&
+func (c Cell) Equal(o *Cell) bool {
+	return o != nil &&
+		c.Width == o.Width &&
 		c.Content == o.Content &&
 		c.Style.Equal(o.Style) &&
 		c.Link.Equal(o.Link)

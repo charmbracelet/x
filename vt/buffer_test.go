@@ -6,6 +6,8 @@ import (
 	"testing"
 )
 
+// TODO: Use golden files for these tests
+
 func TestBuffer_new(t *testing.T) {
 	t.Parallel()
 

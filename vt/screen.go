@@ -30,7 +30,7 @@ func (s *Screen) Bounds() Rectangle {
 }
 
 // Cell returns the cell at the given x, y position.
-func (s *Screen) Cell(x int, y int) (Cell, bool) {
+func (s *Screen) Cell(x int, y int) *Cell {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.buf.Cell(x, y)

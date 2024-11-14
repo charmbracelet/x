@@ -33,3 +33,5 @@ replace github.com/charmbracelet/x/vt => ../vt
 replace github.com/charmbracelet/x/windows => ../windows
 
 replace github.com/charmbracelet/x/exp => ../exp
+
+replace github.com/charmbracelet/colorprofile => ../../colorprofile/

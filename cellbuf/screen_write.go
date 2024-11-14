@@ -13,7 +13,7 @@ import (
 // setContent writes the given data to the buffer starting from the first cell.
 // It accepts both string and []byte data types.
 func setContent(
-	d Screen,
+	d Buffer,
 	data string,
 	method Method,
 	rect Rectangle,
@@ -54,7 +54,7 @@ func setContent(
 			}
 			fallthrough
 		case 1:
-			if x >= rect.X()+rect.Width() || y >= rect.Y()+rect.Height() {
+			if x+width >= rect.X()+rect.Width() || y >= rect.Y()+rect.Height() {
 				break
 			}
 
@@ -63,11 +63,11 @@ func setContent(
 			cell.Style = pen
 			cell.Link = link
 
-			d.Draw(x, y, cell) //nolint:errcheck
+			d.SetCell(x, y, &cell) //nolint:errcheck
 
 			// Advance the cursor and line width
 			x += cell.Width
-			if cell.Equal(spaceCell) {
+			if cell.Equal(&spaceCell) {
 				pendingWidth += cell.Width
 			} else if y := y - rect.Y(); y < len(linew) {
 				linew[y] += cell.Width + pendingWidth
@@ -91,7 +91,7 @@ func setContent(
 			case ansi.Equal(seq, "\n"):
 				// Reset the rest of the line
 				for x < rect.X()+rect.Width() {
-					d.Draw(x, y, spaceCell) //nolint:errcheck
+					d.SetCell(x, y, nil) //nolint:errcheck
 					x++
 				}
 
@@ -109,7 +109,7 @@ func setContent(
 	}
 
 	for x < rect.X()+rect.Width() {
-		d.Draw(x, y, spaceCell) //nolint:errcheck
+		d.SetCell(x, y, nil) //nolint:errcheck
 		x++
 	}
 
