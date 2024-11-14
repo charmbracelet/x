@@ -21,6 +21,6 @@ func GetParser() *Parser {
 // automatically.
 func PutParser(p *Parser) {
 	p.Reset()
-	p.DataLen = 0
+	p.dataLen = 0
 	parserPool.Put(p)
 }

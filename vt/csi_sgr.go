@@ -9,15 +9,15 @@ import (
 // handleSgr handles SGR escape sequences.
 // handleSgr handles Select Graphic Rendition (SGR) escape sequences.
 func (t *Terminal) handleSgr() {
-	p, pen := t.parser, &t.scr.cur.Pen
-	if p.ParamsLen == 0 {
+	pen := &t.scr.cur.Pen
+	params := t.parser.Params()
+	if len(params) == 0 {
 		pen.Reset()
 		return
 	}
 
-	params := p.Params[:p.ParamsLen]
 	for i := 0; i < len(params); i++ {
-		r := ansi.Parameter(params[i])
+		r := params[i]
 		param, hasMore := r.Param(0), r.HasMore() // Are there more subparameters i.e. separated by ":"?
 		switch param {
 		case 0: // Reset
@@ -30,7 +30,7 @@ func (t *Terminal) handleSgr() {
 			pen.Italic(true)
 		case 4: // Underline
 			if hasMore { // Only accept subparameters i.e. separated by ":"
-				nextParam := ansi.Parameter(params[i+1]).Param(0)
+				nextParam := params[i+1].Param(0)
 				switch nextParam {
 				case 0: // No Underline
 					pen.UnderlineStyle(NoUnderline)
@@ -107,22 +107,22 @@ func (t *Terminal) handleSgr() {
 	}
 }
 
-func (t *Terminal) readColor(idxp *int, params []int) (c ansi.Color) {
+func (t *Terminal) readColor(idxp *int, params []ansi.Parameter) (c ansi.Color) {
 	i := *idxp
 	paramsLen := len(params)
 	if i > paramsLen-1 {
 		return
 	}
 	// Note: we accept both main and subparams here
-	switch param := ansi.Parameter(params[i+1]).Param(0); param {
+	switch param := params[i+1].Param(0); param {
 	case 2: // RGB
 		if i > paramsLen-4 {
 			return
 		}
 		c = color.RGBA{
-			R: uint8(ansi.Parameter(params[i+2]).Param(0)), //nolint:gosec
-			G: uint8(ansi.Parameter(params[i+3]).Param(0)), //nolint:gosec
-			B: uint8(ansi.Parameter(params[i+4]).Param(0)), //nolint:gosec
+			R: uint8(params[i+2].Param(0)), //nolint:gosec
+			G: uint8(params[i+3].Param(0)), //nolint:gosec
+			B: uint8(params[i+4].Param(0)), //nolint:gosec
 			A: 0xff,
 		}
 		*idxp += 4
@@ -130,7 +130,7 @@ func (t *Terminal) readColor(idxp *int, params []int) (c ansi.Color) {
 		if i > paramsLen-2 {
 			return
 		}
-		c = t.IndexedColor(ansi.Parameter(params[i+2]).Param(0))
+		c = t.IndexedColor(params[i+2].Param(0))
 		*idxp += 2
 	}
 	return

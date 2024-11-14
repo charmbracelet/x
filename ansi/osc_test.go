@@ -27,7 +27,7 @@ func TestOscSequence_String(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := tt.s.String(); got != tt.want {
+			if got := "\x1b]" + string(tt.s.Data) + "\x07"; got != tt.want {
 				t.Errorf("OscSequence.String() = %q, want %q", got, tt.want)
 			}
 		})

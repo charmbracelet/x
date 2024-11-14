@@ -54,7 +54,7 @@ func TestControlSequence(t *testing.T) {
 		// 	input: "\x1b[1;2;3mabc\x1b\x1bP",
 		// 	expected: []Sequence{
 		// 		CsiSequence{
-		// 			Params: []int{1, 2, 3},
+		// 			Params: []Parameter{1, 2, 3},
 		// 			Cmd:    'm',
 		// 		},
 		// 		Rune('a'),
@@ -76,7 +76,7 @@ func TestControlSequence(t *testing.T) {
 				Rune(','),
 				Rune(' '),
 				CsiSequence{
-					Params: []int{31},
+					Params: []Parameter{31},
 					Cmd:    'm',
 				},
 				Rune('W'),
@@ -86,7 +86,7 @@ func TestControlSequence(t *testing.T) {
 				Rune('d'),
 				Rune('!'),
 				CsiSequence{
-					Params: []int{0},
+					Params: []Parameter{0},
 					Cmd:    'm',
 				},
 			},

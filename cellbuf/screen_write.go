@@ -78,13 +78,13 @@ func setContent(
 		default:
 			// Valid sequences always have a non-zero Cmd.
 			switch {
-			case ansi.HasCsiPrefix(seq) && p.Cmd != 0:
-				switch p.Cmd {
+			case ansi.HasCsiPrefix(seq) && p.Cmd() != 0:
+				switch p.Cmd() {
 				case 'm': // SGR - Select Graphic Rendition
 					handleSgr(p, &pen)
 				}
-			case ansi.HasOscPrefix(seq) && p.Cmd != 0:
-				switch p.Cmd {
+			case ansi.HasOscPrefix(seq) && p.Cmd() != 0:
+				switch p.Cmd() {
 				case 8: // Hyperlinks
 					handleHyperlinks(p, &link)
 				}
@@ -118,12 +118,12 @@ func setContent(
 
 // handleSgr handles Select Graphic Rendition (SGR) escape sequences.
 func handleSgr(p *ansi.Parser, pen *Style) {
-	if p.ParamsLen == 0 {
+	if p.ParamsLen() == 0 {
 		pen.Reset()
 		return
 	}
 
-	params := p.Params[:p.ParamsLen]
+	params := p.Params()
 	for i := 0; i < len(params); i++ {
 		r := ansi.Parameter(params[i])
 		param, hasMore := r.Param(0), r.HasMore() // Are there more subparameters i.e. separated by ":"?
@@ -138,7 +138,7 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 			pen.Italic(true)
 		case 4: // Underline
 			if hasMore { // Only accept subparameters i.e. separated by ":"
-				nextParam := ansi.Parameter(params[i+1]).Param(0)
+				nextParam := params[i+1].Param(0)
 				switch nextParam {
 				case 0: // No Underline
 					pen.UnderlineStyle(vt.NoUnderline)
@@ -213,7 +213,7 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 
 // handleHyperlinks handles hyperlink escape sequences.
 func handleHyperlinks(p *ansi.Parser, link *Link) {
-	params := bytes.Split(p.Data[:p.DataLen], []byte{';'})
+	params := bytes.Split(p.Data(), []byte{';'})
 	if len(params) != 3 {
 		return
 	}

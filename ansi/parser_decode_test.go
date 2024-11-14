@@ -313,9 +313,9 @@ func TestDecodeSequence(t *testing.T) {
 			results := make([]expectedSequence, 0)
 			for len(input) > 0 {
 				seq, width, n, newState := DecodeSequence(input, state, p)
-				params := append([]int(nil), p.Params[:p.ParamsLen]...)
-				data := append([]byte(nil), p.Data[:p.DataLen]...)
-				results = append(results, expectedSequence{seq: seq, width: width, n: n, params: params, data: data, cmd: p.Cmd})
+				params := append([]int(nil), p.params[:p.paramsLen]...)
+				data := append([]byte(nil), p.data[:p.dataLen]...)
+				results = append(results, expectedSequence{seq: seq, width: width, n: n, params: params, data: data, cmd: p.cmd})
 				state = newState
 				input = input[n:]
 			}

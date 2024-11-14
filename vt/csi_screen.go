@@ -1,30 +1,21 @@
 package vt
 
-import (
-	"github.com/charmbracelet/x/ansi"
-)
-
 func (t *Terminal) handleScreen() {
-	var count int
-	if t.parser.ParamsLen > 0 {
-		count = ansi.Parameter(t.parser.Params[0]).Param(0)
-	}
-
-	w, h := t.Width(), t.Height()
+	width, height := t.Width(), t.Height()
 	_, y := t.scr.CursorPosition()
 
-	cmd := ansi.Command(t.parser.Cmd)
-	switch cmd.Command() {
+	switch t.parser.Cmd() {
 	case 'J':
+		count, _ := t.parser.Param(0, 0)
 		switch count {
 		case 0: // Erase screen below (including cursor)
-			rect := Rect(0, y, w, h-y)
+			rect := Rect(0, y, width, height-y)
 			t.scr.Fill(t.scr.blankCell(), rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
 			}
 		case 1: // Erase screen above (including cursor)
-			rect := Rect(0, 0, w, y+1)
+			rect := Rect(0, 0, width, y+1)
 			t.scr.Fill(t.scr.blankCell(), rect)
 			if t.Damage != nil {
 				t.Damage(RectDamage(rect))
@@ -35,29 +26,17 @@ func (t *Terminal) handleScreen() {
 			// TODO: Scrollback buffer support?
 			t.scr.Clear()
 			if t.Damage != nil {
-				t.Damage(ScreenDamage{w, h})
+				t.Damage(ScreenDamage{width, height})
 			}
 		}
 	case 'L': // IL - Insert Line
-		n := 1
-		if t.parser.ParamsLen > 0 {
-			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
-				n = param
-			}
-		}
-
+		n, _ := t.parser.Param(0, 1)
 		t.scr.InsertLine(n)
 		// Move the cursor to the left margin.
 		t.scr.setCursorX(0, true)
 
 	case 'M': // DL - Delete Line
-		n := 1
-		if t.parser.ParamsLen > 0 {
-			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
-				n = param
-			}
-		}
-
+		n, _ := t.parser.Param(0, 1)
 		t.scr.DeleteLine(n)
 		// Move the cursor to the left margin.
 		t.scr.setCursorX(0, true)
@@ -65,32 +44,20 @@ func (t *Terminal) handleScreen() {
 	case 'X':
 		// ECH - Erase Character
 		// It clears character attributes as well but not colors.
-		n := 1
-		if t.parser.ParamsLen > 0 {
-			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
-				n = param
-			}
-		}
+		n, _ := t.parser.Param(0, 1)
 		t.eraseCharacter(n)
 
 	case 'r': // DECSTBM - Set Top and Bottom Margins
-		if t.parser.ParamsLen == 2 {
-			top := ansi.Parameter(t.parser.Params[0]).Param(1)
-			bottom := ansi.Parameter(t.parser.Params[1]).Param(t.Height())
-			if top > bottom {
-				top, bottom = bottom, top
-			}
-
-			// Rect is [x, y) which means y is exclusive. So the top margin
-			// is the top of the screen minus one.
-			t.scr.scroll.Min.Y = top - 1
-			t.scr.scroll.Max.Y = bottom
-		} else {
-			// Rect is [x, y) which means y is exclusive. So the bottom margin
-			// is the height of the screen.
-			t.scr.scroll.Min.Y = 0
-			t.scr.scroll.Max.Y = t.Height()
+		top, _ := t.parser.Param(0, 1)
+		bottom, _ := t.parser.Param(1, height)
+		if top >= bottom {
+			break
 		}
+
+		// Rect is [x, y) which means y is exclusive. So the top margin
+		// is the top of the screen minus one.
+		t.scr.scroll.Min.Y = top - 1
+		t.scr.scroll.Max.Y = bottom
 
 		// Move the cursor to the top-left of the screen or scroll region
 		// depending on [ansi.DECOM].
@@ -99,16 +66,11 @@ func (t *Terminal) handleScreen() {
 }
 
 func (t *Terminal) handleLine() {
-	var count int
-	if t.parser.ParamsLen > 0 {
-		count = ansi.Parameter(t.parser.Params[0]).Param(0)
-	}
-
-	cmd := ansi.Command(t.parser.Cmd)
-	switch cmd.Command() {
+	switch t.parser.Cmd() {
 	case 'K': // EL - Erase in Line
 		// NOTE: Erase Line (EL) erases all character attributes but not cell
 		// bg color.
+		count, _ := t.parser.Param(0, 0)
 		x, y := t.scr.CursorPosition()
 		w := t.scr.Width()
 
@@ -132,22 +94,10 @@ func (t *Terminal) handleLine() {
 			}
 		}
 	case 'S': // SU - Scroll Up
-		n := 1
-		if t.parser.ParamsLen > 0 {
-			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
-				n = param
-			}
-		}
-
+		n, _ := t.parser.Param(0, 1)
 		t.scr.ScrollUp(n)
 	case 'T': // SD - Scroll Down
-		n := 1
-		if t.parser.ParamsLen > 0 {
-			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
-				n = param
-			}
-		}
-
+		n, _ := t.parser.Param(0, 1)
 		t.scr.ScrollDown(n)
 	}
 }

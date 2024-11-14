@@ -5,18 +5,14 @@ import (
 )
 
 func (t *Terminal) handleCursor() {
-	p := t.parser
 	width, height := t.Width(), t.Height()
-	cmd := ansi.Command(p.Cmd)
 	n := 1
-	if p.ParamsLen > 0 {
-		if param := ansi.Parameter(p.Params[0]).Param(1); param > 0 {
-			n = param
-		}
+	if param, ok := t.parser.Param(0, 1); ok {
+		n = param
 	}
 
 	x, y := t.scr.CursorPosition()
-	switch cmd.Command() {
+	switch t.parser.Cmd() {
 	case 'A':
 		// Cursor Up [ansi.CUU]
 		t.scr.moveCursor(0, -n)
@@ -42,13 +38,10 @@ func (t *Terminal) handleCursor() {
 		t.scr.setCursor(min(width-1, n-1), y, false)
 	case 'H':
 		// Cursor Position [ansi.CUP]
-		if p.ParamsLen >= 2 {
-			row, col := ansi.Parameter(p.Params[0]).Param(1), ansi.Parameter(p.Params[1]).Param(1)
-			y = min(height-1, row-1)
-			x = min(width-1, col-1)
-		} else {
-			x, y = 0, 0
-		}
+		row, _ := t.parser.Param(0, 1)
+		col, _ := t.parser.Param(1, 1)
+		y = min(height-1, row-1)
+		x = min(width-1, col-1)
 		t.setCursorPosition(x, y)
 	case 'I':
 		// Cursor Horizontal Tabulation [ansi.CHT]
@@ -72,13 +65,10 @@ func (t *Terminal) handleCursor() {
 		t.setCursorPosition(x, min(height-1, y+n))
 	case 'f':
 		// Horizontal and Vertical Position [ansi.HVP]
-		if p.ParamsLen >= 2 {
-			row, col := ansi.Parameter(p.Params[0]).Param(1), ansi.Parameter(p.Params[1]).Param(1)
-			y = min(height-1, row-1)
-			x = min(width-1, col-1)
-		} else {
-			x, y = 0, 0
-		}
+		row, _ := t.parser.Param(0, 1)
+		col, _ := t.parser.Param(1, 1)
+		y = min(height-1, row-1)
+		x = min(width-1, col-1)
 		t.scr.setCursor(x, y, false)
 	case 'd':
 		// Vertical Position Absolute [ansi.VPA]
@@ -89,7 +79,7 @@ func (t *Terminal) handleCursor() {
 // setCursorPosition sets the cursor position. This respects [ansi.DECOM],
 // Origin Mode. This performs the same function as [ansi.CUP].
 func (t *Terminal) setCursorPosition(x, y int) {
-	mode, ok := t.pmodes[ansi.DECOM]
+	mode, ok := t.modes[ansi.DECOM]
 	margins := ok && mode.IsSet()
 	t.scr.setCursor(x, y, margins)
 }
@@ -100,7 +90,7 @@ func (t *Terminal) setCursorPosition(x, y int) {
 // Otherwise, the cursor is set to the leftmost column of the screen.
 // This performs the same function as [ansi.CR].
 func (t *Terminal) carriageReturn() {
-	mode, ok := t.pmodes[ansi.DECOM]
+	mode, ok := t.modes[ansi.DECOM]
 	margins := ok && mode.IsSet()
 	x, y := t.scr.CursorPosition()
 	if margins {

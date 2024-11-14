@@ -6,9 +6,8 @@ import (
 )
 
 // handleCsi handles a CSI escape sequences.
-func (t *Terminal) handleCsi(seq ansi.Sequence) {
-	cmd := t.parser.Cmd
-	switch cmd { // cursor
+func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
+	switch t.parser.Cmd() { // cursor
 	case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'a', 'd', 'e', 'f', '`':
 		t.handleCursor()
 	case 'm': // SGR - Select Graphic Rendition
@@ -19,24 +18,24 @@ func (t *Terminal) handleCsi(seq ansi.Sequence) {
 		t.handleLine()
 	case 'l', 'h', 'l' | '?'<<parser.MarkerShift, 'h' | '?'<<parser.MarkerShift:
 		t.handleMode()
-	case 'W' | '?'<<parser.MarkerShift: // DECST8C - Set Tab at Every 8 Columns
-		if t.parser.ParamsLen == 1 && t.parser.Params[0] == 5 {
+	case ansi.Cmd('?', 0, 'W'): // DECST8C - Set Tab at Every 8 Columns
+		if params := t.parser.Params(); len(params) == 1 && params[0] == 5 {
 			t.resetTabStops()
 		}
-	case 'q' | ' '<<parser.IntermedShift: // DECSCUSR - Set Cursor Style
+	case ansi.Cmd(0, ' ', 'q'): // DECSCUSR - Set Cursor Style
 		style := 1
-		if t.parser.ParamsLen > 0 {
-			style = ansi.Parameter(t.parser.Params[0]).Param(0)
+		if param, ok := t.parser.Param(0, 0); ok {
+			style = param
 		}
 		t.scr.cur.Style = CursorStyle((style / 2) + 1)
 		t.scr.cur.Steady = style%2 != 1
 	case 'g': // TBC - Tab Clear
-		var param int
-		if t.parser.ParamsLen > 0 {
-			param = ansi.Parameter(t.parser.Params[0]).Param(0)
+		var value int
+		if param, ok := t.parser.Param(0, 0); ok {
+			value = param
 		}
 
-		switch param {
+		switch value {
 		case 0:
 			t.tabstops.Reset(t.scr.cur.X)
 		case 3:
@@ -44,19 +43,15 @@ func (t *Terminal) handleCsi(seq ansi.Sequence) {
 		}
 	case '@': // ICH - Insert Character
 		n := 1
-		if t.parser.ParamsLen > 0 {
-			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
-				n = param
-			}
+		if param, ok := t.parser.Param(0, 1); ok {
+			n = param
 		}
 
 		t.scr.InsertCell(n)
 	case 'P': // DCH - Delete Character
 		n := 1
-		if t.parser.ParamsLen > 0 {
-			if param := ansi.Parameter(t.parser.Params[0]).Param(1); param > 0 {
-				n = param
-			}
+		if param, ok := t.parser.Param(0, 1); ok {
+			n = param
 		}
 
 		t.scr.DeleteCell(n)

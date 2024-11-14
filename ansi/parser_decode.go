@@ -76,39 +76,39 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			switch c {
 			case ESC:
 				if p != nil {
-					if len(p.Params) > 0 {
-						p.Params[0] = parser.MissingParam
+					if len(p.params) > 0 {
+						p.params[0] = parser.MissingParam
 					}
-					p.Cmd = 0
-					p.ParamsLen = 0
-					p.DataLen = 0
+					p.cmd = 0
+					p.paramsLen = 0
+					p.dataLen = 0
 				}
 				state = EscapeState
 				continue
 			case CSI, DCS:
 				if p != nil {
-					if len(p.Params) > 0 {
-						p.Params[0] = parser.MissingParam
+					if len(p.params) > 0 {
+						p.params[0] = parser.MissingParam
 					}
-					p.Cmd = 0
-					p.ParamsLen = 0
-					p.DataLen = 0
+					p.cmd = 0
+					p.paramsLen = 0
+					p.dataLen = 0
 				}
 				state = MarkerState
 				continue
 			case OSC, APC, SOS, PM:
 				if p != nil {
-					p.Cmd = parser.MissingCommand
-					p.DataLen = 0
+					p.cmd = parser.MissingCommand
+					p.dataLen = 0
 				}
 				state = StringState
 				continue
 			}
 
 			if p != nil {
-				p.DataLen = 0
-				p.ParamsLen = 0
-				p.Cmd = 0
+				p.dataLen = 0
+				p.paramsLen = 0
+				p.cmd = 0
 			}
 			if c > US && c < DEL {
 				// ASCII printable characters
@@ -132,8 +132,8 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			if c >= '<' && c <= '?' {
 				if p != nil {
 					// We only collect the last marker character.
-					p.Cmd &^= 0xff << parser.MarkerShift
-					p.Cmd |= int(c) << parser.MarkerShift
+					p.cmd &^= 0xff << parser.MarkerShift
+					p.cmd |= int(c) << parser.MarkerShift
 				}
 				break
 			}
@@ -143,27 +143,27 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 		case ParamsState:
 			if c >= '0' && c <= '9' {
 				if p != nil {
-					if p.Params[p.ParamsLen] == parser.MissingParam {
-						p.Params[p.ParamsLen] = 0
+					if p.params[p.paramsLen] == parser.MissingParam {
+						p.params[p.paramsLen] = 0
 					}
 
-					p.Params[p.ParamsLen] *= 10
-					p.Params[p.ParamsLen] += int(c - '0')
+					p.params[p.paramsLen] *= 10
+					p.params[p.paramsLen] += int(c - '0')
 				}
 				break
 			}
 
 			if c == ':' {
 				if p != nil {
-					p.Params[p.ParamsLen] |= parser.HasMoreFlag
+					p.params[p.paramsLen] |= parser.HasMoreFlag
 				}
 			}
 
 			if c == ';' || c == ':' {
 				if p != nil {
-					p.ParamsLen++
-					if p.ParamsLen < len(p.Params) {
-						p.Params[p.ParamsLen] = parser.MissingParam
+					p.paramsLen++
+					if p.paramsLen < len(p.params) {
+						p.params[p.paramsLen] = parser.MissingParam
 					}
 				}
 				break
@@ -174,8 +174,8 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 		case IntermedState:
 			if c >= ' ' && c <= '/' {
 				if p != nil {
-					p.Cmd &^= 0xff << parser.IntermedShift
-					p.Cmd |= int(c) << parser.IntermedShift
+					p.cmd &^= 0xff << parser.IntermedShift
+					p.cmd |= int(c) << parser.IntermedShift
 				}
 				break
 			}
@@ -183,19 +183,19 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			if c >= '@' && c <= '~' {
 				if p != nil {
 					// Increment the last parameter
-					if p.ParamsLen > 0 && p.ParamsLen < len(p.Params)-1 ||
-						p.ParamsLen == 0 && len(p.Params) > 0 && p.Params[0] != parser.MissingParam {
-						p.ParamsLen++
+					if p.paramsLen > 0 && p.paramsLen < len(p.params)-1 ||
+						p.paramsLen == 0 && len(p.params) > 0 && p.params[0] != parser.MissingParam {
+						p.paramsLen++
 					}
 
-					p.Cmd &^= 0xff
-					p.Cmd |= int(c)
+					p.cmd &^= 0xff
+					p.cmd |= int(c)
 				}
 
 				if HasDcsPrefix(b) {
 					// Continue to collect DCS data
 					if p != nil {
-						p.DataLen = 0
+						p.dataLen = 0
 					}
 					state = StringState
 					continue
@@ -210,18 +210,18 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 			switch c {
 			case '[', 'P':
 				if p != nil {
-					if len(p.Params) > 0 {
-						p.Params[0] = parser.MissingParam
+					if len(p.params) > 0 {
+						p.params[0] = parser.MissingParam
 					}
-					p.ParamsLen = 0
-					p.Cmd = 0
+					p.paramsLen = 0
+					p.cmd = 0
 				}
 				state = MarkerState
 				continue
 			case ']', 'X', '^', '_':
 				if p != nil {
-					p.Cmd = parser.MissingCommand
-					p.DataLen = 0
+					p.cmd = parser.MissingCommand
+					p.dataLen = 0
 				}
 				state = StringState
 				continue
@@ -229,14 +229,14 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 
 			if c >= ' ' && c <= '/' {
 				if p != nil {
-					p.Cmd &^= 0xff << parser.IntermedShift
-					p.Cmd |= int(c) << parser.IntermedShift
+					p.cmd &^= 0xff << parser.IntermedShift
+					p.cmd |= int(c) << parser.IntermedShift
 				}
 				continue
 			} else if c >= '0' && c <= '~' {
 				if p != nil {
-					p.Cmd &^= 0xff
-					p.Cmd |= int(c)
+					p.cmd &^= 0xff
+					p.cmd |= int(c)
 				}
 				return b[:i+1], 0, i + 1, NormalState
 			}
@@ -280,9 +280,9 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 				return b[:i], 0, i, NormalState
 			}
 
-			if p != nil && p.DataLen < len(p.Data) {
-				p.Data[p.DataLen] = c
-				p.DataLen++
+			if p != nil && p.dataLen < len(p.data) {
+				p.data[p.dataLen] = c
+				p.dataLen++
 
 				// Parse the OSC command number
 				if c == ';' && HasOscPrefix(b) {
@@ -296,19 +296,19 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 }
 
 func parseOscCmd(p *Parser) {
-	if p == nil || p.Cmd != parser.MissingCommand {
+	if p == nil || p.cmd != parser.MissingCommand {
 		return
 	}
-	for j := 0; j < p.DataLen; j++ {
-		d := p.Data[j]
+	for j := 0; j < p.dataLen; j++ {
+		d := p.data[j]
 		if d < '0' || d > '9' {
 			break
 		}
-		if p.Cmd == parser.MissingCommand {
-			p.Cmd = 0
+		if p.cmd == parser.MissingCommand {
+			p.cmd = 0
 		}
-		p.Cmd *= 10
-		p.Cmd += int(d - '0')
+		p.cmd *= 10
+		p.cmd += int(d - '0')
 	}
 }
 
@@ -406,7 +406,7 @@ func FirstGraphemeCluster[T string | []byte](b T, state int) (T, T, int, int) {
 // found in CSI and DCS sequences.
 type Command int
 
-// Marker returns the marker byte of the CSI sequence.
+// Marker returns the unpacked marker byte of the CSI sequence.
 // This is always gonna be one of the following '<' '=' '>' '?' and in the
 // range of 0x3C-0x3F.
 // Zero is returned if the sequence does not have a marker.
@@ -414,7 +414,7 @@ func (c Command) Marker() int {
 	return parser.Marker(int(c))
 }
 
-// Intermediate returns the intermediate byte of the CSI sequence.
+// Intermediate returns the unpacked intermediate byte of the CSI sequence.
 // An intermediate byte is in the range of 0x20-0x2F. This includes these
 // characters from ' ', '!', '"', '#', '$', '%', '&', ”', '(', ')', '*', '+',
 // ',', '-', '.', '/'.
@@ -423,7 +423,7 @@ func (c Command) Intermediate() int {
 	return parser.Intermediate(int(c))
 }
 
-// Command returns the command byte of the CSI sequence.
+// Command returns the unpacked command byte of the CSI sequence.
 func (c Command) Command() int {
 	return parser.Command(int(c))
 }
@@ -447,7 +447,7 @@ func Cmd(marker, inter, cmd int) (c Command) {
 // the parameters from a CSI and DCS sequences.
 type Parameter int
 
-// Param returns the parameter at the given index.
+// Param returns the unpacked parameter at the given index.
 // It returns the default value if the parameter is missing.
 func (s Parameter) Param(def int) int {
 	p := int(s) & parser.ParamMask
@@ -457,9 +457,9 @@ func (s Parameter) Param(def int) int {
 	return p
 }
 
-// HasMore returns true if the parameter has more sub-parameters.
+// HasMore unpacks the HasMoreFlag from the parameter.
 func (s Parameter) HasMore() bool {
-	return int(s)&parser.HasMoreFlag != 0
+	return s&parser.HasMoreFlag != 0
 }
 
 // Param returns a packed [Parameter] with the given parameter and whether this

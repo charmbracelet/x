@@ -28,8 +28,7 @@ type Terminal struct {
 	tabstops TabStops
 
 	// Terminal modes.
-	modes  map[ansi.ANSIMode]ModeSetting
-	pmodes map[ansi.DECMode]ModeSetting
+	modes map[ansi.Mode]ModeSetting
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
@@ -66,8 +65,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.scrs[1] = *NewScreen(w, h)
 	t.scr = &t.scrs[0]
 	t.parser = ansi.NewParser(parser.MaxParamsSize, 1024*1024*4) // 4MB data buffer
-	t.modes = map[ansi.ANSIMode]ModeSetting{}
-	t.pmodes = map[ansi.DECMode]ModeSetting{
+	t.modes = map[ansi.Mode]ModeSetting{
 		// These modes are set by default.
 		ansi.AutowrapMode:     ModeSet,
 		ansi.CursorEnableMode: ModeSet,
@@ -94,8 +92,8 @@ func (t *Terminal) AltScreen() *Screen {
 	return &t.scrs[1]
 }
 
-// Cell returns the current focused screen cell at the given x, y position. It
-// returns nil if the cell is out of bounds.
+// Cell returns the current focused screen cell at the given x, y position. It returns nil if the cell
+// is out of bounds.
 func (t *Terminal) Cell(x, y int) *Cell {
 	return t.scr.Cell(x, y)
 }

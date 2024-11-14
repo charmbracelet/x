@@ -119,8 +119,8 @@ func TestOscSequence(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
 			parser := testParser(dispatcher)
-			parser.Data = make([]byte, maxBufferSize)
-			parser.DataLen = maxBufferSize
+			parser.data = make([]byte, maxBufferSize)
+			parser.dataLen = maxBufferSize
 			parser.Parse(dispatcher.Dispatch, []byte(c.input))
 			assertEqual(t, len(c.expected), len(dispatcher.dispatched))
 			assertEqual(t, c.expected, dispatcher.dispatched)

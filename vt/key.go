@@ -27,17 +27,8 @@ type Key struct {
 func (t *Terminal) SendKey(k Key) {
 	var seq string
 
-	var (
-		ack bool // Application cursor keys mode
-		akk bool // Application keypad keys mode
-	)
-
-	if mode, ok := t.pmodes[ansi.CursorKeysMode]; ok && mode.IsSet() {
-		ack = true
-	}
-	if mode, ok := t.pmodes[ansi.NumericKeypadMode]; ok && mode.IsSet() {
-		akk = true
-	}
+	ack := t.isModeSet(ansi.CursorKeysMode)    // Application cursor keys mode
+	akk := t.isModeSet(ansi.NumericKeypadMode) // Application keypad keys mode
 
 	switch k {
 	// Control keys

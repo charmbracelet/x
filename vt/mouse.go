@@ -103,7 +103,7 @@ func (t *Terminal) SendMouse(m Mouse) {
 		ansi.ButtonEventMouseMode, // Button press/release/cell motion
 		ansi.AnyEventMouseMode,    // Button press/release/all motion
 	} {
-		if mm, ok := t.pmodes[m]; ok && mm.IsSet() {
+		if t.isModeSet(m) {
 			mode = m
 		}
 	}
@@ -118,7 +118,7 @@ func (t *Terminal) SendMouse(m Mouse) {
 		ansi.UrxvtExtMouseMode,
 		ansi.SgrPixelExtMouseMode,
 	} {
-		if me, ok := t.pmodes[e]; ok && me.IsSet() {
+		if t.isModeSet(e) {
 			enc = e
 		}
 	}

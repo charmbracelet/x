@@ -1,19 +1,20 @@
 package ansi
 
-import (
-	"bytes"
-
-	"github.com/charmbracelet/x/ansi/parser"
-)
-
 // Sequence represents an ANSI sequence. This can be a control sequence, escape
 // sequence, a printable character, etc.
+// A Sequence can be one of the following types:
+//   - [Rune]
+//   - [ControlCode]
+//   - [Grapheme]
+//   - [EscSequence]
+//   - [CsiSequence]
+//   - [OscSequence]
+//   - [DcsSequence]
+//   - [SosSequence]
+//   - [PmSequence]
+//   - [ApcSequence]
 type Sequence interface {
-	// String returns the string representation of the sequence.
-	String() string
-	// Bytes returns the byte representation of the sequence.
-	Bytes() []byte
-	// Clone returns a copy of the sequence.
+	// Clone returns a deep copy of the sequence.
 	Clone() Sequence
 }
 
@@ -22,17 +23,7 @@ type Rune rune
 
 var _ Sequence = Rune(0)
 
-// Bytes implements Sequence.
-func (r Rune) Bytes() []byte {
-	return []byte(string(r))
-}
-
-// String implements Sequence.
-func (r Rune) String() string {
-	return string(r)
-}
-
-// Clone implements Sequence.
+// Clone returns a deep copy of the rune.
 func (r Rune) Clone() Sequence {
 	return r
 }
@@ -43,17 +34,9 @@ type Grapheme struct {
 	Width   int
 }
 
-// Bytes implements Sequence.
-func (g Grapheme) Bytes() []byte {
-	return []byte(g.Cluster)
-}
+var _ Sequence = Grapheme{}
 
-// String implements Sequence.
-func (g Grapheme) String() string {
-	return g.Cluster
-}
-
-// Clone implements Sequence.
+// Clone returns a deep copy of the grapheme.
 func (g Grapheme) Clone() Sequence {
 	return g
 }
@@ -65,48 +48,17 @@ type ControlCode byte
 
 var _ Sequence = ControlCode(0)
 
-// Bytes implements Sequence.
-func (c ControlCode) Bytes() []byte {
-	return []byte{byte(c)}
-}
-
-// String implements Sequence.
-func (c ControlCode) String() string {
-	return string(c)
-}
-
-// Clone implements Sequence.
+// Clone returns a deep copy of the control code.
 func (c ControlCode) Clone() Sequence {
 	return c
 }
 
 // EscSequence represents an escape sequence.
-type EscSequence int
+type EscSequence Command
 
 var _ Sequence = EscSequence(0)
 
-// buffer returns the buffer of the escape sequence.
-func (e EscSequence) buffer() *bytes.Buffer {
-	var b bytes.Buffer
-	b.WriteByte('\x1b')
-	if i := parser.Intermediate(int(e)); i != 0 {
-		b.WriteByte(byte(i))
-	}
-	b.WriteByte(byte(e.Command()))
-	return &b
-}
-
-// Bytes implements Sequence.
-func (e EscSequence) Bytes() []byte {
-	return e.buffer().Bytes()
-}
-
-// String implements Sequence.
-func (e EscSequence) String() string {
-	return e.buffer().String()
-}
-
-// Clone implements Sequence.
+// Clone returns a deep copy of the escape sequence.
 func (e EscSequence) Clone() Sequence {
 	return e
 }
@@ -127,30 +79,13 @@ type SosSequence struct {
 	Data []byte
 }
 
-var _ Sequence = &SosSequence{}
+var _ Sequence = SosSequence{}
 
-// Clone implements Sequence.
+// Clone returns a deep copy of the SOS sequence.
 func (s SosSequence) Clone() Sequence {
-	return SosSequence{Data: append([]byte(nil), s.Data...)}
-}
-
-// Bytes implements Sequence.
-func (s SosSequence) Bytes() []byte {
-	return s.buffer().Bytes()
-}
-
-// String implements Sequence.
-func (s SosSequence) String() string {
-	return s.buffer().String()
-}
-
-func (s SosSequence) buffer() *bytes.Buffer {
-	var b bytes.Buffer
-	b.WriteByte('\x1b')
-	b.WriteByte('X')
-	b.Write(s.Data)
-	b.WriteString("\x1b\\")
-	return &b
+	return SosSequence{
+		Data: append([]byte(nil), s.Data...),
+	}
 }
 
 // PmSequence represents a PM sequence.
@@ -159,31 +94,13 @@ type PmSequence struct {
 	Data []byte
 }
 
-var _ Sequence = &PmSequence{}
+var _ Sequence = PmSequence{}
 
-// Clone implements Sequence.
-func (s PmSequence) Clone() Sequence {
-	return PmSequence{Data: append([]byte(nil), s.Data...)}
-}
-
-// Bytes implements Sequence.
-func (s PmSequence) Bytes() []byte {
-	return s.buffer().Bytes()
-}
-
-// String implements Sequence.
-func (s PmSequence) String() string {
-	return s.buffer().String()
-}
-
-// buffer returns the buffer of the PM sequence.
-func (s PmSequence) buffer() *bytes.Buffer {
-	var b bytes.Buffer
-	b.WriteByte('\x1b')
-	b.WriteByte('^')
-	b.Write(s.Data)
-	b.WriteString("\x1b\\")
-	return &b
+// Clone returns a deep copy of the PM sequence.
+func (p PmSequence) Clone() Sequence {
+	return PmSequence{
+		Data: append([]byte(nil), p.Data...),
+	}
 }
 
 // ApcSequence represents an APC sequence.
@@ -192,29 +109,11 @@ type ApcSequence struct {
 	Data []byte
 }
 
-var _ Sequence = &ApcSequence{}
+var _ Sequence = ApcSequence{}
 
-// Clone implements Sequence.
-func (s ApcSequence) Clone() Sequence {
-	return ApcSequence{Data: append([]byte(nil), s.Data...)}
-}
-
-// Bytes implements Sequence.
-func (s ApcSequence) Bytes() []byte {
-	return s.buffer().Bytes()
-}
-
-// String implements Sequence.
-func (s ApcSequence) String() string {
-	return s.buffer().String()
-}
-
-// buffer returns the buffer of the APC sequence.
-func (s ApcSequence) buffer() *bytes.Buffer {
-	var b bytes.Buffer
-	b.WriteByte('\x1b')
-	b.WriteByte('_')
-	b.Write(s.Data)
-	b.WriteString("\x1b\\")
-	return &b
+// Clone returns a deep copy of the APC sequence.
+func (a ApcSequence) Clone() Sequence {
+	return ApcSequence{
+		Data: append([]byte(nil), a.Data...),
+	}
 }

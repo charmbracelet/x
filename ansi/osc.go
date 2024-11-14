@@ -1,7 +1,6 @@
 package ansi
 
 import (
-	"bytes"
 	"strings"
 )
 
@@ -27,43 +26,22 @@ type OscSequence struct {
 
 var _ Sequence = OscSequence{}
 
-// Command returns the command of the OSC sequence.
-func (s OscSequence) Command() int {
-	return s.Cmd
-}
-
-// Params returns the parameters of the OSC sequence split by ';'.
-// The first element is the identifier command.
-func (s OscSequence) Params() []string {
-	return strings.Split(string(s.Data), ";")
-}
-
-// Clone returns a copy of the OSC sequence.
-func (s OscSequence) Clone() Sequence {
+// Clone returns a deep copy of the OSC sequence.
+func (o OscSequence) Clone() Sequence {
 	return OscSequence{
-		Data: append([]byte(nil), s.Data...),
-		Cmd:  s.Cmd,
+		Data: append([]byte(nil), o.Data...),
+		Cmd:  o.Cmd,
 	}
 }
 
-// String returns the string representation of the OSC sequence.
-// To be more compatible with different terminal, this will always return a
-// 7-bit formatted sequence, terminated by BEL.
-func (s OscSequence) String() string {
-	return s.buffer().String()
+// Split returns a slice of data split by the semicolon with the first element
+// being the identifier command.
+func (o OscSequence) Split() []string {
+	return strings.Split(string(o.Data), ";")
 }
 
-// Bytes returns the byte representation of the OSC sequence.
-// To be more compatible with different terminal, this will always return a
-// 7-bit formatted sequence, terminated by BEL.
-func (s OscSequence) Bytes() []byte {
-	return s.buffer().Bytes()
-}
-
-func (s OscSequence) buffer() *bytes.Buffer {
-	var b bytes.Buffer
-	b.WriteString("\x1b]")
-	b.Write(s.Data)
-	b.WriteByte(BEL)
-	return &b
+// Command returns the OSC command. This is always gonna be a positive integer
+// that identifies the OSC sequence.
+func (o OscSequence) Command() int {
+	return o.Cmd
 }

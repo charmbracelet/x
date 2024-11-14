@@ -13,10 +13,9 @@ import (
 
 // handleOsc handles an OSC escape sequence.
 func (t *Terminal) handleOsc(seq ansi.Sequence) {
-	cmd := t.parser.Cmd
-	switch cmd {
+	switch cmd := t.parser.Cmd(); cmd {
 	case 0, 1, 3, 10, 11, 12:
-		parts := bytes.Split(t.parser.Data[:t.parser.DataLen], []byte{';'})
+		parts := bytes.Split(t.parser.Data(), []byte{';'})
 		if len(parts) != 2 {
 			// Invalid, ignore
 			return
@@ -47,7 +46,7 @@ func (t *Terminal) handleOsc(seq ansi.Sequence) {
 						col = t.CursorColor()
 					}
 
-					t.buf.WriteString(encodeOscColor(cmd, col))
+					t.buf.WriteString(encodeOscColor(cmd.Command(), col))
 				} else {
 					col := xParseColor(string(parts[1]))
 					if col == nil {

@@ -17,7 +17,7 @@ func (t *Terminal) Blur() {
 }
 
 func (t *Terminal) focus(focus bool) {
-	if mode, ok := t.pmodes[ansi.FocusEventMode]; ok && mode.IsSet() {
+	if mode, ok := t.modes[ansi.FocusEventMode]; ok && mode.IsSet() {
 		if focus {
 			t.buf.WriteString(ansi.Focus)
 		} else {

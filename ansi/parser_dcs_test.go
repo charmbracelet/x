@@ -16,7 +16,7 @@ func TestDcsSequence(t *testing.T) {
 			expected: []Sequence{
 				DcsSequence{
 					Cmd:    'p',
-					Params: []int{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+					Params: []Parameter{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
 				},
 				EscSequence('\\'),
 			},
@@ -27,7 +27,7 @@ func TestDcsSequence(t *testing.T) {
 			expected: []Sequence{
 				DcsSequence{
 					Cmd:    't' | '$'<<parser.IntermedShift,
-					Params: []int{1},
+					Params: []Parameter{1},
 					Data:   []byte{'x'},
 				},
 			},
@@ -38,7 +38,7 @@ func TestDcsSequence(t *testing.T) {
 			expected: []Sequence{
 				DcsSequence{
 					Cmd:    '|',
-					Params: []int{0, 1},
+					Params: []Parameter{0, 1},
 					Data:   []byte("17/ab"),
 				},
 			},
@@ -49,7 +49,7 @@ func TestDcsSequence(t *testing.T) {
 			expected: []Sequence{
 				DcsSequence{
 					Cmd:    's' | '='<<parser.MarkerShift,
-					Params: []int{1},
+					Params: []Parameter{1},
 					Data:   []byte("ZZZ"),
 				},
 				EscSequence(0x5c | '+'<<parser.IntermedShift),

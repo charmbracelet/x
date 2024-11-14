@@ -21,3 +21,13 @@ func (m ModeSetting) IsSet() bool {
 func (m ModeSetting) IsReset() bool {
 	return m == ModeReset || m == ModePermanentlyReset
 }
+
+// IsPermanentlySet returns true if the mode is permanently set.
+func (m ModeSetting) IsPermanentlySet() bool {
+	return m == ModePermanentlySet
+}
+
+// IsPermanentlyReset returns true if the mode is permanently reset.
+func (m ModeSetting) IsPermanentlyReset() bool {
+	return m == ModePermanentlyReset
+}
