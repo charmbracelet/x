@@ -11,10 +11,10 @@ require (
 require (
 	github.com/aymanbagabas/go-udiff v0.2.0 // indirect
 	github.com/charmbracelet/colorprofile v0.1.7 // indirect
-	github.com/charmbracelet/x/ansi v0.4.6-0.20241110171603-a30b032a5ae2 // indirect
-	github.com/charmbracelet/x/cellbuf v0.0.6-0.20241110171603-a30b032a5ae2 // indirect
-	github.com/charmbracelet/x/term v0.2.0 // indirect
-	github.com/charmbracelet/x/wcwidth v0.0.0-20241011142426-46044092ad91 // indirect
+	github.com/charmbracelet/x/ansi v0.4.6-0.20241113201228-12f9eedf8aa6 // indirect
+	github.com/charmbracelet/x/cellbuf v0.0.6-0.20241113201228-12f9eedf8aa6 // indirect
+	github.com/charmbracelet/x/term v0.2.1 // indirect
+	github.com/charmbracelet/x/wcwidth v0.0.0-20241113152101-0af7d04e9f32 // indirect
 	github.com/charmbracelet/x/windows v0.2.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
