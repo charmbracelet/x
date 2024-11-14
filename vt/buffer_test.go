@@ -30,7 +30,7 @@ func TestBuffer_setCell(t *testing.T) {
 	if !b.SetCell(0, 0, NewCell('a')) {
 		t.Error("expected SetCell to return true")
 	}
-	if cell, ok := b.Cell(0, 0); !ok || cell.Content != "a" {
+	if cell := b.Cell(0, 0); cell == nil || cell.Content != "a" {
 		t.Errorf("expected cell at 0,0 to be 'a', got %v", cell)
 	}
 
@@ -38,10 +38,10 @@ func TestBuffer_setCell(t *testing.T) {
 	if !b.SetCell(1, 0, NewCell('👍')) {
 		t.Error("expected SetCell to return true")
 	}
-	if cell, ok := b.Cell(1, 0); !ok || cell.Content != "👍" || cell.Width != 2 {
+	if cell := b.Cell(1, 0); cell == nil || cell.Content != "👍" || cell.Width != 2 {
 		t.Errorf("expected cell at 1,0 to be '👍', got %v", cell)
 	}
-	if cell, ok := b.Cell(2, 0); !ok || cell.Content != "" || cell.Width != 0 {
+	if cell := b.Cell(2, 0); cell == nil || cell.Content != "" || cell.Width != 0 {
 		t.Errorf("expected cell at 2,0 to be empty, got %v", cell)
 	}
 
@@ -49,7 +49,7 @@ func TestBuffer_setCell(t *testing.T) {
 	if !b.SetCell(3, 0, NewCell('あ')) {
 		t.Error("expected SetCell to return true")
 	}
-	if cell, ok := b.Cell(3, 0); !ok || cell.Content != "あ" || cell.Width != 2 {
+	if cell := b.Cell(3, 0); cell == nil || cell.Content != "あ" || cell.Width != 2 {
 		t.Errorf("expected cell at 3,0 to be 'あ', got %v", cell)
 	}
 
@@ -57,10 +57,10 @@ func TestBuffer_setCell(t *testing.T) {
 	if !b.SetCell(3, 0, NewCell('b')) {
 		t.Error("expected SetCell to return true")
 	}
-	if cell, ok := b.Cell(3, 0); !ok || cell.Content != "b" || cell.Width != 1 {
+	if cell := b.Cell(3, 0); cell == nil || cell.Content != "b" || cell.Width != 1 {
 		t.Errorf("expected cell at 3,0 to be 'b', got %v", cell)
 	}
-	if cell, ok := b.Cell(4, 0); !ok || cell.Content != " " || cell.Width != 1 {
+	if cell := b.Cell(4, 0); cell == nil || cell.Content != " " || cell.Width != 1 {
 		t.Errorf("expected cell at 4,0 to be blank, got %v", cell)
 	}
 
@@ -71,10 +71,10 @@ func TestBuffer_setCell(t *testing.T) {
 	if !b.SetCell(4, 0, NewCell('c')) {
 		t.Error("expected SetCell to return true")
 	}
-	if cell, ok := b.Cell(3, 0); !ok || cell.Content != " " || cell.Width != 1 {
+	if cell := b.Cell(3, 0); cell == nil || cell.Content != " " || cell.Width != 1 {
 		t.Errorf("expected cell at 3,0 to be 'あ', got %v", cell)
 	}
-	if cell, ok := b.Cell(4, 0); !ok || cell.Content != "c" || cell.Width != 1 {
+	if cell := b.Cell(4, 0); cell == nil || cell.Content != "c" || cell.Width != 1 {
 		t.Errorf("expected cell at 4,0 to be 'c', got %v", cell)
 	}
 }
@@ -105,7 +105,7 @@ func TestBuffer_fill(t *testing.T) {
 	b.Fill(NewCell('a'))
 	for y := 0; y < b.Height(); y++ {
 		for x := 0; x < b.Width(); x++ {
-			if cell, ok := b.Cell(x, y); !ok || cell.Content != "a" || cell.Width != 1 {
+			if cell := b.Cell(x, y); cell == nil || cell.Content != "a" || cell.Width != 1 {
 				t.Errorf("expected cell at %d,%d to be 'a', got %v", x, y, cell)
 			}
 		}
@@ -118,7 +118,7 @@ func TestBuffer_clear(t *testing.T) {
 	b.Clear()
 	for y := 0; y < b.Height(); y++ {
 		for x := 0; x < b.Width(); x++ {
-			if cell, ok := b.Cell(x, y); !ok || cell.Content != " " || cell.Width != 1 {
+			if cell := b.Cell(x, y); cell == nil || cell.Content != " " || cell.Width != 1 {
 				t.Errorf("expected cell at %d,%d to be blank, got %v", x, y, cell)
 			}
 		}
@@ -134,11 +134,11 @@ func TestBuffer_fillClearRect(t *testing.T) {
 		for x := 0; x < b.Width(); x++ {
 			pt := Pos(x, y)
 			if r.Contains(pt) {
-				if cell, ok := b.Cell(x, y); !ok || cell.Content != " " || cell.Width != 1 {
+				if cell := b.Cell(x, y); cell == nil || cell.Content != " " || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be blank, got %v", x, y, cell)
 				}
 			} else {
-				if cell, ok := b.Cell(x, y); !ok || cell.Content != "a" || cell.Width != 1 {
+				if cell := b.Cell(x, y); cell == nil || cell.Content != "a" || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be 'a', got %v", x, y, cell)
 				}
 			}
@@ -153,11 +153,11 @@ func TestBuffer_insertLine(t *testing.T) {
 	for y := 0; y < b.Height(); y++ {
 		for x := 0; x < b.Width(); x++ {
 			if y == 1 {
-				if cell, ok := b.Cell(x, y); !ok || cell.Content != " " || cell.Width != 1 {
+				if cell := b.Cell(x, y); cell == nil || cell.Content != " " || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be blank, got %v", x, y, cell)
 				}
 			} else {
-				if cell, ok := b.Cell(x, y); !ok || cell.Content != "a" || cell.Width != 1 {
+				if cell := b.Cell(x, y); cell == nil || cell.Content != "a" || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be 'a', got %v", x, y, cell)
 				}
 			}
@@ -177,11 +177,11 @@ func TestBuffer_insertLineInRect(t *testing.T) {
 		for x := 0; x < b.Width(); x++ {
 			pt := Pos(x, y)
 			if r.Contains(pt) && y >= 1 && y < 1+n {
-				if cell, ok := b.Cell(x, y); !ok || cell.Content != " " || cell.Width != 1 {
+				if cell := b.Cell(x, y); cell == nil || cell.Content != " " || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be blank, got %v", x, y, cell)
 				}
 			} else {
-				if cell, ok := b.Cell(x, y); !ok || cell.Content != "a" || cell.Width != 1 {
+				if cell := b.Cell(x, y); cell == nil || cell.Content != "a" || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be 'a', got %v", x, y, cell)
 				}
 			}
@@ -204,11 +204,11 @@ func TestBuffer_deleteLine(t *testing.T) {
 	for y := 0; y < b.Height(); y++ {
 		for x := 0; x < b.Width(); x++ {
 			if y == b.Height()-1 {
-				if cell, ok := b.Cell(x, y); !ok || cell.Content != " " || cell.Width != 1 {
+				if cell := b.Cell(x, y); cell == nil || cell.Content != " " || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be blank, got %v", x, y, cell)
 				}
 			} else {
-				if cell, ok := b.Cell(x, y); !ok || cell.Content != "a" || cell.Width != 1 {
+				if cell := b.Cell(x, y); cell == nil || cell.Content != "a" || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be 'a', got %v", x, y, cell)
 				}
 			}
@@ -230,11 +230,11 @@ func TestBuffer_deleteLineInRect(t *testing.T) {
 		for x := 0; x < b.Width(); x++ {
 			pt := Pos(x, y)
 			if r.Contains(pt) && y >= 1 && y < 1+n {
-				if cell, ok := b.Cell(x, y); !ok || cell.Content != " " || cell.Width != 1 {
+				if cell := b.Cell(x, y); cell == nil || cell.Content != " " || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be blank, got %v", x, y, cell)
 				}
 			} else {
-				if cell, ok := b.Cell(x, y); !ok || cell.Content != "a" || cell.Width != 1 {
+				if cell := b.Cell(x, y); cell == nil || cell.Content != "a" || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be 'a', got %v", x, y, cell)
 				}
 			}
@@ -247,7 +247,10 @@ func renderBuffer(b *Buffer) string {
 	for y := 0; y < b.Height(); y++ {
 		var line string
 		for x := 0; x < b.Width(); x++ {
-			cell, _ := b.Cell(x, y)
+			cell := b.Cell(x, y)
+			if cell == nil {
+				cell = NewCell(' ')
+			}
 			line += cell.Content
 		}
 		out.WriteString(fmt.Sprintf("%q\n", line))
