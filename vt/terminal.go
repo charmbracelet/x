@@ -84,8 +84,18 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	return t
 }
 
-// Cell returns the cell at the given x, y position. It returns nil if the cell
-// is out of bounds.
+// Screen returns the main terminal screen.
+func (t *Terminal) Screen() *Screen {
+	return &t.scrs[0]
+}
+
+// AltScreen returns the alternate terminal screen.
+func (t *Terminal) AltScreen() *Screen {
+	return &t.scrs[1]
+}
+
+// Cell returns the current focused screen cell at the given x, y position. It
+// returns nil if the cell is out of bounds.
 func (t *Terminal) Cell(x, y int) *Cell {
 	return t.scr.Cell(x, y)
 }
