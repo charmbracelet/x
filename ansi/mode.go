@@ -204,17 +204,17 @@ const (
 	RequestOriginMode = "\x1b[?6$p"
 )
 
-// Autowrap Mode (DECAWM) is a mode that determines whether the cursor wraps
+// Auto Wrap Mode (DECAWM) is a mode that determines whether the cursor wraps
 // to the next line when it reaches the right margin.
 //
 // See: https://vt100.net/docs/vt510-rm/DECAWM.html
 const (
-	AutowrapMode = DECMode(7)
-	DECAWM       = AutowrapMode
+	AutoWrapMode = DECMode(7)
+	DECAWM       = AutoWrapMode
 
-	SetAutowrapMode     = "\x1b[?7h"
-	ResetAutowrapMode   = "\x1b[?7l"
-	RequestAutowrapMode = "\x1b[?7$p"
+	SetAutoWrapMode     = "\x1b[?7h"
+	ResetAutoWrapMode   = "\x1b[?7l"
+	RequestAutoWrapMode = "\x1b[?7$p"
 )
 
 // X10 Mouse Mode is a mode that determines whether the mouse reports on button
