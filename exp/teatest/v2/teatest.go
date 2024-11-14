@@ -12,6 +12,7 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/x/cellbuf"
 	"github.com/charmbracelet/x/exp/golden"
 	"github.com/charmbracelet/x/vt"
 )
@@ -242,16 +243,21 @@ func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
 // This method only returns once the program has finished running or when it
 // times out.
 // It's the equivalent of calling both `tm.WaitFinished` and `tm.Output()`.
+// If the app is running in altscreen, this will return the final output of the
+// altscreen.
+// If you need the primary screen output, use [WaitFinished] and [Output].
 func (tm *TestModel) FinalOutput(tb testing.TB, opts ...FinalOpt) string {
+	d := tm.term.Screen()
+	if tm.term.IsAltScreen() {
+		d = tm.term.AltScreen()
+	}
 	tm.WaitFinished(tb, opts...)
-	// FIXME: need to check here if term was using alt screen and get that
-	// output instead.
-	return tm.Output()
+	return cellbuf.Render(d)
 }
 
 // Output returns the program's current output.
 func (tm *TestModel) Output() string {
-	return tm.term.String()
+	return cellbuf.Render(tm.term.Screen())
 }
 
 // Send sends messages to the underlying program.

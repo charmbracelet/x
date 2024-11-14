@@ -47,7 +47,6 @@ func TestApp(t *testing.T) {
 }
 
 func TestAppAltScreen(t *testing.T) {
-	t.Skip("needs changes in /vt")
 	m := model(10)
 	tm := teatest.NewTestModel(
 		t, m,
