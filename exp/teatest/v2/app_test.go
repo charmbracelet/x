@@ -46,6 +46,42 @@ func TestApp(t *testing.T) {
 	}
 }
 
+func TestAppAltScreen(t *testing.T) {
+	t.Skip("needs changes in /vt")
+	m := model(10)
+	tm := teatest.NewTestModel(
+		t, m,
+		teatest.WithInitialTermSize(70, 30),
+		teatest.WithProgramOptions(tea.WithAltScreen()),
+	)
+	t.Cleanup(func() {
+		if err := tm.Quit(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	time.Sleep(time.Second + time.Millisecond*200)
+	tm.Type("I'm typing things, but it'll be ignored by my program")
+	tm.Send("ignored msg")
+	tm.Send(tea.KeyPressMsg{
+		Code: tea.KeyEnter,
+	})
+
+	if err := tm.Quit(); err != nil {
+		t.Fatal(err)
+	}
+
+	out := teatest.TrimEmptyLines(tm.FinalOutput(t, teatest.WithFinalTimeout(time.Second)))
+	if !regexp.MustCompile(`This program will exit in \d+ seconds`).MatchString(out) {
+		t.Fatalf("output does not match the given regular expression: %q", out)
+	}
+	teatest.RequireEqualOutput(t, out)
+
+	if tm.FinalModel(t).(model) != 9 {
+		t.Errorf("expected model to be 10, was %d", m)
+	}
+}
+
 func TestAppInteractive(t *testing.T) {
 	m := model(10)
 	tm := teatest.NewTestModel(
