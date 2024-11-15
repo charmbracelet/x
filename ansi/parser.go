@@ -51,20 +51,48 @@ type Parser struct {
 
 	// state is the current state of the parser.
 	state byte
+
+	// the type of the current sequence
+	typ rune
+
+	// the dispatch function to call when a sequence is complete
+	dispatcher ParserDispatcher
 }
 
-// NewParser returns a new parser with the given sizes allocated.
-// If dataSize is zero, the underlying data buffer will be unlimited and will
+// NewParser returns a new parser with an optional [ParserDispatcher].
+// The [Parser] uses a default size of 32 for the parameters and 4MB for the
+// data buffer. Use [Parser.SetParamsSize] and [Parser.SetDataSize] to set the
+// size of the parameters and data buffer respectively.
+func NewParser(d ParserDispatcher) *Parser {
+	p := new(Parser)
+	p.SetDispatcher(d)
+	p.SetParamsSize(parser.MaxParamsSize)
+	p.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
+	return p
+}
+
+// SetDispatcher sets the dispatcher function to call when a sequence is
+// complete.
+func (p *Parser) SetDispatcher(d ParserDispatcher) {
+	p.dispatcher = d
+}
+
+// SetParamsSize sets the size of the parameters buffer.
+// This is used when constructing CSI and DCS sequences.
+func (p *Parser) SetParamsSize(size int) {
+	p.params = make([]int, size)
+}
+
+// SetDataSize sets the size of the data buffer.
+// This is used when constructing OSC, DCS, SOS, PM, and APC sequences.
+// If size is less than or equal to 0, the data buffer is unlimited and will
 // grow as needed.
-func NewParser(paramsSize, dataSize int) *Parser {
-	s := new(Parser)
-	if dataSize <= 0 {
-		dataSize = 0
-		s.dataLen = -1
+func (p *Parser) SetDataSize(size int) {
+	if size <= 0 {
+		size = 0
+		p.dataLen = -1
 	}
-	s.params = make([]int, paramsSize)
-	s.data = make([]byte, dataSize)
-	return s
+	p.data = make([]byte, size)
 }
 
 // Params returns the list of parsed packed parameters.
@@ -118,20 +146,20 @@ func (p *Parser) StateName() string {
 }
 
 // Parse parses the given dispatcher and byte buffer.
-func (p *Parser) Parse(dispatcher ParserDispatcher, b []byte) {
+func (p *Parser) Parse(b []byte) {
 	for i := 0; i < len(b); i++ {
-		p.Advance(dispatcher, b[i], i < len(b)-1)
+		p.Advance(b[i], i < len(b)-1)
 	}
 }
 
 // Advance advances the parser with the given dispatcher and byte.
-func (p *Parser) Advance(dispatcher ParserDispatcher, b byte, more bool) parser.Action {
+func (p *Parser) Advance(b byte, atEOF bool) parser.Action {
 	switch p.state {
 	case parser.Utf8State:
 		// We handle UTF-8 here.
-		return p.advanceUtf8(dispatcher, b)
+		return p.advanceUtf8(b)
 	default:
-		return p.advance(dispatcher, b, more)
+		return p.advance(b, atEOF)
 	}
 }
 
@@ -146,7 +174,13 @@ func (p *Parser) collectRune(b byte) {
 	p.paramsLen++
 }
 
-func (p *Parser) advanceUtf8(dispatcher ParserDispatcher, b byte) parser.Action {
+func (p *Parser) dispatch(s Sequence) {
+	if p.dispatcher != nil {
+		p.dispatcher(s)
+	}
+}
+
+func (p *Parser) advanceUtf8(b byte) parser.Action {
 	// Collect UTF-8 rune bytes.
 	p.collectRune(b)
 	rw := utf8ByteLen(byte(p.cmd & 0xff))
@@ -162,9 +196,7 @@ func (p *Parser) advanceUtf8(dispatcher ParserDispatcher, b byte) parser.Action 
 
 	// We have enough bytes to decode the rune using unsafe
 	r, _ := utf8.DecodeRune((*[utf8.UTFMax]byte)(unsafe.Pointer(&p.cmd))[:rw])
-	if dispatcher != nil {
-		dispatcher(Rune(r))
-	}
+	p.dispatch(Rune(r))
 
 	p.state = parser.GroundState
 	p.paramsLen = 0
@@ -172,7 +204,7 @@ func (p *Parser) advanceUtf8(dispatcher ParserDispatcher, b byte) parser.Action 
 	return parser.PrintAction
 }
 
-func (p *Parser) advance(d ParserDispatcher, b byte, more bool) parser.Action {
+func (p *Parser) advance(b byte, more bool) parser.Action {
 	state, action := parser.Table.Transition(p.state, b)
 
 	// We need to clear the parser state if the state changes from EscapeState.
@@ -183,14 +215,14 @@ func (p *Parser) advance(d ParserDispatcher, b byte, more bool) parser.Action {
 	// we need to clear it here before dispatching the esc sequence.
 	if p.state != state {
 		if p.state == parser.EscapeState {
-			p.performAction(d, parser.ClearAction, state, b)
+			p.performAction(parser.ClearAction, state, b)
 		}
 		if action == parser.PutAction &&
 			p.state == parser.DcsEntryState && state == parser.DcsStringState {
 			// XXX: This is a special case where we need to start collecting
 			// non-string parameterized data i.e. doesn't follow the ECMA-48 §
 			// 5.4.1 string parameters format.
-			p.performAction(d, parser.StartAction, state, 0)
+			p.performAction(parser.StartAction, state, 0)
 		}
 	}
 
@@ -198,18 +230,18 @@ func (p *Parser) advance(d ParserDispatcher, b byte, more bool) parser.Action {
 	switch {
 	case b == ESC && p.state == parser.EscapeState:
 		// Two ESCs in a row
-		p.performAction(d, parser.ExecuteAction, state, b)
+		p.performAction(parser.ExecuteAction, state, b)
 		if !more {
 			// Two ESCs at the end of the buffer
-			p.performAction(d, parser.ExecuteAction, state, b)
+			p.performAction(parser.ExecuteAction, state, b)
 		}
 	default:
-		p.performAction(d, action, state, b)
+		p.performAction(action, state, b)
 		if !more {
 			switch state {
 			case parser.EscapeState:
 				// ESC at the end of the buffer
-				p.performAction(d, parser.ExecuteAction, state, b)
+				p.performAction(parser.ExecuteAction, state, b)
 			}
 		}
 	}
@@ -238,7 +270,7 @@ func (p *Parser) parseStringCmd() {
 	}
 }
 
-func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action, state parser.State, b byte) {
+func (p *Parser) performAction(action parser.Action, state parser.State, b byte) {
 	switch action {
 	case parser.IgnoreAction:
 		break
@@ -247,14 +279,10 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 		p.clear()
 
 	case parser.PrintAction:
-		if dispatcher != nil {
-			dispatcher(Rune(b))
-		}
+		p.dispatch(Rune(b))
 
 	case parser.ExecuteAction:
-		if dispatcher != nil {
-			dispatcher(ControlCode(b))
-		}
+		p.dispatch(ControlCode(b))
 
 	case parser.MarkerAction:
 		// Collect private marker
@@ -342,7 +370,7 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 			p.parseStringCmd()
 		}
 
-		if dispatcher == nil {
+		if p.dispatcher == nil {
 			break
 		}
 
@@ -370,7 +398,7 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 			seq = ApcSequence{Data: data}
 		}
 
-		dispatcher(seq)
+		p.dispatch(seq)
 	}
 }
 

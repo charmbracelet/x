@@ -21,7 +21,9 @@ func (d *testDispatcher) Dispatch(s Sequence) {
 }
 
 func testParser(d *testDispatcher) *Parser {
-	p := NewParser(16, 0)
+	p := NewParser(d.Dispatch)
+	p.SetParamsSize(16)
+	p.SetDataSize(0)
 	return p
 }
 
@@ -96,7 +98,7 @@ func TestControlSequence(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
 			parser := testParser(dispatcher)
-			parser.Parse(dispatcher.Dispatch, []byte(c.input))
+			parser.Parse([]byte(c.input))
 			assertEqual(t, len(c.expected), len(dispatcher.dispatched))
 			for i := range c.expected {
 				assertEqual(t, c.expected[i], dispatcher.dispatched[i])
@@ -114,12 +116,22 @@ var parsers = []struct {
 		parser: &Parser{},
 	},
 	{
-		name:   "params",
-		parser: NewParser(16, 0),
+		name: "params",
+		parser: func() *Parser {
+			p := NewParser(nil)
+			p.SetDataSize(0)
+			p.SetParamsSize(16)
+			return p
+		}(),
 	},
 	{
-		name:   "params and data",
-		parser: NewParser(16, 1024),
+		name: "params and data",
+		parser: func() *Parser {
+			p := NewParser(nil)
+			p.SetDataSize(1024)
+			p.SetParamsSize(16)
+			return p
+		}(),
 	},
 }
 
@@ -132,7 +144,7 @@ func BenchmarkParser(b *testing.B) {
 	for _, p := range parsers {
 		b.Run(p.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				p.parser.Parse(nil, bts)
+				p.parser.Parse(bts)
 			}
 		})
 	}
@@ -147,7 +159,7 @@ func BenchmarkParserUTF8(b *testing.B) {
 	for _, p := range parsers {
 		b.Run(p.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				p.parser.Parse(nil, bts)
+				p.parser.Parse(bts)
 			}
 		})
 	}
@@ -159,7 +171,7 @@ func BenchmarkParserStateChanges(b *testing.B) {
 	for _, p := range parsers {
 		b.Run(p.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				p.parser.Parse(nil, input)
+				p.parser.Parse(input)
 			}
 		})
 	}

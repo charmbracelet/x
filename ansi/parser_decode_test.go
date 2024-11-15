@@ -306,7 +306,9 @@ func TestDecodeSequence(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			p := NewParser(32, 1024)
+			p := NewParser(nil)
+			p.SetParamsSize(32)
+			p.SetDataSize(1024)
 
 			var state byte
 			input := tc.input
@@ -388,7 +390,9 @@ func BenchmarkDecodeSequence(b *testing.B) {
 	var state byte
 	var n int
 	input := []byte("\x1b[1;2;3màbc\x90?123;456+q\x9c\x7f ")
-	p := NewParser(32, 1024)
+	p := NewParser(nil)
+	p.SetParamsSize(32)
+	p.SetDataSize(1024)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		in := input
@@ -400,12 +404,13 @@ func BenchmarkDecodeSequence(b *testing.B) {
 }
 
 func BenchmarkDecodeParser(b *testing.B) {
-	p := NewParser(32, 1024)
+	p := NewParser(nil)
+	p.SetParamsSize(32)
+	p.SetDataSize(1024)
 	input := []byte("\x1b[1;2;3màbc\x90?123;456+q\x9c\x7f ")
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		p.Parse(func(s Sequence) {
-		}, input)
+		p.Parse(input)
 	}
 }
 
