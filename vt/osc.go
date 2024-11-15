@@ -12,7 +12,7 @@ import (
 )
 
 // handleOsc handles an OSC escape sequence.
-func (t *Terminal) handleOsc(seq ansi.Sequence) {
+func (t *Terminal) handleOsc(seq ansi.OscSequence) {
 	switch cmd := t.parser.Cmd(); cmd {
 	case 0, 1, 3, 10, 11, 12:
 		parts := bytes.Split(t.parser.Data(), []byte{';'})
@@ -73,7 +73,7 @@ func (t *Terminal) handleOsc(seq ansi.Sequence) {
 			setCol(col)
 		}
 	default:
-		t.logf("unhandled OSC: %q", seq)
+		t.logf("unhandled OSC: %q", seq.Command())
 	}
 }
 

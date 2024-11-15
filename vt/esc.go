@@ -5,7 +5,7 @@ import (
 )
 
 // handleEsc handles an escape sequence.
-func (t *Terminal) handleEsc(seq ansi.Sequence) {
+func (t *Terminal) handleEsc(seq ansi.EscSequence) {
 	switch t.parser.Cmd() {
 	case 'H': // Horizontal Tab Set [ansi.HTS]
 		t.horizontalTabSet()
@@ -22,6 +22,7 @@ func (t *Terminal) handleEsc(seq ansi.Sequence) {
 	case ansi.Cmd(0, '(', 'B'): // G0 Character Set
 	// TODO: Handle G0 Character Set
 	default:
-		t.logf("unhandled ESC: %q", seq)
+		inter, cmd := seq.Intermediate(), seq.Command()
+		t.logf("unhandled ESC: (%c, %c)", inter, cmd)
 	}
 }

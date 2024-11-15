@@ -18,7 +18,6 @@ func (t *Terminal) handleMode() {
 			setting = ModeSet
 		}
 
-		t.logf("setting mode %v to %v", param, setting)
 		var mode ansi.Mode = ansi.ANSIMode(param)
 		if cmd.Marker() == '?' {
 			mode = ansi.DECMode(param)
@@ -30,6 +29,7 @@ func (t *Terminal) handleMode() {
 
 // setMode sets the mode to the given value.
 func (t *Terminal) setMode(mode ansi.Mode, setting ModeSetting) {
+	t.logf("setting mode %T(%v) to %v", mode, mode, setting)
 	t.modes[mode] = setting
 	switch mode {
 	case ansi.CursorEnableMode:

@@ -5,7 +5,7 @@ import (
 )
 
 // handleControl handles a control character.
-func (t *Terminal) handleControl(r rune) {
+func (t *Terminal) handleControl(r ansi.ControlCode) {
 	switch r {
 	case ansi.NUL: // Null [ansi.NUL]
 		// Ignored

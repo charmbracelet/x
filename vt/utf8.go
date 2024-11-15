@@ -8,16 +8,19 @@ import (
 // handleUtf8 handles a UTF-8 characters.
 func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 	var width int
+	var content string
 	switch seq := seq.(type) {
 	case ansi.Rune:
 		width = wcwidth.RuneWidth(rune(seq))
+		content = string(seq)
 	case ansi.Grapheme:
 		width = seq.Width
+		content = seq.Cluster
 	}
 
 	var autowrap bool
 	x, y := t.scr.CursorPosition()
-	if mode, ok := t.pmodes[ansi.AutowrapMode]; ok && mode.IsSet() {
+	if t.isModeSet(ansi.AutoWrapMode) {
 		autowrap = true
 	}
 
@@ -35,7 +38,7 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 	cell := &Cell{
 		Style:   t.scr.cur.Pen,
 		Link:    Link{}, // TODO: Link support
-		Content: seq.String(),
+		Content: content,
 		Width:   width,
 	}
 

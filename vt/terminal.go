@@ -67,7 +67,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.parser = ansi.NewParser(parser.MaxParamsSize, 1024*1024*4) // 4MB data buffer
 	t.modes = map[ansi.Mode]ModeSetting{
 		// These modes are set by default.
-		ansi.AutowrapMode:     ModeSet,
+		ansi.AutoWrapMode:     ModeSet,
 		ansi.CursorEnableMode: ModeSet,
 	}
 	t.tabstops = DefaultTabStops(w)
@@ -146,6 +146,8 @@ func (t *Terminal) dispatcher(seq ansi.Sequence) {
 	case ansi.ApcSequence:
 	case ansi.PmSequence:
 	case ansi.SosSequence:
+	case ansi.DcsSequence:
+		t.handleDcs(seq)
 	case ansi.OscSequence:
 		t.handleOsc(seq)
 	case ansi.CsiSequence:
@@ -153,7 +155,7 @@ func (t *Terminal) dispatcher(seq ansi.Sequence) {
 	case ansi.EscSequence:
 		t.handleEsc(seq)
 	case ansi.ControlCode:
-		t.handleControl(rune(seq))
+		t.handleControl(seq)
 	case ansi.Rune:
 		t.handleUtf8(seq)
 	case ansi.Grapheme:
@@ -201,7 +203,7 @@ func (t *Terminal) InputPipe() io.Writer {
 // If bracketed paste mode is enabled, the text is bracketed with the
 // appropriate escape sequences.
 func (t *Terminal) Paste(text string) {
-	if mode, ok := t.pmodes[ansi.BracketedPasteMode]; ok && mode.IsSet() {
+	if t.isModeSet(ansi.BracketedPasteMode) {
 		t.buf.WriteString(ansi.BracketedPasteStart)
 		defer t.buf.WriteString(ansi.BracketedPasteEnd)
 	}
