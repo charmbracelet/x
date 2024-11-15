@@ -82,7 +82,7 @@ func (p *Parser) ParamsLen() int {
 // the default value and false.
 func (p *Parser) Param(i, def int) (int, bool) {
 	if i < 0 || i >= p.paramsLen {
-		return -1, false
+		return def, false
 	}
 	return Parameter(p.params[i]).Param(def), true
 }
