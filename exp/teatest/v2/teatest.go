@@ -127,7 +127,7 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		opt(&opts)
 	}
 	if opts.size.Width == 0 {
-		opts.size.Width, opts.size.Height = 70, 40
+		opts.size.Width, opts.size.Height = 80, 24
 	}
 
 	tm := &TestModel{
