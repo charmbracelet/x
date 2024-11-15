@@ -90,6 +90,11 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	return t
 }
 
+// IsAltScreen returns true if the terminal is using the altscreen.
+func (t *Terminal) IsAltScreen() bool {
+	return t.pmodes[ansi.AltScreenBufferMode] == ModeSet
+}
+
 // Screen returns the main terminal screen.
 func (t *Terminal) Screen() *Screen {
 	return &t.scrs[0]
