@@ -219,6 +219,25 @@ func (p *Parser) advance(d ParserDispatcher, b byte, more bool) parser.Action {
 	return action
 }
 
+func (p *Parser) parseStringCmd() {
+	// Try to parse the command
+	datalen := len(p.data)
+	if p.dataLen >= 0 {
+		datalen = p.dataLen
+	}
+	for i := 0; i < datalen; i++ {
+		d := p.data[i]
+		if d < '0' || d > '9' {
+			break
+		}
+		if p.cmd == parser.MissingCommand {
+			p.cmd = 0
+		}
+		p.cmd *= 10
+		p.cmd += int(d - '0')
+	}
+}
+
 func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action, state parser.State, b byte) {
 	switch action {
 	case parser.IgnoreAction:
@@ -298,22 +317,7 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 		switch p.state {
 		case parser.OscStringState:
 			if b == ';' && p.cmd == parser.MissingCommand {
-				// Try to parse the command
-				datalen := len(p.data)
-				if p.dataLen >= 0 {
-					datalen = p.dataLen
-				}
-				for i := 0; i < datalen; i++ {
-					d := p.data[i]
-					if d < '0' || d > '9' {
-						break
-					}
-					if p.cmd == parser.MissingCommand {
-						p.cmd = 0
-					}
-					p.cmd *= 10
-					p.cmd += int(d - '0')
-				}
+				p.parseStringCmd()
 			}
 		}
 
@@ -331,6 +335,11 @@ func (p *Parser) performAction(dispatcher ParserDispatcher, action parser.Action
 		if p.paramsLen > 0 && p.paramsLen < len(p.params)-1 ||
 			p.paramsLen == 0 && len(p.params) > 0 && p.params[0] != parser.MissingParam {
 			p.paramsLen++
+		}
+
+		if p.state == parser.OscStringState && p.cmd == parser.MissingCommand {
+			// Ensure we have a command for OSC
+			p.parseStringCmd()
 		}
 
 		if dispatcher == nil {

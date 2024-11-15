@@ -113,6 +113,16 @@ func TestOscSequence(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "just command",
+			input: "\x1b]112\x07",
+			expected: []Sequence{
+				OscSequence{
+					Data: []byte("112"),
+					Cmd:  112,
+				},
+			},
+		},
 	}
 
 	for _, c := range cases {
