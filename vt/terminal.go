@@ -43,13 +43,21 @@ type Terminal struct {
 	fg, bg, cur color.Color
 	colors      [256]color.Color
 
-	// Bell handler. When set, this function is called when a bell character is
+	// Bell callback. When set, this function is called when a bell character is
 	// received.
 	Bell func()
 
-	// Damage handler. When set, this function is called when a cell is damaged
+	// Damage callback. When set, this function is called when a cell is damaged
 	// or changed.
 	Damage func(Damage)
+
+	// Title callback. When set, this function is called when the terminal title
+	// changes.
+	Title func(string)
+
+	// IconName callback. When set, this function is called when the terminal
+	// icon name changes.
+	IconName func(string)
 }
 
 var (
@@ -117,6 +125,9 @@ func (t *Terminal) Resize(width int, height int) {
 
 // Read reads data from the terminal input buffer.
 func (t *Terminal) Read(p []byte) (n int, err error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	if t.closed {
 		return 0, io.EOF
 	}
@@ -125,13 +136,14 @@ func (t *Terminal) Read(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
-	t.mu.Lock()
-	defer t.mu.Unlock()
 	return t.buf.Read(p)
 }
 
 // Close closes the terminal.
 func (t *Terminal) Close() error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
 	if t.closed {
 		return nil
 	}
@@ -181,16 +193,6 @@ func (t *Terminal) Write(p []byte) (n int, err error) {
 // Cursor returns the cursor.
 func (t *Terminal) Cursor() Cursor {
 	return t.scr.Cursor()
-}
-
-// Title returns the terminal's title.
-func (t *Terminal) Title() string {
-	return t.title
-}
-
-// IconName returns the terminal's icon name.
-func (t *Terminal) IconName() string {
-	return t.iconName
 }
 
 // InputPipe returns the terminal's input pipe.
