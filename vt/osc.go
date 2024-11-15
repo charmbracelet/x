@@ -73,7 +73,7 @@ func (t *Terminal) handleOsc(seq ansi.OscSequence) {
 			setCol(col)
 		}
 	default:
-		t.logf("unhandled OSC: %q", seq.Command())
+		t.logf("unhandled OSC: %d", seq.Command())
 	}
 }
 
