@@ -26,5 +26,11 @@ func MouseSgr(b byte, x, y int, release bool) string {
 	if release {
 		s = "m"
 	}
-	return fmt.Sprintf("\x1b[<%d;%d;%d%s", b, x, y, s)
+	if x < 0 {
+		x = -x
+	}
+	if y < 0 {
+		y = -y
+	}
+	return fmt.Sprintf("\x1b[<%d;%d;%d%s", b, x+1, y+1, s)
 }
