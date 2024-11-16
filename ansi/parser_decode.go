@@ -180,14 +180,16 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 				break
 			}
 
+			if p != nil {
+				// Increment the last parameter
+				if p.paramsLen > 0 && p.paramsLen < len(p.params)-1 ||
+					p.paramsLen == 0 && len(p.params) > 0 && p.params[0] != parser.MissingParam {
+					p.paramsLen++
+				}
+			}
+
 			if c >= '@' && c <= '~' {
 				if p != nil {
-					// Increment the last parameter
-					if p.paramsLen > 0 && p.paramsLen < len(p.params)-1 ||
-						p.paramsLen == 0 && len(p.params) > 0 && p.params[0] != parser.MissingParam {
-						p.paramsLen++
-					}
-
 					p.cmd &^= 0xff
 					p.cmd |= int(c)
 				}
