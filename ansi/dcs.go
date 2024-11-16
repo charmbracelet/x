@@ -1,6 +1,10 @@
 package ansi
 
-import "strings"
+import (
+	"bytes"
+	"strconv"
+	"strings"
+)
 
 // DcsSequence represents a Device Control String (DCS) escape sequence.
 //
@@ -72,4 +76,58 @@ func (s DcsSequence) Intermediate() int {
 // Command returns the command byte of the CSI sequence.
 func (s DcsSequence) Command() int {
 	return s.Cmd.Command()
+}
+
+// Param is a helper that returns the parameter at the given index and falls
+// back to the default value if the parameter is missing. If the index is out
+// of bounds, it returns the default value and false.
+func (s DcsSequence) Param(i, def int) (int, bool) {
+	if i < 0 || i >= len(s.Params) {
+		return def, false
+	}
+	return s.Params[i].Param(def), true
+}
+
+// String returns a string representation of the sequence.
+// The string will always be in the 7-bit format i.e (ESC P p..p i..i f <data> ESC \).
+func (s DcsSequence) String() string {
+	return s.buffer().String()
+}
+
+// buffer returns a buffer containing the sequence.
+func (s DcsSequence) buffer() *bytes.Buffer {
+	var b bytes.Buffer
+	b.WriteString("\x1bP")
+	if m := s.Marker(); m != 0 {
+		b.WriteByte(byte(m))
+	}
+	for i, p := range s.Params {
+		param := p.Param(-1)
+		if param >= 0 {
+			b.WriteString(strconv.Itoa(param))
+		}
+		if i < len(s.Params)-1 {
+			if p.HasMore() {
+				b.WriteByte(':')
+			} else {
+				b.WriteByte(';')
+			}
+		}
+	}
+	if i := s.Intermediate(); i != 0 {
+		b.WriteByte(byte(i))
+	}
+	if cmd := s.Command(); cmd != 0 {
+		b.WriteByte(byte(cmd))
+	}
+	b.Write(s.Data)
+	b.WriteByte(ESC)
+	b.WriteByte('\\')
+	return &b
+}
+
+// Bytes returns the byte representation of the sequence.
+// The bytes will always be in the 7-bit format i.e (ESC P p..p i..i F <data> ESC \).
+func (s DcsSequence) Bytes() []byte {
+	return s.buffer().Bytes()
 }

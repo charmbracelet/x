@@ -1,5 +1,10 @@
 package ansi
 
+import (
+	"bytes"
+	"strconv"
+)
+
 // CsiSequence represents a control sequence introducer (CSI) sequence.
 //
 // The sequence starts with a CSI sequence, CSI (0x9B) in a 8-bit environment
@@ -61,4 +66,55 @@ func (s CsiSequence) Intermediate() int {
 // Command returns the command byte of the CSI sequence.
 func (s CsiSequence) Command() int {
 	return s.Cmd.Command()
+}
+
+// Param is a helper that returns the parameter at the given index and falls
+// back to the default value if the parameter is missing. If the index is out
+// of bounds, it returns the default value and false.
+func (s CsiSequence) Param(i, def int) (int, bool) {
+	if i < 0 || i >= len(s.Params) {
+		return def, false
+	}
+	return s.Params[i].Param(def), true
+}
+
+// String returns a string representation of the sequence.
+// The string will always be in the 7-bit format i.e (ESC [ P..P I..I F).
+func (s CsiSequence) String() string {
+	return s.buffer().String()
+}
+
+// buffer returns a buffer containing the sequence.
+func (s CsiSequence) buffer() *bytes.Buffer {
+	var b bytes.Buffer
+	b.WriteString("\x1b[")
+	if m := s.Marker(); m != 0 {
+		b.WriteByte(byte(m))
+	}
+	for i, p := range s.Params {
+		param := p.Param(-1)
+		if param >= 0 {
+			b.WriteString(strconv.Itoa(param))
+		}
+		if i < len(s.Params)-1 {
+			if p.HasMore() {
+				b.WriteByte(':')
+			} else {
+				b.WriteByte(';')
+			}
+		}
+	}
+	if i := s.Intermediate(); i != 0 {
+		b.WriteByte(byte(i))
+	}
+	if cmd := s.Command(); cmd != 0 {
+		b.WriteByte(byte(cmd))
+	}
+	return &b
+}
+
+// Bytes returns the byte representation of the sequence.
+// The bytes will always be in the 7-bit format i.e (ESC [ P..P I..I F).
+func (s CsiSequence) Bytes() []byte {
+	return s.buffer().Bytes()
 }

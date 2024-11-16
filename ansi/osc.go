@@ -1,6 +1,7 @@
 package ansi
 
 import (
+	"bytes"
 	"strings"
 )
 
@@ -44,4 +45,26 @@ func (o OscSequence) Split() []string {
 // that identifies the OSC sequence.
 func (o OscSequence) Command() int {
 	return o.Cmd
+}
+
+// String returns the string representation of the OSC sequence.
+// To be more compatible with different terminal, this will always return a
+// 7-bit formatted sequence, terminated by BEL.
+func (s OscSequence) String() string {
+	return s.buffer().String()
+}
+
+// Bytes returns the byte representation of the OSC sequence.
+// To be more compatible with different terminal, this will always return a
+// 7-bit formatted sequence, terminated by BEL.
+func (s OscSequence) Bytes() []byte {
+	return s.buffer().Bytes()
+}
+
+func (s OscSequence) buffer() *bytes.Buffer {
+	var b bytes.Buffer
+	b.WriteString("\x1b]")
+	b.Write(s.Data)
+	b.WriteByte(BEL)
+	return &b
 }

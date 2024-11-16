@@ -52,9 +52,6 @@ type Parser struct {
 	// state is the current state of the parser.
 	state byte
 
-	// the type of the current sequence
-	typ rune
-
 	// the dispatch function to call when a sequence is complete
 	dispatcher ParserDispatcher
 }
@@ -100,11 +97,6 @@ func (p *Parser) Params() []Parameter {
 	return unsafe.Slice((*Parameter)(unsafe.Pointer(&p.params[0])), p.paramsLen)
 }
 
-// ParamsLen returns the number of parameters parsed.
-func (p *Parser) ParamsLen() int {
-	return p.paramsLen
-}
-
 // Param returns the parameter at the given index and falls back to the default
 // value if the parameter is missing. If the index is out of bounds, it returns
 // the default value and false.
@@ -115,12 +107,22 @@ func (p *Parser) Param(i, def int) (int, bool) {
 	return Parameter(p.params[i]).Param(def), true
 }
 
-// Cmd returns the packed command of the sequence.
+// Cmd returns the packed command of the last dispatched sequence.
 func (p *Parser) Cmd() Command {
 	return Command(p.cmd)
 }
 
-// Data returns the raw data of the sequence.
+// Rune returns the last dispatched sequence as a rune.
+func (p *Parser) Rune() rune {
+	rw := utf8ByteLen(byte(p.cmd & 0xff))
+	if rw == -1 {
+		return utf8.RuneError
+	}
+	r, _ := utf8.DecodeRune((*[utf8.UTFMax]byte)(unsafe.Pointer(&p.cmd))[:rw])
+	return r
+}
+
+// Data returns the raw data of the last dispatched sequence.
 func (p *Parser) Data() []byte {
 	return p.data[:p.dataLen]
 }
@@ -140,26 +142,33 @@ func (p *Parser) clear() {
 	p.cmd = 0
 }
 
+// State returns the current state of the parser.
+func (p *Parser) State() parser.State {
+	return p.state
+}
+
 // StateName returns the name of the current state.
 func (p *Parser) StateName() string {
 	return parser.StateNames[p.state]
 }
 
 // Parse parses the given dispatcher and byte buffer.
+// Deprecated: Loop over the buffer and call [Parser.Advance] instead.
 func (p *Parser) Parse(b []byte) {
 	for i := 0; i < len(b); i++ {
-		p.Advance(b[i], i < len(b)-1)
+		p.Advance(b[i])
 	}
 }
 
-// Advance advances the parser with the given dispatcher and byte.
-func (p *Parser) Advance(b byte, atEOF bool) parser.Action {
+// Advance advances the parser using the given byte. It	returns the action
+// performed by the parser.
+func (p *Parser) Advance(b byte) parser.Action {
 	switch p.state {
 	case parser.Utf8State:
 		// We handle UTF-8 here.
 		return p.advanceUtf8(b)
 	default:
-		return p.advance(b, atEOF)
+		return p.advance(b)
 	}
 }
 
@@ -195,8 +204,7 @@ func (p *Parser) advanceUtf8(b byte) parser.Action {
 	}
 
 	// We have enough bytes to decode the rune using unsafe
-	r, _ := utf8.DecodeRune((*[utf8.UTFMax]byte)(unsafe.Pointer(&p.cmd))[:rw])
-	p.dispatch(Rune(r))
+	p.dispatch(Rune(p.Rune()))
 
 	p.state = parser.GroundState
 	p.paramsLen = 0
@@ -204,7 +212,7 @@ func (p *Parser) advanceUtf8(b byte) parser.Action {
 	return parser.PrintAction
 }
 
-func (p *Parser) advance(b byte, more bool) parser.Action {
+func (p *Parser) advance(b byte) parser.Action {
 	state, action := parser.Table.Transition(p.state, b)
 
 	// We need to clear the parser state if the state changes from EscapeState.
@@ -231,19 +239,8 @@ func (p *Parser) advance(b byte, more bool) parser.Action {
 	case b == ESC && p.state == parser.EscapeState:
 		// Two ESCs in a row
 		p.performAction(parser.ExecuteAction, state, b)
-		if !more {
-			// Two ESCs at the end of the buffer
-			p.performAction(parser.ExecuteAction, state, b)
-		}
 	default:
 		p.performAction(action, state, b)
-		if !more {
-			switch state {
-			case parser.EscapeState:
-				// ESC at the end of the buffer
-				p.performAction(parser.ExecuteAction, state, b)
-			}
-		}
 	}
 
 	p.state = state
