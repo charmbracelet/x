@@ -118,12 +118,12 @@ func setContent(
 
 // handleSgr handles Select Graphic Rendition (SGR) escape sequences.
 func handleSgr(p *ansi.Parser, pen *Style) {
-	if p.ParamsLen() == 0 {
+	params := p.Params()
+	if len(params) == 0 {
 		pen.Reset()
 		return
 	}
 
-	params := p.Params()
 	for i := 0; i < len(params); i++ {
 		r := ansi.Parameter(params[i])
 		param, hasMore := r.Param(0), r.HasMore() // Are there more subparameters i.e. separated by ":"?
