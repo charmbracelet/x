@@ -23,6 +23,7 @@ func (t *Terminal) resetModes() {
 		ansi.AltScreenMode:           ansi.ModeReset,
 		ansi.SaveCursorMode:          ansi.ModeReset,
 		ansi.AltScreenSaveCursorMode: ansi.ModeReset,
+		ansi.BracketedPasteMode:      ansi.ModeReset,
 	}
 
 	// Set mode effects.
