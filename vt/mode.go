@@ -10,6 +10,7 @@ func (t *Terminal) resetModes() {
 		ansi.OriginMode:           ansi.ModeReset,
 		ansi.AutoWrapMode:         ansi.ModeSet,
 		ansi.X10MouseMode:         ansi.ModeReset,
+		ansi.LineFeedNewLineMode:  ansi.ModeReset,
 		ansi.TextCursorEnableMode: ansi.ModeSet,
 		ansi.NumericKeypadMode:    ansi.ModeReset,
 		ansi.LeftRightMarginMode:  ansi.ModeReset,

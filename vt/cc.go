@@ -19,8 +19,15 @@ func (t *Terminal) handleControl(r ansi.ControlCode) {
 		x, _ := t.scr.CursorPosition()
 		x = t.tabstops.Next(x)
 		t.scr.setCursorX(x, false)
-	case ansi.LF:
-		// Line Feed [ansi.LF]
+	case ansi.VT: // Vertical Tab [ansi.VT]
+		fallthrough
+	case ansi.FF: // Form Feed [ansi.FF]
+		fallthrough
+	case ansi.LF: // Line Feed [ansi.LF]
+		if t.isModeSet(ansi.LineFeedNewLineMode) {
+			t.carriageReturn()
+		}
+
 		x, y := t.scr.CursorPosition()
 		scroll := t.scr.ScrollRegion()
 		if y == scroll.Max.Y-1 && x >= scroll.Min.X && x < scroll.Max.X {
