@@ -42,6 +42,11 @@ func DeviceStatusReport(status Status) string {
 	return ""
 }
 
+// DSR is an alias for [DeviceStatusReport].
+func DSR(status Status) string {
+	return DeviceStatusReport(status)
+}
+
 // CursorPositionReport (CPR) is a control sequence that reports the cursor's
 // position.
 //
