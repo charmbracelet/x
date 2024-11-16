@@ -24,8 +24,8 @@ const (
 	DECRC         = RestoreCursor
 )
 
-// CursorPositionReport (CPR) is an escape sequence that requests the current
-// cursor position.
+// RequestCursorPosition is an escape sequence that requests the current cursor
+// position.
 //
 //	CSI 6 n
 //
@@ -36,12 +36,9 @@ const (
 //
 // Where Pl is the line number and Pc is the column number.
 // See: https://vt100.net/docs/vt510-rm/CPR.html
-const (
-	CursorPositionReport = "\x1b[6n"
-	CPR                  = CursorPositionReport
-)
+const RequestCursorPosition = "\x1b[6n"
 
-// ExtendedCursorPosition (DECXCPR) is a sequence for requesting the
+// RequestExtendedCursorPosition (DECXCPR) is a sequence for requesting the
 // cursor position report including the current page number.
 //
 //	CSI ? 6 n
@@ -54,10 +51,7 @@ const (
 // Where Pl is the line number, Pc is the column number, and Pp is the page
 // number.
 // See: https://vt100.net/docs/vt510-rm/DECXCPR.html
-const (
-	ExtendedCursorPosition = "\x1b[?6n"
-	DECXCPR                = ExtendedCursorPosition
-)
+const RequestExtendedCursorPosition = "\x1b[?6n"
 
 // CursorUp (CUU) returns a sequence for moving the cursor up n cells.
 //
