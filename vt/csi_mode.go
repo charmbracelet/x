@@ -33,6 +33,29 @@ func (t *Terminal) handleMode() {
 	}
 }
 
+// setAltScreenMode sets the alternate screen mode.
+func (t *Terminal) setAltScreenMode(on bool) {
+	if on {
+		t.scr = &t.scrs[1]
+		t.scr.Clear()
+	} else {
+		t.scr = &t.scrs[0]
+	}
+	if t.AltScreen != nil {
+		t.AltScreen(on)
+	}
+}
+
+// saveCursor saves the cursor position.
+func (t *Terminal) saveCursor() {
+	t.scr.SaveCursor()
+}
+
+// restoreCursor restores the cursor position.
+func (t *Terminal) restoreCursor() {
+	t.scr.RestoreCursor()
+}
+
 // setMode sets the mode to the given value.
 func (t *Terminal) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 	t.logf("setting mode %T(%v) to %v", mode, mode, setting)
@@ -40,22 +63,22 @@ func (t *Terminal) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 	switch mode {
 	case ansi.TextCursorEnableMode:
 		t.scr.cur.Hidden = setting.IsReset()
-	case ansi.DECMode(1047): // Alternate Screen Buffer
-		if setting == ansi.ModeSet {
-			t.scr = &t.scrs[1]
+	case ansi.AltScreenMode:
+		t.setAltScreenMode(setting.IsSet())
+	case ansi.SaveCursorMode:
+		if setting.IsSet() {
+			t.saveCursor()
 		} else {
-			t.scr = &t.scrs[0]
+			t.restoreCursor()
 		}
-	case ansi.AltScreenBufferMode:
-		if setting == ansi.ModeSet {
-			t.scr = &t.scrs[1]
-			t.scr.Clear()
-		} else {
-			t.scr = &t.scrs[0]
+	case ansi.AltScreenSaveCursorMode: // Alternate Screen Save Cursor (1047 & 1048)
+		// Save primary screen cursor position
+		// Switch to alternate screen
+		// Doesn't support scrollback
+		if setting.IsSet() {
+			t.saveCursor()
 		}
-		if t.AltScreen != nil {
-			t.AltScreen(setting.IsSet())
-		}
+		t.setAltScreenMode(setting.IsSet())
 	}
 }
 
