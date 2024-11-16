@@ -43,16 +43,16 @@ func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
 			t.tabstops.Clear()
 		}
 	case '@': // Insert Character [ansi.ICH]
-		n := 1
-		if param, ok := t.parser.Param(0, 1); ok {
-			n = param
+		n, _ := t.parser.Param(0, 1)
+		if n == 0 {
+			n = 1
 		}
 
 		t.scr.InsertCell(n)
 	case 'P': // Delete Character [ansi.DCH]
-		n := 1
-		if param, ok := t.parser.Param(0, 1); ok {
-			n = param
+		n, _ := t.parser.Param(0, 1)
+		if n == 0 {
+			n = 1
 		}
 
 		t.scr.DeleteCell(n)

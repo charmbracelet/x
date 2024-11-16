@@ -31,12 +31,18 @@ func (t *Terminal) handleScreen() {
 		}
 	case 'L': // IL - Insert Line
 		n, _ := t.parser.Param(0, 1)
+		if n == 0 {
+			n = 1
+		}
 		t.scr.InsertLine(n)
 		// Move the cursor to the left margin.
 		t.scr.setCursorX(0, true)
 
 	case 'M': // DL - Delete Line
 		n, _ := t.parser.Param(0, 1)
+		if n == 0 {
+			n = 1
+		}
 		t.scr.DeleteLine(n)
 		// Move the cursor to the left margin.
 		t.scr.setCursorX(0, true)
@@ -45,11 +51,22 @@ func (t *Terminal) handleScreen() {
 		// ECH - Erase Character
 		// It clears character attributes as well but not colors.
 		n, _ := t.parser.Param(0, 1)
+		if n == 0 {
+			n = 1
+		}
 		t.eraseCharacter(n)
 
 	case 'r': // DECSTBM - Set Top and Bottom Margins
 		top, _ := t.parser.Param(0, 1)
+		if top < 1 || top > height {
+			top = 1
+		}
+
 		bottom, _ := t.parser.Param(1, height)
+		if bottom < 1 || bottom > height {
+			bottom = height
+		}
+
 		if top >= bottom {
 			break
 		}
@@ -95,9 +112,15 @@ func (t *Terminal) handleLine() {
 		}
 	case 'S': // SU - Scroll Up
 		n, _ := t.parser.Param(0, 1)
+		if n == 0 {
+			n = 1
+		}
 		t.scr.ScrollUp(n)
 	case 'T': // SD - Scroll Down
 		n, _ := t.parser.Param(0, 1)
+		if n == 0 {
+			n = 1
+		}
 		t.scr.ScrollDown(n)
 	}
 }
