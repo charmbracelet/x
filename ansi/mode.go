@@ -5,6 +5,43 @@ import (
 	"strings"
 )
 
+// ModeSetting represents a mode setting.
+type ModeSetting byte
+
+// ModeSetting constants.
+const (
+	ModeNotRecognized ModeSetting = iota
+	ModeSet
+	ModeReset
+	ModePermanentlySet
+	ModePermanentlyReset
+)
+
+// IsNotRecognized returns true if the mode is not recognized.
+func (m ModeSetting) IsNotRecognized() bool {
+	return m == ModeNotRecognized
+}
+
+// IsSet returns true if the mode is set or permanently set.
+func (m ModeSetting) IsSet() bool {
+	return m == ModeSet || m == ModePermanentlySet
+}
+
+// IsReset returns true if the mode is reset or permanently reset.
+func (m ModeSetting) IsReset() bool {
+	return m == ModeReset || m == ModePermanentlyReset
+}
+
+// IsPermanentlySet returns true if the mode is permanently set.
+func (m ModeSetting) IsPermanentlySet() bool {
+	return m == ModePermanentlySet
+}
+
+// IsPermanentlyReset returns true if the mode is permanently reset.
+func (m ModeSetting) IsPermanentlyReset() bool {
+	return m == ModePermanentlyReset
+}
+
 // Mode represents an interface for terminal modes.
 // Modes can be set, reset, and requested.
 type Mode interface {
@@ -139,18 +176,19 @@ func DECRQM(m Mode) string {
 //	4: Permanent reset
 //
 // See: https://vt100.net/docs/vt510-rm/DECRPM.html
-func ReportMode(mode, value int) string {
-	if mode < 0 {
-		mode = 0
-	}
-	if value < 0 {
+func ReportMode(mode Mode, value ModeSetting) string {
+	if value > 4 {
 		value = 0
 	}
-	return "\x1b[" + strconv.Itoa(mode) + ";" + strconv.Itoa(value) + "$y"
+	switch mode.(type) {
+	case DECMode:
+		return "\x1b[?" + strconv.Itoa(mode.Mode()) + ";" + strconv.Itoa(int(value)) + "$y"
+	}
+	return "\x1b[" + strconv.Itoa(mode.Mode()) + ";" + strconv.Itoa(int(value)) + "$y"
 }
 
 // DECRPM is an alias for [ReportMode].
-func DECRPM(mode, value int) string {
+func DECRPM(mode Mode, value ModeSetting) string {
 	return ReportMode(mode, value)
 }
 
