@@ -11,7 +11,7 @@ func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
 		t.handleCursor()
 	case 'm': // Select Graphic Rendition [ansi.SGR]
 		t.handleSgr()
-	case 'J', 'L', 'M', 'X', 'r':
+	case 'J', 'L', 'M', 'X', 'r', 's':
 		t.handleScreen()
 	case 'K', 'S', 'T':
 		t.handleLine()

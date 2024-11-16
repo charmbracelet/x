@@ -1,5 +1,7 @@
 package vt
 
+import "github.com/charmbracelet/x/ansi"
+
 func (t *Terminal) handleScreen() {
 	width, height := t.Width(), t.Height()
 	_, y := t.scr.CursorPosition()
@@ -79,6 +81,38 @@ func (t *Terminal) handleScreen() {
 		// Move the cursor to the top-left of the screen or scroll region
 		// depending on [ansi.DECOM].
 		t.setCursorPosition(0, 0)
+
+	case 's':
+		// These conflict with each other. When [ansi.DECSLRM] is set, the we
+		// set the left and right margins. Otherwise, we save the cursor
+		// position.
+
+		if t.isModeSet(ansi.LeftRightMarginMode) {
+			// Set Left Right Margins [ansi.DECSLRM]
+			left, _ := t.parser.Param(0, 1)
+			if left < 1 || left > width {
+				left = 1
+			}
+
+			right, _ := t.parser.Param(1, width)
+			if right < 1 || right > width {
+				right = width
+			}
+
+			if left >= right {
+				break
+			}
+
+			t.scr.scroll.Min.X = left - 1
+			t.scr.scroll.Max.X = right
+
+			// Move the cursor to the top-left of the screen or scroll region
+			// depending on [ansi.DECOM].
+			t.setCursorPosition(0, 0)
+		} else {
+			// Save Current Cursor Position [ansi.SCOSC]
+			t.scr.SaveCursor()
+		}
 	}
 }
 
