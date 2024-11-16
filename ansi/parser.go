@@ -20,6 +20,9 @@ type ParserDispatcher func(Sequence)
 //
 //go:generate go run ./gen.go
 type Parser struct {
+	// the dispatch function to call when a sequence is complete
+	dispatcher ParserDispatcher
+
 	// params contains the raw parameters of the sequence.
 	// These parameters used when constructing CSI and DCS sequences.
 	params []int
@@ -51,20 +54,17 @@ type Parser struct {
 
 	// state is the current state of the parser.
 	state byte
-
-	// the dispatch function to call when a sequence is complete
-	dispatcher ParserDispatcher
 }
 
 // NewParser returns a new parser with an optional [ParserDispatcher].
-// The [Parser] uses a default size of 32 for the parameters and 4MB for the
+// The [Parser] uses a default size of 32 for the parameters and 64KB for the
 // data buffer. Use [Parser.SetParamsSize] and [Parser.SetDataSize] to set the
 // size of the parameters and data buffer respectively.
 func NewParser(d ParserDispatcher) *Parser {
 	p := new(Parser)
 	p.SetDispatcher(d)
 	p.SetParamsSize(parser.MaxParamsSize)
-	p.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
+	p.SetDataSize(1024 * 64) // 64KB data buffer
 	return p
 }
 
