@@ -221,6 +221,23 @@ const (
 	RequestKeyboardActionMode = "\x1b[2$p"
 )
 
+// Insert/Replace Mode (IRM) is a mode that determines whether characters are
+// inserted or replaced when typed.
+//
+// When enabled, characters are inserted at the cursor position pushing the
+// characters to the right. When disabled, characters replace the character at
+// the cursor position.
+//
+// See: https://vt100.net/docs/vt510-rm/IRM.html
+const (
+	InsertReplaceMode = ANSIMode(4)
+	IRM               = InsertReplaceMode
+
+	SetInsertReplaceMode     = "\x1b[4h"
+	ResetInsertReplaceMode   = "\x1b[4l"
+	RequestInsertReplaceMode = "\x1b[4$p"
+)
+
 // Send Receive Mode (SRM) or Local Echo Mode is a mode that determines whether
 // the terminal echoes characters back to the host. When enabled, the terminal
 // sends characters to the host as they are typed.
@@ -238,6 +255,26 @@ const (
 	SetLocalEchoMode     = "\x1b[12h"
 	ResetLocalEchoMode   = "\x1b[12l"
 	RequestLocalEchoMode = "\x1b[12$p"
+)
+
+// Line Feed/New Line Mode (LNM) is a mode that determines whether the terminal
+// interprets the line feed character as a new line.
+//
+// When enabled, the terminal interprets the line feed character as a new line.
+// When disabled, the terminal interprets the line feed character as a line feed.
+//
+// A new line moves the cursor to the first position of the next line.
+// A line feed moves the cursor down one line without changing the column
+// scrolling the screen if necessary.
+//
+// See: https://vt100.net/docs/vt510-rm/LNM.html
+const (
+	LineFeedNewLineMode = ANSIMode(20)
+	LNM                 = LineFeedNewLineMode
+
+	SetLineFeedNewLineMode     = "\x1b[20h"
+	ResetLineFeedNewLineMode   = "\x1b[20l"
+	RequestLineFeedNewLineMode = "\x1b[20$p"
 )
 
 // Cursor Keys Mode (DECCKM) is a mode that determines whether the cursor keys
