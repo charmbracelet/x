@@ -142,6 +142,7 @@ func (t *Terminal) Read(p []byte) (n int, err error) {
 	}
 
 	if t.buf.Len() == 0 {
+		time.Sleep(10 * time.Millisecond)
 		return 0, nil
 	}
 
