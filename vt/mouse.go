@@ -113,10 +113,10 @@ func (t *Terminal) SendMouse(m Mouse) {
 	}
 
 	for _, e := range []ansi.DECMode{
-		ansi.Utf8ExtMouseMode,
+		// ansi.Utf8ExtMouseMode,
 		ansi.SgrExtMouseMode,
-		ansi.UrxvtExtMouseMode,
-		ansi.SgrPixelExtMouseMode,
+		// ansi.UrxvtExtMouseMode,
+		// ansi.SgrPixelExtMouseMode,
 	} {
 		if t.isModeSet(e) {
 			enc = e
