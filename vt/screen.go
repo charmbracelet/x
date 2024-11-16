@@ -22,6 +22,18 @@ func NewScreen(w, h int) *Screen {
 	return s
 }
 
+// Reset resets the screen.
+// It clears the screen, sets the cursor to the top left corner, reset the
+// cursor styles, and resets the scroll region.
+func (s *Screen) Reset() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.buf.Clear()
+	s.cur = Cursor{}
+	s.saved = Cursor{}
+	s.scroll = s.buf.Bounds()
+}
+
 // Bounds returns the bounds of the screen.
 func (s *Screen) Bounds() Rectangle {
 	s.mu.RLock()

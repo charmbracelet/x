@@ -6,7 +6,7 @@ import (
 
 // handleEsc handles an escape sequence.
 func (t *Terminal) handleEsc(seq ansi.EscSequence) {
-	switch t.parser.Cmd() {
+	switch cmd := t.parser.Cmd(); cmd {
 	case 'H': // Horizontal Tab Set [ansi.HTS]
 		t.horizontalTabSet()
 	case 'M': // Reverse Index [ansi.RI]
@@ -19,6 +19,8 @@ func (t *Terminal) handleEsc(seq ansi.EscSequence) {
 		t.scr.SaveCursor()
 	case '8': // Restore Cursor [ansi.DECRC]
 		t.scr.RestoreCursor()
+	case 'c': // Reset Initial State [ansi.RIS]
+		t.fullReset()
 	case '~': // Locking Shift 1 Right [ansi.LS1R]
 		t.gr = 1
 	case 'n': // Locking Shift G2 [ansi.LS2]
@@ -47,4 +49,38 @@ func (t *Terminal) handleEsc(seq ansi.EscSequence) {
 			t.logf("unhandled ESC: %q", seq)
 		}
 	}
+}
+
+// fullReset performs a full terminal reset as in [ansi.RIS].
+func (t *Terminal) fullReset() {
+	t.scrs[0].Reset()
+	t.scrs[1].Reset()
+	t.resetTabStops()
+
+	for _, m := range []ansi.Mode{
+		ansi.OriginMode,
+		ansi.CursorKeysMode,
+		ansi.KeyboardActionMode,
+		ansi.NumericKeypadMode,
+		ansi.LeftRightMarginMode,
+		ansi.X10MouseMode,
+		ansi.NormalMouseMode,
+		ansi.HighlightMouseMode,
+		ansi.ButtonEventMouseMode,
+		ansi.AnyEventMouseMode,
+		ansi.FocusEventMode,
+		ansi.SgrExtMouseMode,
+		ansi.Utf8ExtMouseMode,
+		ansi.UrxvtExtMouseMode,
+		ansi.SgrPixelExtMouseMode,
+		ansi.AltScreenBufferMode,
+	} {
+		delete(t.modes, m)
+	}
+
+	t.modes[ansi.AutoWrapMode] = ModeSet
+
+	t.gl, t.gr = 0, 1
+	t.gsingle = 0
+	t.charsets = [4]CharSet{}
 }
