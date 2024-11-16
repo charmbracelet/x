@@ -86,13 +86,14 @@ func CPR(line, column int) string {
 // ExtendedCursorPositionReport (DECXCPR) is a control sequence that reports the
 // cursor's position along with the page number (optional).
 //
+//	CSI ? Pl ; Pc R
 //	CSI ? Pl ; Pc ; Pv R
 //
 // Where Pl is the line number, Pc is the column number, and Pv is the page
 // number.
 //
-// If the page number is zero, the returned sequence won't include the page
-// number.
+// If the page number is zero or negative, the returned sequence won't include
+// the page number.
 //
 // See also https://vt100.net/docs/vt510-rm/DECXCPR.html
 func ExtendedCursorPositionReport(line, column, page int) string {
