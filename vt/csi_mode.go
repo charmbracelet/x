@@ -44,11 +44,11 @@ func (t *Terminal) setMode(mode ansi.Mode, setting ModeSetting) {
 		if setting == ModeSet {
 			t.scr = &t.scrs[1]
 			t.scr.Clear()
-			if t.Damage != nil {
-				t.Damage(ScreenDamage{t.scr.Width(), t.scr.Height()})
-			}
 		} else {
 			t.scr = &t.scrs[0]
+		}
+		if t.AltScreen != nil {
+			t.AltScreen(setting.IsSet())
 		}
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
@@ -65,6 +66,10 @@ type Terminal struct {
 	// IconName callback. When set, this function is called when the terminal
 	// icon name changes.
 	IconName func(string)
+
+	// AltScreen callback. When set, this function is called when the alternate
+	// screen is activated or deactivated.
+	AltScreen func(bool)
 }
 
 var (
@@ -78,6 +83,8 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t := new(Terminal)
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
+	t.scrs[0].damage = t.damage
+	t.scrs[1].damage = t.damage
 	t.scr = &t.scrs[0]
 	t.parser = ansi.NewParser(t.dispatcher) // 4MB data buffer
 	t.parser.SetParamsSize(parser.MaxParamsSize)
@@ -101,12 +108,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 
 // Screen returns the main terminal screen.
 func (t *Terminal) Screen() *Screen {
-	return &t.scrs[0]
-}
-
-// AltScreen returns the alternate terminal screen.
-func (t *Terminal) AltScreen() *Screen {
-	return &t.scrs[1]
+	return t.scr
 }
 
 // Cell returns the current focused screen cell at the given x, y position. It returns nil if the cell
@@ -160,6 +162,13 @@ func (t *Terminal) Close() error {
 
 	t.closed = true
 	return nil
+}
+
+// damage is called when a cell is damaged or changed.
+func (t *Terminal) damage(d Damage) {
+	if t.Damage != nil {
+		t.Damage(d)
+	}
 }
 
 // dispatcher parses and dispatches escape sequences and operates on the terminal.

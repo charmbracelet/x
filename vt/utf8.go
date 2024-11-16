@@ -62,9 +62,7 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 		Width:   width,
 	}
 
-	if t.scr.SetCell(x, y, cell) && t.Damage != nil {
-		t.Damage(CellDamage{X: x, Y: y})
-	}
+	t.scr.SetCell(x, y, cell)
 
 	// TODO: Is this correct?
 	t.scr.setCursor(x+width, y, true)

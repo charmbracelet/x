@@ -7,11 +7,14 @@ type Damage interface {
 }
 
 // CellDamage represents a damaged cell.
-type CellDamage Position
+type CellDamage struct {
+	X, Y  int
+	Width int
+}
 
 // Bounds returns the bounds of the damaged area.
 func (d CellDamage) Bounds() Rectangle {
-	return Rect(d.X, d.Y, 1, 1)
+	return Rect(d.X, d.Y, d.Width, 1)
 }
 
 // RectDamage represents a damaged rectangle.
@@ -50,4 +53,17 @@ type ScreenDamage struct {
 // Bounds returns the bounds of the damaged area.
 func (d ScreenDamage) Bounds() Rectangle {
 	return Rect(0, 0, d.Width, d.Height)
+}
+
+// MoveDamage represents a moved area.
+// The area is moved from the source to the destination.
+type MoveDamage struct {
+	Src, Dst Rectangle
+}
+
+// ScrollDamage represents a scrolled area.
+// The area is scrolled by the given deltas.
+type ScrollDamage struct {
+	Rectangle
+	Dx, Dy int
 }

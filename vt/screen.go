@@ -13,6 +13,8 @@ type Screen struct {
 	cur, saved Cursor
 	// scroll is the scroll region.
 	scroll Rectangle
+	// damage is the cell change callback.
+	damage func(Damage)
 }
 
 // NewScreen creates a new screen.
@@ -53,7 +55,15 @@ func (s *Screen) Cell(x int, y int) *Cell {
 func (s *Screen) SetCell(x, y int, c *Cell) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	return s.buf.SetCell(x, y, c)
+	v := s.buf.SetCell(x, y, c)
+	if v && s.damage != nil {
+		width := 1
+		if c != nil {
+			width = c.Width
+		}
+		s.damage(CellDamage{x, y, width})
+	}
+	return v
 }
 
 // Height returns the height of the screen.
@@ -68,6 +78,9 @@ func (s *Screen) Resize(width int, height int) {
 	s.mu.Lock()
 	s.buf.Resize(width, height)
 	s.scroll = s.buf.Bounds()
+	if s.damage != nil {
+		s.damage(ScreenDamage{width, height})
+	}
 	s.mu.Unlock()
 }
 
@@ -82,6 +95,11 @@ func (s *Screen) Width() int {
 func (s *Screen) Clear(rects ...Rectangle) {
 	s.mu.Lock()
 	s.buf.Clear(rects...)
+	if s.damage != nil {
+		for _, r := range rects {
+			s.damage(RectDamage(r))
+		}
+	}
 	s.mu.Unlock()
 }
 
@@ -90,6 +108,11 @@ func (s *Screen) Fill(c *Cell, rects ...Rectangle) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.buf.Fill(c, rects...)
+	if s.damage != nil {
+		for _, r := range rects {
+			s.damage(RectDamage(r))
+		}
+	}
 }
 
 // setCursorX sets the cursor X position. If margins is true, the cursor is
@@ -200,6 +223,9 @@ func (s *Screen) InsertCell(n int) {
 	x, y := s.cur.X, s.cur.Y
 
 	s.buf.InsertCell(x, y, n, s.blankCell(), s.scroll)
+	if s.damage != nil {
+		s.damage(RectDamage(Rect(x, y, s.scroll.Width(), 1)))
+	}
 }
 
 // DeleteCell deletes n cells at the cursor position moving cells to the left.
@@ -214,6 +240,9 @@ func (s *Screen) DeleteCell(n int) {
 	x, y := s.cur.X, s.cur.Y
 
 	s.buf.DeleteCell(x, y, n, s.blankCell(), s.scroll)
+	if s.damage != nil {
+		s.damage(RectDamage(Rect(x, y, s.scroll.Width(), 1)))
+	}
 }
 
 // ScrollUp scrolls the content up n lines within the given region. Lines
@@ -254,6 +283,12 @@ func (s *Screen) InsertLine(n int) {
 	}
 
 	s.buf.InsertLine(y, n, s.blankCell(), s.scroll)
+	if s.damage != nil {
+		rect := s.scroll
+		rect.Min.Y = y
+		rect.Max.Y += n
+		s.damage(RectDamage(rect))
+	}
 }
 
 // DeleteLine deletes n lines at the cursor position Y coordinate.
@@ -274,6 +309,12 @@ func (s *Screen) DeleteLine(n int) {
 	}
 
 	s.buf.DeleteLine(y, n, s.blankCell(), s.scroll)
+	if s.damage != nil {
+		rect := s.scroll
+		rect.Min.Y = y
+		rect.Max.Y += n
+		s.damage(RectDamage(rect))
+	}
 }
 
 // blankCell returns the cursor blank cell with the background color set to the

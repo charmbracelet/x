@@ -13,23 +13,14 @@ func (t *Terminal) handleScreen() {
 		case 0: // Erase screen below (including cursor)
 			rect := Rect(0, y, width, height-y)
 			t.scr.Fill(t.scr.blankCell(), rect)
-			if t.Damage != nil {
-				t.Damage(RectDamage(rect))
-			}
 		case 1: // Erase screen above (including cursor)
 			rect := Rect(0, 0, width, y+1)
 			t.scr.Fill(t.scr.blankCell(), rect)
-			if t.Damage != nil {
-				t.Damage(RectDamage(rect))
-			}
 		case 2: // erase screen
 			fallthrough
 		case 3: // erase display
 			// TODO: Scrollback buffer support?
 			t.scr.Clear()
-			if t.Damage != nil {
-				t.Damage(ScreenDamage{width, height})
-			}
 		}
 	case 'L': // IL - Insert Line
 		n, _ := t.parser.Param(0, 1)
@@ -128,21 +119,12 @@ func (t *Terminal) handleLine() {
 		switch count {
 		case 0: // Erase from cursor to end of line
 			t.eraseCharacter(w - x)
-			if t.Damage != nil {
-				t.Damage(RectDamage(Rect(x, y, w-x, 1)))
-			}
 		case 1: // Erase from start of line to cursor
 			rect := Rect(0, y, x+1, 1)
 			t.scr.Fill(t.scr.blankCell(), rect)
-			if t.Damage != nil {
-				t.Damage(RectDamage(rect))
-			}
 		case 2: // Erase entire line
 			rect := Rect(0, y, w, 1)
 			t.scr.Fill(t.scr.blankCell(), rect)
-			if t.Damage != nil {
-				t.Damage(RectDamage(rect))
-			}
 		}
 	case 'S': // SU - Scroll Up
 		n, _ := t.parser.Param(0, 1)
