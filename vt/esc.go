@@ -22,7 +22,6 @@ func (t *Terminal) handleEsc(seq ansi.EscSequence) {
 	case ansi.Cmd(0, '(', 'B'): // G0 Character Set
 	// TODO: Handle G0 Character Set
 	default:
-		inter, cmd := seq.Intermediate(), seq.Command()
-		t.logf("unhandled ESC: (%c, %c)", inter, cmd)
+		t.logf("unhandled ESC: %q", seq)
 	}
 }

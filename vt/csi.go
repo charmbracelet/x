@@ -57,7 +57,6 @@ func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
 
 		t.scr.DeleteCell(n)
 	default:
-		mark, inter, cmd := seq.Cmd.Marker(), seq.Cmd.Intermediate(), seq.Cmd.Command()
-		t.logf("unhandled CSI: (%c, %c, %c)", mark, inter, cmd)
+		t.logf("unhandled CSI: %q", seq)
 	}
 }

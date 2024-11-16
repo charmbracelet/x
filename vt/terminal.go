@@ -72,7 +72,9 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
 	t.scr = &t.scrs[0]
-	t.parser = ansi.NewParser(parser.MaxParamsSize, 1024*1024*4) // 4MB data buffer
+	t.parser = ansi.NewParser(t.dispatcher) // 4MB data buffer
+	t.parser.SetParamsSize(parser.MaxParamsSize)
+	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
 	t.modes = map[ansi.Mode]ModeSetting{
 		// These modes are set by default.
 		ansi.AutoWrapMode:     ModeSet,
@@ -182,7 +184,7 @@ func (t *Terminal) Write(p []byte) (n int, err error) {
 
 	var i int
 	for i < len(p) {
-		t.parser.Advance(t.dispatcher, p[i], i < len(p)-1)
+		t.parser.Advance(p[i])
 		// TODO: Support grapheme clusters (mode 2027).
 		i++
 	}
