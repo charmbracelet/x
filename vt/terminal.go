@@ -84,8 +84,8 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
 	t.modes = map[ansi.Mode]ModeSetting{
 		// These modes are set by default.
-		ansi.AutoWrapMode:     ModeSet,
-		ansi.CursorEnableMode: ModeSet,
+		ansi.AutoWrapMode:         ModeSet,
+		ansi.TextCursorEnableMode: ModeSet,
 	}
 	t.tabstops = DefaultTabStops(w)
 	t.fg = defaultFg

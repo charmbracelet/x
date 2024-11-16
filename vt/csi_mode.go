@@ -32,7 +32,7 @@ func (t *Terminal) setMode(mode ansi.Mode, setting ModeSetting) {
 	t.logf("setting mode %T(%v) to %v", mode, mode, setting)
 	t.modes[mode] = setting
 	switch mode {
-	case ansi.CursorEnableMode:
+	case ansi.TextCursorEnableMode:
 		t.scr.cur.Hidden = setting.IsReset()
 	case ansi.DECMode(1047): // Alternate Screen Buffer
 		if setting == ModeSet {
