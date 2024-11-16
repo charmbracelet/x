@@ -1,6 +1,9 @@
 package ansi
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 // Status represents a terminal status report.
 type Status interface {
@@ -31,15 +34,25 @@ func (s DECStatus) Status() int {
 //	CSI Ps n
 //	CSI ? Ps n
 //
+// If one of the statuses is a [DECStatus], the sequence will use the DEC
+// format.
+//
 // See also https://vt100.net/docs/vt510-rm/DSR.html
-func DeviceStatusReport(status Status) string {
-	switch status := status.(type) {
-	case ANSIStatus:
-		return "\x1b[" + strconv.Itoa(status.Status()) + "n"
-	case DECStatus:
-		return "\x1b[?" + strconv.Itoa(status.Status()) + "n"
+func DeviceStatusReport(statues ...Status) string {
+	var dec bool
+	list := make([]string, len(statues))
+	seq := "\x1b["
+	for _, status := range statues {
+		list = append(list, strconv.Itoa(status.Status()))
+		switch status.(type) {
+		case DECStatus:
+			dec = true
+		}
 	}
-	return ""
+	if dec {
+		seq += "?"
+	}
+	return seq + strings.Join(list, ";") + "n"
 }
 
 // DSR is an alias for [DeviceStatusReport].
