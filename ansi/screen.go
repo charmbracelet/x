@@ -162,7 +162,7 @@ func DL(n int) string {
 // SetTopBottomMargins (DECSTBM) sets the top and bottom margins for the scrolling
 // region. The default is the entire screen.
 //
-// Default is 1,1.
+// Default is 1 and the bottom of the screen.
 //
 //	CSI Pt ; Pb r
 //
@@ -181,6 +181,30 @@ func SetTopBottomMargins(top, bot int) string {
 // DECSTBM is an alias for [SetTopBottomMargins].
 func DECSTBM(top, bot int) string {
 	return SetTopBottomMargins(top, bot)
+}
+
+// SetLeftRightMargins (DECSLRM) sets the left and right margins for the scrolling
+// region.
+//
+// Default is 1 and the right of the screen.
+//
+//	CSI Pl ; Pr s
+//
+// See: https://vt100.net/docs/vt510-rm/DECSLRM.html
+func SetLeftRightMargins(left, right int) string {
+	var l, r string
+	if left > 0 {
+		l = strconv.Itoa(left)
+	}
+	if right > 0 {
+		r = strconv.Itoa(right)
+	}
+	return "\x1b[" + l + ";" + r + "s"
+}
+
+// DECSLRM is an alias for [SetLeftRightMargins].
+func DECSLRM(left, right int) string {
+	return SetLeftRightMargins(left, right)
 }
 
 // SetScrollingRegion (DECSTBM) sets the top and bottom margins for the scrolling

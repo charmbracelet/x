@@ -172,6 +172,38 @@ func (m DECMode) Mode() int {
 	return int(m)
 }
 
+// Keyboard Action Mode (KAM) is a mode that controls locking of the keyboard.
+// When the keyboard is locked, it cannot send data to the terminal.
+//
+// See: https://vt100.net/docs/vt510-rm/KAM.html
+const (
+	KeyboardActionMode = ANSIMode(2)
+	KAM                = KeyboardActionMode
+
+	SetKeyboardActionMode     = "\x1b[2h"
+	ResetKeyboardActionMode   = "\x1b[2l"
+	RequestKeyboardActionMode = "\x1b[2$p"
+)
+
+// Send Receive Mode (SRM) or Local Echo Mode is a mode that determines whether
+// the terminal echoes characters back to the host. When enabled, the terminal
+// sends characters to the host as they are typed.
+//
+// See: https://vt100.net/docs/vt510-rm/SRM.html
+const (
+	SendReceiveMode = ANSIMode(12)
+	LocalEchoMode   = SendReceiveMode
+	SRM             = SendReceiveMode
+
+	SetSendReceiveMode     = "\x1b[12h"
+	ResetSendReceiveMode   = "\x1b[12l"
+	RequestSendReceiveMode = "\x1b[12$p"
+
+	SetLocalEchoMode     = "\x1b[12h"
+	ResetLocalEchoMode   = "\x1b[12l"
+	RequestLocalEchoMode = "\x1b[12$p"
+)
+
 // Cursor Keys Mode (DECCKM) is a mode that determines whether the cursor keys
 // send ANSI cursor sequences or application sequences.
 //
@@ -257,6 +289,7 @@ const (
 // Text Cursor Enable Mode (DECTCEM) is a mode that shows/hides the cursor.
 //
 // See: https://vt100.net/docs/vt510-rm/DECTCEM.html
+//
 // Deprecated: use [SetTextCursorEnableMode] and [ResetTextCursorEnableMode] instead.
 const (
 	CursorEnableMode        = DECMode(25)
@@ -278,6 +311,32 @@ const (
 	RequestNumericKeypadMode = "\x1b[?66$p"
 )
 
+// Backarrow Key Mode (DECBKM) is a mode that determines whether the backspace
+// key sends a backspace or delete character. Disabled by default.
+//
+// See: https://vt100.net/docs/vt510-rm/DECBKM.html
+const (
+	BackarrowKeyMode = DECMode(67)
+	DECBKM           = BackarrowKeyMode
+
+	SetBackarrowKeyMode     = "\x1b[?67h"
+	ResetBackarrowKeyMode   = "\x1b[?67l"
+	RequestBackarrowKeyMode = "\x1b[?67$p"
+)
+
+// Left Right Margin Mode (DECLRMM) is a mode that determines whether the left
+// and right margins can be set with [DECSLRM].
+//
+// See: https://vt100.net/docs/vt510-rm/DECLRMM.html
+const (
+	LeftRightMarginMode = DECMode(69)
+	DECLRMM             = LeftRightMarginMode
+
+	SetLeftRightMarginMode     = "\x1b[?69h"
+	ResetLeftRightMarginMode   = "\x1b[?69l"
+	RequestLeftRightMarginMode = "\x1b[?69$p"
+)
+
 // Normal Mouse Mode is a mode that determines whether the mouse reports on
 // button presses and releases. It will also report modifier keys, wheel
 // events, and extra buttons.
@@ -297,6 +356,7 @@ const (
 // button press and release.
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+//
 // Deprecated: use [NormalMouseMode] instead.
 const (
 	MouseMode = DECMode(1000)
@@ -329,6 +389,7 @@ const (
 // button presses, releases, and highlighted cells.
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+//
 // Deprecated: use [HighlightMouseMode] instead.
 const (
 	MouseHiliteMode = DECMode(1001)
@@ -354,6 +415,7 @@ const (
 // reports on button press, release, and motion events.
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+//
 // Deprecated: use [ButtonEventMouseMode] instead.
 const (
 	MouseCellMotionMode = DECMode(1002)
@@ -379,6 +441,7 @@ const (
 // button press, release, motion, and highlight events.
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+//
 // Deprecated: use [AnyEventMouseMode] instead.
 const (
 	MouseAllMotionMode = DECMode(1003)
