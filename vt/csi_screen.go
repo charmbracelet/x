@@ -1,13 +1,15 @@
 package vt
 
-import "github.com/charmbracelet/x/ansi"
+import (
+	"github.com/charmbracelet/x/ansi"
+)
 
 func (t *Terminal) handleScreen() {
 	width, height := t.Width(), t.Height()
 	_, y := t.scr.CursorPosition()
 
 	switch t.parser.Cmd() {
-	case 'J':
+	case 'J': // Erase in Display [ansi.ED]
 		count, _ := t.parser.Param(0, 0)
 		switch count {
 		case 0: // Erase screen below (including cursor)
@@ -22,7 +24,7 @@ func (t *Terminal) handleScreen() {
 			// TODO: Scrollback buffer support?
 			t.scr.Clear()
 		}
-	case 'L': // IL - Insert Line
+	case 'L': // Insert Line [ansi.IL]
 		n, _ := t.parser.Param(0, 1)
 		if n == 0 {
 			n = 1
@@ -31,7 +33,7 @@ func (t *Terminal) handleScreen() {
 		// Move the cursor to the left margin.
 		t.scr.setCursorX(0, true)
 
-	case 'M': // DL - Delete Line
+	case 'M': // Delete Line [ansi.DL]
 		n, _ := t.parser.Param(0, 1)
 		if n == 0 {
 			n = 1
@@ -40,8 +42,7 @@ func (t *Terminal) handleScreen() {
 		// Move the cursor to the left margin.
 		t.scr.setCursorX(0, true)
 
-	case 'X':
-		// ECH - Erase Character
+	case 'X': // Erase Character [ansi.ECH]
 		// It clears character attributes as well but not colors.
 		n, _ := t.parser.Param(0, 1)
 		if n == 0 {
@@ -49,7 +50,7 @@ func (t *Terminal) handleScreen() {
 		}
 		t.eraseCharacter(n)
 
-	case 'r': // DECSTBM - Set Top and Bottom Margins
+	case 'r': // Set Top and Bottom Margins [ansi.DECSTBM]
 		top, _ := t.parser.Param(0, 1)
 		if top < 1 || top > height {
 			top = 1
@@ -73,7 +74,7 @@ func (t *Terminal) handleScreen() {
 		// depending on [ansi.DECOM].
 		t.setCursorPosition(0, 0)
 
-	case 's':
+	case 's': // Set Left and Right Margins [ansi.DECSLRM]
 		// These conflict with each other. When [ansi.DECSLRM] is set, the we
 		// set the left and right margins. Otherwise, we save the cursor
 		// position.
@@ -109,7 +110,7 @@ func (t *Terminal) handleScreen() {
 
 func (t *Terminal) handleLine() {
 	switch t.parser.Cmd() {
-	case 'K': // EL - Erase in Line
+	case 'K': // Erase in Line [ansi.EL]
 		// NOTE: Erase Line (EL) erases all character attributes but not cell
 		// bg color.
 		count, _ := t.parser.Param(0, 0)
@@ -126,13 +127,13 @@ func (t *Terminal) handleLine() {
 			rect := Rect(0, y, w, 1)
 			t.scr.Fill(t.scr.blankCell(), rect)
 		}
-	case 'S': // SU - Scroll Up
+	case 'S': // Scroll Up [ansi.SU]
 		n, _ := t.parser.Param(0, 1)
 		if n == 0 {
 			n = 1
 		}
 		t.scr.ScrollUp(n)
-	case 'T': // SD - Scroll Down
+	case 'T': // Scroll Down [ansi.SD]
 		n, _ := t.parser.Param(0, 1)
 		if n == 0 {
 			n = 1
