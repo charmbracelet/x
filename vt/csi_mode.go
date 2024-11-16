@@ -13,14 +13,20 @@ func (t *Terminal) handleMode() {
 			continue
 		}
 
-		setting := ansi.ModeReset
-		if cmd.Command() == 'h' {
-			setting = ansi.ModeSet
-		}
-
 		var mode ansi.Mode = ansi.ANSIMode(param)
 		if cmd.Marker() == '?' {
 			mode = ansi.DECMode(param)
+		}
+
+		setting := t.modes[mode]
+		if setting == ansi.ModePermanentlyReset || setting == ansi.ModePermanentlySet {
+			// Permanently set modes are ignored.
+			continue
+		}
+
+		setting = ansi.ModeReset
+		if cmd.Command() == 'h' {
+			setting = ansi.ModeSet
 		}
 
 		t.setMode(mode, setting)
