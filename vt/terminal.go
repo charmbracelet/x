@@ -13,43 +13,29 @@ import (
 
 // Terminal represents a virtual terminal.
 type Terminal struct {
-	mu sync.Mutex
-
-	// The input buffer of the terminal.
-	buf    bytes.Buffer
-	closed bool
-
-	// The current focused screen.
-	scr *Screen
+	// The terminal's indexed 256 colors.
+	colors [256]color.Color
 
 	// Both main and alt screens.
 	scrs [2]Screen
 
-	// tabstop is the list of tab stops.
-	tabstops TabStops
-
-	// Terminal modes.
-	modes map[ansi.Mode]ansi.ModeSetting
-
-	// The ANSI parser to use.
-	parser *ansi.Parser
+	// Character sets
+	charsets [4]CharSet
 
 	// log is the logger to use.
 	logger Logger
 
-	// The terminal's icon name and title.
-	iconName, title string
-
 	// terminal default colors.
 	fg, bg, cur color.Color
-	colors      [256]color.Color
 
-	// Character sets
-	charsets [4]CharSet
+	// Terminal modes.
+	modes map[ansi.Mode]ansi.ModeSetting
 
-	// The GL and GR character set identifiers.
-	gl, gr  int
-	gsingle int // temporarily select GL or GR
+	// The current focused screen.
+	scr *Screen
+
+	// The ANSI parser to use.
+	parser *ansi.Parser
 
 	// Bell callback. When set, this function is called when a bell character is
 	// received.
@@ -70,6 +56,24 @@ type Terminal struct {
 	// AltScreen callback. When set, this function is called when the alternate
 	// screen is activated or deactivated.
 	AltScreen func(bool)
+
+	// The terminal's icon name and title.
+	iconName, title string
+
+	// tabstop is the list of tab stops.
+	tabstops TabStops
+
+	// The input buffer of the terminal.
+	buf bytes.Buffer
+
+	mu sync.Mutex
+
+	// The GL and GR character set identifiers.
+	gl, gr  int
+	gsingle int // temporarily select GL or GR
+
+	// Indicates if the terminal is closed.
+	closed bool
 }
 
 var (

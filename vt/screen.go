@@ -6,15 +6,16 @@ import (
 
 // Screen represents a virtual terminal screen.
 type Screen struct {
-	mu sync.RWMutex
+	// damage is the cell change callback.
+	damage func(Damage)
 	// The buffer of the screen.
 	buf Buffer
 	// The cur of the screen.
 	cur, saved Cursor
 	// scroll is the scroll region.
 	scroll Rectangle
-	// damage is the cell change callback.
-	damage func(Damage)
+	// mutex for the screen.
+	mu sync.RWMutex
 }
 
 // NewScreen creates a new screen.
