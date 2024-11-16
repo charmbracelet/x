@@ -35,9 +35,13 @@ func (t *Terminal) handleControl(r ansi.ControlCode) {
 	case ansi.RI: // Reverse Index [ansi.RI]
 		t.reverseIndex()
 	case ansi.SO: // Shift Out [ansi.SO]
-	// TODO: Handle Shift Out
+		t.gl = 1
 	case ansi.SI: // Shift In [ansi.SI]
-	// TODO: Handle Shift In
+		t.gl = 0
+	case ansi.SS2: // Single Shift 2 [ansi.SS2]
+		t.gsingle = 2
+	case ansi.SS3: // Single Shift 3 [ansi.SS3]
+		t.gsingle = 3
 	default:
 		t.logf("unhandled control: %q", r)
 	}

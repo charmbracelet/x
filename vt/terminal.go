@@ -43,6 +43,13 @@ type Terminal struct {
 	fg, bg, cur color.Color
 	colors      [256]color.Color
 
+	// Character sets
+	charsets [4]CharSet
+
+	// The GL and GR character set identifiers.
+	gl, gr  int
+	gsingle int // temporarily select GL or GR
+
 	// Bell callback. When set, this function is called when a bell character is
 	// received.
 	Bell func()

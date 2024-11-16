@@ -35,6 +35,26 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 		}
 	}
 
+	// Handle character set mappings
+	if len(content) == 1 {
+		var charset CharSet
+		c := content[0]
+		if t.gsingle > 0 && t.gsingle < 4 {
+			charset = t.charsets[t.gsingle]
+			t.gsingle = 0
+		} else if c < 128 {
+			charset = t.charsets[t.gl]
+		} else {
+			charset = t.charsets[t.gr]
+		}
+
+		if charset != nil {
+			if r, ok := charset[c]; ok {
+				content = r
+			}
+		}
+	}
+
 	cell := &Cell{
 		Style:   t.scr.cur.Pen,
 		Link:    Link{}, // TODO: Link support

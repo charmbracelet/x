@@ -19,9 +19,32 @@ func (t *Terminal) handleEsc(seq ansi.EscSequence) {
 		t.scr.SaveCursor()
 	case '8': // Restore Cursor [ansi.DECRC]
 		t.scr.RestoreCursor()
-	case ansi.Cmd(0, '(', 'B'): // G0 Character Set
-	// TODO: Handle G0 Character Set
+	case '~': // Locking Shift 1 Right [ansi.LS1R]
+		t.gr = 1
+	case 'n': // Locking Shift G2 [ansi.LS2]
+		t.gl = 2
+	case '}': // Locking Shift 2 Right [ansi.LS2R]
+		t.gr = 2
+	case 'o': // Locking Shift G3 [ansi.LS3]
+		t.gl = 3
+	case '|': // Locking Shift 3 Right [ansi.LS3R]
+		t.gr = 3
 	default:
-		t.logf("unhandled ESC: %q", seq)
+		switch inter := cmd.Intermediate(); inter {
+		case '(', ')', '*', '+': // Select Character Set [ansi.SCS]
+			set := inter - '('
+			switch cmd.Command() {
+			case 'A': // UK Character Set
+				t.charsets[set] = UK
+			case 'B': // USASCII Character Set
+				t.charsets[set] = nil // USASCII is the default
+			case '0': // Special Drawing Character Set
+				t.charsets[set] = SpecialDrawing
+			default:
+				t.logf("unknown character set: %q", seq)
+			}
+		default:
+			t.logf("unhandled ESC: %q", seq)
+		}
 	}
 }
