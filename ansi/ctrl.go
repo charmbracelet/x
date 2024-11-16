@@ -46,8 +46,8 @@ func PrimaryDeviceAttributes(attrs ...int) string {
 	}
 
 	as := make([]string, len(attrs))
-	for _, a := range attrs {
-		as = append(as, strconv.Itoa(a))
+	for i, a := range attrs {
+		as[i] = strconv.Itoa(a)
 	}
 	return "\x1b[?" + strings.Join(as, ";") + "c"
 }
@@ -79,8 +79,8 @@ func SecondaryDeviceAttributes(attrs ...int) string {
 	}
 
 	as := make([]string, len(attrs))
-	for _, a := range attrs {
-		as = append(as, strconv.Itoa(a))
+	for i, a := range attrs {
+		as[i] = strconv.Itoa(a)
 	}
 	return "\x1b[>" + strings.Join(as, ";") + "c"
 }

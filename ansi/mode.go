@@ -76,12 +76,10 @@ func setMode(reset bool, modes ...Mode) string {
 		return seq + strconv.Itoa(modes[0].Mode()) + cmd
 	}
 
-	var (
-		dec  bool
-		list []string
-	)
-	for _, m := range modes {
-		list = append(list, strconv.Itoa(m.Mode()))
+	var dec bool
+	list := make([]string, len(modes))
+	for i, m := range modes {
+		list[i] = strconv.Itoa(m.Mode())
 		switch m.(type) {
 		case DECMode:
 			dec = true

@@ -42,8 +42,8 @@ func DeviceStatusReport(statues ...Status) string {
 	var dec bool
 	list := make([]string, len(statues))
 	seq := "\x1b["
-	for _, status := range statues {
-		list = append(list, strconv.Itoa(status.Status()))
+	for i, status := range statues {
+		list[i] = strconv.Itoa(status.Status())
 		switch status.(type) {
 		case DECStatus:
 			dec = true
