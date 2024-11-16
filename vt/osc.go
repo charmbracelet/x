@@ -2,7 +2,6 @@ package vt
 
 import (
 	"bytes"
-	"fmt"
 	"image/color"
 	"strconv"
 	"strings"
@@ -59,17 +58,24 @@ func (t *Terminal) handleOsc(seq ansi.OscSequence) {
 				// Invalid, ignore
 				return
 			}
+
+			var enc func(color.Color) string
 			if s := string(parts[1]); s == "?" {
 				switch cmd {
 				case 10:
+					enc = ansi.SetForegroundColor
 					col = t.ForegroundColor()
 				case 11:
+					enc = ansi.SetBackgroundColor
 					col = t.BackgroundColor()
 				case 12:
+					enc = ansi.SetCursorColor
 					col = t.CursorColor()
 				}
 
-				t.buf.WriteString(encodeOscColor(cmd.Command(), col))
+				if enc != nil && col != nil {
+					t.buf.WriteString(enc(ansi.XRGBColorizer{Color: col}))
+				}
 			} else {
 				col := xParseColor(string(parts[1]))
 				if col == nil {
@@ -97,12 +103,6 @@ func (t *Terminal) handleOsc(seq ansi.OscSequence) {
 	default:
 		t.logf("unhandled OSC: %s", seq)
 	}
-}
-
-// encodeOscColor encodes a color for an OSC sequence response.
-func encodeOscColor(cmd int, col color.Color) string {
-	r, g, b, _ := col.RGBA()
-	return fmt.Sprintf("\x1b]%d;rgb:%04x/%04x/%04x\x07", cmd, r, g, b)
 }
 
 type shiftable interface {
