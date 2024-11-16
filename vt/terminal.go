@@ -29,7 +29,7 @@ type Terminal struct {
 	tabstops TabStops
 
 	// Terminal modes.
-	modes map[ansi.Mode]ModeSetting
+	modes map[ansi.Mode]ansi.ModeSetting
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
@@ -89,11 +89,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.parser = ansi.NewParser(t.dispatcher) // 4MB data buffer
 	t.parser.SetParamsSize(parser.MaxParamsSize)
 	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
-	t.modes = map[ansi.Mode]ModeSetting{
-		// These modes are set by default.
-		ansi.AutoWrapMode:         ModeSet,
-		ansi.TextCursorEnableMode: ModeSet,
-	}
+	t.resetModes()
 	t.tabstops = DefaultTabStops(w)
 	t.fg = defaultFg
 	t.bg = defaultBg

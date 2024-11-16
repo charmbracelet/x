@@ -13,9 +13,9 @@ func (t *Terminal) handleMode() {
 			continue
 		}
 
-		setting := ModeReset
+		setting := ansi.ModeReset
 		if cmd.Command() == 'h' {
-			setting = ModeSet
+			setting = ansi.ModeSet
 		}
 
 		var mode ansi.Mode = ansi.ANSIMode(param)
@@ -28,20 +28,20 @@ func (t *Terminal) handleMode() {
 }
 
 // setMode sets the mode to the given value.
-func (t *Terminal) setMode(mode ansi.Mode, setting ModeSetting) {
+func (t *Terminal) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 	t.logf("setting mode %T(%v) to %v", mode, mode, setting)
 	t.modes[mode] = setting
 	switch mode {
 	case ansi.TextCursorEnableMode:
 		t.scr.cur.Hidden = setting.IsReset()
 	case ansi.DECMode(1047): // Alternate Screen Buffer
-		if setting == ModeSet {
+		if setting == ansi.ModeSet {
 			t.scr = &t.scrs[1]
 		} else {
 			t.scr = &t.scrs[0]
 		}
 	case ansi.AltScreenBufferMode:
-		if setting == ModeSet {
+		if setting == ansi.ModeSet {
 			t.scr = &t.scrs[1]
 			t.scr.Clear()
 		} else {

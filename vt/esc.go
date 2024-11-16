@@ -12,9 +12,9 @@ func (t *Terminal) handleEsc(seq ansi.EscSequence) {
 	case 'M': // Reverse Index [ansi.RI]
 		t.reverseIndex()
 	case '=': // Keypad Application Mode [ansi.DECKPAM]
-		t.setMode(ansi.NumericKeypadMode, ModeSet)
+		t.setMode(ansi.NumericKeypadMode, ansi.ModeSet)
 	case '>': // Keypad Numeric Mode [ansi.DECKPNM]
-		t.setMode(ansi.NumericKeypadMode, ModeReset)
+		t.setMode(ansi.NumericKeypadMode, ansi.ModeReset)
 	case '7': // Save Cursor [ansi.DECSC]
 		t.scr.SaveCursor()
 	case '8': // Restore Cursor [ansi.DECRC]
@@ -57,28 +57,8 @@ func (t *Terminal) fullReset() {
 	t.scrs[1].Reset()
 	t.resetTabStops()
 
-	for _, m := range []ansi.Mode{
-		ansi.OriginMode,
-		ansi.CursorKeysMode,
-		ansi.KeyboardActionMode,
-		ansi.NumericKeypadMode,
-		ansi.LeftRightMarginMode,
-		ansi.X10MouseMode,
-		ansi.NormalMouseMode,
-		ansi.HighlightMouseMode,
-		ansi.ButtonEventMouseMode,
-		ansi.AnyEventMouseMode,
-		ansi.FocusEventMode,
-		ansi.SgrExtMouseMode,
-		ansi.Utf8ExtMouseMode,
-		ansi.UrxvtExtMouseMode,
-		ansi.SgrPixelExtMouseMode,
-		ansi.AltScreenBufferMode,
-	} {
-		delete(t.modes, m)
-	}
-
-	t.modes[ansi.AutoWrapMode] = ModeSet
+	// TODO: Do we reset all modes here? Investigate.
+	t.resetModes()
 
 	t.gl, t.gr = 0, 1
 	t.gsingle = 0

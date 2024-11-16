@@ -6,7 +6,7 @@ import (
 
 // handleCsi handles a CSI escape sequences.
 func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
-	switch t.parser.Cmd() { // cursor
+	switch cmd := t.parser.Cmd(); cmd { // cursor
 	case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'a', 'd', 'e', 'f', '`':
 		t.handleCursor()
 	case 'm': // Select Graphic Rendition [ansi.SGR]
@@ -109,6 +109,22 @@ func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
 		case 6: // Extended Cursor Position Report [ansi.DECXCPR]
 			t.buf.WriteString(ansi.ExtendedCursorPositionReport(t.scr.cur.X+1, t.scr.cur.Y+1, 0)) // We don't support page numbers
 		}
+
+	case ansi.Cmd(0, '$', 'p'): // Request Mode [ansi.DECRQM]
+		fallthrough
+	case ansi.Cmd('?', '$', 'p'): // Request Mode (DEC) [ansi.DECRQM]
+		n, ok := t.parser.Param(0, 0)
+		if !ok || n == 0 {
+			break
+		}
+
+		var mode ansi.Mode = ansi.ANSIMode(n)
+		if cmd.Marker() == '?' {
+			mode = ansi.DECMode(n)
+		}
+
+		setting := t.modes[mode]
+		t.buf.WriteString(ansi.ReportMode(mode, setting))
 
 	default:
 		t.logf("unhandled CSI: %q", seq)
