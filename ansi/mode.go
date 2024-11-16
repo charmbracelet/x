@@ -616,21 +616,57 @@ const (
 	RequestSgrPixelExtMouseMode = "\x1b[?1016$p"
 )
 
+// Alternate Screen Mode is a mode that determines whether the alternate screen
+// buffer is active. When this mode is enabled, the alternate screen buffer is
+// cleared.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+const (
+	AltScreenMode = DECMode(1047)
+
+	SetAltScreenMode     = "\x1b[?1047h"
+	ResetAltScreenMode   = "\x1b[?1047l"
+	RequestAltScreenMode = "\x1b[?1047$p"
+)
+
+// Save Cursor Mode is a mode that saves the cursor position.
+// This is equivalent to [SaveCursor] and [RestoreCursor].
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+const (
+	SaveCursorMode = DECMode(1048)
+
+	SetSaveCursorMode     = "\x1b[?1048h"
+	ResetSaveCursorMode   = "\x1b[?1048l"
+	RequestSaveCursorMode = "\x1b[?1048$p"
+)
+
+// Alternate Screen Save Cursor Mode is a mode that saves the cursor position as in
+// [SaveCursorMode], switches to the alternate screen buffer as in [AltScreenMode],
+// and clears the screen on switch.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+const (
+	AltScreenSaveCursorMode = DECMode(1049)
+
+	SetAltScreenSaveCursorMode     = "\x1b[?1049h"
+	ResetAltScreenSaveCursorMode   = "\x1b[?1049l"
+	RequestAltScreenSaveCursorMode = "\x1b[?1049$p"
+)
+
 // Alternate Screen Buffer is a mode that determines whether the alternate screen
 // buffer is active.
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+//
+// Deprecated: use [AltScreenSaveCursorMode] instead.
 const (
 	AltScreenBufferMode = DECMode(1049)
 
 	SetAltScreenBufferMode     = "\x1b[?1049h"
 	ResetAltScreenBufferMode   = "\x1b[?1049l"
 	RequestAltScreenBufferMode = "\x1b[?1049$p"
-)
 
-// Deprecated: use [SetAltScreenBufferMode], [ResetAltScreenBufferMode], and
-// [RequestAltScreenBufferMode] instead.
-const (
 	EnableAltScreenBuffer  = "\x1b[?1049h"
 	DisableAltScreenBuffer = "\x1b[?1049l"
 	RequestAltScreenBuffer = "\x1b[?1049$p"
