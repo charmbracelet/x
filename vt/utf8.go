@@ -24,14 +24,19 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 		autowrap = true
 	}
 
-	// Handle wide chars at the edge - wrap them entirely
-	if autowrap && x+width > t.scr.Width() {
-		x = 0
-		y++
-		// Only scroll if we're past the last line
-		if y >= t.scr.Height() {
-			t.scr.ScrollUp(1)
-			y = t.scr.Height() - 1
+	// Handle phantom state at the end of the line
+	// TODO: Look into this more
+	if x >= t.scr.Width() {
+		if autowrap {
+			x = 0
+			y++
+			// Only scroll if we're past the last line
+			if y >= t.scr.Height() {
+				t.scr.ScrollUp(1)
+				y = t.scr.Height() - 1
+			}
+		} else {
+			x = t.scr.Width() - 1
 		}
 	}
 
@@ -64,6 +69,5 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 
 	t.scr.SetCell(x, y, cell)
 
-	// TODO: Is this correct?
 	t.scr.setCursor(x+width, y, true)
 }
