@@ -135,62 +135,59 @@ func (t *Terminal) SendMouse(m Mouse) {
 		bitsMask = 0b0000_0011
 	)
 
-	var (
-		b       byte
-		release bool
-	)
-
-	switch m := m.(type) {
-	case MouseRelease:
+	var b byte
+	var release bool
+	if _, ok := m.(MouseRelease); ok {
 		release = true
+	}
+
+	// Encode button
+	mouse := m.Mouse()
+	if release && enc == nil {
+		// X10 mouse encoding reports release as a b == 3
+		b = bitsMask
+	} else if mouse.Button >= MouseLeft && mouse.Button <= MouseRight {
+		b = byte(mouse.Button) - byte(MouseLeft)
+	} else if mouse.Button >= MouseWheelUp && mouse.Button <= MouseWheelRight {
+		b = byte(mouse.Button) - byte(MouseWheelUp)
+		b |= bitWheel
+	} else if mouse.Button >= MouseBackward && mouse.Button <= MouseExtra2 {
+		b = byte(mouse.Button) - byte(MouseBackward)
+		b |= bitAdd
+	}
+
+	switch m.(type) {
 	case MouseMotion:
 		switch {
-		case m.Button == MouseNone && mode == ansi.AnyEventMouseMode:
+		case mouse.Button == MouseNone && mode == ansi.AnyEventMouseMode:
+			b = bitsMask
 			fallthrough
-		case m.Button > MouseNone && mode == ansi.ButtonEventMouseMode:
-			b += bitMotion
+		case mouse.Button > MouseNone && mode == ansi.ButtonEventMouseMode:
+			b |= bitMotion
 		default:
 			// No motion events
 			return
 		}
 	}
 
-	{
-		// Encode button
-		m := m.Mouse()
-		if m.Button <= MouseRight {
-			b += byte(m.Button) - byte(MouseLeft)
-		} else if m.Button <= MouseWheelRight {
-			b += bitWheel
-			b += byte(m.Button) - byte(MouseWheelUp)
-		} else {
-			b += bitAdd
-			b += byte(m.Button) - byte(MouseBackward)
-		}
+	// Encode modifiers
+	if mouse.Mod&ModShift != 0 {
+		b |= bitShift
+	}
+	if mouse.Mod&ModAlt != 0 {
+		b |= bitAlt
+	}
+	if mouse.Mod&ModCtrl != 0 {
+		b |= bitCtrl
+	}
 
-		// Encode modifiers
-		if m.Mod&ModShift != 0 {
-			b += bitShift
-		}
-		if m.Mod&ModAlt != 0 {
-			b += bitAlt
-		}
-		if m.Mod&ModCtrl != 0 {
-			b += bitCtrl
-		}
-
-		switch enc {
-		// TODO: Support [ansi.HighlightMouseMode].
-		// TODO: Support [ansi.Utf8ExtMouseMode], [ansi.UrxvtExtMouseMode], and
-		// [ansi.SgrPixelExtMouseMode].
-		case nil: // X10 mouse encoding
-			if release {
-				b = bitsMask
-			}
-
-			t.buf.WriteString(ansi.MouseX10(b, m.X, m.Y))
-		case ansi.SgrExtMouseMode: // SGR mouse encoding
-			t.buf.WriteString(ansi.MouseSgr(b, m.X, m.Y, release))
-		}
+	switch enc {
+	// TODO: Support [ansi.HighlightMouseMode].
+	// TODO: Support [ansi.Utf8ExtMouseMode], [ansi.UrxvtExtMouseMode], and
+	// [ansi.SgrPixelExtMouseMode].
+	case nil: // X10 mouse encoding
+		t.buf.WriteString(ansi.MouseX10(b, mouse.X, mouse.Y))
+	case ansi.SgrExtMouseMode: // SGR mouse encoding
+		t.buf.WriteString(ansi.MouseSgr(b, mouse.X, mouse.Y, release))
 	}
 }
