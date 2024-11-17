@@ -21,6 +21,8 @@ func (t *Terminal) handleEsc(seq ansi.EscSequence) {
 		t.scr.RestoreCursor()
 	case 'c': // Reset Initial State [ansi.RIS]
 		t.fullReset()
+	case 'D': // Index [ansi.Index]
+		t.index()
 	case '~': // Locking Shift 1 Right [ansi.LS1R]
 		t.gr = 1
 	case 'n': // Locking Shift G2 [ansi.LS2]

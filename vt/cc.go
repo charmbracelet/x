@@ -37,6 +37,8 @@ func (t *Terminal) handleControl(r ansi.ControlCode) {
 		t.gl = 1
 	case ansi.SI: // Shift In [ansi.SI]
 		t.gl = 0
+	case ansi.IND: // Index [ansi.IND]
+		t.index()
 	case ansi.SS2: // Single Shift 2 [ansi.SS2]
 		t.gsingle = 2
 	case ansi.SS3: // Single Shift 3 [ansi.SS3]
