@@ -62,7 +62,8 @@ func (t *Terminal) handleCursor() {
 	case 'a':
 		// Horizontal Position Relative [ansi.HPR]
 		t.setCursorPosition(min(width-1, x+n), y)
-	// case 'b': // TODO: Repeat Previous Character [ansi.REP]
+	case 'b': // Repeat Previous Character [ansi.REP]
+		t.repeatPreviousCharacter(n)
 	case 'e':
 		// Vertical Position Relative [ansi.VPR]
 		t.setCursorPosition(x, min(height-1, y+n))
@@ -118,4 +119,16 @@ func (t *Terminal) carriageReturn() {
 		t.scr.setCursor(0, y, false)
 	}
 	t.atPhantom = false
+}
+
+// repeatPreviousCharacter repeats the previous character n times. This is
+// equivalent to typing the same character n times. This performs the same as
+// [ansi.REP].
+func (t *Terminal) repeatPreviousCharacter(n int) {
+	if t.lastChar == nil {
+		return
+	}
+	for i := 0; i < n; i++ {
+		t.handleUtf8(t.lastChar)
+	}
 }

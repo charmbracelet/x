@@ -16,6 +16,8 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 	case ansi.Grapheme:
 		width = seq.Width
 		content = seq.Cluster
+	default:
+		return
 	}
 
 	x, y := t.scr.CursorPosition()
@@ -54,7 +56,9 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 		Width:   width,
 	}
 
-	t.scr.SetCell(x, y, cell)
+	if t.scr.SetCell(x, y, cell) {
+		t.lastChar = seq
+	}
 
 	// Handle phantom state at the end of the line
 	if x+width >= t.scr.Width() {

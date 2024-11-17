@@ -34,6 +34,9 @@ type Terminal struct {
 	// The current focused screen.
 	scr *Screen
 
+	// The last written character.
+	lastChar ansi.Sequence // either ansi.Rune or ansi.Grapheme
+
 	// The ANSI parser to use.
 	parser *ansi.Parser
 
