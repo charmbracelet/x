@@ -22,18 +22,19 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 
 	x, y := t.scr.CursorPosition()
 	if t.atPhantom || x+width > t.scr.Width() {
-		x = 0
 		// moves cursor down similar to [Terminal.linefeed] except it doesn't
 		// respects [ansi.LNM] mode.
 		// This will rest the phantom state i.e. pending wrap state.
 		t.index()
+		_, y = t.scr.CursorPosition()
+		x = 0
 	}
 
 	// Handle character set mappings
 	if len(content) == 1 {
 		var charset CharSet
 		c := content[0]
-		if t.gsingle > 0 && t.gsingle < 4 {
+		if t.gsingle > 1 && t.gsingle < 4 {
 			charset = t.charsets[t.gsingle]
 			t.gsingle = 0
 		} else if c < 128 {
