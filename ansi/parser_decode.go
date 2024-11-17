@@ -1,8 +1,6 @@
 package ansi
 
 import (
-	"bytes"
-	"strings"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi/parser"
@@ -312,18 +310,6 @@ func parseOscCmd(p *Parser) {
 		p.cmd *= 10
 		p.cmd += int(d - '0')
 	}
-}
-
-// Index returns the index of the first occurrence of the given byte slice in
-// the data. It returns -1 if the byte slice is not found.
-func Index[T string | []byte](data, b T) int {
-	switch data := any(data).(type) {
-	case string:
-		return strings.Index(data, string(b))
-	case []byte:
-		return bytes.Index(data, []byte(b))
-	}
-	panic("unreachable")
 }
 
 // Equal returns true if the given byte slices are equal.

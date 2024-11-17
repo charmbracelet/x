@@ -612,3 +612,8 @@ func HorizontalPositionRelative(n int) string {
 func HPR(n int) string {
 	return HorizontalPositionRelative(n)
 }
+
+// Index (IND) is an escape sequence for moving the cursor down one line in the
+// same column. If the cursor is at the bottom margin, the screen scrolls up.
+// This has the same effect as [IND].
+const Index = "\x1bD"
