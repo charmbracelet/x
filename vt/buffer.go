@@ -179,14 +179,6 @@ func (b *Buffer) Resize(width int, height int) {
 		return
 	}
 
-	if height > len(b.lines) {
-		for i := len(b.lines); i < height; i++ {
-			b.lines = append(b.lines, make(Line, width))
-		}
-	} else if height < len(b.lines) {
-		b.lines = b.lines[:height]
-	}
-
 	if width > b.Width() {
 		line := make(Line, width-b.Width())
 		for i := range b.lines {
@@ -196,6 +188,14 @@ func (b *Buffer) Resize(width int, height int) {
 		for i := range b.lines {
 			b.lines[i] = b.lines[i][:width]
 		}
+	}
+
+	if height > len(b.lines) {
+		for i := len(b.lines); i < height; i++ {
+			b.lines = append(b.lines, make(Line, width))
+		}
+	} else if height < len(b.lines) {
+		b.lines = b.lines[:height]
 	}
 }
 
