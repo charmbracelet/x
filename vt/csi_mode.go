@@ -37,12 +37,14 @@ func (t *Terminal) handleMode() {
 func (t *Terminal) setAltScreenMode(on bool) {
 	if on {
 		t.scr = &t.scrs[1]
+		t.scrs[1].cur = t.scrs[0].cur
 		t.scr.Clear()
+		t.setCursor(0, 0)
 	} else {
 		t.scr = &t.scrs[0]
 	}
-	if t.AltScreen != nil {
-		t.AltScreen(on)
+	if t.Callbacks.AltScreen != nil {
+		t.Callbacks.AltScreen(on)
 	}
 }
 
@@ -62,7 +64,7 @@ func (t *Terminal) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 	t.modes[mode] = setting
 	switch mode {
 	case ansi.TextCursorEnableMode:
-		t.scr.cur.Hidden = setting.IsReset()
+		t.scr.setCursorHidden(!setting.IsSet())
 	case ansi.AltScreenMode:
 		t.setAltScreenMode(setting.IsSet())
 	case ansi.SaveCursorMode:

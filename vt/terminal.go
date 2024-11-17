@@ -37,25 +37,7 @@ type Terminal struct {
 	// The ANSI parser to use.
 	parser *ansi.Parser
 
-	// Bell callback. When set, this function is called when a bell character is
-	// received.
-	Bell func()
-
-	// Damage callback. When set, this function is called when a cell is damaged
-	// or changed.
-	Damage func(Damage)
-
-	// Title callback. When set, this function is called when the terminal title
-	// changes.
-	Title func(string)
-
-	// IconName callback. When set, this function is called when the terminal
-	// icon name changes.
-	IconName func(string)
-
-	// AltScreen callback. When set, this function is called when the alternate
-	// screen is activated or deactivated.
-	AltScreen func(bool)
+	Callbacks Callbacks
 
 	// The terminal's icon name and title.
 	iconName, title string
@@ -74,6 +56,10 @@ type Terminal struct {
 
 	// Indicates if the terminal is closed.
 	closed bool
+
+	// atPhantom indicates if the cursor is out of bounds.
+	// When true, and a character is written, the cursor is moved to the next line.
+	atPhantom bool
 }
 
 var (
@@ -87,8 +73,8 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t := new(Terminal)
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
-	t.scrs[0].damage = t.damage
-	t.scrs[1].damage = t.damage
+	t.scrs[0].cb = &t.Callbacks
+	t.scrs[1].cb = &t.Callbacks
 	t.scr = &t.scrs[0]
 	t.parser = ansi.NewParser(t.dispatcher) // 4MB data buffer
 	t.parser.SetParamsSize(parser.MaxParamsSize)
@@ -106,7 +92,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	return t
 }
 
-// Screen returns the main terminal screen.
+// Screen returns the currently active terminal screen.
 func (t *Terminal) Screen() *Screen {
 	return t.scr
 }
@@ -129,9 +115,32 @@ func (t *Terminal) Width() int {
 
 // Resize resizes the terminal.
 func (t *Terminal) Resize(width int, height int) {
+	x, y := t.scr.CursorPosition()
+	if t.atPhantom {
+		if x < width-1 {
+			t.atPhantom = false
+			x++
+		}
+	}
+
+	if y < 0 {
+		y = 0
+	}
+	if y >= height {
+		y = height - 1
+	}
+	if x < 0 {
+		x = 0
+	}
+	if x >= width {
+		x = width - 1
+	}
+
 	t.scrs[0].Resize(width, height)
 	t.scrs[1].Resize(width, height)
 	t.tabstops = DefaultTabStops(width)
+
+	t.setCursor(x, y)
 }
 
 // Read reads data from the terminal input buffer.
@@ -162,13 +171,6 @@ func (t *Terminal) Close() error {
 
 	t.closed = true
 	return nil
-}
-
-// damage is called when a cell is damaged or changed.
-func (t *Terminal) damage(d Damage) {
-	if t.Damage != nil {
-		t.Damage(d)
-	}
 }
 
 // dispatcher parses and dispatches escape sequences and operates on the terminal.
@@ -207,11 +209,6 @@ func (t *Terminal) Write(p []byte) (n int, err error) {
 	}
 
 	return i, nil
-}
-
-// Cursor returns the cursor.
-func (t *Terminal) Cursor() Cursor {
-	return t.scr.Cursor()
 }
 
 // InputPipe returns the terminal's input pipe.

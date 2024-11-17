@@ -23,23 +23,23 @@ func (t *Terminal) handleOsc(seq ansi.OscSequence) {
 		case 0: // Set window title and icon name
 			name := string(parts[1])
 			t.iconName, t.title = name, name
-			if t.Title != nil {
-				t.Title(name)
+			if t.Callbacks.Title != nil {
+				t.Callbacks.Title(name)
 			}
-			if t.IconName != nil {
-				t.IconName(name)
+			if t.Callbacks.IconName != nil {
+				t.Callbacks.IconName(name)
 			}
 		case 1: // Set icon name
 			name := string(parts[1])
 			t.iconName = name
-			if t.IconName != nil {
-				t.IconName(name)
+			if t.Callbacks.IconName != nil {
+				t.Callbacks.IconName(name)
 			}
 		case 2: // Set window title
 			name := string(parts[1])
 			t.title = name
-			if t.Title != nil {
-				t.Title(name)
+			if t.Callbacks.Title != nil {
+				t.Callbacks.Title(name)
 			}
 		}
 	case 10, 11, 12, 110, 111, 112:

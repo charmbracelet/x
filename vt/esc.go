@@ -63,4 +63,5 @@ func (t *Terminal) fullReset() {
 	t.gl, t.gr = 0, 1
 	t.gsingle = 0
 	t.charsets = [4]CharSet{}
+	t.atPhantom = false
 }

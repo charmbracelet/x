@@ -28,8 +28,7 @@ func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
 		if param, ok := t.parser.Param(0, 0); ok {
 			style = param
 		}
-		t.scr.cur.Style = CursorStyle((style / 2) + 1)
-		t.scr.cur.Steady = style%2 != 1
+		t.scr.setCursorStyle(CursorStyle((style/2)+1), style%2 == 1)
 	case 'g': // Tab Clear [ansi.TBC]
 		var value int
 		if param, ok := t.parser.Param(0, 0); ok {
@@ -38,7 +37,8 @@ func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
 
 		switch value {
 		case 0:
-			t.tabstops.Reset(t.scr.cur.X)
+			x, _ := t.scr.CursorPosition()
+			t.tabstops.Reset(x)
 		case 3:
 			t.tabstops.Clear()
 		}
@@ -96,7 +96,8 @@ func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
 			// See: https://vt100.net/docs/vt510-rm/DSR-OS.html
 			t.buf.WriteString(ansi.DeviceStatusReport(ansi.DECStatus(0)))
 		case 6: // Cursor Position Report [ansi.CPR]
-			t.buf.WriteString(ansi.CursorPositionReport(t.scr.cur.X+1, t.scr.cur.Y+1))
+			x, y := t.scr.CursorPosition()
+			t.buf.WriteString(ansi.CursorPositionReport(x+1, y+1))
 		}
 
 	case ansi.Cmd('?', 0, 'n'): // Device Status Report (DEC) [ansi.DSR]
@@ -107,7 +108,8 @@ func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
 
 		switch n {
 		case 6: // Extended Cursor Position Report [ansi.DECXCPR]
-			t.buf.WriteString(ansi.ExtendedCursorPositionReport(t.scr.cur.X+1, t.scr.cur.Y+1, 0)) // We don't support page numbers
+			x, y := t.scr.CursorPosition()
+			t.buf.WriteString(ansi.ExtendedCursorPositionReport(x+1, y+1, 0)) // We don't support page numbers
 		}
 
 	case ansi.Cmd(0, '$', 'p'): // Request Mode [ansi.DECRQM]

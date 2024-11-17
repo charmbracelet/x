@@ -6,8 +6,8 @@ import (
 
 // Screen represents a virtual terminal screen.
 type Screen struct {
-	// damage is the cell change callback.
-	damage func(Damage)
+	// cb is the callbacks struct to use.
+	cb *Callbacks
 	// The buffer of the screen.
 	buf Buffer
 	// The cur of the screen.
@@ -30,11 +30,11 @@ func NewScreen(w, h int) *Screen {
 // cursor styles, and resets the scroll region.
 func (s *Screen) Reset() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.buf.Clear()
 	s.cur = Cursor{}
 	s.saved = Cursor{}
 	s.scroll = s.buf.Bounds()
+	s.mu.Unlock()
 }
 
 // Bounds returns the bounds of the screen.
@@ -57,12 +57,12 @@ func (s *Screen) SetCell(x, y int, c *Cell) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	v := s.buf.SetCell(x, y, c)
-	if v && s.damage != nil {
+	if v && s.cb.Damage != nil {
 		width := 1
 		if c != nil {
 			width = c.Width
 		}
-		s.damage(CellDamage{x, y, width})
+		s.cb.Damage(CellDamage{x, y, width})
 	}
 	return v
 }
@@ -79,8 +79,8 @@ func (s *Screen) Resize(width int, height int) {
 	s.mu.Lock()
 	s.buf.Resize(width, height)
 	s.scroll = s.buf.Bounds()
-	if s.damage != nil {
-		s.damage(ScreenDamage{width, height})
+	if s.cb != nil && s.cb.Damage != nil {
+		s.cb.Damage(ScreenDamage{width, height})
 	}
 	s.mu.Unlock()
 }
@@ -96,9 +96,9 @@ func (s *Screen) Width() int {
 func (s *Screen) Clear(rects ...Rectangle) {
 	s.mu.Lock()
 	s.buf.Clear(rects...)
-	if s.damage != nil {
+	if s.cb.Damage != nil {
 		for _, r := range rects {
-			s.damage(RectDamage(r))
+			s.cb.Damage(RectDamage(r))
 		}
 	}
 	s.mu.Unlock()
@@ -109,9 +109,9 @@ func (s *Screen) Fill(c *Cell, rects ...Rectangle) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.buf.Fill(c, rects...)
-	if s.damage != nil {
+	if s.cb.Damage != nil {
 		for _, r := range rects {
-			s.damage(RectDamage(r))
+			s.cb.Damage(RectDamage(r))
 		}
 	}
 }
@@ -132,13 +132,18 @@ func (s *Screen) setCursorY(y int, margins bool) {
 // set if it is within the scroll margins. This follows how [ansi.CUP] works.
 func (s *Screen) setCursor(x, y int, margins bool) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	old := s.cur.Position
 	if !margins {
-		s.cur.Y = clamp(y, 0, s.buf.Height()-1)
-		s.cur.X = clamp(x, 0, s.buf.Width()-1)
+		y = clamp(y, 0, s.buf.Height()-1)
+		x = clamp(x, 0, s.buf.Width()-1)
 	} else {
-		s.cur.Y = clamp(s.scroll.Min.Y+y, s.scroll.Min.Y, s.scroll.Max.Y-1)
-		s.cur.X = clamp(s.scroll.Min.X+x, s.scroll.Min.X, s.scroll.Max.X-1)
+		y = clamp(s.scroll.Min.Y+y, s.scroll.Min.Y, s.scroll.Max.Y-1)
+		x = clamp(s.scroll.Min.X+x, s.scroll.Min.X, s.scroll.Max.X-1)
+	}
+	s.cur.X, s.cur.Y = x, y
+	s.mu.Unlock()
+	if s.cb.CursorPosition != nil && (old.X != x || old.Y != y) {
+		s.cb.CursorPosition(old, Pos(x, y))
 	}
 }
 
@@ -149,14 +154,22 @@ func (s *Screen) setCursor(x, y int, margins bool) {
 // [ansi.CPL].
 func (s *Screen) moveCursor(dx, dy int) {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	old := s.cur.Position
 	pt := Pos(s.cur.X+dx, s.cur.Y+dy)
+
+	var x, y int
 	if s.scroll.Contains(pt) {
-		s.cur.Y = clamp(pt.Y, s.scroll.Min.Y, s.scroll.Max.Y-1)
-		s.cur.X = clamp(pt.X, s.scroll.Min.X, s.scroll.Max.X-1)
+		y = clamp(pt.Y, s.scroll.Min.Y, s.scroll.Max.Y-1)
+		x = clamp(pt.X, s.scroll.Min.X, s.scroll.Max.X-1)
 	} else {
-		s.cur.Y = clamp(pt.Y, 0, s.buf.Height()-1)
-		s.cur.X = clamp(pt.X, 0, s.buf.Width()-1)
+		y = clamp(pt.Y, 0, s.buf.Height()-1)
+		x = clamp(pt.X, 0, s.buf.Width()-1)
+	}
+
+	s.cur.X, s.cur.Y = x, y
+	s.mu.Unlock()
+	if s.cb.CursorPosition != nil && (old.X != x || old.Y != y) {
+		s.cb.CursorPosition(old, Pos(x, y))
 	}
 }
 
@@ -184,22 +197,45 @@ func (s *Screen) ScrollRegion() Rectangle {
 // SaveCursor saves the cursor.
 func (s *Screen) SaveCursor() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	s.saved = s.cur
+	s.mu.Unlock()
 }
 
 // RestoreCursor restores the cursor.
 func (s *Screen) RestoreCursor() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	old := s.cur.Position
 	s.cur = s.saved
+	s.mu.Unlock()
+	if s.cb.CursorPosition != nil && (old.X != s.cur.X || old.Y != s.cur.Y) {
+		s.cb.CursorPosition(old, s.cur.Position)
+	}
 }
 
 // setCursorHidden sets the cursor hidden.
 func (s *Screen) setCursorHidden(hidden bool) {
 	s.mu.Lock()
+	wasHidden := s.cur.Hidden
 	s.cur.Hidden = hidden
 	s.mu.Unlock()
+	if s.cb.CursorVisibility != nil && wasHidden != hidden {
+		s.cb.CursorVisibility(!hidden)
+	}
+}
+
+// setCursorStyle sets the cursor style.
+func (s *Screen) setCursorStyle(style CursorStyle, blink bool) {
+	s.mu.Lock()
+	s.cur.Style = style
+	s.cur.Steady = !blink
+	s.mu.Unlock()
+}
+
+// cursorPen returns the cursor pen.
+func (s *Screen) cursorPen() Style {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.cur.Pen
 }
 
 // ShowCursor shows the cursor.
@@ -224,8 +260,8 @@ func (s *Screen) InsertCell(n int) {
 	x, y := s.cur.X, s.cur.Y
 
 	s.buf.InsertCell(x, y, n, s.blankCell(), s.scroll)
-	if s.damage != nil {
-		s.damage(RectDamage(Rect(x, y, s.scroll.Width(), 1)))
+	if s.cb.Damage != nil {
+		s.cb.Damage(RectDamage(Rect(x, y, s.scroll.Width()-x, 1)))
 	}
 }
 
@@ -241,8 +277,8 @@ func (s *Screen) DeleteCell(n int) {
 	x, y := s.cur.X, s.cur.Y
 
 	s.buf.DeleteCell(x, y, n, s.blankCell(), s.scroll)
-	if s.damage != nil {
-		s.damage(RectDamage(Rect(x, y, s.scroll.Width(), 1)))
+	if s.cb.Damage != nil {
+		s.cb.Damage(RectDamage(Rect(x, y, s.scroll.Width()-x, 1)))
 	}
 }
 
@@ -284,11 +320,11 @@ func (s *Screen) InsertLine(n int) {
 	}
 
 	s.buf.InsertLine(y, n, s.blankCell(), s.scroll)
-	if s.damage != nil {
+	if s.cb.Damage != nil {
 		rect := s.scroll
 		rect.Min.Y = y
 		rect.Max.Y += n
-		s.damage(RectDamage(rect))
+		s.cb.Damage(RectDamage(rect))
 	}
 }
 
@@ -310,11 +346,11 @@ func (s *Screen) DeleteLine(n int) {
 	}
 
 	s.buf.DeleteLine(y, n, s.blankCell(), s.scroll)
-	if s.damage != nil {
+	if s.cb.Damage != nil {
 		rect := s.scroll
 		rect.Min.Y = y
 		rect.Max.Y += n
-		s.damage(RectDamage(rect))
+		s.cb.Damage(RectDamage(rect))
 	}
 }
 

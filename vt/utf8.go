@@ -18,26 +18,13 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 		content = seq.Cluster
 	}
 
-	var autowrap bool
 	x, y := t.scr.CursorPosition()
-	if t.isModeSet(ansi.AutoWrapMode) {
-		autowrap = true
-	}
-
-	// Handle phantom state at the end of the line
-	// TODO: Look into this more
-	if x >= t.scr.Width() {
-		if autowrap {
-			x = 0
-			y++
-			// Only scroll if we're past the last line
-			if y >= t.scr.Height() {
-				t.scr.ScrollUp(1)
-				y = t.scr.Height() - 1
-			}
-		} else {
-			x = t.scr.Width() - 1
-		}
+	if t.atPhantom || x+width > t.scr.Width() {
+		x = 0
+		// moves cursor down similar to [Terminal.linefeed] except it doesn't
+		// respects [ansi.LNM] mode.
+		// This will rest the phantom state i.e. pending wrap state.
+		t.index()
 	}
 
 	// Handle character set mappings
@@ -61,7 +48,7 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 	}
 
 	cell := &Cell{
-		Style:   t.scr.cur.Pen,
+		Style:   t.scr.cursorPen(),
 		Link:    Link{}, // TODO: Link support
 		Content: content,
 		Width:   width,
@@ -69,5 +56,15 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 
 	t.scr.SetCell(x, y, cell)
 
-	t.scr.setCursor(x+width, y, true)
+	// Handle phantom state at the end of the line
+	if x+width >= t.scr.Width() {
+		if t.isModeSet(ansi.AutoWrapMode) {
+			t.atPhantom = true
+		}
+	} else {
+		x += width
+	}
+
+	// NOTE: We don't reset the phantom state here, we handle it up above.
+	t.scr.setCursor(x, y, true)
 }

@@ -15,27 +15,27 @@ func (t *Terminal) handleCursor() {
 	switch t.parser.Cmd() {
 	case 'A':
 		// Cursor Up [ansi.CUU]
-		t.scr.moveCursor(0, -n)
+		t.moveCursor(0, -n)
 	case 'B':
 		// Cursor Down [ansi.CUD]
-		t.scr.moveCursor(0, n)
+		t.moveCursor(0, n)
 	case 'C':
 		// Cursor Forward [ansi.CUF]
-		t.scr.moveCursor(n, 0)
+		t.moveCursor(n, 0)
 	case 'D':
 		// Cursor Backward [ansi.CUB]
-		t.scr.moveCursor(-n, 0)
+		t.moveCursor(-n, 0)
 	case 'E':
 		// Cursor Next Line [ansi.CNL]
-		t.scr.moveCursor(0, n)
+		t.moveCursor(0, n)
 		t.carriageReturn()
 	case 'F':
 		// Cursor Previous Line [ansi.CPL]
-		t.scr.moveCursor(0, -n)
+		t.moveCursor(0, -n)
 		t.carriageReturn()
 	case 'G':
 		// Cursor Horizontal Absolute [ansi.CHA]
-		t.scr.setCursor(min(width-1, n-1), y, false)
+		t.setCursor(min(width-1, n-1), y)
 	case 'H':
 		// Cursor Position [ansi.CUP]
 		row, _ := t.parser.Param(0, 1)
@@ -53,6 +53,8 @@ func (t *Terminal) handleCursor() {
 			}
 			x = ts
 		}
+		// NOTE: We use t.scr.setCursor here because we don't want to reset the
+		// phantom state.
 		t.scr.setCursor(x, y, false)
 	case '`':
 		// Horizontal Position Absolute [ansi.HPA]
@@ -60,6 +62,7 @@ func (t *Terminal) handleCursor() {
 	case 'a':
 		// Horizontal Position Relative [ansi.HPR]
 		t.setCursorPosition(min(width-1, x+n), y)
+	// case 'b': // TODO: Repeat Previous Character [ansi.REP]
 	case 'e':
 		// Vertical Position Relative [ansi.VPR]
 		t.setCursorPosition(x, min(height-1, y+n))
@@ -69,11 +72,24 @@ func (t *Terminal) handleCursor() {
 		col, _ := t.parser.Param(1, 1)
 		y = min(height-1, row-1)
 		x = min(width-1, col-1)
-		t.scr.setCursor(x, y, false)
+		t.setCursor(x, y)
 	case 'd':
 		// Vertical Position Absolute [ansi.VPA]
 		t.setCursorPosition(x, min(height-1, n-1))
 	}
+}
+
+// moveCursor moves the cursor by the given x and y deltas. If the cursor
+// is at phantom, the state will reset and the cursor is back in the screen.
+func (t *Terminal) moveCursor(dx, dy int) {
+	t.scr.moveCursor(dx, dy)
+	t.atPhantom = false
+}
+
+// setCursor sets the cursor position. This resets the phantom state.
+func (t *Terminal) setCursor(x, y int) {
+	t.scr.setCursor(x, y, false)
+	t.atPhantom = false
 }
 
 // setCursorPosition sets the cursor position. This respects [ansi.DECOM],
@@ -82,6 +98,7 @@ func (t *Terminal) setCursorPosition(x, y int) {
 	mode, ok := t.modes[ansi.DECOM]
 	margins := ok && mode.IsSet()
 	t.scr.setCursor(x, y, margins)
+	t.atPhantom = false
 }
 
 // carriageReturn moves the cursor to the leftmost column. If [ansi.DECOM] is
@@ -100,4 +117,5 @@ func (t *Terminal) carriageReturn() {
 	} else {
 		t.scr.setCursor(0, y, false)
 	}
+	t.atPhantom = false
 }
