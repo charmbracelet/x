@@ -569,3 +569,46 @@ func SetPointerShape(shape string) string {
 //
 // This has the same effect as [RI].
 const ReverseIndex = "\x1bM"
+
+// HorizontalPositionAbsolute (HPA) returns a sequence for moving the cursor to
+// the given column. This has the same effect as [CUP].
+//
+// Default is 1.
+//
+//	CSI n `
+//
+// See: https://vt100.net/docs/vt510-rm/HPA.html
+func HorizontalPositionAbsolute(col int) string {
+	var s string
+	if col > 0 {
+		s = strconv.Itoa(col)
+	}
+	return "\x1b[" + s + "`"
+}
+
+// HPA is an alias for [HorizontalPositionAbsolute].
+func HPA(col int) string {
+	return HorizontalPositionAbsolute(col)
+}
+
+// HorizontalPositionRelative (HPR) returns a sequence for moving the cursor
+// right n columns relative to the current position. This has the same effect
+// as [CUP].
+//
+// Default is 1.
+//
+//	CSI n a
+//
+// See: https://vt100.net/docs/vt510-rm/HPR.html
+func HorizontalPositionRelative(n int) string {
+	var s string
+	if n > 0 {
+		s = strconv.Itoa(n)
+	}
+	return "\x1b[" + s + "a"
+}
+
+// HPR is an alias for [HorizontalPositionRelative].
+func HPR(n int) string {
+	return HorizontalPositionRelative(n)
+}
