@@ -386,3 +386,24 @@ func CursorInformationReport(values ...int) string {
 func DECCIR(values ...int) string {
 	return CursorInformationReport(values...)
 }
+
+// RepeatPreviousCharacter (REP) repeats the previous character n times.
+// This is identical to typing the same character n times.
+//
+// Default is 1.
+//
+//	CSI Pn b
+//
+// See: ECMA-48 § 8.3.103
+func RepeatPreviousCharacter(n int) string {
+	var s string
+	if n > 1 {
+		s = strconv.Itoa(n)
+	}
+	return "\x1b[" + s + "b"
+}
+
+// REP is an alias for [RepeatPreviousCharacter].
+func REP(n int) string {
+	return RepeatPreviousCharacter(n)
+}
