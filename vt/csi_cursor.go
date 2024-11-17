@@ -13,31 +13,23 @@ func (t *Terminal) handleCursor() {
 
 	x, y := t.scr.CursorPosition()
 	switch t.parser.Cmd() {
-	case 'A':
-		// Cursor Up [ansi.CUU]
+	case 'A': // Cursor Up [ansi.CUU]
 		t.moveCursor(0, -n)
-	case 'B':
-		// Cursor Down [ansi.CUD]
+	case 'B': // Cursor Down [ansi.CUD]
 		t.moveCursor(0, n)
-	case 'C':
-		// Cursor Forward [ansi.CUF]
+	case 'C': // Cursor Forward [ansi.CUF]
 		t.moveCursor(n, 0)
-	case 'D':
-		// Cursor Backward [ansi.CUB]
+	case 'D': // Cursor Backward [ansi.CUB]
 		t.moveCursor(-n, 0)
-	case 'E':
-		// Cursor Next Line [ansi.CNL]
+	case 'E': // Cursor Next Line [ansi.CNL]
 		t.moveCursor(0, n)
 		t.carriageReturn()
-	case 'F':
-		// Cursor Previous Line [ansi.CPL]
+	case 'F': // Cursor Previous Line [ansi.CPL]
 		t.moveCursor(0, -n)
 		t.carriageReturn()
-	case 'G':
-		// Cursor Horizontal Absolute [ansi.CHA]
+	case 'G': // Cursor Horizontal Absolute [ansi.CHA]
 		t.setCursor(min(width-1, n-1), y)
-	case 'H':
-		// Cursor Position [ansi.CUP]
+	case 'H': // Cursor Position [ansi.CUP]
 		row, _ := t.parser.Param(0, 1)
 		col, _ := t.parser.Param(1, 1)
 		y = min(height-1, row-1)
@@ -47,8 +39,7 @@ func (t *Terminal) handleCursor() {
 		t.nextTab(n)
 	case '`': // Horizontal Position Absolute [ansi.HPA]
 		t.setCursorPosition(min(width-1, n-1), y)
-	case 'a':
-		// Horizontal Position Relative [ansi.HPR]
+	case 'a': // Horizontal Position Relative [ansi.HPR]
 		t.setCursorPosition(min(width-1, x+n), y)
 	case 'b': // Repeat Previous Character [ansi.REP]
 		t.repeatPreviousCharacter(n)
