@@ -43,21 +43,9 @@ func (t *Terminal) handleCursor() {
 		y = min(height-1, row-1)
 		x = min(width-1, col-1)
 		t.setCursorPosition(x, y)
-	case 'I':
-		// Cursor Horizontal Tabulation [ansi.CHT]
-		scroll := t.scr.ScrollRegion()
-		for i := 0; i < n; i++ {
-			ts := t.tabstops.Next(x)
-			if ts >= scroll.Max.X {
-				break
-			}
-			x = ts
-		}
-		// NOTE: We use t.scr.setCursor here because we don't want to reset the
-		// phantom state.
-		t.scr.setCursor(x, y, false)
-	case '`':
-		// Horizontal Position Absolute [ansi.HPA]
+	case 'I': // Cursor Horizontal Tabulation [ansi.CHT]
+		t.nextTab(n)
+	case '`': // Horizontal Position Absolute [ansi.HPA]
 		t.setCursorPosition(min(width-1, n-1), y)
 	case 'a':
 		// Horizontal Position Relative [ansi.HPR]
@@ -78,6 +66,23 @@ func (t *Terminal) handleCursor() {
 		// Vertical Position Absolute [ansi.VPA]
 		t.setCursorPosition(x, min(height-1, n-1))
 	}
+}
+
+// nextTab moves the cursor to the next tab stop n times. This respects the
+// horizontal scrolling region. This performs the same function as [ansi.CHT].
+func (t *Terminal) nextTab(n int) {
+	x, y := t.scr.CursorPosition()
+	scroll := t.scr.ScrollRegion()
+	for i := 0; i < n; i++ {
+		ts := t.tabstops.Next(x)
+		if ts >= scroll.Max.X {
+			break
+		}
+		x = ts
+	}
+	// NOTE: We use t.scr.setCursor here because we don't want to reset the
+	// phantom state.
+	t.scr.setCursor(x, y, false)
 }
 
 // moveCursor moves the cursor by the given x and y deltas. If the cursor

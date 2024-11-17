@@ -17,10 +17,7 @@ func (t *Terminal) handleControl(r ansi.ControlCode) {
 		// This acts like [ansi.CUB]
 		t.moveCursor(-1, 0)
 	case ansi.HT: // Horizontal Tab [ansi.HT]
-		x, _ := t.scr.CursorPosition()
-		x = t.tabstops.Next(x)
-		// NOTE: We don't reset the phantom state here.
-		t.scr.setCursorX(x, false)
+		t.nextTab(1)
 	case ansi.VT: // Vertical Tab [ansi.VT]
 		fallthrough
 	case ansi.FF: // Form Feed [ansi.FF]
