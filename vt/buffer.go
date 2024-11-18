@@ -82,12 +82,12 @@ const maxCellWidth = 4
 
 // SetCell sets the cell at the given x, y position.
 func (b *Buffer) SetCell(x, y int, c *Cell) bool {
-	return b.setCell(x, y, c)
+	return b.setCell(x, y, c, true)
 }
 
 // setCell sets the cell at the given x, y position. This will always clone and
 // allocates a new cell if c is not nil.
-func (b *Buffer) setCell(x, y int, c *Cell) bool {
+func (b *Buffer) setCell(x, y int, c *Cell, clone bool) bool {
 	if y < 0 || y >= len(b.lines) {
 		return false
 	}
@@ -124,7 +124,7 @@ func (b *Buffer) setCell(x, y int, c *Cell) bool {
 		}
 	}
 
-	if c != nil {
+	if clone && c != nil {
 		// Clone the cell if not nil.
 		newCell := *c
 		c = &newCell
@@ -207,7 +207,7 @@ func (b *Buffer) fill(c *Cell, rect Rectangle) {
 	}
 	for y := rect.Min.Y; y < rect.Max.Y; y++ {
 		for x := rect.Min.X; x < rect.Max.X; x += cellWidth {
-			b.setCell(x, y, c) //nolint:errcheck
+			b.setCell(x, y, c, true) //nolint:errcheck
 		}
 	}
 }
@@ -266,14 +266,15 @@ func (b *Buffer) insertLineInRect(y, n int, c *Cell, rect Rectangle) {
 	for i := rect.Max.Y - 1; i >= y+n; i-- {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
 			// We don't need to clone c here because we're just moving lines down.
-			b.lines[i][x] = b.lines[i-n][x]
+			// b.lines[i][x] = b.lines[i-n][x]
+			b.setCell(x, i, b.lines[i-n][x], false)
 		}
 	}
 
 	// Clear the newly inserted lines within bounds
 	for i := y; i < y+n; i++ {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
-			b.setCell(x, i, c)
+			b.setCell(x, i, c, true)
 		}
 	}
 }
@@ -298,14 +299,15 @@ func (b *Buffer) deleteLineInRect(y, n int, c *Cell, rect Rectangle) {
 		src := dst + n
 		for x := rect.Min.X; x < rect.Max.X; x++ {
 			// We don't need to clone c here because we're just moving cells up.
-			b.lines[dst][x] = b.lines[src][x]
+			// b.lines[dst][x] = b.lines[src][x]
+			b.setCell(x, dst, b.lines[src][x], false)
 		}
 	}
 
 	// Fill the bottom n lines with blank cells
 	for i := rect.Max.Y - n; i < rect.Max.Y; i++ {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
-			b.setCell(x, i, c)
+			b.setCell(x, i, c, true)
 		}
 	}
 }
@@ -355,12 +357,13 @@ func (b *Buffer) insertCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 	for i := rect.Max.X - 1; i >= x+n && i-n >= rect.Min.X; i-- {
 		// We don't need to clone c here because we're just moving cells to the
 		// right.
-		b.lines[y][i] = b.lines[y][i-n]
+		// b.lines[y][i] = b.lines[y][i-n]
+		b.setCell(i, y, b.lines[y][i-n], false)
 	}
 
 	// Clear the newly inserted cells within rectangle bounds
 	for i := x; i < x+n && i < rect.Max.X; i++ {
-		b.setCell(i, y, c)
+		b.setCell(i, y, c, true)
 	}
 }
 
@@ -398,12 +401,13 @@ func (b *Buffer) deleteCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 		if i+n < rect.Max.X {
 			// We don't need to clone c here because we're just moving cells to
 			// the left.
-			b.lines[y][i] = b.lines[y][i+n]
+			// b.lines[y][i] = b.lines[y][i+n]
+			b.setCell(i, y, b.lines[y][i+n], false)
 		}
 	}
 
 	// Fill the vacated positions with the given cell
 	for i := rect.Max.X - n; i < rect.Max.X; i++ {
-		b.setCell(i, y, c)
+		b.setCell(i, y, c, true)
 	}
 }

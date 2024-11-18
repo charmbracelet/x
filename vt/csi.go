@@ -7,7 +7,7 @@ import (
 // handleCsi handles a CSI escape sequences.
 func (t *Terminal) handleCsi(seq ansi.CsiSequence) {
 	switch cmd := t.parser.Cmd(); cmd { // cursor
-	case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'a', 'b', 'd', 'e', 'f', '`':
+	case 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'Z', 'a', 'b', 'd', 'e', 'f', '`':
 		t.handleCursor()
 	case 'm': // Select Graphic Rendition [ansi.SGR]
 		t.handleSgr()

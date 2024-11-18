@@ -2,9 +2,7 @@ package vt
 
 // Logger represents a logger interface.
 type Logger interface {
-	Print(v ...interface{})
 	Printf(format string, v ...interface{})
-	Println(v ...interface{})
 }
 
 // Option is a terminal option.
@@ -20,20 +18,6 @@ type Option func(*Terminal)
 func WithLogger(logger Logger) Option {
 	return func(t *Terminal) {
 		t.logger = logger
-	}
-}
-
-// log logs a message if the terminal has a logger.
-func (t *Terminal) log(msg string) { //nolint:unused
-	if t.logger != nil {
-		t.logger.Print(msg)
-	}
-}
-
-// logln logs a message if the terminal has a logger.
-func (t *Terminal) logln(msg string) { //nolint:unused
-	if t.logger != nil {
-		t.logger.Println(msg)
 	}
 }
 

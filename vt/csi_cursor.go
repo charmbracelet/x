@@ -7,7 +7,7 @@ import (
 func (t *Terminal) handleCursor() {
 	width, height := t.Width(), t.Height()
 	n := 1
-	if param, ok := t.parser.Param(0, 1); ok {
+	if param, ok := t.parser.Param(0, 1); ok && param > 0 {
 		n = param
 	}
 
@@ -28,7 +28,7 @@ func (t *Terminal) handleCursor() {
 		t.moveCursor(0, -n)
 		t.carriageReturn()
 	case 'G': // Cursor Horizontal Absolute [ansi.CHA]
-		t.setCursor(min(width-1, n-1), y)
+		t.setCursor(n-1, y)
 	case 'H': // Cursor Position [ansi.CUP]
 		row, _ := t.parser.Param(0, 1)
 		col, _ := t.parser.Param(1, 1)
@@ -37,6 +37,8 @@ func (t *Terminal) handleCursor() {
 		t.setCursorPosition(x, y)
 	case 'I': // Cursor Horizontal Tabulation [ansi.CHT]
 		t.nextTab(n)
+	case 'Z': // Cursor Backward Tabulation [ansi.CBT]
+		t.prevTab(n)
 	case '`': // Horizontal Position Absolute [ansi.HPA]
 		t.setCursorPosition(min(width-1, n-1), y)
 	case 'a': // Horizontal Position Relative [ansi.HPR]
@@ -66,14 +68,48 @@ func (t *Terminal) nextTab(n int) {
 	scroll := t.scr.ScrollRegion()
 	for i := 0; i < n; i++ {
 		ts := t.tabstops.Next(x)
-		if ts >= scroll.Max.X {
+		if ts < x {
 			break
 		}
 		x = ts
 	}
+
+	if x >= scroll.Max.X {
+		x = min(scroll.Max.X-1, t.Width()-1)
+	}
+
 	// NOTE: We use t.scr.setCursor here because we don't want to reset the
 	// phantom state.
 	t.scr.setCursor(x, y, false)
+}
+
+// prevTab moves the cursor to the previous tab stop n times. This respects the
+// horizontal scrolling region when origin mode is set. If the cursor would
+// move past the leftmost valid column, the cursor remains at the leftmost
+// valid column and the operation completes.
+func (t *Terminal) prevTab(n int) {
+	x, _ := t.scr.CursorPosition()
+	leftmargin := 0
+	scroll := t.scr.ScrollRegion()
+	if t.isModeSet(ansi.DECOM) {
+		leftmargin = scroll.Min.X
+	}
+
+	for i := 0; i < n; i++ {
+		ts := t.tabstops.Prev(x)
+		if ts > x {
+			break
+		}
+		x = ts
+	}
+
+	if x < leftmargin {
+		x = leftmargin
+	}
+
+	// NOTE: We use t.scr.setCursorX here because we don't want to reset the
+	// phantom state.
+	t.scr.setCursorX(x, false)
 }
 
 // moveCursor moves the cursor by the given x and y deltas. If the cursor

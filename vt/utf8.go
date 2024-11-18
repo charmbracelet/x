@@ -71,5 +71,5 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 	}
 
 	// NOTE: We don't reset the phantom state here, we handle it up above.
-	t.scr.setCursor(x, y, true)
+	t.scr.setCursor(x, y, false)
 }

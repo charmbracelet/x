@@ -116,6 +116,22 @@ func (s *Screen) Fill(c *Cell, rects ...Rectangle) {
 	}
 }
 
+// setHorizontalMargins sets the horizontal margins.
+func (s *Screen) setHorizontalMargins(left, right int) {
+	s.mu.Lock()
+	s.scroll.Min.X = left
+	s.scroll.Max.X = right
+	s.mu.Unlock()
+}
+
+// setVerticalMargins sets the vertical margins.
+func (s *Screen) setVerticalMargins(top, bottom int) {
+	s.mu.Lock()
+	s.scroll.Min.Y = top
+	s.scroll.Max.Y = bottom
+	s.mu.Unlock()
+}
+
 // setCursorX sets the cursor X position. If margins is true, the cursor is
 // only set if it is within the scroll margins.
 func (s *Screen) setCursorX(x int, margins bool) {
@@ -154,13 +170,21 @@ func (s *Screen) setCursor(x, y int, margins bool) {
 // [ansi.CPL].
 func (s *Screen) moveCursor(dx, dy int) {
 	s.mu.Lock()
+	scroll := s.scroll
 	old := s.cur.Position
+	if old.X < scroll.Min.X {
+		scroll.Min.X = 0
+	}
+	if old.X >= scroll.Max.X {
+		scroll.Max.X = s.buf.Width()
+	}
+
 	pt := Pos(s.cur.X+dx, s.cur.Y+dy)
 
 	var x, y int
-	if s.scroll.Contains(pt) {
-		y = clamp(pt.Y, s.scroll.Min.Y, s.scroll.Max.Y-1)
-		x = clamp(pt.X, s.scroll.Min.X, s.scroll.Max.X-1)
+	if scroll.Contains(old) {
+		y = clamp(pt.Y, scroll.Min.Y, scroll.Max.Y-1)
+		x = clamp(pt.X, scroll.Min.X, scroll.Max.X-1)
 	} else {
 		y = clamp(pt.Y, 0, s.buf.Height()-1)
 		x = clamp(pt.X, 0, s.buf.Width()-1)
@@ -308,18 +332,20 @@ func (s *Screen) ScrollDown(n int) {
 // InsertLine inserts n blank lines at the cursor position Y coordinate.
 // Only operates if cursor is within scroll region. Lines below cursor Y
 // are moved down, with those past bottom margin being discarded.
-func (s *Screen) InsertLine(n int) {
+// It returns true if the operation was successful.
+func (s *Screen) InsertLine(n int) bool {
 	if n <= 0 {
-		return
+		return false
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, y := s.cur.X, s.cur.Y
+	x, y := s.cur.X, s.cur.Y
 
 	// Only operate if cursor Y is within scroll region
-	if y < s.scroll.Min.Y || y >= s.scroll.Max.Y {
-		return
+	if y < s.scroll.Min.Y || y >= s.scroll.Max.Y ||
+		x < s.scroll.Min.X || x >= s.scroll.Max.X {
+		return false
 	}
 
 	s.buf.InsertLine(y, n, s.blankCell(), s.scroll)
@@ -329,32 +355,39 @@ func (s *Screen) InsertLine(n int) {
 		rect.Max.Y += n
 		s.cb.Damage(RectDamage(rect))
 	}
+
+	return true
 }
 
 // DeleteLine deletes n lines at the cursor position Y coordinate.
 // Only operates if cursor is within scroll region. Lines below cursor Y
 // are moved up, with blank lines inserted at the bottom of scroll region.
-func (s *Screen) DeleteLine(n int) {
+// It returns true if the operation was successful.
+func (s *Screen) DeleteLine(n int) bool {
 	if n <= 0 {
-		return
+		return false
 	}
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	_, y := s.cur.X, s.cur.Y
+	scroll := s.scroll
+	x, y := s.cur.X, s.cur.Y
 
 	// Only operate if cursor Y is within scroll region
-	if y < s.scroll.Min.Y || y >= s.scroll.Max.Y {
-		return
+	if y < scroll.Min.Y || y >= scroll.Max.Y ||
+		x < scroll.Min.X || x >= scroll.Max.X {
+		return false
 	}
 
-	s.buf.DeleteLine(y, n, s.blankCell(), s.scroll)
+	s.buf.DeleteLine(y, n, s.blankCell(), scroll)
 	if s.cb.Damage != nil {
-		rect := s.scroll
+		rect := scroll
 		rect.Min.Y = y
 		rect.Max.Y += n
 		s.cb.Damage(RectDamage(rect))
 	}
+
+	return true
 }
 
 // blankCell returns the cursor blank cell with the background color set to the

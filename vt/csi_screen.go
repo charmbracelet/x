@@ -29,18 +29,22 @@ func (t *Terminal) handleScreen() {
 		if n == 0 {
 			n = 1
 		}
-		t.scr.InsertLine(n)
-		// Move the cursor to the left margin.
-		t.scr.setCursorX(0, true)
+		if t.scr.InsertLine(n) {
+			// Move the cursor to the left margin.
+			t.scr.setCursorX(0, true)
+		}
 
 	case 'M': // Delete Line [ansi.DL]
 		n, _ := t.parser.Param(0, 1)
 		if n == 0 {
 			n = 1
 		}
-		t.scr.DeleteLine(n)
-		// Move the cursor to the left margin.
-		t.scr.setCursorX(0, true)
+		if t.scr.DeleteLine(n) {
+			// If the line was deleted successfully, move the cursor to the
+			// left.
+			// Move the cursor to the left margin.
+			t.scr.setCursorX(0, true)
+		}
 
 	case 'X': // Erase Character [ansi.ECH]
 		// It clears character attributes as well but not colors.
@@ -52,12 +56,12 @@ func (t *Terminal) handleScreen() {
 
 	case 'r': // Set Top and Bottom Margins [ansi.DECSTBM]
 		top, _ := t.parser.Param(0, 1)
-		if top < 1 || top > height {
+		if top < 1 {
 			top = 1
 		}
 
 		bottom, _ := t.parser.Param(1, height)
-		if bottom < 1 || bottom > height {
+		if bottom < 1 {
 			bottom = height
 		}
 
@@ -67,8 +71,7 @@ func (t *Terminal) handleScreen() {
 
 		// Rect is [x, y) which means y is exclusive. So the top margin
 		// is the top of the screen minus one.
-		t.scr.scroll.Min.Y = top - 1
-		t.scr.scroll.Max.Y = bottom
+		t.scr.setVerticalMargins(top-1, bottom)
 
 		// Move the cursor to the top-left of the screen or scroll region
 		// depending on [ansi.DECOM].
@@ -82,12 +85,12 @@ func (t *Terminal) handleScreen() {
 		if t.isModeSet(ansi.LeftRightMarginMode) {
 			// Set Left Right Margins [ansi.DECSLRM]
 			left, _ := t.parser.Param(0, 1)
-			if left < 1 || left > width {
+			if left < 1 {
 				left = 1
 			}
 
 			right, _ := t.parser.Param(1, width)
-			if right < 1 || right > width {
+			if right < 1 {
 				right = width
 			}
 
@@ -95,8 +98,7 @@ func (t *Terminal) handleScreen() {
 				break
 			}
 
-			t.scr.scroll.Min.X = left - 1
-			t.scr.scroll.Max.X = right
+			t.scr.setHorizontalMargins(left-1, right)
 
 			// Move the cursor to the top-left of the screen or scroll region
 			// depending on [ansi.DECOM].
@@ -148,5 +150,6 @@ func (t *Terminal) eraseCharacter(n int) {
 	x, y := t.scr.CursorPosition()
 	rect := Rect(x, y, n, 1)
 	t.scr.Fill(t.scr.blankCell(), rect)
+	t.atPhantom = false
 	// ECH does not move the cursor.
 }

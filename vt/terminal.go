@@ -46,7 +46,7 @@ type Terminal struct {
 	iconName, title string
 
 	// tabstop is the list of tab stops.
-	tabstops TabStops
+	tabstops *TabStops
 
 	// The input buffer of the terminal.
 	buf bytes.Buffer
@@ -114,6 +114,12 @@ func (t *Terminal) Height() int {
 // Width returns the width of the terminal.
 func (t *Terminal) Width() int {
 	return t.scr.Width()
+}
+
+// CursorPosition returns the terminal's cursor position.
+func (t *Terminal) CursorPosition() Position {
+	x, y := t.scr.CursorPosition()
+	return Pos(x, y)
 }
 
 // Resize resizes the terminal.
