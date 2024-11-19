@@ -1,4 +1,4 @@
-module examples
+module github.com/charmbracelet/x/examples
 
 go 1.18
 
