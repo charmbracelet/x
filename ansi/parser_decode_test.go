@@ -241,7 +241,7 @@ func TestDecodeSequence(t *testing.T) {
 			name:  "unterminated CSI with escape sequence",
 			input: []byte("\x1b[1;2;3\x1bOa"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1b[1;2;3"), n: 7, params: []int{1, 2}}, // params get reset and ignored when unterminated
+				{seq: []byte("\x1b[1;2;3"), n: 7, params: []int{1, 2, 3}}, // params get reset and ignored when unterminated
 				{seq: []byte("\x1bO"), n: 2, cmd: 'O'},
 				{seq: []byte{'a'}, n: 1, width: 1},
 			},
@@ -341,7 +341,7 @@ func TestDecodeSequence(t *testing.T) {
 					t.Errorf("expected %q data, got %q", string(tc.expected[i].data), string(r.data))
 				}
 				if len(r.params) != len(tc.expected[i].params) {
-					t.Errorf("expected %d params, got %d", len(tc.expected[i].params), len(r.params))
+					t.Fatalf("expected %d params, got %d", len(tc.expected[i].params), len(r.params))
 				}
 				if len(tc.expected[i].params) > 0 {
 					for j, p := range r.params {

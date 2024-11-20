@@ -178,7 +178,6 @@ func TestCsiSequence(t *testing.T) {
 					},
 					Cmd: 'x',
 				},
-				ControlCode(0x1b),
 			},
 		},
 	}

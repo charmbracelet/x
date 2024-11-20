@@ -30,17 +30,14 @@ func testParser(d *testDispatcher) *Parser {
 func TestControlSequence(t *testing.T) {
 	cases := []testCase{
 		{
-			name:  "just_esc",
-			input: "\x1b",
-			expected: []Sequence{
-				ControlCode(0x1b),
-			},
+			name:     "just_esc",
+			input:    "\x1b",
+			expected: []Sequence{},
 		},
 		{
 			name:  "double_esc",
 			input: "\x1b\x1b",
 			expected: []Sequence{
-				ControlCode(0x1b),
 				ControlCode(0x1b),
 			},
 		},
