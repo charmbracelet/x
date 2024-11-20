@@ -6,13 +6,14 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/vt"
 	"github.com/charmbracelet/x/wcwidth"
 )
 
 // setContent writes the given data to the buffer starting from the first cell.
 // It accepts both string and []byte data types.
 func setContent(
-	d Screen,
+	d Buffer,
 	data string,
 	method Method,
 	rect Rectangle,
@@ -20,7 +21,7 @@ func setContent(
 	var cell Cell
 	var pen Style
 	var link Link
-	x, y := rect.X, rect.Y
+	x, y := rect.X(), rect.Y()
 
 	p := ansi.GetParser()
 	defer ansi.PutParser(p)
@@ -29,7 +30,7 @@ func setContent(
 	// linew is a slice of line widths. We use this to keep track of the
 	// written widths of each line. We use this information later to optimize
 	// rendering of the buffer.
-	linew := make([]int, rect.Height)
+	linew := make([]int, rect.Height())
 
 	var pendingWidth int
 
@@ -53,7 +54,7 @@ func setContent(
 			}
 			fallthrough
 		case 1:
-			if x >= rect.X+rect.Width || y >= rect.Y+rect.Height {
+			if x+width >= rect.X()+rect.Width() || y >= rect.Y()+rect.Height() {
 				break
 			}
 
@@ -62,13 +63,13 @@ func setContent(
 			cell.Style = pen
 			cell.Link = link
 
-			d.Draw(x, y, cell) //nolint:errcheck
+			d.SetCell(x, y, &cell) //nolint:errcheck
 
 			// Advance the cursor and line width
 			x += cell.Width
-			if cell.Equal(spaceCell) {
+			if cell.Equal(&spaceCell) {
 				pendingWidth += cell.Width
-			} else if y := y - rect.Y; y < len(linew) {
+			} else if y := y - rect.Y(); y < len(linew) {
 				linew[y] += cell.Width + pendingWidth
 				pendingWidth = 0
 			}
@@ -77,20 +78,20 @@ func setContent(
 		default:
 			// Valid sequences always have a non-zero Cmd.
 			switch {
-			case ansi.HasCsiPrefix(seq) && p.Cmd != 0:
-				switch p.Cmd {
+			case ansi.HasCsiPrefix(seq) && p.Cmd() != 0:
+				switch p.Cmd() {
 				case 'm': // SGR - Select Graphic Rendition
 					handleSgr(p, &pen)
 				}
-			case ansi.HasOscPrefix(seq) && p.Cmd != 0:
-				switch p.Cmd {
+			case ansi.HasOscPrefix(seq) && p.Cmd() != 0:
+				switch p.Cmd() {
 				case 8: // Hyperlinks
 					handleHyperlinks(p, &link)
 				}
 			case ansi.Equal(seq, "\n"):
 				// Reset the rest of the line
-				for x < rect.X+rect.Width {
-					d.Draw(x, y, spaceCell) //nolint:errcheck
+				for x < rect.X()+rect.Width() {
+					d.SetCell(x, y, nil) //nolint:errcheck
 					x++
 				}
 
@@ -107,8 +108,8 @@ func setContent(
 		data = data[n:]
 	}
 
-	for x < rect.X+rect.Width {
-		d.Draw(x, y, spaceCell) //nolint:errcheck
+	for x < rect.X()+rect.Width() {
+		d.SetCell(x, y, nil) //nolint:errcheck
 		x++
 	}
 
@@ -117,15 +118,15 @@ func setContent(
 
 // handleSgr handles Select Graphic Rendition (SGR) escape sequences.
 func handleSgr(p *ansi.Parser, pen *Style) {
-	if p.ParamsLen == 0 {
+	params := p.Params()
+	if len(params) == 0 {
 		pen.Reset()
 		return
 	}
 
-	params := p.Params[:p.ParamsLen]
 	for i := 0; i < len(params); i++ {
-		r := ansi.Param(params[i])
-		param, hasMore := r.Param(), r.HasMore() // Are there more subparameters i.e. separated by ":"?
+		r := ansi.Parameter(params[i])
+		param, hasMore := r.Param(0), r.HasMore() // Are there more subparameters i.e. separated by ":"?
 		switch param {
 		case 0: // Reset
 			pen.Reset()
@@ -137,20 +138,20 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 			pen.Italic(true)
 		case 4: // Underline
 			if hasMore { // Only accept subparameters i.e. separated by ":"
-				nextParam := ansi.Param(params[i+1]).Param()
+				nextParam := params[i+1].Param(0)
 				switch nextParam {
 				case 0: // No Underline
-					pen.UnderlineStyle(NoUnderline)
+					pen.UnderlineStyle(vt.NoUnderline)
 				case 1: // Single Underline
-					pen.UnderlineStyle(SingleUnderline)
+					pen.UnderlineStyle(vt.SingleUnderline)
 				case 2: // Double Underline
-					pen.UnderlineStyle(DoubleUnderline)
+					pen.UnderlineStyle(vt.DoubleUnderline)
 				case 3: // Curly Underline
-					pen.UnderlineStyle(CurlyUnderline)
+					pen.UnderlineStyle(vt.CurlyUnderline)
 				case 4: // Dotted Underline
-					pen.UnderlineStyle(DottedUnderline)
+					pen.UnderlineStyle(vt.DottedUnderline)
 				case 5: // Dashed Underline
-					pen.UnderlineStyle(DashedUnderline)
+					pen.UnderlineStyle(vt.DashedUnderline)
 				}
 			} else {
 				// Single Underline
@@ -212,7 +213,7 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 
 // handleHyperlinks handles hyperlink escape sequences.
 func handleHyperlinks(p *ansi.Parser, link *Link) {
-	params := bytes.Split(p.Data[:p.DataLen], []byte{';'})
+	params := bytes.Split(p.Data(), []byte{';'})
 	if len(params) != 3 {
 		return
 	}

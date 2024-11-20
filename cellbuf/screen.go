@@ -12,27 +12,36 @@ import (
 // attributes and hyperlink.
 type Segment = Cell
 
-// Screen represents a screen grid of cells.
-type Screen interface {
+// Buffer represents a screen grid of cells.
+type Buffer interface {
 	// Width returns the width of the grid.
 	Width() int
 
 	// Height returns the height of the grid.
 	Height() int
 
-	// Cell returns the cell at the given position.
-	Cell(x, y int) (Cell, bool)
+	// Cell returns the cell at the given position. If the cell is out of
+	// bounds, it returns nil.
+	Cell(x, y int) *Cell
 
-	// Draw writes a cell to the grid at the given position. It returns true if
-	// the cell was written successfully.
-	Draw(x, y int, c Cell) bool
+	// SetCell writes a cell to the grid at the given position. It returns true
+	// if the cell was written successfully. If the cell is nil, a blank cell
+	// is written.
+	SetCell(x, y int, c *Cell) bool
+}
+
+// Resizable is an interface for buffers that can be resized.
+type Resizable interface {
+	// Resize resizes the buffer to the given width and height.
+	Resize(width, height int)
 }
 
 // Paint writes the given data to the canvas. If rect is not nil, it only
 // writes to the rectangle. Otherwise, it writes to the whole canvas.
-func Paint(d Screen, m Method, content string, rect *Rectangle) []int {
+func Paint(d Buffer, m Method, content string, rect *Rectangle) []int {
 	if rect == nil {
-		rect = &Rectangle{0, 0, d.Width(), d.Height()}
+		r := Rect(0, 0, d.Width(), d.Height())
+		rect = &r
 	}
 	return setContent(d, content, m, *rect)
 }
@@ -54,7 +63,7 @@ func WithRenderProfile(p colorprofile.Profile) RenderOption {
 }
 
 // Render returns a string representation of the grid with ANSI escape sequences.
-func Render(d Screen, opts ...RenderOption) string {
+func Render(d Buffer, opts ...RenderOption) string {
 	var opt RenderOptions
 	for _, o := range opts {
 		o(&opt)
@@ -73,7 +82,7 @@ func Render(d Screen, opts ...RenderOption) string {
 
 // RenderLine returns a string representation of the yth line of the grid along
 // with the width of the line.
-func RenderLine(d Screen, n int, opts ...RenderOption) (w int, line string) {
+func RenderLine(d Buffer, n int, opts ...RenderOption) (w int, line string) {
 	var opt RenderOptions
 	for _, o := range opts {
 		o(&opt)
@@ -81,7 +90,7 @@ func RenderLine(d Screen, n int, opts ...RenderOption) (w int, line string) {
 	return renderLine(d, n, opt)
 }
 
-func renderLine(d Screen, n int, opt RenderOptions) (w int, line string) {
+func renderLine(d Buffer, n int, opt RenderOptions) (w int, line string) {
 	var pen Style
 	var link Link
 	var buf bytes.Buffer
@@ -100,10 +109,10 @@ func renderLine(d Screen, n int, opt RenderOptions) (w int, line string) {
 	}
 
 	for x := 0; x < d.Width(); x++ {
-		if cell, ok := d.Cell(x, n); ok && cell.Width > 0 {
+		if cell := d.Cell(x, n); cell != nil && cell.Width > 0 {
 			// Convert the cell's style and link to the given color profile.
-			cellStyle := cell.Style.Convert(opt.Profile)
-			cellLink := cell.Link.Convert(opt.Profile)
+			cellStyle := ConvertStyle(cell.Style, opt.Profile)
+			cellLink := ConvertLink(cell.Link, opt.Profile)
 			if cellStyle.Empty() && !pen.Empty() {
 				writePending()
 				buf.WriteString(ansi.ResetStyle) //nolint:errcheck
@@ -130,7 +139,7 @@ func renderLine(d Screen, n int, opt RenderOptions) (w int, line string) {
 
 			// We only write the cell content if it's not empty. If it is, we
 			// append it to the pending line and width to be evaluated later.
-			if cell.Equal(spaceCell) {
+			if cell.Equal(&spaceCell) {
 				pendingLine += cell.Content
 				pendingWidth += cell.Width
 			} else {
@@ -151,34 +160,50 @@ func renderLine(d Screen, n int, opt RenderOptions) (w int, line string) {
 
 // Fill fills the canvas with the given cell. If rect is not nil, it only fills
 // the rectangle. Otherwise, it fills the whole canvas.
-func Fill(d Screen, c Cell, rect *Rectangle) {
-	if rect == nil {
-		rect = &Rectangle{0, 0, d.Width(), d.Height()}
+func Fill(d Buffer, c *Cell, rects ...Rectangle) {
+	if len(rects) == 0 {
+		fill(d, c, Rect(0, 0, d.Width(), d.Height()))
+		return
 	}
+	for _, rect := range rects {
+		fill(d, c, rect)
+	}
+}
 
-	for y := rect.Y; y < rect.Y+rect.Height; y++ {
-		for x := rect.X; x < rect.X+rect.Width; x += c.Width {
-			d.Draw(x, y, c) //nolint:errcheck
+func fill(d Buffer, c *Cell, rect Rectangle) {
+	cellWidth := 1
+	if c != nil {
+		cellWidth = c.Width
+	}
+	for y := rect.Min.Y; y < rect.Max.Y; y++ {
+		for x := rect.Min.X; x < rect.Max.X; x += cellWidth {
+			d.SetCell(x, y, c) //nolint:errcheck
 		}
 	}
 }
 
 // Clear clears the canvas with space cells. If rect is not nil, it only clears
 // the rectangle. Otherwise, it clears the whole canvas.
-func Clear(d Screen, rect *Rectangle) {
-	Fill(d, spaceCell, rect)
+func Clear(d Buffer, rects ...Rectangle) {
+	if len(rects) == 0 {
+		fill(d, nil, Rect(0, 0, d.Width(), d.Height()))
+		return
+	}
+	for _, rect := range rects {
+		fill(d, nil, rect)
+	}
 }
 
 // Equal returns whether two grids are equal.
-func Equal(a, b Screen) bool {
+func Equal(a, b Buffer) bool {
 	if a.Width() != b.Width() || a.Height() != b.Height() {
 		return false
 	}
 	for y := 0; y < a.Height(); y++ {
 		for x := 0; x < a.Width(); x++ {
-			ca, _ := a.Cell(x, y)
-			cb, _ := b.Cell(x, y)
-			if !ca.Equal(cb) {
+			ca := a.Cell(x, y)
+			cb := b.Cell(x, y)
+			if ca != nil && cb != nil && !ca.Equal(cb) {
 				return false
 			}
 		}

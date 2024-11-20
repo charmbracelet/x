@@ -6,10 +6,8 @@ require (
 	github.com/charmbracelet/x/ansi v0.4.5
 	github.com/charmbracelet/x/cellbuf v0.0.6-0.20241106170917-eb0997d7d743
 	github.com/charmbracelet/x/input v0.2.0
-	github.com/charmbracelet/x/termios v0.1.0
 	github.com/charmbracelet/x/vt v0.0.0-20241119170456-6066f8aa557d
 	github.com/creack/pty v1.1.24
-	golang.org/x/image v0.22.0
 )
 
 require (
@@ -24,6 +22,6 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
-	golang.org/x/sys v0.27.0
+	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
 )

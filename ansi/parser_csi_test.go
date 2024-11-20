@@ -24,7 +24,7 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[7m",
 			expected: []Sequence{
 				CsiSequence{
-					Params: []int{7},
+					Params: []Parameter{7},
 					Cmd:    'm',
 				},
 			},
@@ -34,14 +34,14 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[0mabc\x1b[1;2m",
 			expected: []Sequence{
 				CsiSequence{
-					Params: []int{0},
+					Params: []Parameter{0},
 					Cmd:    'm',
 				},
 				Rune('a'),
 				Rune('b'),
 				Rune('c'),
 				CsiSequence{
-					Params: []int{1, 2},
+					Params: []Parameter{1, 2},
 					Cmd:    'm',
 				},
 			},
@@ -51,7 +51,7 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[" + strings.Repeat("1;", 31) + "p",
 			expected: []Sequence{
 				CsiSequence{
-					Params: []int{
+					Params: []Parameter{
 						1,
 						1,
 						1,
@@ -78,7 +78,7 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[" + strings.Repeat("1;", 18) + "p",
 			expected: []Sequence{
 				CsiSequence{
-					Params: []int{
+					Params: []Parameter{
 						1,
 						1,
 						1,
@@ -105,7 +105,7 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[4;m",
 			expected: []Sequence{
 				CsiSequence{
-					Params: []int{4, parser.MissingParam},
+					Params: []Parameter{4, parser.MissingParam},
 					Cmd:    'm',
 				},
 			},
@@ -115,7 +115,7 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[;4m",
 			expected: []Sequence{
 				CsiSequence{
-					Params: []int{parser.MissingParam, 4},
+					Params: []Parameter{parser.MissingParam, 4},
 					Cmd:    'm',
 				},
 			},
@@ -125,7 +125,7 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[" + strconv.Itoa(parser.MaxParam) + "m",
 			expected: []Sequence{
 				CsiSequence{
-					Params: []int{parser.MaxParam},
+					Params: []Parameter{parser.MaxParam},
 					Cmd:    'm',
 				},
 			},
@@ -135,7 +135,7 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[3;1\x1b[?1049h",
 			expected: []Sequence{
 				CsiSequence{
-					Params: []int{1049},
+					Params: []Parameter{1049},
 					Cmd:    'h' | '?'<<parser.MarkerShift,
 				},
 			},
@@ -145,7 +145,7 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[38:2:255:0:255;1m",
 			expected: []Sequence{
 				CsiSequence{
-					Params: []int{
+					Params: []Parameter{
 						38 | parser.HasMoreFlag, 2 | parser.HasMoreFlag, 255 |
 							parser.HasMoreFlag, 0 | parser.HasMoreFlag, 255, 1,
 					},
@@ -158,7 +158,7 @@ func TestCsiSequence(t *testing.T) {
 			input: "\x1b[::::::::::::::::::::::::::::::::x\x1b",
 			expected: []Sequence{
 				CsiSequence{
-					Params: []int{
+					Params: []Parameter{
 						parser.MissingParam | parser.HasMoreFlag,
 						parser.MissingParam | parser.HasMoreFlag,
 						parser.MissingParam | parser.HasMoreFlag,
@@ -178,7 +178,6 @@ func TestCsiSequence(t *testing.T) {
 					},
 					Cmd: 'x',
 				},
-				ControlCode(0x1b),
 			},
 		},
 	}
@@ -187,7 +186,7 @@ func TestCsiSequence(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
 			parser := testParser(dispatcher)
-			parser.Parse(dispatcher.Dispatch, []byte(c.input))
+			parser.Parse([]byte(c.input))
 			assertEqual(t, len(c.expected), len(dispatcher.dispatched))
 			assertEqual(t, c.expected, dispatcher.dispatched)
 		})

@@ -5,6 +5,43 @@ import (
 	"strings"
 )
 
+// ModeSetting represents a mode setting.
+type ModeSetting byte
+
+// ModeSetting constants.
+const (
+	ModeNotRecognized ModeSetting = iota
+	ModeSet
+	ModeReset
+	ModePermanentlySet
+	ModePermanentlyReset
+)
+
+// IsNotRecognized returns true if the mode is not recognized.
+func (m ModeSetting) IsNotRecognized() bool {
+	return m == ModeNotRecognized
+}
+
+// IsSet returns true if the mode is set or permanently set.
+func (m ModeSetting) IsSet() bool {
+	return m == ModeSet || m == ModePermanentlySet
+}
+
+// IsReset returns true if the mode is reset or permanently reset.
+func (m ModeSetting) IsReset() bool {
+	return m == ModeReset || m == ModePermanentlyReset
+}
+
+// IsPermanentlySet returns true if the mode is permanently set.
+func (m ModeSetting) IsPermanentlySet() bool {
+	return m == ModePermanentlySet
+}
+
+// IsPermanentlyReset returns true if the mode is permanently reset.
+func (m ModeSetting) IsPermanentlyReset() bool {
+	return m == ModePermanentlyReset
+}
+
 // Mode represents an interface for terminal modes.
 // Modes can be set, reset, and requested.
 type Mode interface {
@@ -76,12 +113,10 @@ func setMode(reset bool, modes ...Mode) string {
 		return seq + strconv.Itoa(modes[0].Mode()) + cmd
 	}
 
-	var (
-		dec  bool
-		list []string
-	)
-	for _, m := range modes {
-		list = append(list, strconv.Itoa(m.Mode()))
+	var dec bool
+	list := make([]string, len(modes))
+	for i, m := range modes {
+		list[i] = strconv.Itoa(m.Mode())
 		switch m.(type) {
 		case DECMode:
 			dec = true
@@ -141,18 +176,19 @@ func DECRQM(m Mode) string {
 //	4: Permanent reset
 //
 // See: https://vt100.net/docs/vt510-rm/DECRPM.html
-func ReportMode(mode, value int) string {
-	if mode < 0 {
-		mode = 0
-	}
-	if value < 0 {
+func ReportMode(mode Mode, value ModeSetting) string {
+	if value > 4 {
 		value = 0
 	}
-	return "\x1b[" + strconv.Itoa(mode) + ";" + strconv.Itoa(value) + "$y"
+	switch mode.(type) {
+	case DECMode:
+		return "\x1b[?" + strconv.Itoa(mode.Mode()) + ";" + strconv.Itoa(int(value)) + "$y"
+	}
+	return "\x1b[" + strconv.Itoa(mode.Mode()) + ";" + strconv.Itoa(int(value)) + "$y"
 }
 
 // DECRPM is an alias for [ReportMode].
-func DECRPM(mode, value int) string {
+func DECRPM(mode Mode, value ModeSetting) string {
 	return ReportMode(mode, value)
 }
 
@@ -171,6 +207,75 @@ type DECMode int
 func (m DECMode) Mode() int {
 	return int(m)
 }
+
+// Keyboard Action Mode (KAM) is a mode that controls locking of the keyboard.
+// When the keyboard is locked, it cannot send data to the terminal.
+//
+// See: https://vt100.net/docs/vt510-rm/KAM.html
+const (
+	KeyboardActionMode = ANSIMode(2)
+	KAM                = KeyboardActionMode
+
+	SetKeyboardActionMode     = "\x1b[2h"
+	ResetKeyboardActionMode   = "\x1b[2l"
+	RequestKeyboardActionMode = "\x1b[2$p"
+)
+
+// Insert/Replace Mode (IRM) is a mode that determines whether characters are
+// inserted or replaced when typed.
+//
+// When enabled, characters are inserted at the cursor position pushing the
+// characters to the right. When disabled, characters replace the character at
+// the cursor position.
+//
+// See: https://vt100.net/docs/vt510-rm/IRM.html
+const (
+	InsertReplaceMode = ANSIMode(4)
+	IRM               = InsertReplaceMode
+
+	SetInsertReplaceMode     = "\x1b[4h"
+	ResetInsertReplaceMode   = "\x1b[4l"
+	RequestInsertReplaceMode = "\x1b[4$p"
+)
+
+// Send Receive Mode (SRM) or Local Echo Mode is a mode that determines whether
+// the terminal echoes characters back to the host. When enabled, the terminal
+// sends characters to the host as they are typed.
+//
+// See: https://vt100.net/docs/vt510-rm/SRM.html
+const (
+	SendReceiveMode = ANSIMode(12)
+	LocalEchoMode   = SendReceiveMode
+	SRM             = SendReceiveMode
+
+	SetSendReceiveMode     = "\x1b[12h"
+	ResetSendReceiveMode   = "\x1b[12l"
+	RequestSendReceiveMode = "\x1b[12$p"
+
+	SetLocalEchoMode     = "\x1b[12h"
+	ResetLocalEchoMode   = "\x1b[12l"
+	RequestLocalEchoMode = "\x1b[12$p"
+)
+
+// Line Feed/New Line Mode (LNM) is a mode that determines whether the terminal
+// interprets the line feed character as a new line.
+//
+// When enabled, the terminal interprets the line feed character as a new line.
+// When disabled, the terminal interprets the line feed character as a line feed.
+//
+// A new line moves the cursor to the first position of the next line.
+// A line feed moves the cursor down one line without changing the column
+// scrolling the screen if necessary.
+//
+// See: https://vt100.net/docs/vt510-rm/LNM.html
+const (
+	LineFeedNewLineMode = ANSIMode(20)
+	LNM                 = LineFeedNewLineMode
+
+	SetLineFeedNewLineMode     = "\x1b[20h"
+	ResetLineFeedNewLineMode   = "\x1b[20l"
+	RequestLineFeedNewLineMode = "\x1b[20$p"
+)
 
 // Cursor Keys Mode (DECCKM) is a mode that determines whether the cursor keys
 // send ANSI cursor sequences or application sequences.
@@ -197,23 +302,24 @@ const (
 // See: https://vt100.net/docs/vt510-rm/DECOM.html
 const (
 	OriginMode = DECMode(6)
+	DECOM      = OriginMode
 
 	SetOriginMode     = "\x1b[?6h"
 	ResetOriginMode   = "\x1b[?6l"
 	RequestOriginMode = "\x1b[?6$p"
 )
 
-// Autowrap Mode (DECAWM) is a mode that determines whether the cursor wraps
+// Auto Wrap Mode (DECAWM) is a mode that determines whether the cursor wraps
 // to the next line when it reaches the right margin.
 //
 // See: https://vt100.net/docs/vt510-rm/DECAWM.html
 const (
-	AutowrapMode = DECMode(7)
-	DECAWM       = AutowrapMode
+	AutoWrapMode = DECMode(7)
+	DECAWM       = AutoWrapMode
 
-	SetAutowrapMode     = "\x1b[?7h"
-	ResetAutowrapMode   = "\x1b[?7l"
-	RequestAutowrapMode = "\x1b[?7$p"
+	SetAutoWrapMode     = "\x1b[?7h"
+	ResetAutoWrapMode   = "\x1b[?7l"
+	RequestAutoWrapMode = "\x1b[?7$p"
 )
 
 // X10 Mouse Mode is a mode that determines whether the mouse reports on button
@@ -256,6 +362,7 @@ const (
 // Text Cursor Enable Mode (DECTCEM) is a mode that shows/hides the cursor.
 //
 // See: https://vt100.net/docs/vt510-rm/DECTCEM.html
+//
 // Deprecated: use [SetTextCursorEnableMode] and [ResetTextCursorEnableMode] instead.
 const (
 	CursorEnableMode        = DECMode(25)
@@ -277,6 +384,32 @@ const (
 	RequestNumericKeypadMode = "\x1b[?66$p"
 )
 
+// Backarrow Key Mode (DECBKM) is a mode that determines whether the backspace
+// key sends a backspace or delete character. Disabled by default.
+//
+// See: https://vt100.net/docs/vt510-rm/DECBKM.html
+const (
+	BackarrowKeyMode = DECMode(67)
+	DECBKM           = BackarrowKeyMode
+
+	SetBackarrowKeyMode     = "\x1b[?67h"
+	ResetBackarrowKeyMode   = "\x1b[?67l"
+	RequestBackarrowKeyMode = "\x1b[?67$p"
+)
+
+// Left Right Margin Mode (DECLRMM) is a mode that determines whether the left
+// and right margins can be set with [DECSLRM].
+//
+// See: https://vt100.net/docs/vt510-rm/DECLRMM.html
+const (
+	LeftRightMarginMode = DECMode(69)
+	DECLRMM             = LeftRightMarginMode
+
+	SetLeftRightMarginMode     = "\x1b[?69h"
+	ResetLeftRightMarginMode   = "\x1b[?69l"
+	RequestLeftRightMarginMode = "\x1b[?69$p"
+)
+
 // Normal Mouse Mode is a mode that determines whether the mouse reports on
 // button presses and releases. It will also report modifier keys, wheel
 // events, and extra buttons.
@@ -296,6 +429,7 @@ const (
 // button press and release.
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+//
 // Deprecated: use [NormalMouseMode] instead.
 const (
 	MouseMode = DECMode(1000)
@@ -328,6 +462,7 @@ const (
 // button presses, releases, and highlighted cells.
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+//
 // Deprecated: use [HighlightMouseMode] instead.
 const (
 	MouseHiliteMode = DECMode(1001)
@@ -353,6 +488,7 @@ const (
 // reports on button press, release, and motion events.
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+//
 // Deprecated: use [ButtonEventMouseMode] instead.
 const (
 	MouseCellMotionMode = DECMode(1002)
@@ -378,6 +514,7 @@ const (
 // button press, release, motion, and highlight events.
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+//
 // Deprecated: use [AnyEventMouseMode] instead.
 const (
 	MouseAllMotionMode = DECMode(1003)
@@ -414,7 +551,7 @@ const (
 	RequestReportFocus = "\x1b[?1004$p"
 )
 
-// Mouse SGR Extended Mode is a mode that changes the mouse tracking encoding
+// SGR Extended Mouse Mode is a mode that changes the mouse tracking encoding
 // to use SGR parameters.
 //
 // The terminal responds with the following encoding:
@@ -425,36 +562,111 @@ const (
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
 const (
-	MouseSgrExtMode = DECMode(1006)
+	SgrExtMouseMode = DECMode(1006)
 
 	SetSgrExtMouseMode     = "\x1b[?1006h"
 	ResetSgrExtMouseMode   = "\x1b[?1006l"
 	RequestSgrExtMouseMode = "\x1b[?1006$p"
 )
 
-// Deprecated: use [SetSgrExtMouseMode], [ResetSgrExtMouseMode], and
-// [RequestSgrExtMouseMode] instead.
+// Deprecated: use [SgrExtMouseMode] [SetSgrExtMouseMode],
+// [ResetSgrExtMouseMode], and [RequestSgrExtMouseMode] instead.
 const (
+	MouseSgrExtMode    = DECMode(1006)
 	EnableMouseSgrExt  = "\x1b[?1006h"
 	DisableMouseSgrExt = "\x1b[?1006l"
 	RequestMouseSgrExt = "\x1b[?1006$p"
+)
+
+// UTF-8 Extended Mouse Mode is a mode that changes the mouse tracking encoding
+// to use UTF-8 parameters.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+const (
+	Utf8ExtMouseMode = DECMode(1005)
+
+	SetUtf8ExtMouseMode     = "\x1b[?1005h"
+	ResetUtf8ExtMouseMode   = "\x1b[?1005l"
+	RequestUtf8ExtMouseMode = "\x1b[?1005$p"
+)
+
+// URXVT Extended Mouse Mode is a mode that changes the mouse tracking encoding
+// to use an alternate encoding.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+const (
+	UrxvtExtMouseMode = DECMode(1015)
+
+	SetUrxvtExtMouseMode     = "\x1b[?1015h"
+	ResetUrxvtExtMouseMode   = "\x1b[?1015l"
+	RequestUrxvtExtMouseMode = "\x1b[?1015$p"
+)
+
+// SGR Pixel Extended Mouse Mode is a mode that changes the mouse tracking
+// encoding to use SGR parameters with pixel coordinates.
+//
+// This is similar to [SgrExtMouseMode], but also reports pixel coordinates.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+const (
+	SgrPixelExtMouseMode = DECMode(1016)
+
+	SetSgrPixelExtMouseMode     = "\x1b[?1016h"
+	ResetSgrPixelExtMouseMode   = "\x1b[?1016l"
+	RequestSgrPixelExtMouseMode = "\x1b[?1016$p"
+)
+
+// Alternate Screen Mode is a mode that determines whether the alternate screen
+// buffer is active. When this mode is enabled, the alternate screen buffer is
+// cleared.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+const (
+	AltScreenMode = DECMode(1047)
+
+	SetAltScreenMode     = "\x1b[?1047h"
+	ResetAltScreenMode   = "\x1b[?1047l"
+	RequestAltScreenMode = "\x1b[?1047$p"
+)
+
+// Save Cursor Mode is a mode that saves the cursor position.
+// This is equivalent to [SaveCursor] and [RestoreCursor].
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+const (
+	SaveCursorMode = DECMode(1048)
+
+	SetSaveCursorMode     = "\x1b[?1048h"
+	ResetSaveCursorMode   = "\x1b[?1048l"
+	RequestSaveCursorMode = "\x1b[?1048$p"
+)
+
+// Alternate Screen Save Cursor Mode is a mode that saves the cursor position as in
+// [SaveCursorMode], switches to the alternate screen buffer as in [AltScreenMode],
+// and clears the screen on switch.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+const (
+	AltScreenSaveCursorMode = DECMode(1049)
+
+	SetAltScreenSaveCursorMode     = "\x1b[?1049h"
+	ResetAltScreenSaveCursorMode   = "\x1b[?1049l"
+	RequestAltScreenSaveCursorMode = "\x1b[?1049$p"
 )
 
 // Alternate Screen Buffer is a mode that determines whether the alternate screen
 // buffer is active.
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+//
+// Deprecated: use [AltScreenSaveCursorMode] instead.
 const (
 	AltScreenBufferMode = DECMode(1049)
 
 	SetAltScreenBufferMode     = "\x1b[?1049h"
 	ResetAltScreenBufferMode   = "\x1b[?1049l"
 	RequestAltScreenBufferMode = "\x1b[?1049$p"
-)
 
-// Deprecated: use [SetAltScreenBufferMode], [ResetAltScreenBufferMode], and
-// [RequestAltScreenBufferMode] instead.
-const (
 	EnableAltScreenBuffer  = "\x1b[?1049h"
 	DisableAltScreenBuffer = "\x1b[?1049l"
 	RequestAltScreenBuffer = "\x1b[?1049$p"

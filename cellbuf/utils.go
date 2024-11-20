@@ -12,22 +12,22 @@ func Height(s string) int {
 	return strings.Count(s, "\n") + 1
 }
 
-func readColor(idxp *int, params []int) (c ansi.Color) {
+func readColor(idxp *int, params []ansi.Parameter) (c ansi.Color) {
 	i := *idxp
 	paramsLen := len(params)
 	if i > paramsLen-1 {
 		return
 	}
 	// Note: we accept both main and subparams here
-	switch param := ansi.Param(params[i+1]); param {
+	switch params[i+1].Param(0) {
 	case 2: // RGB
 		if i > paramsLen-4 {
 			return
 		}
 		c = color.RGBA{
-			R: uint8(ansi.Param(params[i+2])), //nolint:gosec
-			G: uint8(ansi.Param(params[i+3])), //nolint:gosec
-			B: uint8(ansi.Param(params[i+4])), //nolint:gosec
+			R: uint8(params[i+2].Param(0)), //nolint:gosec
+			G: uint8(params[i+3].Param(0)), //nolint:gosec
+			B: uint8(params[i+4].Param(0)), //nolint:gosec
 			A: 0xff,
 		}
 		*idxp += 4
@@ -35,7 +35,7 @@ func readColor(idxp *int, params []int) (c ansi.Color) {
 		if i > paramsLen-2 {
 			return
 		}
-		c = ansi.ExtendedColor(ansi.Param(params[i+2])) //nolint:gosec
+		c = ansi.ExtendedColor(params[i+2].Param(0)) //nolint:gosec
 		*idxp += 2
 	}
 	return

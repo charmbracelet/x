@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/x/cellbuf"
 	"github.com/charmbracelet/x/input"
 	"github.com/charmbracelet/x/term"
+	"github.com/charmbracelet/x/vt"
 )
 
 func main() {
@@ -32,19 +33,18 @@ func main() {
 	os.Stdout.WriteString(ansi.EnableAltScreenBuffer + ansi.EnableMouseCellMotion + ansi.EnableMouseSgrExt)
 	defer os.Stdout.WriteString(ansi.DisableMouseSgrExt + ansi.DisableMouseCellMotion + ansi.DisableAltScreenBuffer)
 
-	var buf cellbuf.Buffer
 	var style cellbuf.Style
+	buf := vt.NewBuffer(w, h)
 	style.Reverse(true)
 	x, y := (w/2)-8, h/2
-	buf.Resize(w, h)
 
-	reset(&buf, x, y)
+	reset(buf, x, y)
 
 	if runtime.GOOS != "windows" {
 		// Listen for resize events
 		go listenForResize(func() {
-			updateWinsize(&buf)
-			reset(&buf, x, y)
+			updateWinsize(buf)
+			reset(buf, x, y)
 		})
 	}
 
@@ -57,7 +57,7 @@ func main() {
 		for _, ev := range evs {
 			switch ev := ev.(type) {
 			case input.WindowSizeEvent:
-				updateWinsize(&buf)
+				updateWinsize(buf)
 			case input.MouseClickEvent:
 				x, y = ev.X, ev.Y
 			case input.KeyPressEvent:
@@ -76,17 +76,18 @@ func main() {
 			}
 		}
 
-		reset(&buf, x, y)
+		reset(buf, x, y)
 	}
 }
 
-func reset(buf *cellbuf.Buffer, x, y int) {
-	buf.Fill(cellbuf.Cell{Content: "你", Width: 2}, nil)
-	buf.Paint(0, "\x1b[7m !Hello, world! \x1b[m", &cellbuf.Rectangle{X: x, Y: y, Width: 16, Height: 1})
-	os.Stdout.WriteString(ansi.SetCursorPosition(1, 1) + buf.Render())
+func reset(buf cellbuf.Buffer, x, y int) {
+	cellbuf.Fill(buf, vt.NewCell('你'))
+	rect := cellbuf.Rect(x, y, 16, 1)
+	cellbuf.Paint(buf, cellbuf.WcWidth, "\x1b[7m !Hello, world! \x1b[m", &rect)
+	os.Stdout.WriteString(ansi.SetCursorPosition(1, 1) + cellbuf.Render(buf))
 }
 
-func updateWinsize(buf *cellbuf.Buffer) (w, h int) {
+func updateWinsize(buf cellbuf.Resizable) (w, h int) {
 	w, h, _ = term.GetSize(os.Stdout.Fd())
 	buf.Resize(w, h)
 	return

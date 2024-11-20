@@ -113,15 +113,25 @@ func TestOscSequence(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:  "just command",
+			input: "\x1b]112\x07",
+			expected: []Sequence{
+				OscSequence{
+					Data: []byte("112"),
+					Cmd:  112,
+				},
+			},
+		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			dispatcher := &testDispatcher{}
 			parser := testParser(dispatcher)
-			parser.Data = make([]byte, maxBufferSize)
-			parser.DataLen = maxBufferSize
-			parser.Parse(dispatcher.Dispatch, []byte(c.input))
+			parser.data = make([]byte, maxBufferSize)
+			parser.dataLen = maxBufferSize
+			parser.Parse([]byte(c.input))
 			assertEqual(t, len(c.expected), len(dispatcher.dispatched))
 			assertEqual(t, c.expected, dispatcher.dispatched)
 		})

@@ -24,8 +24,8 @@ const (
 	DECRC         = RestoreCursor
 )
 
-// CursorPositionReport (CPR) is an escape sequence that requests the current
-// cursor position.
+// RequestCursorPosition is an escape sequence that requests the current cursor
+// position.
 //
 //	CSI 6 n
 //
@@ -36,12 +36,9 @@ const (
 //
 // Where Pl is the line number and Pc is the column number.
 // See: https://vt100.net/docs/vt510-rm/CPR.html
-const (
-	CursorPositionReport = "\x1b[6n"
-	CPR                  = CursorPositionReport
-)
+const RequestCursorPosition = "\x1b[6n"
 
-// ExtendedCursorPosition (DECXCPR) is a sequence for requesting the
+// RequestExtendedCursorPosition (DECXCPR) is a sequence for requesting the
 // cursor position report including the current page number.
 //
 //	CSI ? 6 n
@@ -54,10 +51,7 @@ const (
 // Where Pl is the line number, Pc is the column number, and Pp is the page
 // number.
 // See: https://vt100.net/docs/vt510-rm/DECXCPR.html
-const (
-	ExtendedCursorPosition = "\x1b[?6n"
-	DECXCPR                = ExtendedCursorPosition
-)
+const RequestExtendedCursorPosition = "\x1b[?6n"
 
 // CursorUp (CUU) returns a sequence for moving the cursor up n cells.
 //
@@ -568,3 +562,58 @@ func DECSCUSR(style int) string {
 func SetPointerShape(shape string) string {
 	return "\x1b]22;" + shape + "\x07"
 }
+
+// ReverseIndex (RI) is an escape sequence for moving the cursor up one line in
+// the same column. If the cursor is at the top margin, the screen scrolls
+// down.
+//
+// This has the same effect as [RI].
+const ReverseIndex = "\x1bM"
+
+// HorizontalPositionAbsolute (HPA) returns a sequence for moving the cursor to
+// the given column. This has the same effect as [CUP].
+//
+// Default is 1.
+//
+//	CSI n `
+//
+// See: https://vt100.net/docs/vt510-rm/HPA.html
+func HorizontalPositionAbsolute(col int) string {
+	var s string
+	if col > 0 {
+		s = strconv.Itoa(col)
+	}
+	return "\x1b[" + s + "`"
+}
+
+// HPA is an alias for [HorizontalPositionAbsolute].
+func HPA(col int) string {
+	return HorizontalPositionAbsolute(col)
+}
+
+// HorizontalPositionRelative (HPR) returns a sequence for moving the cursor
+// right n columns relative to the current position. This has the same effect
+// as [CUP].
+//
+// Default is 1.
+//
+//	CSI n a
+//
+// See: https://vt100.net/docs/vt510-rm/HPR.html
+func HorizontalPositionRelative(n int) string {
+	var s string
+	if n > 0 {
+		s = strconv.Itoa(n)
+	}
+	return "\x1b[" + s + "a"
+}
+
+// HPR is an alias for [HorizontalPositionRelative].
+func HPR(n int) string {
+	return HorizontalPositionRelative(n)
+}
+
+// Index (IND) is an escape sequence for moving the cursor down one line in the
+// same column. If the cursor is at the bottom margin, the screen scrolls up.
+// This has the same effect as [IND].
+const Index = "\x1bD"

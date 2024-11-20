@@ -1,18 +1,25 @@
 package cellbuf
 
-// Buffer is a 2D grid of cells representing a screen or terminal.
-type Buffer struct {
+// NewBuffer returns a new buffer with the given width and height.
+func NewBuffer(width, height int) *buffer {
+	var buf buffer
+	buf.Resize(width, height)
+	return &buf
+}
+
+// buffer is a 2D grid of cells representing a screen or terminal.
+type buffer struct {
 	cells []Cell
 	width int
 }
 
 // Width returns the width of the buffer.
-func (b *Buffer) Width() int {
+func (b *buffer) Width() int {
 	return b.width
 }
 
 // Height returns the height of the buffer.
-func (b *Buffer) Height() int {
+func (b *buffer) Height() int {
 	if b.width == 0 {
 		return 0
 	}
@@ -20,23 +27,28 @@ func (b *Buffer) Height() int {
 }
 
 // Cell returns the cell at the given x, y position.
-func (b *Buffer) Cell(x, y int) (Cell, bool) {
+func (b *buffer) Cell(x, y int) *Cell {
 	if b.width == 0 {
-		return Cell{}, false
+		return nil
 	}
 	height := len(b.cells) / b.width
 	if x < 0 || x >= b.width || y < 0 || y >= height {
-		return Cell{}, false
+		return nil
 	}
 	idx := y*b.width + x
 	if idx < 0 || idx >= len(b.cells) {
-		return Cell{}, false
+		return nil
 	}
-	return b.cells[idx], true
+	return &b.cells[idx]
 }
 
 // Draw sets the cell at the given x, y position.
-func (b *Buffer) Draw(x, y int, c Cell) (v bool) {
+func (b *buffer) Draw(x, y int, c Cell) (v bool) {
+	return b.SetCell(x, y, &c)
+}
+
+// SetCell sets the cell at the given x, y position.
+func (b *buffer) SetCell(x, y int, c *Cell) (v bool) {
 	if b.width == 0 {
 		return
 	}
@@ -63,7 +75,7 @@ func (b *Buffer) Draw(x, y int, c Cell) (v bool) {
 		}
 	} else if prev.Width == 0 {
 		// Writing to wide cell placeholders
-		for j := 1; j < 4; j++ {
+		for j := 1; j < 4 && idx-j >= 0; j++ {
 			wide := b.cells[idx-j]
 			if wide.Width > 1 {
 				for k := 0; k < wide.Width; k++ {
@@ -77,13 +89,28 @@ func (b *Buffer) Draw(x, y int, c Cell) (v bool) {
 		}
 	}
 
-	b.cells[idx] = c
+	if c == nil {
+		newCell := spaceCell
+		c = &newCell
+	}
 
-	// Mark wide cells with emptyCell zero width
-	// We set the wide cell down below
-	if c.Width > 1 {
-		for j := 1; j < c.Width && idx+j < len(b.cells); j++ {
-			b.cells[idx+j] = emptyCell
+	if c != nil && x+c.Width > b.width {
+		// If the cell is too wide, we write blanks with the same style.
+		newCell := *c
+		newCell.Content = " "
+		newCell.Width = 1
+		for i := 0; i < c.Width && idx+i < len(b.cells); i++ {
+			b.cells[idx+i] = newCell
+		}
+	} else {
+		b.cells[idx] = *c
+
+		// Mark wide cells with emptyCell zero width
+		// We set the wide cell down below
+		if c.Width > 1 {
+			for j := 1; j < c.Width && idx+j < len(b.cells); j++ {
+				b.cells[idx+j] = emptyCell
+			}
 		}
 	}
 
@@ -91,8 +118,8 @@ func (b *Buffer) Draw(x, y int, c Cell) (v bool) {
 }
 
 // Clone returns a deep copy of the buffer.
-func (b *Buffer) Clone() *Buffer {
-	var clone Buffer
+func (b *buffer) Clone() *buffer {
+	var clone buffer
 	clone.width = b.width
 	clone.cells = make([]Cell, len(b.cells))
 	copy(clone.cells, b.cells)
@@ -102,7 +129,7 @@ func (b *Buffer) Clone() *Buffer {
 // Resize resizes the buffer to the given width and height. It grows the buffer
 // if necessary and fills the new cells with space cells. Otherwise, it
 // truncates the buffer.
-func (b *Buffer) Resize(width, height int) {
+func (b *buffer) Resize(width, height int) {
 	b.width = width
 	if area := width * height; len(b.cells) < area {
 		ln := len(b.cells)
@@ -118,37 +145,37 @@ func (b *Buffer) Resize(width, height int) {
 }
 
 // Bounds returns the bounds of the buffer.
-func (b *Buffer) Bounds() Rectangle {
+func (b *buffer) Bounds() Rectangle {
 	return Rect(0, 0, b.Width(), b.Height())
 }
 
 // Fill fills the buffer with the given cell. If rect is not nil, it fills the
 // rectangle with the cell. Otherwise, it fills the whole buffer.
-func (b *Buffer) Fill(c Cell, rect *Rectangle) {
-	Fill(b, c, rect)
+func (b *buffer) Fill(c *Cell, rects ...Rectangle) {
+	Fill(b, c, rects...)
 }
 
 // Clear clears the buffer with space cells. If rect is not nil, it clears the
 // rectangle. Otherwise, it clears the whole buffer.
-func (b *Buffer) Clear(rect *Rectangle) {
-	Clear(b, rect)
+func (b *buffer) Clear(rects ...Rectangle) {
+	Clear(b, rects...)
 }
 
 // Paint writes the given data to the buffer. If rect is not nil, it writes the
 // data within the rectangle. Otherwise, it writes the data to the whole
 // buffer.
-func (b *Buffer) Paint(m Method, data string, rect *Rectangle) []int {
+func (b *buffer) Paint(m Method, data string, rect *Rectangle) []int {
 	return Paint(b, m, data, rect)
 }
 
 // Render returns a string representation of the buffer with ANSI escape
 // sequences.
-func (b *Buffer) Render(opts ...RenderOption) string {
+func (b *buffer) Render(opts ...RenderOption) string {
 	return Render(b, opts...)
 }
 
 // RenderLine returns a string representation of the yth line of the buffer along
 // with the width of the line.
-func (b *Buffer) RenderLine(n int, opts ...RenderOption) (w int, line string) {
+func (b *buffer) RenderLine(n int, opts ...RenderOption) (w int, line string) {
 	return RenderLine(b, n, opts...)
 }

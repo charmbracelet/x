@@ -241,7 +241,7 @@ func TestDecodeSequence(t *testing.T) {
 			name:  "unterminated CSI with escape sequence",
 			input: []byte("\x1b[1;2;3\x1bOa"),
 			expected: []expectedSequence{
-				{seq: []byte("\x1b[1;2;3"), n: 7, params: []int{1, 2}}, // params get reset and ignored when unterminated
+				{seq: []byte("\x1b[1;2;3"), n: 7, params: []int{1, 2, 3}}, // params get reset and ignored when unterminated
 				{seq: []byte("\x1bO"), n: 2, cmd: 'O'},
 				{seq: []byte{'a'}, n: 1, width: 1},
 			},
@@ -306,16 +306,18 @@ func TestDecodeSequence(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			p := NewParser(32, 1024)
+			p := NewParser(nil)
+			p.SetParamsSize(32)
+			p.SetDataSize(1024)
 
 			var state byte
 			input := tc.input
 			results := make([]expectedSequence, 0)
 			for len(input) > 0 {
 				seq, width, n, newState := DecodeSequence(input, state, p)
-				params := append([]int(nil), p.Params[:p.ParamsLen]...)
-				data := append([]byte(nil), p.Data[:p.DataLen]...)
-				results = append(results, expectedSequence{seq: seq, width: width, n: n, params: params, data: data, cmd: p.Cmd})
+				params := append([]int(nil), p.params[:p.paramsLen]...)
+				data := append([]byte(nil), p.data[:p.dataLen]...)
+				results = append(results, expectedSequence{seq: seq, width: width, n: n, params: params, data: data, cmd: p.cmd})
 				state = newState
 				input = input[n:]
 			}
@@ -339,7 +341,7 @@ func TestDecodeSequence(t *testing.T) {
 					t.Errorf("expected %q data, got %q", string(tc.expected[i].data), string(r.data))
 				}
 				if len(r.params) != len(tc.expected[i].params) {
-					t.Errorf("expected %d params, got %d", len(tc.expected[i].params), len(r.params))
+					t.Fatalf("expected %d params, got %d", len(tc.expected[i].params), len(r.params))
 				}
 				if len(tc.expected[i].params) > 0 {
 					for j, p := range r.params {
@@ -388,7 +390,9 @@ func BenchmarkDecodeSequence(b *testing.B) {
 	var state byte
 	var n int
 	input := []byte("\x1b[1;2;3màbc\x90?123;456+q\x9c\x7f ")
-	p := NewParser(32, 1024)
+	p := NewParser(nil)
+	p.SetParamsSize(32)
+	p.SetDataSize(1024)
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		in := input
@@ -400,11 +404,107 @@ func BenchmarkDecodeSequence(b *testing.B) {
 }
 
 func BenchmarkDecodeParser(b *testing.B) {
-	p := NewParser(32, 1024)
+	p := NewParser(nil)
+	p.SetParamsSize(32)
+	p.SetDataSize(1024)
 	input := []byte("\x1b[1;2;3màbc\x90?123;456+q\x9c\x7f ")
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		p.Parse(func(s Sequence) {
-		}, input)
+		p.Parse(input)
+	}
+}
+
+func TestCommand(t *testing.T) {
+	cases := []struct {
+		name     string
+		cmd      int
+		mark     int
+		inter    int
+		expected Command
+	}{
+		{
+			name:     "CUU", // Cursor Up
+			cmd:      'A',
+			expected: 'A',
+		},
+		{
+			name:     "DECAWM", // Auto Wrap Mode
+			cmd:      'h',
+			mark:     '?',
+			expected: 'h' | '?'<<parser.MarkerShift,
+		},
+		{
+			name:     "DECSCUSR", // Set Cursor Style
+			cmd:      'q',
+			inter:    ' ',
+			expected: 'q' | ' '<<parser.IntermedShift,
+		},
+		{
+			name:     "imaginary cmd with both marker and intermed",
+			cmd:      'x',
+			mark:     '>',
+			inter:    '(',
+			expected: 'x' | '>'<<parser.MarkerShift | '('<<parser.IntermedShift,
+		},
+		{
+			name:     "ignore bytes beyond the lower 8 bites",
+			cmd:      256 + 'x',
+			mark:     256 + '>',
+			inter:    256 + '(',
+			expected: 'x' | '>'<<parser.MarkerShift | '('<<parser.IntermedShift,
+		},
+		{
+			name:     "OSC11", // Set background color
+			cmd:      11,
+			expected: 11,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if cmd := Cmd(tc.mark, tc.inter, tc.cmd); cmd != tc.expected {
+				t.Errorf("expected %d, got %d", tc.expected, cmd)
+			}
+		})
+	}
+}
+
+func TestParameter(t *testing.T) {
+	cases := []struct {
+		name     string
+		param    int
+		hasMore  bool
+		expected Parameter
+	}{
+		{
+			name:     "single param",
+			param:    1,
+			expected: 1,
+		},
+		{
+			name:     "single param with hasMore",
+			param:    1,
+			hasMore:  true,
+			expected: 1 | parser.HasMoreFlag,
+		},
+		{
+			name:     "negative param",
+			param:    -1,
+			expected: parser.ParamMask,
+		},
+		{
+			name:     "negative param has more",
+			param:    -1,
+			hasMore:  true,
+			expected: -1,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if p := Param(tc.param, tc.hasMore); p != tc.expected {
+				t.Errorf("expected %d, got %d", tc.expected, p)
+			}
+		})
 	}
 }
