@@ -1,4 +1,4 @@
-module examples
+module github.com/charmbracelet/x/examples
 
 go 1.18
 
@@ -6,6 +6,10 @@ require (
 	github.com/charmbracelet/x/ansi v0.4.5
 	github.com/charmbracelet/x/cellbuf v0.0.6-0.20241106170917-eb0997d7d743
 	github.com/charmbracelet/x/input v0.2.0
+	github.com/charmbracelet/x/termios v0.1.0
+	github.com/charmbracelet/x/vt v0.0.0-20241119170456-6066f8aa557d
+	github.com/creack/pty v1.1.24
+	golang.org/x/image v0.22.0
 )
 
 require (
@@ -23,15 +27,3 @@ require (
 	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/text v0.20.0 // indirect
 )
-
-replace github.com/charmbracelet/x/term => ../term
-
-replace github.com/charmbracelet/x/input => ../input
-
-replace github.com/charmbracelet/x/vt => ../vt
-
-replace github.com/charmbracelet/x/windows => ../windows
-
-replace github.com/charmbracelet/x/exp => ../exp
-
-replace github.com/charmbracelet/colorprofile => ../../colorprofile/
