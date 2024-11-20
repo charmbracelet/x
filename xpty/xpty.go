@@ -72,8 +72,13 @@ func NewPty(width, height int, opts ...PtyOption) (Pty, error) {
 
 // WaitProcess waits for the process to exit.
 // This exists because on Windows, cmd.Wait() doesn't work with ConPty.
-func WaitProcess(ctx context.Context, c *exec.Cmd) (err error) {
-	if c.Process == nil {
+// When the OS is not windows, it'll simply fall back to cmd.Wait().
+func WaitProcess(ctx context.Context, cmd *exec.Cmd) (err error) {
+	if runtime.GOOS != "windows" {
+		return cmd.Wait()
+	}
+
+	if cmd.Process == nil {
 		return errors.New("process not started")
 	}
 
@@ -84,15 +89,15 @@ func WaitProcess(ctx context.Context, c *exec.Cmd) (err error) {
 
 	donec := make(chan result, 1)
 	go func() {
-		state, err := c.Process.Wait()
+		state, err := cmd.Process.Wait()
 		donec <- result{state, err}
 	}()
 
 	select {
 	case <-ctx.Done():
-		err = c.Process.Kill()
+		err = cmd.Process.Kill()
 	case r := <-donec:
-		c.ProcessState = r.ProcessState
+		cmd.ProcessState = r.ProcessState
 		err = r.error
 	}
 
