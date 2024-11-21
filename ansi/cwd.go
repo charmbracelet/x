@@ -14,7 +14,8 @@ import (
 //
 // See: https://wezfurlong.org/wezterm/shell-integration.html#osc-7-escape-sequence-to-set-the-working-directory
 // See: https://iterm2.com/documentation-escape-codes.html#:~:text=RemoteHost%20and%20CurrentDir%3A-,OSC%207,-%3B%20%5BPs%5D%20ST
-func NotifyWorkingDirectory(host string, path string) string {
+func NotifyWorkingDirectory(host string, paths ...string) string {
+	path := path.Join(paths...)
 	u := &url.URL{
 		Scheme: "file",
 		Host:   host,
