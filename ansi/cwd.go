@@ -2,6 +2,7 @@ package ansi
 
 import (
 	"net/url"
+	"path"
 )
 
 // NotifyWorkingDirectory returns a sequence that notifies the terminal
