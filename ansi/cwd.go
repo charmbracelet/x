@@ -7,7 +7,7 @@ import (
 // NotifyWorkingDirectory returns a sequence for notifying the program's
 // current working directory.
 //
-//	OSC 7 ; Pt ; BEL
+//	OSC 7 ; Pt BEL
 //
 // Where Pt is a URL in the format "file://[host]/[path]".
 // Set host to "localhost" if this is a path on the local computer.
