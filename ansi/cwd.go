@@ -11,7 +11,7 @@ import (
 //
 // Where Pt is a URL in the format "file://[host]/[path]".
 // Set host to "localhost" if this is a path on the local computer.
-func NotifyWorkingDirectory(host string, path string, params ...string) string {
+func NotifyWorkingDirectory(host string, path string) string {
 	u := &url.URL{
 		Scheme: "file",
 		Host:   host,
