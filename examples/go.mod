@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/examples
 go 1.18
 
 require (
-	github.com/charmbracelet/x/ansi v0.4.5
+	github.com/charmbracelet/x/ansi v0.5.0
 	github.com/charmbracelet/x/cellbuf v0.0.6-0.20241106170917-eb0997d7d743
 	github.com/charmbracelet/x/input v0.2.0
 	github.com/charmbracelet/x/vt v0.0.0-20241119170456-6066f8aa557d
