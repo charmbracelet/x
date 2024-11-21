@@ -125,7 +125,7 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 	}
 
 	for i := 0; i < len(params); i++ {
-		r := ansi.Parameter(params[i])
+		r := params[i]
 		param, hasMore := r.Param(0), r.HasMore() // Are there more subparameters i.e. separated by ":"?
 		switch param {
 		case 0: // Reset
@@ -140,18 +140,22 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 			if hasMore { // Only accept subparameters i.e. separated by ":"
 				nextParam := params[i+1].Param(0)
 				switch nextParam {
-				case 0: // No Underline
-					pen.UnderlineStyle(vt.NoUnderline)
-				case 1: // Single Underline
-					pen.UnderlineStyle(vt.SingleUnderline)
-				case 2: // Double Underline
-					pen.UnderlineStyle(vt.DoubleUnderline)
-				case 3: // Curly Underline
-					pen.UnderlineStyle(vt.CurlyUnderline)
-				case 4: // Dotted Underline
-					pen.UnderlineStyle(vt.DottedUnderline)
-				case 5: // Dashed Underline
-					pen.UnderlineStyle(vt.DashedUnderline)
+				case 0, 1, 2, 3, 4, 5:
+					i++
+					switch nextParam {
+					case 0: // No Underline
+						pen.UnderlineStyle(vt.NoUnderline)
+					case 1: // Single Underline
+						pen.UnderlineStyle(vt.SingleUnderline)
+					case 2: // Double Underline
+						pen.UnderlineStyle(vt.DoubleUnderline)
+					case 3: // Curly Underline
+						pen.UnderlineStyle(vt.CurlyUnderline)
+					case 4: // Dotted Underline
+						pen.UnderlineStyle(vt.DottedUnderline)
+					case 5: // Dashed Underline
+						pen.UnderlineStyle(vt.DashedUnderline)
+					}
 				}
 			} else {
 				// Single Underline
