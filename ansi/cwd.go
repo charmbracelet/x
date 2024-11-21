@@ -4,8 +4,8 @@ import (
 	"net/url"
 )
 
-// NotifyWorkingDirectory returns a sequence for notifying the program's
-// current working directory.
+// NotifyWorkingDirectory returns a sequence that notifies the terminal
+// of the current working directory.
 //
 //	OSC 7 ; Pt BEL
 //
