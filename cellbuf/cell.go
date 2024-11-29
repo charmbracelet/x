@@ -441,3 +441,11 @@ func (s *Style) Reset() *Style {
 func (s *Style) Empty() bool {
 	return s.Fg == nil && s.Bg == nil && s.Ul == nil && s.Attrs == ResetAttr && s.UlStyle == NoUnderline
 }
+
+// Clear returns whether the style consists of only attributes that don't
+// affect appearance of a space character.
+func (s *Style) Clear() bool {
+	return s.Fg == nil && s.Bg == nil && s.Ul == nil &&
+		s.UlStyle == NoUnderline &&
+		s.Attrs&^(BoldAttr|FaintAttr|ItalicAttr|StrikethroughAttr) == 0
+}

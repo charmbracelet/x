@@ -36,6 +36,20 @@ func (l Line) Width() int {
 	return len(l)
 }
 
+// Len returns the length of the line.
+func (l Line) Len() int {
+	return len(l)
+}
+
+// At returns the cell at the given x position.
+// If the cell does not exist, it returns nil.
+func (l Line) At(x int) *Cell {
+	if x < 0 || x >= len(l) {
+		return nil
+	}
+	return l[x]
+}
+
 // Buffer is a 2D grid of cells representing a screen or terminal.
 type Buffer struct {
 	// Lines holds the lines of the buffer.
@@ -48,6 +62,15 @@ func NewBuffer(width int, height int) *Buffer {
 	b := new(Buffer)
 	b.Resize(width, height)
 	return b
+}
+
+// Line returns a pointer to the line at the given y position.
+// If the line does not exist, it returns nil.
+func (b *Buffer) Line(y int) *Line {
+	if y < 0 || y >= len(b.Lines) {
+		return nil
+	}
+	return &b.Lines[y]
 }
 
 // Cell implements Screen.
