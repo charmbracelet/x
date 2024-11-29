@@ -98,10 +98,18 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 			if cud := ansi.CursorDown(n); len(cud) < len(yseq) {
 				yseq = cud
 			}
+			if lf := strings.Repeat("\n", n); fy+n < s.height && len(lf) < len(yseq) {
+				// TODO: Ensure we're not unintentionally scrolling the screen down.
+				yseq = lf
+			}
 		} else if ty < fy {
 			n := fy - ty
 			if cuu := ansi.CursorUp(n); len(cuu) < len(yseq) {
 				yseq = cuu
+			}
+			if n == 1 && fy+1 < s.height {
+				// TODO: Ensure we're not unintentionally scrolling the screen up.
+				yseq = ansi.ReverseIndex
 			}
 		}
 
