@@ -423,7 +423,11 @@ func (s *Screen) updatePen(w *bytes.Buffer, cell *Cell) {
 	}
 
 	if !style.Equal(s.cur.Style) {
-		w.WriteString(style.DiffSequence(s.cur.Style))
+		seq := style.DiffSequence(s.cur.Style)
+		if style.Empty() && len(seq) > len(ansi.ResetStyle) {
+			seq = ansi.ResetStyle
+		}
+		w.WriteString(seq)
 		s.cur.Style = style
 	}
 	if !link.Equal(s.cur.Link) {
@@ -553,10 +557,7 @@ func (s *Screen) clearToEnd(w *bytes.Buffer, blank *Cell, force bool) {
 	}
 
 	if force {
-		if !s.cur.Style.Empty() {
-			w.WriteString(blank.Style.DiffSequence(s.cur.Style))
-			s.cur.Style = blank.Style
-		}
+		s.updatePen(w, blank)
 
 		count := s.width - s.cur.X
 		eraseRight := ansi.EraseLineRight
@@ -572,10 +573,11 @@ func (s *Screen) clearToEnd(w *bytes.Buffer, blank *Cell, force bool) {
 
 // clearBlank returns a blank cell based on the current cursor background color.
 func (s *Screen) clearBlank() (c *Cell) {
-	if !s.cur.Style.Empty() {
+	if !s.cur.Style.Empty() || !s.cur.Link.Empty() {
 		c = new(Cell)
 		*c = BlankCell
 		c.Style = s.cur.Style
+		c.Link = s.cur.Link
 	}
 	return
 }
