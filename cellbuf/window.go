@@ -69,11 +69,11 @@ func (c clearCmd) sequence(*Screen) (seq string) {
 // 	return
 // }
 
-// isLocal returns whether the coordinates are considered local movement using
-// the defined thresholds.
+// notLocal returns whether the coordinates are not considered local movement
+// using the defined thresholds.
 // This takes the number of columns, and the coordinates of the current and
 // target positions.
-func isLocal(cols, fx, fy, tx, ty int) bool {
+func notLocal(cols, fx, fy, tx, ty int) bool {
 	// The typical distance for a [ansi.CUP] sequence. Anything less than this
 	// is considered local movement.
 	const longDist = 8 - 1
@@ -168,24 +168,26 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 
 	// Method #0: Use [ansi.CUP] if the distance is long.
 	seq = ansi.CursorPosition(x+1, y+1)
-	if isLocal(s.width, fx, fy, x, y) {
-		// Method #1: Use local movement sequences.
-		nseq := relativeCursorMove(s, fx, fy, x, y, overwrite)
-		if len(nseq) < len(seq) {
-			seq = nseq
-		}
+	if fx == -1 || fy == -1 || notLocal(s.width, fx, fy, x, y) {
+		return
+	}
 
-		// Method #2: Use [ansi.CR] and local movement sequences.
-		nseq = "\r" + relativeCursorMove(s, 0, fy, x, y, overwrite)
-		if len(nseq) < len(seq) {
-			seq = nseq
-		}
+	// Method #1: Use local movement sequences.
+	nseq := relativeCursorMove(s, fx, fy, x, y, overwrite)
+	if len(nseq) < len(seq) {
+		seq = nseq
+	}
 
-		// Method #3: Use [ansi.HomeCursorPosition] and local movement sequences.
-		nseq = ansi.HomeCursorPosition + relativeCursorMove(s, 0, 0, x, y, overwrite)
-		if len(nseq) < len(seq) {
-			seq = nseq
-		}
+	// Method #2: Use [ansi.CR] and local movement sequences.
+	nseq = "\r" + relativeCursorMove(s, 0, fy, x, y, overwrite)
+	if len(nseq) < len(seq) {
+		seq = nseq
+	}
+
+	// Method #3: Use [ansi.HomeCursorPosition] and local movement sequences.
+	nseq = ansi.HomeCursorPosition + relativeCursorMove(s, 0, 0, x, y, overwrite)
+	if len(nseq) < len(seq) {
+		seq = nseq
 	}
 
 	return
