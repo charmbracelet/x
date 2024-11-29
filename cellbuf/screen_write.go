@@ -6,14 +6,18 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/vt"
 	"github.com/charmbracelet/x/wcwidth"
 )
+
+// Drawable is an interface for objects that can be drawn to a buffer.
+type Drawable interface {
+	Draw(x, y int, c *Cell) bool
+}
 
 // setContent writes the given data to the buffer starting from the first cell.
 // It accepts both string and []byte data types.
 func setContent(
-	d Buffer,
+	d Drawable,
 	data string,
 	method Method,
 	rect Rectangle,
@@ -63,11 +67,11 @@ func setContent(
 			cell.Style = pen
 			cell.Link = link
 
-			d.SetCell(x, y, &cell) //nolint:errcheck
+			d.Draw(x, y, &cell) //nolint:errcheck
 
 			// Advance the cursor and line width
 			x += cell.Width
-			if cell.Equal(&spaceCell) {
+			if cell.Equal(&BlankCell) {
 				pendingWidth += cell.Width
 			} else if y := y - rect.Y(); y < len(linew) {
 				linew[y] += cell.Width + pendingWidth
@@ -91,7 +95,7 @@ func setContent(
 			case ansi.Equal(seq, "\n"):
 				// Reset the rest of the line
 				for x < rect.X()+rect.Width() {
-					d.SetCell(x, y, nil) //nolint:errcheck
+					d.Draw(x, y, nil) //nolint:errcheck
 					x++
 				}
 
@@ -109,7 +113,7 @@ func setContent(
 	}
 
 	for x < rect.X()+rect.Width() {
-		d.SetCell(x, y, nil) //nolint:errcheck
+		d.Draw(x, y, nil) //nolint:errcheck
 		x++
 	}
 
@@ -144,17 +148,17 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 					i++
 					switch nextParam {
 					case 0: // No Underline
-						pen.UnderlineStyle(vt.NoUnderline)
+						pen.UnderlineStyle(NoUnderline)
 					case 1: // Single Underline
-						pen.UnderlineStyle(vt.SingleUnderline)
+						pen.UnderlineStyle(SingleUnderline)
 					case 2: // Double Underline
-						pen.UnderlineStyle(vt.DoubleUnderline)
+						pen.UnderlineStyle(DoubleUnderline)
 					case 3: // Curly Underline
-						pen.UnderlineStyle(vt.CurlyUnderline)
+						pen.UnderlineStyle(CurlyUnderline)
 					case 4: // Dotted Underline
-						pen.UnderlineStyle(vt.DottedUnderline)
+						pen.UnderlineStyle(DottedUnderline)
 					case 5: // Dashed Underline
-						pen.UnderlineStyle(vt.DashedUnderline)
+						pen.UnderlineStyle(DashedUnderline)
 					}
 				}
 			} else {
