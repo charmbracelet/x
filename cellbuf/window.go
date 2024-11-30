@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 	"strings"
 	"sync"
 
@@ -349,7 +350,8 @@ type Screen struct {
 	opts          ScreenOptions
 	cur           cursor // the current cursor
 	mu            sync.Mutex
-	width, height int // the screen's width and height
+	lastChar      rune // the last character written to the screen
+	width, height int  // the screen's width and height
 }
 
 // NewScreen creates a new Screen.
@@ -390,19 +392,41 @@ func cellEqual(a, b *Cell) bool {
 	return a.Equal(b)
 }
 
+// cellContent returns the content of the cell. A nil cell is considered a
+// [BlankCell].
+func cellContent(c *Cell) string {
+	if c == nil {
+		return BlankCell.Content
+	}
+	return c.Content
+}
+
+// cellRunes returns the runes of the cell content. A nil cell is considered a
+// [BlankCell].
+func cellRunes(c *Cell) []rune {
+	if c == nil {
+		return []rune(BlankCell.Content)
+	}
+	return []rune(c.Content)
+}
+
+// cellRuneEqual returns whether the two cells first runes are equal. A nil cell
+// is considered a [BlankCell].
+func cellRuneEqual(a, b *Cell) bool {
+	if a == nil {
+		a = &BlankCell
+	}
+	if b == nil {
+		b = &BlankCell
+	}
+	return len(a.Content) > 0 && len(b.Content) > 0 && []rune(a.Content)[0] == []rune(b.Content)[0]
+}
+
 // putCell draws a cell at the current cursor position.
 func (s *Screen) putCell(w *bytes.Buffer, cell *Cell) {
-	// if cell == nil {
-	// 	cell = &BlankCell
-	// }
-	// if !cell.Style.Empty() && !cell.Style.Equal(s.cur.Style) {
-	// 	w.WriteString(cell.Style.DiffSequence(s.cur.Style))
-	// 	s.cur.Style = cell.Style
-	// }
-	// if !cell.Link.Empty() && !cell.Link.Equal(s.cur.Link) {
-	// 	w.WriteString(ansi.SetHyperlink(cell.Link.URL, cell.Link.URLID))
-	// 	s.cur.Link = cell.Link
-	// }
+	if cell != nil && cell.Width == 0 && len(cell.Content) == 0 {
+		return
+	}
 
 	s.updatePen(w, cell)
 	if cell == nil {
@@ -411,6 +435,10 @@ func (s *Screen) putCell(w *bytes.Buffer, cell *Cell) {
 
 	w.WriteString(cell.Content)
 	s.cur.X += cell.Width
+	for _, r := range cell.Content {
+		s.lastChar = r
+		break
+	}
 
 	if s.cur.X >= s.width {
 		s.cur.X = s.width - 1
@@ -452,7 +480,7 @@ func (s *Screen) updatePen(w *bytes.Buffer, cell *Cell) {
 func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 	for n > 0 {
 		var count int
-		for n > 1 && len(line) > 2 && !cellEqual(line[0], line[1]) {
+		for n > 1 && !cellEqual(line[0], line[1]) {
 			s.putCell(w, line[0])
 			line = line[1:]
 			n--
@@ -471,7 +499,8 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 
 		ech := ansi.EraseCharacter(count)
 		cup := ansi.CursorPosition(s.cur.X+count, s.cur.Y)
-		if count > len(ech)+len(cup) {
+		rep := ansi.RepeatPreviousCharacter(count)
+		if count > len(ech)+len(cup) && cell0 != nil && cell0.Clear() {
 			s.updatePen(w, cell0)
 			w.WriteString(ech)
 
@@ -481,12 +510,22 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 			} else {
 				return true // cursor in the middle
 			}
-		} else if rep := ansi.RepeatPreviousCharacter(count); count > len(rep) {
+		} else if runes := cellRunes(cell0); count > len(rep) &&
+			len(runes) == 1 {
+			// NOTE: [ansi.REP] only repeats the last rune and won't work
+			// if the last cell contains multiple runes.
+
 			wrapPossible := s.cur.X+count >= s.width
 
 			repCount := count
+			if runes[0] != s.lastChar {
+				s.putCell(w, cell0)
+				repCount--
+			}
+
 			if wrapPossible {
 				repCount--
+				rep = ansi.RepeatPreviousCharacter(repCount)
 			}
 
 			s.updatePen(w, cell0)
@@ -519,14 +558,15 @@ func (s *Screen) putRange(w *bytes.Buffer, oldLine, newLine Line, y, start, end 
 		var j, same int
 		for j, same = start, 0; j <= end; j++ {
 			oldCell, newCell := oldLine[j], newLine[j]
-			if same != 0 && oldCell != nil && oldCell.Width > 1 {
+			if same > 0 && oldCell != nil && len(oldCell.Content) == 0 && oldCell.Width == 0 {
 				continue
-			} else if same != 0 && cellEqual(oldCell, newCell) {
+			}
+			if cellEqual(oldCell, newCell) {
 				same++
 			} else {
 				if same > end-start {
 					s.emitRange(w, newLine[start:], j-same-start)
-					s.move(w, y, j)
+					s.move(w, y, start)
 					start = j
 				}
 				same = 0
@@ -641,15 +681,11 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 		s.clearToEnd(w, s.clearBlank(), false)
 		s.putRange(w, oldLine, newLine, y, 0, s.width-1)
 	} else {
-		var blankStyle Style
 		blank := newLine[0]
-		if blank != nil {
-			blankStyle = blank.Style
-		}
 
 		// It might be cheaper to clear leading spaces with [ansi.EL] 1 i.e.
 		// [ansi.EraseLineLeft].
-		if blank == nil || blankStyle.Clear() {
+		if blank == nil || blank.Clear() {
 			var oFirstCell, nFirstCell int
 			for oFirstCell = 0; oFirstCell < s.width; oFirstCell++ {
 				if !cellEqual(oldLine[oFirstCell], blank) {
@@ -687,10 +723,9 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 
 					for firstCell < nFirstCell {
 						var c *Cell
-						if !blankStyle.Empty() {
+						if blank != nil {
 							c = new(Cell)
-							*c = BlankCell
-							c.Style = blankStyle
+							*c = *blank
 						}
 
 						oldLine[firstCell] = c
@@ -710,13 +745,9 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 			return
 		}
 
-		blank = newLine.At(s.width - 1)
-		blankStyle = Style{}
-		if blank != nil {
-			blankStyle = blank.Style
-		}
+		blank = newLine[s.width-1]
+		if blank != nil && !blank.Clear() {
 
-		if !blankStyle.Clear() {
 			// Find the last differing cell
 			nLastCell = s.width - 1
 			for nLastCell > firstCell && cellEqual(newLine[nLastCell], oldLine[nLastCell]) {
@@ -770,7 +801,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 			// Find the last cells that really differ.
 			// Can be -1 if no cells differ.
 			for cellEqual(newLine[nLastCell], oldLine[oLastCell]) {
-				if !cellEqual(newLine.At(nLastCell-1), oldLine.At(oLastCell-1)) {
+				if !cellEqual(newLine[nLastCell-1], oldLine[oLastCell-1]) {
 					break
 				}
 				nLastCell--
@@ -790,7 +821,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 				m := max(nLastNonBlank, oLastNonBlank)
 				if n != 0 {
 					for n > 0 {
-						wide := newLine.At(n + 1)
+						wide := newLine[n+1]
 						if wide == nil || wide.Content != "" || wide.Width != 0 {
 							break
 						}
@@ -798,9 +829,9 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 						oLastCell--
 					}
 				} else if n >= firstCell && newLine[n] != nil && newLine[n].Width > 1 {
-					for newLine.At(n+1) != nil &&
-						newLine.At(n+1).Content == "" &&
-						newLine.At(n+1).Width == 0 {
+					for newLine[n+1] != nil &&
+						newLine[n+1].Content == "" &&
+						newLine[n+1].Width == 0 {
 						n++
 						oLastCell++
 					}
@@ -883,12 +914,7 @@ func (s *Screen) clearBottom(w *bytes.Buffer, total int) (top int) {
 		blank = nLines[total-1][last-1]
 	}
 
-	var blankStyle Style
-	if blank != nil {
-		blankStyle = blank.Style
-	}
-
-	if blank == nil || blankStyle.Clear() {
+	if blank == nil || blank.Clear() {
 		var row int
 		for row = total - 1; row >= 0; row-- {
 			var col int
@@ -991,6 +1017,7 @@ func (s *Screen) Render() {
 
 	// Write the buffer
 	if b.Len() > 0 {
+		log.Printf("Render: %q", b.String())
 		s.w.Write(b.Bytes()) //nolint:errcheck
 	}
 }

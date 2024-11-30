@@ -16,6 +16,11 @@ type Cell struct {
 	// Link is the hyperlink of the cell.
 	Link Link
 
+	// TODO: Is it worth it changing this to a single rune with combining
+	// runes? Most of the time, we're only dealing with single runes anyway.
+	// It's more efficient to use a single rune and combining runes when
+	// necessary than allocating a new string for each cell.
+
 	// Content is the string representation of the cell as a grapheme cluster.
 	Content string
 
@@ -46,6 +51,12 @@ func (c *Cell) Reset() {
 	c.Width = 0
 	c.Style.Reset()
 	c.Link.Reset()
+}
+
+// Clear returns whether the cell consists of only attributes that don't
+// affect appearance of a space character.
+func (c *Cell) Clear() bool {
+	return c.Content == " " && c.Width == 1 && c.Style.Clear() && c.Link.Empty()
 }
 
 // Link represents a hyperlink in the terminal screen.

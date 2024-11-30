@@ -3,7 +3,6 @@ package cellbuf
 import (
 	"bytes"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/wcwidth"
@@ -42,27 +41,36 @@ func setContent(
 	for len(data) > 0 {
 		seq, width, n, newState := ansi.DecodeSequence(data, state, p)
 
+		var content string
 		switch width {
-		case 2, 3, 4: // wide cells can go up to 4 cells wide
-
+		case 1, 2, 3, 4: // wide cells can go up to 4 cells wide
 			switch method {
 			case WcWidth:
-				if r, rw := utf8.DecodeRuneInString(data); r != utf8.RuneError {
-					n = rw
-					width = wcwidth.RuneWidth(r)
-					seq = string(r)
-					newState = 0
+				for i, r := range seq {
+					if i == 0 {
+						content = string(r)
+						continue
+					}
+					if wcwidth.RuneWidth(r) > 0 {
+						break
+					}
+					content += string(r)
 				}
+
+				width = wcwidth.StringWidth(content)
+				n = len(content)
+				newState = 0
+
 			case GraphemeWidth:
 				// [ansi.DecodeSequence] already handles grapheme clusters
+				content = seq
 			}
-			fallthrough
-		case 1:
+
 			if x+width >= rect.X()+rect.Width() || y >= rect.Y()+rect.Height() {
 				break
 			}
 
-			cell.Content = seq
+			cell.Content = content
 			cell.Width = width
 			cell.Style = pen
 			cell.Link = link

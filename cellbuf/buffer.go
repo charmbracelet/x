@@ -8,8 +8,13 @@ import (
 // NewCell returns a new cell. This is a convenience function that initializes a
 // new cell with the given content. The cell's width is determined by the
 // content using [wcwidth.RuneWidth].
-func NewCell(r rune) *Cell {
-	return &Cell{Content: string(r), Width: wcwidth.RuneWidth(r)}
+func NewCell(r rune, comb ...rune) *Cell {
+	content := string(append([]rune{r}, comb...))
+	width := wcwidth.StringWidth(content)
+	return &Cell{
+		Content: content,
+		Width:   width,
+	}
 }
 
 // NewGraphemeCell returns a new cell. This is a convenience function that
