@@ -4,71 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"log"
 	"strings"
 	"sync"
 
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 )
-
-type cmd interface {
-	sequence(*Window) string
-}
-
-type clearCmd int
-
-const (
-	clearBelow clearCmd = iota
-	clearAbove
-	clearScreen
-	clearRight
-	clearLeft
-	clearLine
-)
-
-func (c clearCmd) sequence(*Screen) (seq string) {
-	switch c {
-	case clearBelow, clearAbove, clearScreen:
-		seq = ansi.EraseDisplay(int(c))
-	case clearRight, clearLeft, clearLine:
-		seq = ansi.EraseLine(int(c - clearRight))
-	}
-	return
-}
-
-// type scrollUpCmd struct {
-// 	region Rectangle
-// 	n      int
-// }
-//
-// func (s scrollUpCmd) sequence(sc *Window) (seq string) {
-// 	if !s.region.Empty() {
-// 		seq += ansi.SetTopBottomMargins(s.region.Min.Y+1, s.region.Max.Y)
-// 		seq += ansi.SetCursorPosition(s.region.Min.X+1, s.region.Min.Y+1)
-// 	}
-//
-// 	seq += ansi.ScrollUp(s.n)
-//
-// 	if !s.region.Empty() {
-// 		seq += ansi.SetTopBottomMargins(1, sc.height)
-// 	}
-//
-// 	seq += ansi.SetCursorPosition(sc.cur.X+1, sc.cur.Y+1)
-// 	return
-// }
-
-// type setPenCmd struct {
-// 	Style
-// }
-//
-// func (p setPenCmd) sequence(s *Window) (seq string) {
-// 	if !p.Equal(s.cur.Style) {
-// 		seq = p.Sequence()
-// 		s.cur.Style = p.Style
-// 	}
-// 	return
-// }
 
 // notLocal returns whether the coordinates are not considered local movement
 // using the defined thresholds.
@@ -251,75 +192,6 @@ func (s *Screen) move(w *bytes.Buffer, x, y int) {
 	s.cur.X, s.cur.Y = x, y
 }
 
-// type moveCmd struct {
-// 	x, y int
-// }
-//
-// func (m moveCmd) sequence(s *Screen) string {
-// 	return move(s, m.x, m.y)
-// }
-
-func resetPen(s *Screen) (seq string) {
-	if !s.cur.Link.Empty() {
-		seq += ansi.ResetHyperlink()
-		s.cur.Link.Reset()
-	}
-	if !s.cur.Style.Empty() {
-		seq += ansi.ResetStyle
-		s.cur.Style.Reset()
-	}
-	return
-}
-
-// type posCmd struct {
-// 	x, y int
-// }
-//
-// func (p posCmd) sequence(s *Window) (seq string) {
-// 	// Did we already render this cell?
-// 	pos := Pos(p.x, p.y)
-// 	if _, ok := s.dirty[pos]; !ok {
-// 		return
-// 	}
-//
-// 	delete(s.dirty, pos)
-//
-// 	x, y := p.x, p.y
-// 	cell := s.buf.Cell(x, y)
-// 	if cell == nil {
-// 		return ""
-// 	}
-//
-// 	// Do we need to render the cell?
-// 	prev := s.bufs[1].Cell(x, y)
-// 	if prev != nil && prev.Equal(cell) {
-// 		return
-// 	}
-//
-// 	if s.cur.X != x || s.cur.Y != y {
-// 		// Do we need to reset the style and hyperlink?
-// 		if s.cur.X+cell.Width != x || s.cur.Y != y {
-// 			seq += resetPen(s)
-// 		}
-//
-// 		seq += move(s, x, y)
-// 	}
-//
-// 	if !cell.Style.Empty() && !cell.Style.Equal(s.cur.Style) {
-// 		seq += cell.Style.DiffSequence(s.cur.Style)
-// 		s.cur.Style = cell.Style
-// 	}
-// 	if !cell.Link.Empty() && !cell.Link.Equal(s.cur.Link) {
-// 		seq += ansi.SetHyperlink(cell.Link.URL, cell.Link.URLID)
-// 		s.cur.Link = cell.Link
-// 	}
-//
-// 	seq += cell.Content
-// 	s.cur.X += cell.Width
-//
-// 	return
-// }
-
 // cursor represents a terminal cursor.
 type cursor struct {
 	Style Style
@@ -362,10 +234,8 @@ func NewScreen(w io.Writer, width, height int, opts *ScreenOptions) (s *Screen) 
 		s.opts = *opts
 	}
 
-	s.cur = cursor{Position: Position{X: -1, Y: -1}}
 	s.width, s.height = width, height
-	s.curwin = s.newWindow(0, 0, width, height)
-	s.newwin = s.newWindow(0, 0, width, height)
+	s.reset()
 
 	return
 }
@@ -392,15 +262,6 @@ func cellEqual(a, b *Cell) bool {
 	return a.Equal(b)
 }
 
-// cellContent returns the content of the cell. A nil cell is considered a
-// [BlankCell].
-func cellContent(c *Cell) string {
-	if c == nil {
-		return BlankCell.Content()
-	}
-	return c.Content()
-}
-
 // cellRunes returns the runes of the cell content. A nil cell is considered a
 // [BlankCell].
 func cellRunes(c *Cell) []rune {
@@ -416,11 +277,11 @@ func (s *Screen) putCell(w *bytes.Buffer, cell *Cell) {
 		return
 	}
 
-	s.updatePen(w, cell)
 	if cell == nil {
-		cell = &BlankCell
+		cell = s.clearBlank()
 	}
 
+	s.updatePen(w, cell)
 	w.WriteString(cell.Content())
 	s.cur.X += cell.Width
 	s.lastChar = cell.Rune
@@ -433,27 +294,20 @@ func (s *Screen) putCell(w *bytes.Buffer, cell *Cell) {
 // updatePen updates the cursor pen styles.
 func (s *Screen) updatePen(w *bytes.Buffer, cell *Cell) {
 	if cell == nil {
-		cell = s.clearBlank()
+		cell = &BlankCell
 	}
 
-	style := s.cur.Style
-	link := s.cur.Link
-	if cell != nil {
-		style = cell.Style
-		link = cell.Link
-	}
-
-	if !style.Equal(s.cur.Style) {
-		seq := style.DiffSequence(s.cur.Style)
-		if style.Empty() && len(seq) > len(ansi.ResetStyle) {
+	if !cell.Style.Equal(s.cur.Style) {
+		seq := cell.Style.DiffSequence(s.cur.Style)
+		if cell.Style.Empty() && len(seq) > len(ansi.ResetStyle) {
 			seq = ansi.ResetStyle
 		}
 		w.WriteString(seq)
-		s.cur.Style = style
+		s.cur.Style = cell.Style
 	}
-	if !link.Equal(s.cur.Link) {
-		w.WriteString(ansi.SetHyperlink(link.URL, link.URLID))
-		s.cur.Link = link
+	if !cell.Link.Equal(s.cur.Link) {
+		w.WriteString(ansi.SetHyperlink(cell.Link.URL, cell.Link.URLID))
+		s.cur.Link = cell.Link
 	}
 }
 
@@ -572,7 +426,7 @@ func (s *Screen) putRange(w *bytes.Buffer, oldLine, newLine Line, y, start, end 
 }
 
 // clearToEnd clears the screen from the current cursor position to the end of
-// the screen.
+// line.
 func (s *Screen) clearToEnd(w *bytes.Buffer, blank *Cell, force bool) {
 	if s.cur.Y >= 0 {
 		for j := s.cur.X; j < s.width; j++ {
@@ -606,6 +460,7 @@ func (s *Screen) clearToEnd(w *bytes.Buffer, blank *Cell, force bool) {
 
 // clearBlank returns a blank cell based on the current cursor background color.
 func (s *Screen) clearBlank() (c *Cell) {
+	c = &BlankCell
 	if !s.cur.Style.Empty() || !s.cur.Link.Empty() {
 		c = new(Cell)
 		*c = BlankCell
@@ -956,10 +811,17 @@ func (s *Screen) clearUpdate(w *bytes.Buffer) {
 // Render implements Window.
 func (s *Screen) Render() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	var nonEmpty int
 	b := new(bytes.Buffer)
+	s.render(b)
+	// Write the buffer
+	if b.Len() > 0 {
+		s.w.Write(b.Bytes()) //nolint:errcheck
+	}
+	s.mu.Unlock()
+}
+
+func (s *Screen) render(b *bytes.Buffer) {
+	var nonEmpty int
 
 	// Force clear?
 	if s.curwin.clear || s.newwin.clear {
@@ -998,12 +860,35 @@ func (s *Screen) Render() {
 	}
 
 	s.updatePen(b, nil)
+}
+
+// Close writes the final screen update and resets the screen.
+func (s *Screen) Close() (err error) {
+	b := new(bytes.Buffer)
+	s.render(b)
+	s.updatePen(b, &BlankCell)
+	s.move(b, 0, s.height-1)
+	s.clearToEnd(b, &BlankCell, true)
+
+	// TODO: Set cursor to visible if needed.
+	// TODO: Exit alternate screen buffer if needed.
 
 	// Write the buffer
-	if b.Len() > 0 {
-		log.Printf("Render: %q", b.String())
-		s.w.Write(b.Bytes()) //nolint:errcheck
+	_, err = s.w.Write(b.Bytes())
+	if err != nil {
+		return
 	}
+
+	s.reset()
+	return
+}
+
+// reset resets the screen to its initial state.
+func (s *Screen) reset() {
+	s.lastChar = -1
+	s.cur = cursor{Position: Position{X: -1, Y: -1}}
+	s.curwin = s.newWindow(0, 0, s.width, s.height)
+	s.newwin = s.newWindow(0, 0, s.width, s.height)
 }
 
 // Resize resizes the screen.
