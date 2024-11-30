@@ -3,6 +3,7 @@ package cellbuf
 import (
 	"bytes"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/wcwidth"
@@ -41,36 +42,49 @@ func setContent(
 	for len(data) > 0 {
 		seq, width, n, newState := ansi.DecodeSequence(data, state, p)
 
-		var content string
+		var r rune
+		var comb []rune
 		switch width {
 		case 1, 2, 3, 4: // wide cells can go up to 4 cells wide
 			switch method {
 			case WcWidth:
-				for i, r := range seq {
+				for i, c := range seq {
 					if i == 0 {
-						content = string(r)
+						r = c
+						width = wcwidth.RuneWidth(r)
 						continue
 					}
-					if wcwidth.RuneWidth(r) > 0 {
+					if wcwidth.RuneWidth(c) > 0 {
 						break
 					}
-					content += string(r)
+					comb = append(comb, c)
 				}
 
-				width = wcwidth.StringWidth(content)
-				n = len(content)
+				// We're breaking the grapheme to respect wcwidth's behavior
+				// while keeping combining characters together.
+				n = utf8.RuneLen(r)
+				for _, c := range comb {
+					n += utf8.RuneLen(c)
+				}
 				newState = 0
 
 			case GraphemeWidth:
 				// [ansi.DecodeSequence] already handles grapheme clusters
-				content = seq
+				for i, c := range seq {
+					if i == 0 {
+						r = c
+					} else {
+						comb = append(comb, c)
+					}
+				}
 			}
 
 			if x+width >= rect.X()+rect.Width() || y >= rect.Y()+rect.Height() {
 				break
 			}
 
-			cell.Content = content
+			cell.Rune = r
+			cell.Comb = comb
 			cell.Width = width
 			cell.Style = pen
 			cell.Link = link

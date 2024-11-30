@@ -9,11 +9,11 @@ import (
 // new cell with the given content. The cell's width is determined by the
 // content using [wcwidth.RuneWidth].
 func NewCell(r rune, comb ...rune) *Cell {
-	content := string(append([]rune{r}, comb...))
-	width := wcwidth.StringWidth(content)
+	width := wcwidth.StringWidth(string(append([]rune{r}, comb...)))
 	return &Cell{
-		Content: content,
-		Width:   width,
+		Rune:  r,
+		Comb:  comb,
+		Width: width,
 	}
 }
 
@@ -24,9 +24,18 @@ func NewCell(r rune, comb ...rune) *Cell {
 // that form a single visual unit.
 // This will only return the first grapheme cluster in the string. If the
 // string is empty, it will return an empty cell with a width of 0.
-func NewGraphemeCell(s string) *Cell {
-	c, _, w, _ := uniseg.FirstGraphemeClusterInString(s, -1)
-	return &Cell{Content: c, Width: w}
+func NewGraphemeCell(s string) (c *Cell) {
+	c = new(Cell)
+	g, _, w, _ := uniseg.FirstGraphemeClusterInString(s, -1)
+	c.Width = w
+	for i, r := range g {
+		if i == 0 {
+			c.Rune = r
+		} else {
+			c.Comb = append(c.Comb, r)
+		}
+	}
+	return
 }
 
 // Line represents a line in the terminal.
@@ -127,10 +136,7 @@ func (b *Buffer) setCell(x, y int, c *Cell, clone bool) bool {
 	if prev != nil && prev.Width > 1 {
 		// Writing to the first wide cell
 		for j := 0; j < prev.Width && x+j < b.Lines[y].Width(); j++ {
-			newCell := *prev
-			newCell.Content = " "
-			newCell.Width = 1
-			b.Lines[y][x+j] = &newCell
+			b.Lines[y][x+j] = prev.Clone().Blank()
 		}
 	} else if prev != nil && prev.Width == 0 {
 		// Writing to wide cell placeholders
@@ -138,10 +144,7 @@ func (b *Buffer) setCell(x, y int, c *Cell, clone bool) bool {
 			wide := b.Cell(x-j, y)
 			if wide != nil && wide.Width > 1 {
 				for k := 0; k < wide.Width; k++ {
-					newCell := *wide
-					newCell.Content = " "
-					newCell.Width = 1
-					b.Lines[y][x-j+k] = &newCell
+					b.Lines[y][x-j+k] = wide.Clone().Blank()
 				}
 				break
 			}
@@ -150,17 +153,13 @@ func (b *Buffer) setCell(x, y int, c *Cell, clone bool) bool {
 
 	if clone && c != nil {
 		// Clone the cell if not nil.
-		newCell := *c
-		c = &newCell
+		c = c.Clone()
 	}
 
 	if c != nil && x+c.Width > width {
 		// If the cell is too wide, we write blanks with the same style.
 		for i := 0; i < c.Width && x+i < width; i++ {
-			newCell := *c
-			newCell.Content = " "
-			newCell.Width = 1
-			b.Lines[y][x+i] = &newCell
+			b.Lines[y][x+i] = c.Clone().Blank()
 		}
 	} else {
 		b.Lines[y][x] = c

@@ -46,11 +46,22 @@ func (opt Options) SetString(b *Buffer, x, y int, s string) (int, int) {
 	var state byte
 
 	handleCell := func(content string, width int) {
+		var r rune
+		var comb []rune
+		for i, c := range content {
+			if i == 0 {
+				r = c
+			} else {
+				comb = append(comb, c)
+			}
+		}
+
 		c := &Cell{
-			Content: content,
-			Width:   width,
-			Style:   pen,
-			Link:    link,
+			Rune:  r,
+			Comb:  comb,
+			Width: width,
+			Style: pen,
+			Link:  link,
 		}
 
 		b.SetCell(x, y, c)
@@ -65,9 +76,9 @@ func (opt Options) SetString(b *Buffer, x, y int, s string) (int, int) {
 	blankCell := func() *Cell {
 		if pen.Bg != nil {
 			return &Cell{
-				Content: " ",
-				Width:   1,
-				Style:   pen,
+				Rune:  ' ',
+				Width: 1,
+				Style: pen,
 			}
 		}
 		return nil
@@ -163,8 +174,8 @@ func (opt Options) RenderLine(b *Buffer, y int) (int, string) {
 
 // Span represents a span of cells with the same style and link.
 type Span struct {
-	// Cell is the cells in the span.
-	Cell
+	// Segment is the content of the span.
+	Segment
 	// Position is the starting position of the span.
 	Position
 }
@@ -198,7 +209,7 @@ func (opt Options) Diff(b, prev *Buffer) (diff []Span) {
 			if span == nil {
 				span = &Span{
 					Position: Pos(x, y),
-					Cell:     *cellB,
+					Segment:  cellB.Segment(),
 				}
 				continue
 			}
@@ -206,7 +217,7 @@ func (opt Options) Diff(b, prev *Buffer) (diff []Span) {
 			if span.X+span.Width == x &&
 				span.Style.Equal(cellB.Style) &&
 				span.Link == cellB.Link {
-				span.Content += cellB.Content
+				span.Content += cellB.Content()
 				span.Width += cellB.Width
 				continue
 			}
@@ -214,7 +225,7 @@ func (opt Options) Diff(b, prev *Buffer) (diff []Span) {
 			diff = append(diff, *span)
 			span = &Span{
 				Position: Pos(x, y),
-				Cell:     *cellB,
+				Segment:  cellB.Segment(),
 			}
 		}
 

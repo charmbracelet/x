@@ -9,7 +9,12 @@ import (
 
 // Segment represents a continuous segment of cells with the same style
 // attributes and hyperlink.
-type Segment = Cell
+type Segment struct {
+	Style   Style
+	Link    Link
+	Content string
+	Width   int
+}
 
 // Paint writes the given data to the canvas. If rect is not nil, it only
 // writes to the rectangle. Otherwise, it writes to the whole canvas.
@@ -67,11 +72,11 @@ func renderLine(d *Buffer, n int, opt Options) (w int, line string) {
 			// We only write the cell content if it's not empty. If it is, we
 			// append it to the pending line and width to be evaluated later.
 			if cell.Equal(&BlankCell) {
-				pendingLine += cell.Content
+				pendingLine += cell.Content()
 				pendingWidth += cell.Width
 			} else {
 				writePending()
-				buf.WriteString(cell.Content)
+				buf.WriteString(cell.Content())
 				w += cell.Width
 			}
 		}

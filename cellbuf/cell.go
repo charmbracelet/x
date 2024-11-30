@@ -5,7 +5,7 @@ import (
 )
 
 // BlankCell is a cell with a single space, width of 1, and no style or link.
-var BlankCell = Cell{Content: " ", Width: 1}
+var BlankCell = Cell{Rune: ' ', Width: 1}
 
 // Cell represents a single cell in the terminal screen.
 type Cell struct {
@@ -21,25 +21,40 @@ type Cell struct {
 	// It's more efficient to use a single rune and combining runes when
 	// necessary than allocating a new string for each cell.
 
-	// Content is the string representation of the cell as a grapheme cluster.
-	Content string
+	// Comb is the combining runes of the cell. This is nil if the cell is a
+	// single rune or if it's a zero width cell that is part of a wider cell.
+	Comb []rune
+
+	// Rune is the main rune of the cell. This is zero if the cell is part of a
+	// wider cell.
+	Rune rune
 
 	// Width is the mono-space width of the grapheme cluster.
 	Width int
+}
+
+// Content returns the content of the cell as a string.
+func (c Cell) Content() string {
+	if len(c.Comb) == 0 {
+		return string(c.Rune)
+	}
+	return string(append([]rune{c.Rune}, c.Comb...))
 }
 
 // Equal returns whether the cell is equal to the other cell.
 func (c *Cell) Equal(o *Cell) bool {
 	return o != nil &&
 		c.Width == o.Width &&
-		c.Content == o.Content &&
+		c.Rune == o.Rune &&
+		runesEqual(c.Comb, o.Comb) &&
 		c.Style.Equal(o.Style) &&
 		c.Link.Equal(o.Link)
 }
 
 // Empty returns whether the cell is empty.
 func (c Cell) Empty() bool {
-	return c.Content == "" &&
+	return c.Rune == 0 &&
+		len(c.Comb) == 0 &&
 		c.Width == 0 &&
 		c.Style.Empty() &&
 		c.Link.Empty()
@@ -47,7 +62,8 @@ func (c Cell) Empty() bool {
 
 // Reset resets the cell to the default state zero value.
 func (c *Cell) Reset() {
-	c.Content = ""
+	c.Rune = 0
+	c.Comb = nil
 	c.Width = 0
 	c.Style.Reset()
 	c.Link.Reset()
@@ -56,7 +72,32 @@ func (c *Cell) Reset() {
 // Clear returns whether the cell consists of only attributes that don't
 // affect appearance of a space character.
 func (c *Cell) Clear() bool {
-	return c.Content == " " && c.Width == 1 && c.Style.Clear() && c.Link.Empty()
+	return c.Rune == ' ' && len(c.Comb) == 0 && c.Width == 1 && c.Style.Clear() && c.Link.Empty()
+}
+
+// Clone returns a copy of the cell.
+func (c *Cell) Clone() (n *Cell) {
+	n = new(Cell)
+	*n = *c
+	return
+}
+
+// Blank makes the cell a blank cell by setting the rune to a space, comb to
+// nil, and the width to 1.
+func (c *Cell) Blank() *Cell {
+	c.Rune = ' '
+	c.Comb = nil
+	c.Width = 1
+	return c
+}
+
+// Segment returns a segment of the cell.
+func (c *Cell) Segment() Segment {
+	return Segment{
+		Content: c.Content(),
+		Style:   c.Style,
+		Link:    c.Link,
+	}
 }
 
 // Link represents a hyperlink in the terminal screen.
@@ -459,4 +500,16 @@ func (s *Style) Clear() bool {
 	return s.Fg == nil && s.Bg == nil && s.Ul == nil &&
 		s.UlStyle == NoUnderline &&
 		s.Attrs&^(BoldAttr|FaintAttr|ItalicAttr|StrikethroughAttr) == 0
+}
+
+func runesEqual(a, b []rune) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, r := range a {
+		if r != b[i] {
+			return false
+		}
+	}
+	return true
 }
