@@ -77,6 +77,7 @@ const CUU1 = "\x1b[A"
 // CursorUp1 is a sequence for moving the cursor up one cell.
 //
 // This is equivalent to CursorUp(1).
+//
 // Deprecated: use [CUU1] instead.
 const CursorUp1 = "\x1b[A"
 
@@ -104,6 +105,7 @@ const CUD1 = "\x1b[B"
 // CursorDown1 is a sequence for moving the cursor down one cell.
 //
 // This is equivalent to CursorDown(1).
+//
 // Deprecated: use [CUD1] instead.
 const CursorDown1 = "\x1b[B"
 
@@ -133,6 +135,7 @@ const CUF1 = "\x1b[C"
 //	CSI n C
 //
 // See: https://vt100.net/docs/vt510-rm/CUF.html
+//
 // Deprecated: use [CursorForward] instead.
 func CursorRight(n int) string {
 	return CursorForward(n)
@@ -141,6 +144,7 @@ func CursorRight(n int) string {
 // CursorRight1 is a sequence for moving the cursor right one cell.
 //
 // This is equivalent to CursorRight(1).
+//
 // Deprecated: use [CUF1] instead.
 const CursorRight1 = CUF1
 
@@ -170,6 +174,7 @@ const CUB1 = "\x1b[D"
 //	CSI n D
 //
 // See: https://vt100.net/docs/vt510-rm/CUB.html
+//
 // Deprecated: use [CursorBackward] instead.
 func CursorLeft(n int) string {
 	return CursorBackward(n)
@@ -178,6 +183,7 @@ func CursorLeft(n int) string {
 // CursorLeft1 is a sequence for moving the cursor left one cell.
 //
 // This is equivalent to CursorLeft(1).
+//
 // Deprecated: use [CUB1] instead.
 const CursorLeft1 = CUB1
 
@@ -278,6 +284,7 @@ const CursorHomePosition = "\x1b[H"
 //	CSI n ; m H
 //
 // See: https://vt100.net/docs/vt510-rm/CUP.html
+//
 // Deprecated: use [CursorPosition] instead.
 func SetCursorPosition(col, row int) string {
 	if row <= 0 && col <= 0 {
@@ -296,6 +303,7 @@ func SetCursorPosition(col, row int) string {
 
 // HomeCursorPosition is a sequence for moving the cursor to the upper left
 // corner of the scrolling region. This is equivalent to `SetCursorPosition(1, 1)`.
+//
 // Deprecated: use [CursorHomePosition] instead.
 const HomeCursorPosition = CursorHomePosition
 
@@ -482,6 +490,7 @@ const (
 // not saved.
 //
 // See: https://vt100.net/docs/vt510-rm/SCOSC.html
+//
 // Deprecated: use [SaveCurrentCursorPosition] instead.
 const SaveCursorPosition = "\x1b[s"
 
@@ -508,6 +517,7 @@ const (
 // cursor was saved.
 //
 // See: https://vt100.net/docs/vt510-rm/SCORC.html
+//
 // Deprecated: use [RestoreCurrentCursorPosition] instead.
 const RestoreCursorPosition = "\x1b[u"
 
