@@ -4,8 +4,14 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-// BlankCell is a cell with a single space, width of 1, and no style or link.
-var BlankCell = Cell{Rune: ' ', Width: 1}
+var (
+	// BlankCell is a cell with a single space, width of 1, and no style or link.
+	BlankCell = Cell{Rune: ' ', Width: 1}
+
+	// EmptyCell is just an empty cell used for comparisons and as a placeholder
+	// for wide cells.
+	EmptyCell = Cell{}
+)
 
 // Cell represents a single cell in the terminal screen.
 type Cell struct {

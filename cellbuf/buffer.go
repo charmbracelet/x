@@ -1,6 +1,8 @@
 package cellbuf
 
 import (
+	"strings"
+
 	"github.com/charmbracelet/x/wcwidth"
 	"github.com/rivo/uniseg"
 )
@@ -55,13 +57,102 @@ func (l Line) Len() int {
 	return len(l)
 }
 
+// String returns the string representation of the line. Any trailing spaces
+// are removed.
+func (l Line) String() (s string) {
+	for _, c := range l {
+		if c == nil {
+			s += " "
+		} else if c.Empty() {
+			continue
+		} else {
+			s += c.Content()
+		}
+	}
+	s = strings.TrimRight(s, " ")
+	return
+}
+
 // At returns the cell at the given x position.
 // If the cell does not exist, it returns nil.
 func (l Line) At(x int) *Cell {
 	if x < 0 || x >= len(l) {
 		return nil
 	}
-	return l[x]
+
+	c := l[x]
+	if c == nil {
+		newCell := BlankCell
+		return &newCell
+	}
+
+	return c
+}
+
+// Set sets the cell at the given x position. If a wide cell is given, it will
+// set the cell and the following cells to [EmptyCell]. It returns true if the
+// cell was set.
+func (l Line) Set(x int, c *Cell) bool {
+	return l.set(x, c, true)
+}
+
+func (l Line) set(x int, c *Cell, clone bool) bool {
+	width := l.Width()
+	if x < 0 || x >= width {
+		return false
+	}
+
+	// Don't allocate a new cell if the cell is a clear blank.
+	if c != nil && c.Equal(&BlankCell) {
+		c = nil
+	}
+
+	// When a wide cell is partially overwritten, we need
+	// to fill the rest of the cell with space cells to
+	// avoid rendering issues.
+	prev := l.At(x)
+	if prev != nil && prev.Width > 1 {
+		// Writing to the first wide cell
+		for j := 0; j < prev.Width && x+j < l.Width(); j++ {
+			l[x+j] = prev.Clone().Blank()
+		}
+	} else if prev != nil && prev.Width == 0 {
+		// Writing to wide cell placeholders
+		for j := 1; j < maxCellWidth && x-j >= 0; j++ {
+			wide := l.At(x - j)
+			if wide != nil && wide.Width > 1 {
+				for k := 0; k < wide.Width; k++ {
+					l[x-j+k] = wide.Clone().Blank()
+				}
+				break
+			}
+		}
+	}
+
+	if clone && c != nil {
+		// Clone the cell if not nil.
+		c = c.Clone()
+	}
+
+	if c != nil && x+c.Width > width {
+		// If the cell is too wide, we write blanks with the same style.
+		for i := 0; i < c.Width && x+i < width; i++ {
+			l[x+i] = c.Clone().Blank()
+		}
+	} else {
+		l[x] = c
+
+		// Mark wide cells with an empty cell zero width
+		// We set the wide cell down below
+		if c != nil && c.Width > 1 {
+			for j := 1; j < c.Width && x+j < l.Width(); j++ {
+				var wide Cell
+				l[x+j] = &wide
+			}
+		}
+	}
+
+	return true
 }
 
 // Buffer is a 2D grid of cells representing a screen or terminal.
@@ -80,11 +171,11 @@ func NewBuffer(width int, height int) *Buffer {
 
 // Line returns a pointer to the line at the given y position.
 // If the line does not exist, it returns nil.
-func (b *Buffer) Line(y int) *Line {
+func (b *Buffer) Line(y int) Line {
 	if y < 0 || y >= len(b.Lines) {
 		return nil
 	}
-	return &b.Lines[y]
+	return b.Lines[y]
 }
 
 // Cell implements Screen.
@@ -92,17 +183,7 @@ func (b *Buffer) Cell(x int, y int) *Cell {
 	if y < 0 || y >= len(b.Lines) {
 		return nil
 	}
-	if x < 0 || x >= b.Lines[y].Width() {
-		return nil
-	}
-
-	c := b.Lines[y][x]
-	if c == nil {
-		newCell := BlankCell
-		return &newCell
-	}
-
-	return c
+	return b.Lines[y].At(x)
 }
 
 // Draw implements Screen.
@@ -124,57 +205,7 @@ func (b *Buffer) setCell(x, y int, c *Cell, clone bool) bool {
 	if y < 0 || y >= len(b.Lines) {
 		return false
 	}
-	width := b.Lines[y].Width()
-	if x < 0 || x >= width {
-		return false
-	}
-
-	// When a wide cell is partially overwritten, we need
-	// to fill the rest of the cell with space cells to
-	// avoid rendering issues.
-	prev := b.Cell(x, y)
-	if prev != nil && prev.Width > 1 {
-		// Writing to the first wide cell
-		for j := 0; j < prev.Width && x+j < b.Lines[y].Width(); j++ {
-			b.Lines[y][x+j] = prev.Clone().Blank()
-		}
-	} else if prev != nil && prev.Width == 0 {
-		// Writing to wide cell placeholders
-		for j := 1; j < maxCellWidth && x-j >= 0; j++ {
-			wide := b.Cell(x-j, y)
-			if wide != nil && wide.Width > 1 {
-				for k := 0; k < wide.Width; k++ {
-					b.Lines[y][x-j+k] = wide.Clone().Blank()
-				}
-				break
-			}
-		}
-	}
-
-	if clone && c != nil {
-		// Clone the cell if not nil.
-		c = c.Clone()
-	}
-
-	if c != nil && x+c.Width > width {
-		// If the cell is too wide, we write blanks with the same style.
-		for i := 0; i < c.Width && x+i < width; i++ {
-			b.Lines[y][x+i] = c.Clone().Blank()
-		}
-	} else {
-		b.Lines[y][x] = c
-
-		// Mark wide cells with an empty cell zero width
-		// We set the wide cell down below
-		if c != nil && c.Width > 1 {
-			for j := 1; j < c.Width && x+j < b.Lines[y].Width(); j++ {
-				var wide Cell
-				b.Lines[y][x+j] = &wide
-			}
-		}
-	}
-
-	return true
+	return b.Lines[y].set(x, c, clone)
 }
 
 // Height implements Screen.
@@ -230,7 +261,7 @@ func (b *Buffer) FillInRect(c *Cell, rect Rectangle) {
 	}
 	for y := rect.Min.Y; y < rect.Max.Y; y++ {
 		for x := rect.Min.X; x < rect.Max.X; x += cellWidth {
-			b.setCell(x, y, c, true) //nolint:errcheck
+			b.setCell(x, y, c, false) //nolint:errcheck
 		}
 	}
 }

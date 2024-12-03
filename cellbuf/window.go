@@ -2,7 +2,6 @@ package cellbuf
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"strings"
 	"sync"
@@ -40,7 +39,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 			if cud := ansi.CursorDown(n); len(cud) < len(yseq) {
 				yseq = cud
 			}
-			if lf := strings.Repeat("\n", n); fy+n < s.height && len(lf) < len(yseq) {
+			if lf := strings.Repeat("\n", n); fy+n < s.newbuf.Height() && len(lf) < len(yseq) {
 				// TODO: Ensure we're not unintentionally scrolling the screen down.
 				yseq = lf
 			}
@@ -72,7 +71,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 			// If we have no attribute and style changes, overwrite is cheaper.
 			if overwrite && ty >= 0 {
 				for i := 0; i < n; i++ {
-					cell := s.newwin.Cell(fx+i, ty)
+					cell := s.newbuf.Cell(fx+i, ty)
 					if cell != nil {
 						i += cell.Width - 1
 						if !cell.Style.Equal(s.cur.Style) || !cell.Link.Equal(s.cur.Link) {
@@ -85,7 +84,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 
 			if overwrite && ty >= 0 {
 				for i := 0; i < n; i++ {
-					cell := s.newwin.Cell(fx+i, ty)
+					cell := s.newbuf.Cell(fx+i, ty)
 					if cell != nil {
 						xseq += cell.Content()
 						i += cell.Width - 1
@@ -118,7 +117,7 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 
 	// Method #0: Use [ansi.CUP] if the distance is long.
 	seq = ansi.CursorPosition(x+1, y+1)
-	if fx == -1 || fy == -1 || notLocal(s.width, fx, fy, x, y) {
+	if fx == -1 || fy == -1 || notLocal(s.newbuf.Width(), fx, fy, x, y) {
 		return
 	}
 
@@ -148,10 +147,11 @@ func (s *Screen) move(w *bytes.Buffer, x, y int) {
 		return
 	}
 
-	if x >= s.width {
+	width, height := s.newbuf.Width(), s.newbuf.Height()
+	if x >= width {
 		// Handle autowrap
-		y += (x / s.width)
-		x %= s.width
+		y += (x / width)
+		x %= width
 	}
 
 	// Disable styles if there's any
@@ -161,12 +161,12 @@ func (s *Screen) move(w *bytes.Buffer, x, y int) {
 		w.WriteString(ansi.ResetStyle)
 	}
 
-	if s.cur.X >= s.width {
-		l := (s.cur.X + 1) / s.width
+	if s.cur.X >= width {
+		l := (s.cur.X + 1) / width
 
 		s.cur.Y += l
-		if s.cur.Y >= s.height {
-			l -= s.cur.Y - s.height - 1
+		if s.cur.Y >= height {
+			l -= s.cur.Y - height - 1
 		}
 
 		if l > 0 {
@@ -176,11 +176,11 @@ func (s *Screen) move(w *bytes.Buffer, x, y int) {
 		}
 	}
 
-	if s.cur.Y > s.height-1 {
-		s.cur.Y = s.height - 1
+	if s.cur.Y > height-1 {
+		s.cur.Y = height - 1
 	}
-	if y > s.height-1 {
-		y = s.height - 1
+	if y > height-1 {
+		y = height - 1
 	}
 
 	w.WriteString(moveCursor(s, x, y, true)) // Overwrite cells if possible
@@ -216,38 +216,28 @@ type ScreenOptions struct {
 
 // Screen represents the terminal screen.
 type Screen struct {
-	w             io.Writer
-	curwin        *Window // the previous window
-	newwin        *Window // the current window
-	opts          ScreenOptions
-	cur           cursor // the current cursor
-	mu            sync.Mutex
-	lastChar      rune // the last character written to the screen
-	width, height int  // the screen's width and height
+	w        io.Writer
+	curbuf   *Buffer        // the current buffer
+	newbuf   *Buffer        // the new buffer
+	dirty    map[int][2]int // map of the first and last changed cells in a row
+	opts     ScreenOptions
+	cur      cursor // the current cursor
+	mu       sync.Mutex
+	lastChar rune // the last character written to the screen
+	clear    bool // whether to force clear the screen
 }
 
 // NewScreen creates a new Screen.
-func NewScreen(w io.Writer, width, height int, opts *ScreenOptions) (s *Screen) {
+func NewScreen(w io.Writer, opts *ScreenOptions) (s *Screen) {
 	s = new(Screen)
 	s.w = w
 	if opts != nil {
 		s.opts = *opts
 	}
 
-	s.width, s.height = width, height
 	s.reset()
 
 	return
-}
-
-// Bounds implements Window.
-func (s *Screen) Bounds() Rectangle {
-	return Rect(0, 0, s.width, s.height)
-}
-
-// Window returns the screen's window.
-func (s *Screen) Window() *Window {
-	return s.newwin
 }
 
 // cellEqual returns whether the two cells are equal. A nil cell is considered
@@ -273,12 +263,13 @@ func cellRunes(c *Cell) []rune {
 
 // putCell draws a cell at the current cursor position.
 func (s *Screen) putCell(w *bytes.Buffer, cell *Cell) {
-	if cell != nil && cell.Width == 0 && cell.Rune == 0 {
+	if cell != nil && cell.Empty() {
 		return
 	}
 
+	blank := s.clearBlank()
 	if cell == nil {
-		cell = s.clearBlank()
+		cell = blank
 	}
 
 	s.updatePen(w, cell)
@@ -286,8 +277,8 @@ func (s *Screen) putCell(w *bytes.Buffer, cell *Cell) {
 	s.cur.X += cell.Width
 	s.lastChar = cell.Rune
 
-	if s.cur.X >= s.width {
-		s.cur.X = s.width - 1
+	if s.cur.X >= s.newbuf.Width() {
+		s.cur.X = s.newbuf.Width() - 1
 	}
 }
 
@@ -354,7 +345,7 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 			// NOTE: [ansi.REP] only repeats the last rune and won't work
 			// if the last cell contains multiple runes.
 
-			wrapPossible := s.cur.X+count >= s.width
+			wrapPossible := s.cur.X+count >= s.newbuf.Width()
 
 			repCount := count
 			if runes[0] != s.lastChar {
@@ -396,8 +387,8 @@ func (s *Screen) putRange(w *bytes.Buffer, oldLine, newLine Line, y, start, end 
 	if (end - start + 1) > inline {
 		var j, same int
 		for j, same = start, 0; j <= end; j++ {
-			oldCell, newCell := oldLine[j], newLine[j]
-			if same > 0 && oldCell != nil && oldCell.Rune == 0 && oldCell.Width == 0 {
+			oldCell, newCell := oldLine.At(j), newLine.At(j)
+			if same > 0 && oldCell != nil && oldCell.Empty() {
 				continue
 			}
 			if cellEqual(oldCell, newCell) {
@@ -429,8 +420,8 @@ func (s *Screen) putRange(w *bytes.Buffer, oldLine, newLine Line, y, start, end 
 // line.
 func (s *Screen) clearToEnd(w *bytes.Buffer, blank *Cell, force bool) {
 	if s.cur.Y >= 0 {
-		for j := s.cur.X; j < s.width; j++ {
-			c := s.curwin.Cell(j, s.cur.Y)
+		for j := s.cur.X; j < s.curbuf.Width(); j++ {
+			c := s.curbuf.Cell(j, s.cur.Y)
 			if c != nil && !c.Equal(blank) {
 				c = blank
 				force = true
@@ -446,7 +437,7 @@ func (s *Screen) clearToEnd(w *bytes.Buffer, blank *Cell, force bool) {
 	if force {
 		s.updatePen(w, blank)
 
-		count := s.width - s.cur.X
+		count := s.newbuf.Width() - s.cur.X
 		eraseRight := ansi.EraseLineRight
 		if len(eraseRight) <= count {
 			w.WriteString(eraseRight)
@@ -485,31 +476,13 @@ func (s *Screen) insertCells(w *bytes.Buffer, line Line, count int) {
 // insert or delete characters.
 func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 	var firstCell, oLastCell, nLastCell int // first, old last, new last index
-	oldLine := s.curwin.buf.Lines[y]
-	newLine := s.newwin.buf.Lines[y]
-
-	var oline string
-	for _, c := range oldLine {
-		if c == nil {
-			oline += " "
-		} else {
-			oline += c.Content()
-		}
-	}
-
-	var nline string
-	for _, c := range newLine {
-		if c == nil {
-			nline += " "
-		} else {
-			nline += c.Content()
-		}
-	}
+	oldLine := s.curbuf.Line(y)
+	newLine := s.newbuf.Line(y)
 
 	// Find the first changed cell in the line
 	var lineChanged bool
-	for i := 0; i < s.width; i++ {
-		if !cellEqual(newLine[i], oldLine[i]) {
+	for i := 0; i < s.newbuf.Width(); i++ {
+		if !cellEqual(newLine.At(i), oldLine.At(i)) {
 			lineChanged = true
 			break
 		}
@@ -519,21 +492,21 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 	if ceolStandoutGlitch && lineChanged {
 		s.move(w, 0, y)
 		s.clearToEnd(w, s.clearBlank(), false)
-		s.putRange(w, oldLine, newLine, y, 0, s.width-1)
+		s.putRange(w, oldLine, newLine, y, 0, s.newbuf.Width()-1)
 	} else {
-		blank := newLine[0]
+		blank := newLine.At(0)
 
 		// It might be cheaper to clear leading spaces with [ansi.EL] 1 i.e.
 		// [ansi.EraseLineLeft].
 		if blank == nil || blank.Clear() {
 			var oFirstCell, nFirstCell int
-			for oFirstCell = 0; oFirstCell < s.width; oFirstCell++ {
-				if !cellEqual(oldLine[oFirstCell], blank) {
+			for oFirstCell = 0; oFirstCell < s.curbuf.Width(); oFirstCell++ {
+				if !cellEqual(oldLine.At(oFirstCell), blank) {
 					break
 				}
 			}
-			for nFirstCell = 0; nFirstCell < s.width; nFirstCell++ {
-				if !cellEqual(newLine[nFirstCell], blank) {
+			for nFirstCell = 0; nFirstCell < s.newbuf.Width(); nFirstCell++ {
+				if !cellEqual(newLine.At(nFirstCell), blank) {
 					break
 				}
 			}
@@ -542,8 +515,8 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 				firstCell = nFirstCell
 
 				// Find the first differing cell
-				for firstCell < s.width &&
-					cellEqual(oldLine[firstCell], newLine[firstCell]) {
+				for firstCell < s.newbuf.Width() &&
+					cellEqual(oldLine.At(firstCell), newLine.At(firstCell)) {
 					firstCell++
 				}
 			} else if oFirstCell > nFirstCell {
@@ -551,7 +524,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 			} else {
 				firstCell = oFirstCell
 				if el1 := ansi.EraseLineLeft; len(el1) < nFirstCell-oFirstCell {
-					if nFirstCell >= s.width {
+					if nFirstCell >= s.newbuf.Width() {
 						s.move(w, 0, y)
 						s.updatePen(w, blank)
 						w.WriteString(ansi.EraseLineRight)
@@ -562,34 +535,28 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 					}
 
 					for firstCell < nFirstCell {
-						var c *Cell
-						if blank != nil {
-							c = new(Cell)
-							*c = *blank
-						}
-
-						oldLine[firstCell] = c
+						oldLine.Set(firstCell, blank)
 						firstCell++
 					}
 				}
 			}
 		} else {
 			// Find the first differing cell
-			for firstCell < s.width && cellEqual(newLine[firstCell], oldLine[firstCell]) {
+			for firstCell < s.newbuf.Width() && cellEqual(newLine.At(firstCell), oldLine.At(firstCell)) {
 				firstCell++
 			}
 		}
 
 		// If we didn't find one, we're done
-		if firstCell >= s.width {
+		if firstCell >= s.newbuf.Width() {
 			return
 		}
 
-		blank = newLine[s.width-1]
+		blank = newLine[s.newbuf.Width()-1]
 		if blank != nil && !blank.Clear() {
 			// Find the last differing cell
-			nLastCell = s.width - 1
-			for nLastCell > firstCell && cellEqual(newLine[nLastCell], oldLine[nLastCell]) {
+			nLastCell = s.newbuf.Width() - 1
+			for nLastCell > firstCell && cellEqual(newLine.At(nLastCell), oldLine.At(nLastCell)) {
 				nLastCell--
 			}
 
@@ -603,26 +570,26 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 		}
 
 		// Find last non-blank cell in the old line.
-		oLastCell = s.width - 1
-		for oLastCell > firstCell && cellEqual(oldLine[oLastCell], blank) {
+		oLastCell = s.curbuf.Width() - 1
+		for oLastCell > firstCell && cellEqual(oldLine.At(oLastCell), blank) {
 			oLastCell--
 		}
 
 		// Find last non-blank cell in the new line.
-		nLastCell = s.width - 1
-		for nLastCell > firstCell && cellEqual(newLine[nLastCell], blank) {
+		nLastCell = s.newbuf.Width() - 1
+		for nLastCell > firstCell && cellEqual(newLine.At(nLastCell), blank) {
 			nLastCell--
 		}
 
 		el0 := ansi.EraseLineRight
 		if nLastCell == firstCell && len(el0) < oLastCell-nLastCell {
 			s.move(w, firstCell, y)
-			if !cellEqual(newLine[firstCell], blank) {
-				s.putCell(w, newLine[firstCell])
+			if !cellEqual(newLine.At(firstCell), blank) {
+				s.putCell(w, newLine.At(firstCell))
 			}
 			s.clearToEnd(w, blank, false)
 		} else if nLastCell != oLastCell &&
-			!cellEqual(newLine[nLastCell], oldLine[oLastCell]) {
+			!cellEqual(newLine.At(nLastCell), oldLine.At(oLastCell)) {
 			s.move(w, firstCell, y)
 			if oLastCell-nLastCell > len(el0) {
 				if s.putRange(w, oldLine, newLine, y, firstCell, nLastCell) {
@@ -639,8 +606,8 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 
 			// Find the last cells that really differ.
 			// Can be -1 if no cells differ.
-			for cellEqual(newLine[nLastCell], oldLine[oLastCell]) {
-				if !cellEqual(newLine[nLastCell-1], oldLine[oLastCell-1]) {
+			for cellEqual(newLine.At(nLastCell), oldLine.At(oLastCell)) {
+				if !cellEqual(newLine.At(nLastCell-1), oldLine.At(oLastCell-1)) {
 					break
 				}
 				nLastCell--
@@ -660,17 +627,16 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 				m := max(nLastNonBlank, oLastNonBlank)
 				if n != 0 {
 					for n > 0 {
-						wide := newLine[n+1]
+						wide := newLine.At(n + 1)
 						if wide == nil || wide.Rune != 0 || wide.Width != 0 {
 							break
 						}
 						n--
 						oLastCell--
 					}
-				} else if n >= firstCell && newLine[n] != nil && newLine[n].Width > 1 {
-					for newLine[n+1] != nil &&
-						newLine[n+1].Rune == 0 &&
-						newLine[n+1].Width == 0 {
+				} else if n >= firstCell && newLine.At(n) != nil && newLine.At(n).Width > 1 {
+					next := newLine.At(n + 1)
+					for next != nil && next.Empty() {
 						n++
 						oLastCell++
 					}
@@ -703,7 +669,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 	}
 
 	// Update the old line with the new line
-	if s.width > firstCell {
+	if s.newbuf.Width() > firstCell {
 		copy(oldLine[firstCell:], newLine[firstCell:])
 	}
 }
@@ -721,17 +687,8 @@ func (s *Screen) clearToBottom(w *bytes.Buffer, blank *Cell) {
 
 	s.updatePen(w, blank)
 	w.WriteString(ansi.EraseScreenBelow)
-
-	for col < s.width {
-		s.curwin.buf.Lines[row][col] = blank
-		col++
-	}
-
-	for row = row + 1; row < s.height; row++ {
-		for col = 0; col < s.width; col++ {
-			s.curwin.buf.Lines[row][col] = blank
-		}
-	}
+	s.curbuf.ClearInRect(Rect(col, row, s.curbuf.Width(), row+1))
+	s.curbuf.ClearInRect(Rect(0, row+1, s.curbuf.Width(), s.curbuf.Height()))
 }
 
 // clearBottom tests if clearing the end of the screen would satisfy part of
@@ -744,29 +701,24 @@ func (s *Screen) clearBottom(w *bytes.Buffer, total int) (top int) {
 		return
 	}
 
-	last := min(s.width, s.newwin.width)
+	last := min(s.curbuf.Width(), s.newbuf.Width())
+	blank := s.newbuf.Cell(last-1, total-1)
+	canClearWithBlank := blank == nil || blank.Clear()
 
-	var blank *Cell
-	nLines := s.newwin.buf.Lines
-	oLines := s.curwin.buf.Lines
-	if total-1 >= 0 && total-1 < len(nLines) && last-1 >= 0 && last-1 < len(nLines[total-1]) {
-		blank = nLines[total-1][last-1]
-	}
-
-	if blank == nil || blank.Clear() {
+	if canClearWithBlank {
 		var row int
 		for row = total - 1; row >= 0; row-- {
 			var col int
 			var ok bool
 			for col, ok = 0, true; ok && col < last; col++ {
-				ok = cellEqual(nLines[row][col], blank)
+				ok = cellEqual(s.newbuf.Cell(col, row), blank)
 			}
 			if !ok {
 				break
 			}
 
 			for col = 0; ok && col < last; col++ {
-				ok = cellEqual(oLines[row][col], blank)
+				ok = cellEqual(s.curbuf.Cell(col, row), blank)
 			}
 			if !ok {
 				top = row
@@ -790,9 +742,9 @@ func (s *Screen) clearScreen(w *bytes.Buffer, blank *Cell) {
 	w.WriteString(ansi.EraseEntireScreen)
 	s.cur.X, s.cur.Y = 0, 0
 
-	for i := 0; i < s.height; i++ {
-		for j := 0; j < s.width; j++ {
-			s.curwin.buf.Lines[i][j] = blank
+	for i := 0; i < s.curbuf.Height(); i++ {
+		for j := 0; j < s.curbuf.Width(); j++ {
+			s.curbuf.Lines[i][j] = blank
 		}
 	}
 }
@@ -800,7 +752,7 @@ func (s *Screen) clearScreen(w *bytes.Buffer, blank *Cell) {
 // clearUpdate forces a screen redraw.
 func (s *Screen) clearUpdate(w *bytes.Buffer) {
 	blank := s.clearBlank()
-	nonEmpty := min(s.height, s.newwin.height)
+	nonEmpty := min(s.curbuf.Height(), s.newbuf.Height())
 	s.clearScreen(w, blank)
 	nonEmpty = s.clearBottom(w, nonEmpty)
 	for i := 0; i < nonEmpty; i++ {
@@ -824,39 +776,35 @@ func (s *Screen) render(b *bytes.Buffer) {
 	var nonEmpty int
 
 	// Force clear?
-	if s.curwin.clear || s.newwin.clear {
+	if s.clear {
 		s.clearUpdate(b)
-		s.curwin.clear = false
-		s.newwin.clear = false
+		s.clear = false
 	} else {
 		var changedLines int
 		var i int
-		nonEmpty = min(s.height, s.newwin.height)
+		nonEmpty = min(s.curbuf.Height(), s.newbuf.Height())
 		nonEmpty = s.clearBottom(b, nonEmpty)
 		for i = 0; i < nonEmpty; i++ {
-			_, nok := s.newwin.dirty[i]
-			_, ook := s.curwin.dirty[i]
-			if nok || ook {
+			_, dirty := s.dirty[i]
+			if dirty {
 				s.transformLine(b, i)
 				changedLines++
 			}
 		}
 
 		// Mark changed lines
-		if i <= s.newwin.height {
-			delete(s.newwin.dirty, i)
-		}
-		if i <= s.curwin.height {
-			delete(s.curwin.dirty, i)
+		if i <= s.newbuf.Height() {
+			delete(s.dirty, i)
 		}
 	}
 
 	// Sync windows and screen
-	for i := nonEmpty; i <= s.newwin.height; i++ {
-		delete(s.newwin.dirty, i)
+	for i := 0; i <= s.newbuf.Height(); i++ {
+		delete(s.dirty, i)
 	}
-	for i := nonEmpty; i <= s.curwin.height; i++ {
-		delete(s.curwin.dirty, i)
+
+	if s.curbuf.Width() != s.newbuf.Width() || s.curbuf.Height() != s.newbuf.Height() {
+		s.curbuf.Resize(s.newbuf.Width(), s.newbuf.Height())
 	}
 
 	s.updatePen(b, nil)
@@ -867,7 +815,7 @@ func (s *Screen) Close() (err error) {
 	b := new(bytes.Buffer)
 	s.render(b)
 	s.updatePen(b, &BlankCell)
-	s.move(b, 0, s.height-1)
+	s.move(b, 0, s.newbuf.Height()-1)
 	s.clearToEnd(b, &BlankCell, true)
 
 	// TODO: Set cursor to visible if needed.
@@ -887,46 +835,53 @@ func (s *Screen) Close() (err error) {
 func (s *Screen) reset() {
 	s.lastChar = -1
 	s.cur = cursor{Position: Position{X: -1, Y: -1}}
-	s.curwin = s.newWindow(0, 0, s.width, s.height)
-	s.newwin = s.newWindow(0, 0, s.width, s.height)
+	s.dirty = make(map[int][2]int)
+	if s.curbuf != nil {
+		s.curbuf.Clear()
+	}
+	if s.newbuf != nil {
+		s.newbuf.Clear()
+	}
 }
 
 // Resize resizes the screen.
 func (s *Screen) Resize(width, height int) {
-	s.width, s.height = width, height
-	s.curwin.buf.Resize(width, height)
-	s.curwin.Resize(width, height)
+	s.clear = true
+	s.newbuf.Resize(width, height)
+
+	// Clear new columns and lines
+	oldw := s.newbuf.Width()
+	oldh := s.newbuf.Height()
+
+	if width > oldh {
+		s.newbuf.ClearInRect(Rect(oldw-1, 0, width-oldw, height))
+	}
+
+	if height > oldh {
+		s.newbuf.ClearInRect(Rect(0, oldh-1, width, height-oldh))
+	}
 }
 
 // newWindow creates a new window.
 func (s *Screen) newWindow(x, y, width, height int) (w *Window) {
 	w = new(Window)
-	w.x, w.y, w.width, w.height = x, y, width, height
-	w.buf = NewBuffer(width, height)
-	w.dirty = make(map[int][2]int)
+	w.scr = s
+	w.bounds = Rect(x, y, width, height)
 	return
 }
 
 // Window represents a terminal Window.
 type Window struct {
-	buf           *Buffer
-	parent        *Window        // the parent screen (nil if the window is a screen)
-	dirty         map[int][2]int // map of the first and last changed cells in a row
-	x, y          int            // the window's position relative to the parent
-	width, height int
-	clear         bool // whether to force refresh the screen
+	scr    *Screen   // the screen where the window is attached
+	par    *Window   // the parent screen (nil if the window is the primary window)
+	bounds Rectangle // the window's bounds
 }
 
-// NewWindow creates a new sub-window.
-func (s *Screen) NewWindow(x, y, width, height int) (*Window, error) {
-	r := Rect(x, y, width, height)
-	if !r.In(s.Bounds().Rectangle) {
-		return nil, fmt.Errorf("window out of bounds: %v not in %v", r, s.Bounds())
-	}
-
-	w := s.newWindow(x, y, width, height)
-	w.parent = s.newwin
-	return w, nil
+// NewWindow creates a new primary window.
+func (s *Screen) NewWindow(width, height int) *Window {
+	s.curbuf = NewBuffer(width, height)
+	s.newbuf = NewBuffer(width, height)
+	return s.newWindow(0, 0, width, height)
 }
 
 // Cell implements Window.
@@ -934,7 +889,8 @@ func (w *Window) Cell(x int, y int) *Cell {
 	if !Pos(x, y).In(w.Bounds().Rectangle) {
 		return nil
 	}
-	return w.buf.Cell(w.x+x, w.y+y)
+	bx, by := w.Bounds().Min.X, w.Bounds().Min.Y
+	return w.scr.newbuf.Cell(bx+x, by+y)
 }
 
 // Fill implements Window.
@@ -949,9 +905,9 @@ func (w *Window) FillInRect(cell *Cell, r Rectangle) {
 		return
 	}
 
-	w.buf.FillInRect(cell, r)
+	w.scr.newbuf.FillInRect(cell, r)
 	for i := r.Min.Y; i < r.Max.Y; i++ {
-		w.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
+		w.scr.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
 	}
 }
 
@@ -967,10 +923,9 @@ func (w *Window) ClearInRect(r Rectangle) {
 		return
 	}
 
-	w.buf.ClearInRect(r)
-	w.clear = true
+	w.scr.newbuf.ClearInRect(r)
 	for i := r.Min.Y; i < r.Max.Y; i++ {
-		w.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
+		w.scr.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
 	}
 }
 
@@ -985,20 +940,16 @@ func (w *Window) Draw(x int, y int, cell *Cell) (v bool) {
 		cellWidth = cell.Width
 	}
 
-	chg := w.dirty[y]
+	chg := w.scr.dirty[y]
 	chg[0] = min(chg[0], x)
 	chg[1] = max(chg[1], x+cellWidth)
-	w.dirty[y] = chg
+	w.scr.dirty[y] = chg
 
-	return w.buf.Draw(w.x+x, w.y+y, cell)
+	bx, by := w.Bounds().Min.X, w.Bounds().Min.Y
+	return w.scr.newbuf.Draw(bx+x, by+y, cell)
 }
 
 // Bounds returns the window's bounds.
 func (w *Window) Bounds() Rectangle {
-	return Rect(w.x, w.y, w.width, w.height)
-}
-
-// Resize resizes the window.
-func (w *Window) Resize(width, height int) {
-	w.width, w.height = width, height
+	return w.bounds
 }
