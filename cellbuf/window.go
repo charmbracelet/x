@@ -49,7 +49,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 			if cuu := ansi.CursorUp(n); len(cuu) < len(yseq) {
 				yseq = cuu
 			}
-			if n == 1 && fy+1 < s.height {
+			if n == 1 && fy-1 > 0 {
 				// TODO: Ensure we're not unintentionally scrolling the screen up.
 				yseq = ansi.ReverseIndex
 			}
@@ -744,7 +744,7 @@ func (s *Screen) clearBottom(w *bytes.Buffer, total int) (top int) {
 		return
 	}
 
-	last := min(s.width, s.newwin.width+1)
+	last := min(s.width, s.newwin.width)
 
 	var blank *Cell
 	nLines := s.newwin.buf.Lines
@@ -800,7 +800,7 @@ func (s *Screen) clearScreen(w *bytes.Buffer, blank *Cell) {
 // clearUpdate forces a screen redraw.
 func (s *Screen) clearUpdate(w *bytes.Buffer) {
 	blank := s.clearBlank()
-	nonEmpty := min(s.height, s.newwin.height+1)
+	nonEmpty := min(s.height, s.newwin.height)
 	s.clearScreen(w, blank)
 	nonEmpty = s.clearBottom(w, nonEmpty)
 	for i := 0; i < nonEmpty; i++ {
@@ -831,7 +831,7 @@ func (s *Screen) render(b *bytes.Buffer) {
 	} else {
 		var changedLines int
 		var i int
-		nonEmpty = min(s.height, s.newwin.height+1)
+		nonEmpty = min(s.height, s.newwin.height)
 		nonEmpty = s.clearBottom(b, nonEmpty)
 		for i = 0; i < nonEmpty; i++ {
 			_, nok := s.newwin.dirty[i]
@@ -895,9 +895,7 @@ func (s *Screen) reset() {
 func (s *Screen) Resize(width, height int) {
 	s.width, s.height = width, height
 	s.curwin.buf.Resize(width, height)
-	s.newwin.buf.Resize(width, height)
 	s.curwin.Resize(width, height)
-	s.newwin.Resize(width, height)
 }
 
 // newWindow creates a new window.
