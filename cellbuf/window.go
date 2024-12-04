@@ -4,11 +4,14 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
+	"os"
 	"strings"
 	"sync"
 
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/term"
 )
 
 // ErrInvalidDimensions is returned when the dimensions of a window are invalid
@@ -36,7 +39,7 @@ func notLocal(cols, fx, fy, tx, ty int) bool {
 func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq string) {
 	if ty != fy {
 		var yseq string
-		if !s.opts.RelativeCursor {
+		if s.xtermLike && !s.opts.RelativeCursor {
 			yseq = ansi.VerticalPositionAbsolute(ty + 1)
 		}
 
@@ -67,7 +70,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 
 	if tx != fx {
 		var xseq string
-		if !s.opts.RelativeCursor {
+		if s.xtermLike && !s.opts.RelativeCursor {
 			xseq = ansi.HorizontalPositionAbsolute(tx + 1)
 		}
 
@@ -226,17 +229,17 @@ type Cursor struct {
 
 // ScreenOptions are options for the screen.
 type ScreenOptions struct {
-	// Term is the terminal type to use when writing to the screen.
+	// Term is the terminal type to use when writing to the screen. When empty,
+	// `$TERM` is used from [os.Getenv].
 	Term string
+	// Width is the desired width of the screen. When 0, the width is
+	// automatically determined using the terminal size.
+	Width int
+	// Height is the desired height of the screen. When 0, the height is
+	// automatically determined using the terminal size.
+	Height int
 	// Profile is the color profile to use when writing to the screen.
 	Profile colorprofile.Profile
-	// NoAutoWrap is whether not to automatically wrap text when it reaches the
-	// end of the line.
-	NoAutoWrap bool
-	// Origin is whether to use origin mode.
-	Origin bool
-	// LeaveCursor is whether to leave the cursor at the location after rendering.
-	LeaveCursor bool
 	// RelativeCursor is whether to use relative cursor movements. This is
 	// useful when alt-screen is not used or when using inline mode.
 	RelativeCursor bool
@@ -246,15 +249,16 @@ type ScreenOptions struct {
 
 // Screen represents the terminal screen.
 type Screen struct {
-	w        io.Writer
-	curbuf   *Buffer        // the current buffer
-	newbuf   *Buffer        // the new buffer
-	dirty    map[int][2]int // map of the first and last changed cells in a row
-	opts     ScreenOptions
-	cur      Cursor // the current cursor
-	mu       sync.Mutex
-	lastChar rune // the last character written to the screen
-	clear    bool // whether to force clear the screen
+	w         io.Writer
+	curbuf    *Buffer        // the current buffer
+	newbuf    *Buffer        // the new buffer
+	dirty     map[int][2]int // map of the first and last changed cells in a row
+	cur       Cursor         // the current cursor
+	opts      ScreenOptions
+	mu        sync.Mutex
+	lastChar  rune // the last character written to the screen
+	clear     bool // whether to force clear the screen
+	xtermLike bool // whether to use xterm-like optimizations, otherwise, it uses vt100 only
 }
 
 var _ Window = &Screen{}
@@ -313,14 +317,51 @@ func (s *Screen) FillInRect(cell *Cell, r Rectangle) bool {
 	return true
 }
 
+// isXtermLike returns whether the terminal is xterm-like. This means that the
+// terminal supports ECMA-48 and ANSI X3.64 escape sequences.
+func isXtermLike(termtype string) (v bool) {
+	parts := strings.Split(termtype, "-")
+	if len(parts) == 0 {
+		return
+	}
+
+	switch parts[0] {
+	case
+		"alacritty",
+		"foot",
+		"ghostty",
+		"kitty",
+		"linux",
+		"screen",
+		"tmux",
+		"wezterm",
+		"xterm":
+		v = true
+	}
+
+	return
+}
+
 // NewScreen creates a new Screen.
-func NewScreen(w io.Writer, width, height int, opts *ScreenOptions) (s *Screen) {
+func NewScreen(w io.Writer, opts *ScreenOptions) (s *Screen) {
 	s = new(Screen)
 	s.w = w
 	if opts != nil {
 		s.opts = *opts
 	}
 
+	if s.opts.Term == "" {
+		s.opts.Term = os.Getenv("TERM")
+	}
+
+	width, height := s.opts.Width, s.opts.Height
+	if width <= 0 || height <= 0 {
+		if f, ok := w.(term.File); ok {
+			width, height, _ = term.GetSize(f.Fd())
+		}
+	}
+
+	s.xtermLike = isXtermLike(s.opts.Term)
 	s.curbuf = NewBuffer(width, height)
 	s.newbuf = NewBuffer(width, height)
 	s.reset()
@@ -418,7 +459,7 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 		ech := ansi.EraseCharacter(count)
 		cup := ansi.CursorPosition(s.cur.X+count, s.cur.Y)
 		rep := ansi.RepeatPreviousCharacter(count)
-		if count > len(ech)+len(cup) && cell0 != nil && cell0.Clear() {
+		if s.xtermLike && count > len(ech)+len(cup) && cell0 != nil && cell0.Clear() {
 			s.updatePen(w, cell0)
 			w.WriteString(ech)
 
@@ -428,7 +469,7 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 			} else {
 				return true // cursor in the middle
 			}
-		} else if runes := cellRunes(cell0); count > len(rep) &&
+		} else if runes := cellRunes(cell0); s.xtermLike && count > len(rep) &&
 			len(runes) == 1 {
 			// NOTE: [ansi.REP] only repeats the last rune and won't work
 			// if the last cell contains multiple runes.
@@ -552,10 +593,21 @@ func (s *Screen) clearBlank() (c *Cell) {
 // insertCells inserts the count cells pointed by the given line at the current
 // cursor position.
 func (s *Screen) insertCells(w *bytes.Buffer, line Line, count int) {
-	w.WriteString(ansi.InsertCharacter(count))
+	if s.xtermLike {
+		// Use [ansi.ICH] as an optimization.
+		w.WriteString(ansi.InsertCharacter(count))
+	} else {
+		// Otherwise, use [ansi.IRM] mode.
+		w.WriteString(ansi.SetInsertReplaceMode)
+	}
+
 	for i := 0; count > 0; i++ {
 		s.putCell(w, line[i])
 		count--
+	}
+
+	if !s.xtermLike {
+		w.WriteString(ansi.ResetInsertReplaceMode)
 	}
 }
 
@@ -732,7 +784,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 
 				s.move(w, n+1, y)
 				ich := ansi.InsertCharacter(nLastCell - oLastCell)
-				if nLastCell < nLastNonBlank || len(ich) > (m-n) {
+				if s.xtermLike && (nLastCell < nLastNonBlank || len(ich) > (m-n)) {
 					s.putRange(w, oldLine, newLine, y, n+1, m)
 				} else {
 					s.insertCells(w, newLine[n+1:], nLastCell-oLastCell)
@@ -869,6 +921,7 @@ func (s *Screen) Render() {
 	s.render(b)
 	// Write the buffer
 	if b.Len() > 0 {
+		log.Printf("Render: %q", b.Bytes())
 		s.w.Write(b.Bytes()) //nolint:errcheck
 	}
 	s.mu.Unlock()
