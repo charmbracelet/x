@@ -74,6 +74,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 			// OPTIM: Use [ansi.HT] and hard tabs as an optimization.
 
 			// If we have no attribute and style changes, overwrite is cheaper.
+			var ovw string
 			if overwrite && ty >= 0 {
 				for i := 0; i < n; i++ {
 					cell := s.newbuf.Cell(fx+i, ty)
@@ -91,12 +92,16 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 				for i := 0; i < n; i++ {
 					cell := s.newbuf.Cell(fx+i, ty)
 					if cell != nil {
-						xseq += cell.Content()
+						ovw += cell.Content()
 						i += cell.Width - 1
 					} else {
-						xseq += " "
+						ovw += " "
 					}
 				}
+			}
+
+			if overwrite && (xseq == "" || len(ovw) < len(xseq)) {
+				xseq = ovw
 			}
 		} else if tx < fx {
 			n := fx - tx
