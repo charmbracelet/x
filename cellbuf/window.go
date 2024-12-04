@@ -192,8 +192,8 @@ func (s *Screen) move(w *bytes.Buffer, x, y int) {
 	s.cur.X, s.cur.Y = x, y
 }
 
-// cursor represents a terminal cursor.
-type cursor struct {
+// Cursor represents a terminal Cursor.
+type Cursor struct {
 	Style Style
 	Link  Link
 	Position
@@ -221,7 +221,7 @@ type Screen struct {
 	newbuf   *Buffer        // the new buffer
 	dirty    map[int][2]int // map of the first and last changed cells in a row
 	opts     ScreenOptions
-	cur      cursor // the current cursor
+	cur      Cursor // the current cursor
 	mu       sync.Mutex
 	lastChar rune // the last character written to the screen
 	clear    bool // whether to force clear the screen
