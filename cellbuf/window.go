@@ -35,25 +35,28 @@ func notLocal(cols, fx, fy, tx, ty int) bool {
 // screen cells values to move the cursor instead of using escape sequences.
 func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq string) {
 	if ty != fy {
-		yseq := ansi.VerticalPositionAbsolute(ty + 1)
+		var yseq string
+		if !s.opts.RelativeCursor {
+			yseq = ansi.VerticalPositionAbsolute(ty + 1)
+		}
 
 		// OPTIM: Use [ansi.LF] and [ansi.ReverseIndex] as optimizations.
 
 		if ty > fy {
 			n := ty - fy
-			if cud := ansi.CursorDown(n); len(cud) < len(yseq) {
+			if cud := ansi.CursorDown(n); yseq == "" || len(cud) < len(yseq) {
 				yseq = cud
 			}
-			if lf := strings.Repeat("\n", n); fy+n < s.newbuf.Height() && len(lf) < len(yseq) {
+			if lf := strings.Repeat("\n", n); yseq == "" || fy+n < s.newbuf.Height() && len(lf) < len(yseq) {
 				// TODO: Ensure we're not unintentionally scrolling the screen down.
 				yseq = lf
 			}
 		} else if ty < fy {
 			n := fy - ty
-			if cuu := ansi.CursorUp(n); len(cuu) < len(yseq) {
+			if cuu := ansi.CursorUp(n); yseq == "" || len(cuu) < len(yseq) {
 				yseq = cuu
 			}
-			if n == 1 && fy-1 > 0 {
+			if yseq == "" || n == 1 && fy-1 > 0 {
 				// TODO: Ensure we're not unintentionally scrolling the screen up.
 				yseq = ansi.ReverseIndex
 			}
@@ -63,11 +66,14 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 	}
 
 	if tx != fx {
-		xseq := ansi.HorizontalPositionAbsolute(tx + 1)
+		var xseq string
+		if !s.opts.RelativeCursor {
+			xseq = ansi.HorizontalPositionAbsolute(tx + 1)
+		}
 
 		if tx > fx {
 			n := tx - fx
-			if cuf := ansi.CursorForward(n); len(cuf) < len(xseq) {
+			if cuf := ansi.CursorForward(n); xseq == "" || len(cuf) < len(xseq) {
 				xseq = cuf
 			}
 
@@ -105,7 +111,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 			}
 		} else if tx < fx {
 			n := fx - tx
-			if cub := ansi.CursorBackward(n); len(cub) < len(xseq) {
+			if cub := ansi.CursorBackward(n); xseq == "" || len(cub) < len(xseq) {
 				xseq = cub
 			}
 
@@ -125,31 +131,41 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 	fx, fy := s.cur.X, s.cur.Y
 
-	// Method #0: Use [ansi.CUP] if the distance is long.
-	seq = ansi.CursorPosition(x+1, y+1)
-	if fx == -1 || fy == -1 || notLocal(s.newbuf.Width(), fx, fy, x, y) {
-		return
+	if !s.opts.RelativeCursor {
+		// Method #0: Use [ansi.CUP] if the distance is long.
+		seq = ansi.CursorPosition(x+1, y+1)
+		if fx == -1 || fy == -1 || notLocal(s.newbuf.Width(), fx, fy, x, y) {
+			return
+		}
 	}
 
 	// Method #1: Use local movement sequences.
 	nseq := relativeCursorMove(s, fx, fy, x, y, overwrite)
-	if len(nseq) < len(seq) {
+	if seq == "" || len(nseq) < len(seq) {
 		seq = nseq
 	}
 
 	// Method #2: Use [ansi.CR] and local movement sequences.
 	nseq = "\r" + relativeCursorMove(s, 0, fy, x, y, overwrite)
-	if len(nseq) < len(seq) {
+	if seq == "" || len(nseq) < len(seq) {
 		seq = nseq
 	}
 
-	// Method #3: Use [ansi.HomeCursorPosition] and local movement sequences.
-	nseq = ansi.HomeCursorPosition + relativeCursorMove(s, 0, 0, x, y, overwrite)
-	if len(nseq) < len(seq) {
-		seq = nseq
+	if !s.opts.RelativeCursor {
+		// Method #3: Use [ansi.CursorHomePosition] and local movement sequences.
+		nseq = ansi.CursorHomePosition + relativeCursorMove(s, 0, 0, x, y, overwrite)
+		if seq == "" || len(nseq) < len(seq) {
+			seq = nseq
+		}
 	}
 
 	return
+}
+
+// moveCursor moves the cursor to the specified position.
+func (s *Screen) moveCursor(w *bytes.Buffer, x, y int, overwrite bool) {
+	w.WriteString(moveCursor(s, x, y, overwrite))
+	s.cur.X, s.cur.Y = x, y
 }
 
 func (s *Screen) move(w *bytes.Buffer, x, y int) {
@@ -193,13 +209,12 @@ func (s *Screen) move(w *bytes.Buffer, x, y int) {
 		y = height - 1
 	}
 
-	w.WriteString(moveCursor(s, x, y, true)) // Overwrite cells if possible
+	// We set the new cursor in [Screen.moveCursor].
+	s.moveCursor(w, x, y, true) // Overwrite cells if possible
 
 	if !pen.Empty() {
 		w.WriteString(pen.Sequence())
 	}
-
-	s.cur.X, s.cur.Y = x, y
 }
 
 // Cursor represents a terminal Cursor.
@@ -222,6 +237,9 @@ type ScreenOptions struct {
 	Origin bool
 	// LeaveCursor is whether to leave the cursor at the location after rendering.
 	LeaveCursor bool
+	// RelativeCursor is whether to use relative cursor movements. This is
+	// useful when alt-screen is not used or when using inline mode.
+	RelativeCursor bool
 }
 
 // Screen represents the terminal screen.
@@ -761,7 +779,7 @@ func (s *Screen) clearToBottom(w *bytes.Buffer, blank *Cell) {
 
 // clearBottom tests if clearing the end of the screen would satisfy part of
 // the screen update. Scan backwards through lines in the screen checking if
-// each is blank and on or more are changed.
+// each is blank and one or more are changed.
 // It returns the top line.
 func (s *Screen) clearBottom(w *bytes.Buffer, total int) (top int) {
 	top = total
