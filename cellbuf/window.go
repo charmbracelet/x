@@ -171,11 +171,11 @@ func (s *Screen) moveCursor(w *bytes.Buffer, x, y int, overwrite bool) {
 }
 
 func (s *Screen) move(w *bytes.Buffer, x, y int) {
-	if s.cur.X == x && s.cur.Y == y {
+	width, height := s.newbuf.Width(), s.newbuf.Height()
+	if s.cur.X == x && s.cur.Y == y || width <= 0 || height <= 0 {
 		return
 	}
 
-	width, height := s.newbuf.Width(), s.newbuf.Height()
 	if x >= width {
 		// Handle autowrap
 		y += (x / width)
@@ -281,9 +281,11 @@ func (s *Screen) Clear() bool {
 // ClearInRect implements Window.
 func (s *Screen) ClearInRect(r Rectangle) bool {
 	s.newbuf.ClearInRect(r)
+	s.mu.Lock()
 	for i := r.Min.Y; i < r.Max.Y; i++ {
 		s.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
 	}
+	s.mu.Unlock()
 	return true
 }
 
@@ -294,10 +296,12 @@ func (s *Screen) Draw(x int, y int, cell *Cell) (v bool) {
 		cellWidth = cell.Width
 	}
 
+	s.mu.Lock()
 	chg := s.dirty[y]
 	chg[0] = min(chg[0], x)
 	chg[1] = max(chg[1], x+cellWidth)
 	s.dirty[y] = chg
+	s.mu.Unlock()
 
 	return s.newbuf.Draw(x, y, cell)
 }
@@ -310,9 +314,11 @@ func (s *Screen) Fill(cell *Cell) bool {
 // FillInRect implements Window.
 func (s *Screen) FillInRect(cell *Cell, r Rectangle) bool {
 	s.newbuf.FillInRect(cell, r)
+	s.mu.Lock()
 	for i := r.Min.Y; i < r.Max.Y; i++ {
 		s.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
 	}
+	s.mu.Unlock()
 	return true
 }
 
@@ -459,7 +465,7 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 		}
 
 		count = 2
-		for count < n && cellEqual(line[count], cell0) {
+		for count < n && cellEqual(line.At(count), cell0) {
 			count++
 		}
 
@@ -482,20 +488,22 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 			// if the last cell contains multiple runes.
 
 			wrapPossible := s.cur.X+count >= s.newbuf.Width()
-
 			repCount := count
-			if runes[0] != s.lastChar {
-				s.putCell(w, cell0)
+			if wrapPossible {
 				repCount--
 			}
 
-			if wrapPossible {
-				repCount--
-				rep = ansi.RepeatPreviousCharacter(repCount)
+			if runes[0] != s.lastChar {
+				cellWidth := 1
+				if cell0 != nil {
+					cellWidth = cell0.Width
+				}
+				s.putCell(w, cell0)
+				repCount -= cellWidth
 			}
 
 			s.updatePen(w, cell0)
-			w.WriteString(rep)
+			w.WriteString(ansi.RepeatPreviousCharacter(repCount))
 			s.cur.X += repCount
 			if wrapPossible {
 				s.putCell(w, cell0)
@@ -989,6 +997,9 @@ func (s *Screen) render(b *bytes.Buffer) {
 
 // Close writes the final screen update and resets the screen.
 func (s *Screen) Close() (err error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	b := new(bytes.Buffer)
 	s.render(b)
 	s.updatePen(b, &BlankCell)
