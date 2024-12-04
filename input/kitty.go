@@ -5,6 +5,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/ansi/parser"
 )
 
 // KittyKeyboardEvent represents Kitty keyboard progressive enhancement flags.
@@ -213,7 +214,11 @@ func parseKittyKeyboard(csi *ansi.CsiSequence) Event {
 	var isRelease bool
 	key := Key{}
 
-	if params := csi.Subparams(0); len(params) > 0 {
+	pparams := make([]int, 0, len(csi.Params))
+	for _, p := range csi.Params {
+		pparams = append(pparams, int(p))
+	}
+	if params := parser.Subparams(pparams, 0); len(params) > 0 {
 		code := params[0]
 		if sym, ok := kittyKeyMap[code]; ok {
 			key.Sym = sym
@@ -253,7 +258,8 @@ func parseKittyKeyboard(csi *ansi.CsiSequence) Event {
 			}
 		}
 	}
-	if params := csi.Subparams(1); len(params) > 0 {
+
+	if params := parser.Subparams(pparams, 1); len(params) > 0 {
 		mod := params[0]
 		if mod > 1 {
 			key.Mod = fromKittyMod(mod - 1)
