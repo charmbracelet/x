@@ -2,6 +2,7 @@ package cellbuf
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"strings"
 	"sync"
@@ -9,6 +10,10 @@ import (
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
 )
+
+// ErrInvalidDimensions is returned when the dimensions of a window are invalid
+// for the operation.
+var ErrInvalidDimensions = errors.New("invalid dimensions")
 
 // notLocal returns whether the coordinates are not considered local movement
 // using the defined thresholds.
@@ -227,14 +232,72 @@ type Screen struct {
 	clear    bool // whether to force clear the screen
 }
 
+var _ Window = &Screen{}
+
+// Bounds implements Window.
+func (s *Screen) Bounds() Rectangle {
+	// Always return the new buffer bounds.
+	return s.newbuf.Bounds()
+}
+
+// Cell implements Window.
+func (s *Screen) Cell(x int, y int) *Cell {
+	return s.newbuf.Cell(x, y)
+}
+
+// Clear implements Window.
+func (s *Screen) Clear() bool {
+	return s.ClearInRect(s.newbuf.Bounds())
+}
+
+// ClearInRect implements Window.
+func (s *Screen) ClearInRect(r Rectangle) bool {
+	s.newbuf.ClearInRect(r)
+	for i := r.Min.Y; i < r.Max.Y; i++ {
+		s.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
+	}
+	return true
+}
+
+// Draw implements Window.
+func (s *Screen) Draw(x int, y int, cell *Cell) (v bool) {
+	cellWidth := 1
+	if cell != nil {
+		cellWidth = cell.Width
+	}
+
+	chg := s.dirty[y]
+	chg[0] = min(chg[0], x)
+	chg[1] = max(chg[1], x+cellWidth)
+	s.dirty[y] = chg
+
+	return s.newbuf.Draw(x, y, cell)
+}
+
+// Fill implements Window.
+func (s *Screen) Fill(cell *Cell) bool {
+	return s.FillInRect(cell, s.newbuf.Bounds())
+}
+
+// FillInRect implements Window.
+func (s *Screen) FillInRect(cell *Cell, r Rectangle) bool {
+	s.newbuf.FillInRect(cell, r)
+	for i := r.Min.Y; i < r.Max.Y; i++ {
+		s.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
+	}
+	return true
+}
+
 // NewScreen creates a new Screen.
-func NewScreen(w io.Writer, opts *ScreenOptions) (s *Screen) {
+func NewScreen(w io.Writer, width, height int, opts *ScreenOptions) (s *Screen) {
 	s = new(Screen)
 	s.w = w
 	if opts != nil {
 		s.opts = *opts
 	}
 
+	s.curbuf = NewBuffer(width, height)
+	s.newbuf = NewBuffer(width, height)
 	s.reset()
 
 	return
@@ -834,7 +897,7 @@ func (s *Screen) Close() (err error) {
 // reset resets the screen to its initial state.
 func (s *Screen) reset() {
 	s.lastChar = -1
-	s.cur = cursor{Position: Position{X: -1, Y: -1}}
+	s.cur = Cursor{Position: Position{X: -1, Y: -1}}
 	s.dirty = make(map[int][2]int)
 	if s.curbuf != nil {
 		s.curbuf.Clear()
@@ -845,7 +908,7 @@ func (s *Screen) reset() {
 }
 
 // Resize resizes the screen.
-func (s *Screen) Resize(width, height int) {
+func (s *Screen) Resize(width, height int) bool {
 	s.clear = true
 	s.newbuf.Resize(width, height)
 
@@ -854,102 +917,138 @@ func (s *Screen) Resize(width, height int) {
 	oldh := s.newbuf.Height()
 
 	if width > oldh {
-		s.newbuf.ClearInRect(Rect(oldw-1, 0, width-oldw, height))
+		s.ClearInRect(Rect(oldw-1, 0, width-oldw, height))
 	}
 
 	if height > oldh {
-		s.newbuf.ClearInRect(Rect(0, oldh-1, width, height-oldh))
+		s.ClearInRect(Rect(0, oldh-1, width, height-oldh))
 	}
+
+	return true
 }
 
 // newWindow creates a new window.
-func (s *Screen) newWindow(x, y, width, height int) (w *Window) {
-	w = new(Window)
+func (s *Screen) newWindow(x, y, width, height int) (w *SubWindow, err error) {
+	w = new(SubWindow)
 	w.scr = s
 	w.bounds = Rect(x, y, width, height)
+	if x < 0 || y < 0 || width <= 0 || height <= 0 {
+		return nil, ErrInvalidDimensions
+	}
+
+	scrw, scrh := s.Bounds().Width(), s.Bounds().Height()
+	if x+width > scrw || y+height > scrh {
+		return nil, ErrInvalidDimensions
+	}
+
 	return
 }
 
-// Window represents a terminal Window.
-type Window struct {
-	scr    *Screen   // the screen where the window is attached
-	par    *Window   // the parent screen (nil if the window is the primary window)
-	bounds Rectangle // the window's bounds
+// Window represents parts of the terminal screen.
+type Window interface {
+	Cell(x int, y int) *Cell
+	Fill(cell *Cell) bool
+	FillInRect(cell *Cell, r Rectangle) bool
+	Clear() bool
+	ClearInRect(r Rectangle) bool
+	Draw(x int, y int, cell *Cell) (v bool)
+	Bounds() Rectangle
+	Resize(width, height int) bool
 }
 
-// NewWindow creates a new primary window.
-func (s *Screen) NewWindow(width, height int) *Window {
-	s.curbuf = NewBuffer(width, height)
-	s.newbuf = NewBuffer(width, height)
-	return s.newWindow(0, 0, width, height)
+// SubWindow represents a terminal SubWindow.
+type SubWindow struct {
+	scr    *Screen    // the screen where the window is attached
+	par    *SubWindow // the parent screen (nil if the window is the primary window)
+	bounds Rectangle  // the window's bounds
+}
+
+var _ Window = &SubWindow{}
+
+// NewWindow creates a new sub-window.
+func (s *Screen) NewWindow(x, y, width, height int) (*SubWindow, error) {
+	return s.newWindow(x, y, width, height)
+}
+
+// NewWindow creates a new sub-window.
+func (w *SubWindow) NewWindow(x, y, width, height int) (s *SubWindow, err error) {
+	s, err = w.scr.newWindow(x, y, width, height)
+	w.par = w
+	return
 }
 
 // Cell implements Window.
-func (w *Window) Cell(x int, y int) *Cell {
+func (w *SubWindow) Cell(x int, y int) *Cell {
 	if !Pos(x, y).In(w.Bounds().Rectangle) {
 		return nil
 	}
 	bx, by := w.Bounds().Min.X, w.Bounds().Min.Y
-	return w.scr.newbuf.Cell(bx+x, by+y)
+	return w.scr.Cell(bx+x, by+y)
 }
 
 // Fill implements Window.
-func (w *Window) Fill(cell *Cell) {
-	w.FillInRect(cell, w.Bounds())
+func (w *SubWindow) Fill(cell *Cell) bool {
+	return w.FillInRect(cell, w.Bounds())
 }
 
 // FillInRect fills the cells in the specified rectangle with the specified
 // cell.
-func (w *Window) FillInRect(cell *Cell, r Rectangle) {
+func (w *SubWindow) FillInRect(cell *Cell, r Rectangle) bool {
 	if !r.In(w.Bounds().Rectangle) {
-		return
+		return false
 	}
 
-	w.scr.newbuf.FillInRect(cell, r)
-	for i := r.Min.Y; i < r.Max.Y; i++ {
-		w.scr.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
-	}
+	w.scr.FillInRect(cell, r)
+	return true
 }
 
 // Clear implements Window.
-func (w *Window) Clear() {
-	w.ClearInRect(w.Bounds())
+func (w *SubWindow) Clear() bool {
+	return w.ClearInRect(w.Bounds())
 }
 
 // ClearInRect clears the cells in the specified rectangle based on the current
 // cursor background color. Use [SetPen] to set the background color.
-func (w *Window) ClearInRect(r Rectangle) {
+func (w *SubWindow) ClearInRect(r Rectangle) bool {
 	if !r.In(w.Bounds().Rectangle) {
-		return
+		return false
 	}
 
-	w.scr.newbuf.ClearInRect(r)
-	for i := r.Min.Y; i < r.Max.Y; i++ {
-		w.scr.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
-	}
+	w.scr.ClearInRect(r)
+	return true
 }
 
 // Draw implements Window.
-func (w *Window) Draw(x int, y int, cell *Cell) (v bool) {
+func (w *SubWindow) Draw(x int, y int, cell *Cell) (v bool) {
 	if !Pos(x, y).In(w.Bounds().Rectangle) {
 		return
 	}
-
-	cellWidth := 1
-	if cell != nil {
-		cellWidth = cell.Width
-	}
-
-	chg := w.scr.dirty[y]
-	chg[0] = min(chg[0], x)
-	chg[1] = max(chg[1], x+cellWidth)
-	w.scr.dirty[y] = chg
 
 	bx, by := w.Bounds().Min.X, w.Bounds().Min.Y
 	return w.scr.newbuf.Draw(bx+x, by+y, cell)
 }
 
 // Bounds returns the window's bounds.
-func (w *Window) Bounds() Rectangle {
+func (w *SubWindow) Bounds() Rectangle {
 	return w.bounds
+}
+
+// Resize implements Window.
+func (w *SubWindow) Resize(width int, height int) bool {
+	if width <= 0 || height <= 0 {
+		return false
+	}
+
+	if w.Bounds().Width() == width && w.Bounds().Height() == height {
+		return true
+	}
+
+	x, y := w.bounds.Min.X, w.bounds.Min.Y
+	scrw, scrh := w.scr.Bounds().Width(), w.scr.Bounds().Height()
+	if x+width > scrw || y+height > scrh {
+		return false
+	}
+
+	w.bounds = Rect(x, y, width, height)
+	return true
 }
