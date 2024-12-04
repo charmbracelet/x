@@ -240,6 +240,8 @@ type ScreenOptions struct {
 	// RelativeCursor is whether to use relative cursor movements. This is
 	// useful when alt-screen is not used or when using inline mode.
 	RelativeCursor bool
+	// AltScreen is whether to use the alternate screen buffer.
+	AltScreen bool
 }
 
 // Screen represents the terminal screen.
@@ -781,17 +783,17 @@ func (s *Screen) clearToBottom(w *bytes.Buffer, blank *Cell) {
 // the screen update. Scan backwards through lines in the screen checking if
 // each is blank and one or more are changed.
 // It returns the top line.
-func (s *Screen) clearBottom(w *bytes.Buffer, total int) (top int) {
+func (s *Screen) clearBottom(w *bytes.Buffer, total int, force bool) (top int) {
 	top = total
 	if total <= 0 {
 		return
 	}
 
 	last := min(s.curbuf.Width(), s.newbuf.Width())
-	blank := s.newbuf.Cell(last-1, total-1)
+	blank := s.clearBlank()
 	canClearWithBlank := blank == nil || blank.Clear()
 
-	if canClearWithBlank {
+	if canClearWithBlank || force {
 		var row int
 		for row = total - 1; row >= 0; row-- {
 			var col int
@@ -811,9 +813,13 @@ func (s *Screen) clearBottom(w *bytes.Buffer, total int) (top int) {
 			}
 		}
 
-		if top < total {
-			s.move(w, 0, top)
+		if force || top < total {
+			s.moveCursor(w, 0, top, false)
 			s.clearToBottom(w, blank)
+			if !s.opts.AltScreen {
+				// Move to the last line of the screen
+				s.moveCursor(w, 0, s.newbuf.Height()-1, false)
+			}
 			// TODO: Line hashing
 		}
 	}
@@ -830,19 +836,27 @@ func (s *Screen) clearScreen(w *bytes.Buffer, blank *Cell) {
 	s.curbuf.Fill(blank)
 }
 
-	for i := 0; i < s.curbuf.Height(); i++ {
-		for j := 0; j < s.curbuf.Width(); j++ {
-			s.curbuf.Lines[i][j] = blank
-		}
-	}
+// clearBelow clears everything below the screen.
+func (s *Screen) clearBelow(w *bytes.Buffer, blank *Cell, row int) {
+	s.updatePen(w, blank)
+	s.moveCursor(w, 0, row, false)
+	s.clearToBottom(w, blank)
+	s.cur.X, s.cur.Y = 0, row
+	s.curbuf.FillInRect(blank, Rect(0, row, s.curbuf.Width(), s.curbuf.Height()))
 }
 
 // clearUpdate forces a screen redraw.
-func (s *Screen) clearUpdate(w *bytes.Buffer) {
+func (s *Screen) clearUpdate(w *bytes.Buffer, partial bool) {
 	blank := s.clearBlank()
-	nonEmpty := min(s.curbuf.Height(), s.newbuf.Height())
-	s.clearScreen(w, blank)
-	nonEmpty = s.clearBottom(w, nonEmpty)
+	var nonEmpty int
+	if s.opts.AltScreen {
+		nonEmpty = min(s.curbuf.Height(), s.newbuf.Height())
+		s.clearScreen(w, blank)
+	} else {
+		nonEmpty = s.newbuf.Height()
+		s.clearBelow(w, blank, 0)
+	}
+	nonEmpty = s.clearBottom(w, nonEmpty, partial)
 	for i := 0; i < nonEmpty; i++ {
 		s.transformLine(w, i)
 	}
@@ -864,14 +878,24 @@ func (s *Screen) render(b *bytes.Buffer) {
 	var nonEmpty int
 
 	// Force clear?
+	// We only do partial clear if the screen is not in alternate screen mode
+	partialClear := s.curbuf.Width() == s.newbuf.Width() &&
+		s.curbuf.Height() > s.newbuf.Height()
+
 	if s.clear {
-		s.clearUpdate(b)
+		s.clearUpdate(b, partialClear)
 		s.clear = false
 	} else {
 		var changedLines int
 		var i int
-		nonEmpty = min(s.curbuf.Height(), s.newbuf.Height())
-		nonEmpty = s.clearBottom(b, nonEmpty)
+
+		if s.opts.AltScreen {
+			nonEmpty = min(s.curbuf.Height(), s.newbuf.Height())
+		} else {
+			nonEmpty = s.newbuf.Height()
+		}
+
+		nonEmpty = s.clearBottom(b, nonEmpty, partialClear)
 		for i = 0; i < nonEmpty; i++ {
 			_, dirty := s.dirty[i]
 			if dirty {
@@ -892,7 +916,13 @@ func (s *Screen) render(b *bytes.Buffer) {
 	}
 
 	if s.curbuf.Width() != s.newbuf.Width() || s.curbuf.Height() != s.newbuf.Height() {
+		// Resize the old buffer to match the new buffer.
+		_, oldh := s.curbuf.Width(), s.curbuf.Height()
 		s.curbuf.Resize(s.newbuf.Width(), s.newbuf.Height())
+		// Sync new lines to old lines
+		for i := oldh - 1; i < s.newbuf.Height(); i++ {
+			copy(s.curbuf.Line(i), s.newbuf.Line(i))
+		}
 	}
 
 	s.updatePen(b, nil)
@@ -922,7 +952,11 @@ func (s *Screen) Close() (err error) {
 // reset resets the screen to its initial state.
 func (s *Screen) reset() {
 	s.lastChar = -1
-	s.cur = Cursor{Position: Position{X: -1, Y: -1}}
+	if s.opts.RelativeCursor {
+		s.cur = Cursor{}
+	} else {
+		s.cur = Cursor{Position: Position{X: -1, Y: -1}}
+	}
 	s.dirty = make(map[int][2]int)
 	if s.curbuf != nil {
 		s.curbuf.Clear()
@@ -934,20 +968,30 @@ func (s *Screen) reset() {
 
 // Resize resizes the screen.
 func (s *Screen) Resize(width, height int) bool {
-	s.clear = true
-	s.newbuf.Resize(width, height)
-
-	// Clear new columns and lines
 	oldw := s.newbuf.Width()
 	oldh := s.newbuf.Height()
 
+	if s.opts.AltScreen || width != oldw {
+		// We only clear the whole screen if the width changes. Adding/removing
+		// rows is handled by the [Screen.render] and [Screen.transformLine]
+		// methods.
+		s.clear = true
+	}
+
+	// Clear new columns and lines
 	if width > oldh {
-		s.ClearInRect(Rect(oldw-1, 0, width-oldw, height))
+		s.ClearInRect(Rect(oldw-2, 0, width-oldw, height))
+	} else if width < oldw {
+		s.ClearInRect(Rect(width-1, 0, oldw-width, height))
 	}
 
 	if height > oldh {
 		s.ClearInRect(Rect(0, oldh-1, width, height-oldh))
+	} else if height < oldh {
+		s.ClearInRect(Rect(0, height-1, width, oldh-height))
 	}
+
+	s.newbuf.Resize(width, height)
 
 	return true
 }
