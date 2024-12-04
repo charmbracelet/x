@@ -417,17 +417,25 @@ func (s *Screen) updatePen(w *bytes.Buffer, cell *Cell) {
 		cell = &BlankCell
 	}
 
-	if !cell.Style.Equal(s.cur.Style) {
-		seq := cell.Style.DiffSequence(s.cur.Style)
-		if cell.Style.Empty() && len(seq) > len(ansi.ResetStyle) {
+	style := cell.Style
+	link := cell.Link
+	if s.opts.Profile != 0 {
+		// Downsample colors to the given color profile.
+		style = ConvertStyle(style, s.opts.Profile)
+		link = ConvertLink(link, s.opts.Profile)
+	}
+
+	if !style.Equal(s.cur.Style) {
+		seq := style.DiffSequence(s.cur.Style)
+		if style.Empty() && len(seq) > len(ansi.ResetStyle) {
 			seq = ansi.ResetStyle
 		}
 		w.WriteString(seq)
-		s.cur.Style = cell.Style
+		s.cur.Style = style
 	}
-	if !cell.Link.Equal(s.cur.Link) {
-		w.WriteString(ansi.SetHyperlink(cell.Link.URL, cell.Link.URLID))
-		s.cur.Link = cell.Link
+	if !link.Equal(s.cur.Link) {
+		w.WriteString(ansi.SetHyperlink(link.URL, link.URLID))
+		s.cur.Link = link
 	}
 }
 
