@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"log"
 	"os"
 	"strings"
 	"sync"
@@ -929,7 +928,6 @@ func (s *Screen) Render() {
 	s.render(b)
 	// Write the buffer
 	if b.Len() > 0 {
-		log.Printf("Render: %q", b.Bytes())
 		s.w.Write(b.Bytes()) //nolint:errcheck
 	}
 	s.mu.Unlock()
