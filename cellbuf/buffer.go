@@ -169,6 +169,17 @@ func NewBuffer(width int, height int) *Buffer {
 	return b
 }
 
+// String returns the string representation of the buffer.
+func (b *Buffer) String() (s string) {
+	for i, l := range b.Lines {
+		s += l.String()
+		if i < len(b.Lines)-1 {
+			s += "\r\n"
+		}
+	}
+	return
+}
+
 // Line returns a pointer to the line at the given y position.
 // If the line does not exist, it returns nil.
 func (b *Buffer) Line(y int) Line {
