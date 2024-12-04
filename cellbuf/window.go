@@ -396,8 +396,8 @@ func (s *Screen) updatePen(w *bytes.Buffer, cell *Cell) {
 func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 	for n > 0 {
 		var count int
-		for n > 1 && !cellEqual(line[0], line[1]) {
-			s.putCell(w, line[0])
+		for n > 1 && !cellEqual(line.At(0), line.At(1)) {
+			s.putCell(w, line.At(0))
 			line = line[1:]
 			n--
 		}
@@ -452,11 +452,11 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 			}
 		} else {
 			for i := 0; i < count; i++ {
-				s.putCell(w, line[i])
+				s.putCell(w, line.At(i))
 			}
 		}
 
-		line = line[count:]
+		line = line[clamp(count, 0, len(line)):]
 		n -= count
 	}
 
@@ -827,6 +827,8 @@ func (s *Screen) clearScreen(w *bytes.Buffer, blank *Cell) {
 	w.WriteString(ansi.CursorHomePosition)
 	w.WriteString(ansi.EraseEntireScreen)
 	s.cur.X, s.cur.Y = 0, 0
+	s.curbuf.Fill(blank)
+}
 
 	for i := 0; i < s.curbuf.Height(); i++ {
 		for j := 0; j < s.curbuf.Width(); j++ {
