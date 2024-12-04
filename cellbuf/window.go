@@ -676,7 +676,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 				}
 			} else if oFirstCell > nFirstCell {
 				firstCell = nFirstCell
-			} else {
+			} else /* if oFirstCell < nFirstCell */ {
 				firstCell = oFirstCell
 				if el1 := ansi.EraseLineLeft; len(el1) < nFirstCell-oFirstCell {
 					if nFirstCell >= s.newbuf.Width() {
@@ -806,7 +806,6 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 				}
 			} else if oLastCell > nLastCell {
 				s.move(w, n+1, y)
-				s.clearToEnd(w, blank, false)
 				dch := ansi.DeleteCharacter(oLastCell - nLastCell)
 				if len(dch) > len(ansi.EraseLineRight)+nLastNonBlank-(n+1) {
 					if s.putRange(w, oldLine, newLine, y, n+1, nLastNonBlank) {
@@ -825,7 +824,9 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 
 	// Update the old line with the new line
 	if s.newbuf.Width() > firstCell {
-		copy(oldLine[firstCell:], newLine[firstCell:])
+		from := clamp(firstCell, 0, len(oldLine)-1)
+		to := clamp(nLastCell, 0, len(oldLine)-1)
+		copy(oldLine[from:], newLine[to:])
 	}
 }
 
