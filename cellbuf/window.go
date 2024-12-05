@@ -1168,7 +1168,9 @@ func (s *Screen) Resize(width, height int) bool {
 // InsertAbove inserts string above the screen. The inserted string is not
 // managed by the screen.
 func (s *Screen) InsertAbove(str string) {
+	s.mu.Lock()
 	s.queueAbove = append(s.queueAbove, strings.Split(str, "\n")...)
+	s.mu.Unlock()
 }
 
 // newWindow creates a new window.
