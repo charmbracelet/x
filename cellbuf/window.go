@@ -1136,6 +1136,8 @@ func (s *Screen) Resize(width, height int) bool {
 
 	s.newbuf.Resize(width, height)
 
+	s.opts.Width, s.opts.Height = width, height
+
 	return true
 }
 
