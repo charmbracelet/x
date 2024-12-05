@@ -1171,8 +1171,12 @@ func (s *Screen) Resize(width, height int) bool {
 }
 
 // InsertAbove inserts string above the screen. The inserted string is not
-// managed by the screen.
+// managed by the screen. This does nothing when alternate screen mode is
+// enabled.
 func (s *Screen) InsertAbove(str string) {
+	if s.opts.AltScreen {
+		return
+	}
 	s.mu.Lock()
 	s.queueAbove = append(s.queueAbove, strings.Split(str, "\n")...)
 	s.mu.Unlock()
