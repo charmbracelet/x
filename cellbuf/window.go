@@ -49,7 +49,8 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 			if cud := ansi.CursorDown(n); yseq == "" || len(cud) < len(yseq) {
 				yseq = cud
 			}
-			if lf := strings.Repeat("\n", n); yseq == "" || fy+n < s.newbuf.Height() && len(lf) < len(yseq) {
+			shouldScroll := !s.opts.AltScreen && fy+n >= s.newbuf.Height()
+			if lf := strings.Repeat("\n", n); yseq == "" || shouldScroll || fy+n < s.newbuf.Height() && len(lf) < len(yseq) {
 				// TODO: Ensure we're not unintentionally scrolling the screen down.
 				yseq = lf
 			}
@@ -823,10 +824,8 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 	}
 
 	// Update the old line with the new line
-	if s.newbuf.Width() > firstCell {
-		from := clamp(firstCell, 0, len(oldLine)-1)
-		to := clamp(nLastCell, 0, len(oldLine)-1)
-		copy(oldLine[from:], newLine[to:])
+	if s.newbuf.Width() > firstCell && len(oldLine) != 0 {
+		copy(oldLine[firstCell:], newLine[firstCell:])
 	}
 }
 
