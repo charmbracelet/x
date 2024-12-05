@@ -252,8 +252,9 @@ type ScreenOptions struct {
 // Screen represents the terminal screen.
 type Screen struct {
 	w             io.Writer
-	curbuf        *Buffer // the current buffer
-	newbuf        *Buffer // the new buffer
+	curbuf        *Buffer  // the current buffer
+	newbuf        *Buffer  // the new buffer
+	queueAbove    []string // the queue of strings to write above the screen
 	dirty         map[int][2]int
 	cur, saved    Cursor // the current and saved cursors
 	opts          ScreenOptions
@@ -1005,6 +1006,29 @@ func (s *Screen) render(b *bytes.Buffer) {
 		b.WriteString(ansi.HideCursor)
 	}
 
+	// Do we have queued strings to write above the screen?
+	if len(s.queueAbove) > 0 {
+		// TODO: Use scrolling region if available.
+		// TODO: Use [Screen.Write] [io.Writer] interface.
+
+		// We need to scroll the screen up by the number of lines in the queue.
+		// We can't use [ansi.SU] because we want the cursor to move down until
+		// it reaches the bottom of the screen.
+		s.moveCursor(b, 0, s.newbuf.Height()-1, false)
+		b.WriteString(strings.Repeat("\n", len(s.queueAbove)))
+		s.cur.Y += len(s.queueAbove)
+		// Now go to the top of the screen, insert new lines, and write the
+		// queued strings.
+		s.moveCursor(b, 0, 0, false)
+		b.WriteString(ansi.InsertLine(len(s.queueAbove)))
+		for _, line := range s.queueAbove {
+			b.WriteString(line + "\r\n")
+		}
+
+		// Clear the queue
+		s.queueAbove = s.queueAbove[:0]
+	}
+
 	var nonEmpty int
 
 	// Force clear?
@@ -1139,6 +1163,12 @@ func (s *Screen) Resize(width, height int) bool {
 	s.opts.Width, s.opts.Height = width, height
 
 	return true
+}
+
+// InsertAbove inserts string above the screen. The inserted string is not
+// managed by the screen.
+func (s *Screen) InsertAbove(str string) {
+	s.queueAbove = append(s.queueAbove, strings.Split(str, "\n")...)
 }
 
 // newWindow creates a new window.
