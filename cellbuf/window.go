@@ -533,7 +533,7 @@ func (s *Screen) putRange(w *bytes.Buffer, oldLine, newLine Line, y, start, end 
 		var j, same int
 		for j, same = start, 0; j <= end; j++ {
 			oldCell, newCell := oldLine.At(j), newLine.At(j)
-			if same > 0 && oldCell != nil && oldCell.Empty() {
+			if same == 0 && oldCell != nil && oldCell.Empty() {
 				continue
 			}
 			if cellEqual(oldCell, newCell) {
@@ -541,7 +541,7 @@ func (s *Screen) putRange(w *bytes.Buffer, oldLine, newLine Line, y, start, end 
 			} else {
 				if same > end-start {
 					s.emitRange(w, newLine[start:], j-same-start)
-					s.move(w, y, start)
+					s.move(w, y, j)
 					start = j
 				}
 				same = 0
@@ -565,23 +565,20 @@ func (s *Screen) putRange(w *bytes.Buffer, oldLine, newLine Line, y, start, end 
 // line.
 func (s *Screen) clearToEnd(w *bytes.Buffer, blank *Cell, force bool) {
 	if s.cur.Y >= 0 {
+		curline := s.curbuf.Line(s.cur.Y)
 		for j := s.cur.X; j < s.curbuf.Width(); j++ {
-			c := s.curbuf.Cell(j, s.cur.Y)
-			if c != nil && !c.Equal(blank) {
-				c = blank
-				force = true
-				break
+			if j >= 0 {
+				c := curline.At(j)
+				if !cellEqual(c, blank) {
+					curline.Set(j, blank)
+					force = true
+				}
 			}
 		}
 	}
 
-	if blank == nil {
-		blank = &BlankCell
-	}
-
 	if force {
 		s.updatePen(w, blank)
-
 		count := s.newbuf.Width() - s.cur.X
 		eraseRight := ansi.EraseLineRight
 		if len(eraseRight) <= count {
@@ -679,7 +676,8 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 				firstCell = nFirstCell
 			} else /* if oFirstCell < nFirstCell */ {
 				firstCell = oFirstCell
-				if el1 := ansi.EraseLineLeft; len(el1) < nFirstCell-oFirstCell {
+				el1Cost := len(ansi.EraseLineLeft)
+				if el1Cost < nFirstCell-oFirstCell {
 					if nFirstCell >= s.newbuf.Width() {
 						s.move(w, 0, y)
 						s.updatePen(w, blank)
@@ -687,7 +685,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 					} else {
 						s.move(w, nFirstCell-1, y)
 						s.updatePen(w, blank)
-						w.WriteString(el1)
+						w.WriteString(ansi.EraseLineLeft)
 					}
 
 					for firstCell < nFirstCell {
@@ -708,7 +706,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 			return
 		}
 
-		blank = newLine[s.newbuf.Width()-1]
+		blank = newLine.At(s.newbuf.Width() - 1)
 		if blank != nil && !blank.Clear() {
 			// Find the last differing cell
 			nLastCell = s.newbuf.Width() - 1
@@ -737,8 +735,8 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 			nLastCell--
 		}
 
-		el0 := ansi.EraseLineRight
-		if nLastCell == firstCell && len(el0) < oLastCell-nLastCell {
+		el0Cost := len(ansi.EraseLineRight)
+		if nLastCell == firstCell && el0Cost < oLastCell-nLastCell {
 			s.move(w, firstCell, y)
 			if !cellEqual(newLine.At(firstCell), blank) {
 				s.putCell(w, newLine.At(firstCell))
@@ -747,7 +745,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 		} else if nLastCell != oLastCell &&
 			!cellEqual(newLine.At(nLastCell), oldLine.At(oLastCell)) {
 			s.move(w, firstCell, y)
-			if oLastCell-nLastCell > len(el0) {
+			if oLastCell-nLastCell > el0Cost {
 				if s.putRange(w, oldLine, newLine, y, firstCell, nLastCell) {
 					s.move(w, nLastCell, y)
 				}
@@ -784,7 +782,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 				if n != 0 {
 					for n > 0 {
 						wide := newLine.At(n + 1)
-						if wide == nil || wide.Rune != 0 || wide.Width != 0 {
+						if wide == nil || !wide.Empty() {
 							break
 						}
 						n--
@@ -799,25 +797,23 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 				}
 
 				s.move(w, n+1, y)
-				ich := ansi.InsertCharacter(nLastCell - oLastCell)
-				if s.xtermLike && (nLastCell < nLastNonBlank || len(ich) > (m-n)) {
+				ichCost := 3 + nLastCell - oLastCell
+				if s.xtermLike && (nLastCell < nLastNonBlank || ichCost > (m-n)) {
 					s.putRange(w, oldLine, newLine, y, n+1, m)
 				} else {
 					s.insertCells(w, newLine[n+1:], nLastCell-oLastCell)
 				}
 			} else if oLastCell > nLastCell {
 				s.move(w, n+1, y)
-				dch := ansi.DeleteCharacter(oLastCell - nLastCell)
-				if len(dch) > len(ansi.EraseLineRight)+nLastNonBlank-(n+1) {
+				dchCost := 3 + oLastCell - nLastCell
+				if dchCost > len(ansi.EraseLineRight)+nLastNonBlank-(n+1) {
 					if s.putRange(w, oldLine, newLine, y, n+1, nLastNonBlank) {
 						s.move(w, nLastNonBlank+1, y)
 					}
 					s.clearToEnd(w, blank, false)
 				} else {
-					// [ansi.DCH] will shift in cells from the right margin so we need to
-					// ensure that they are the right style.
 					s.updatePen(w, blank)
-					w.WriteString(dch)
+					s.deleteCells(w, oLastCell-nLastCell)
 				}
 			}
 		}
@@ -827,6 +823,14 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 	if s.newbuf.Width() > firstCell && len(oldLine) != 0 {
 		copy(oldLine[firstCell:], newLine[firstCell:])
 	}
+}
+
+// deleteCells deletes the count cells at the current cursor position and moves
+// the rest of the line to the left. This is equivalent to [ansi.DCH].
+func (s *Screen) deleteCells(w *bytes.Buffer, count int) {
+	// [ansi.DCH] will shift in cells from the right margin so we need to
+	// ensure that they are the right style.
+	w.WriteString(ansi.DeleteCharacter(count))
 }
 
 // clearToBottom clears the screen from the current cursor position to the end
@@ -952,7 +956,7 @@ func (s *Screen) render(b *bytes.Buffer) {
 	if s.clear {
 		s.clearUpdate(b, partialClear)
 		s.clear = false
-	} else {
+	} else if len(s.dirty) > 0 {
 		var changedLines int
 		var i int
 
@@ -992,7 +996,7 @@ func (s *Screen) render(b *bytes.Buffer) {
 		}
 	}
 
-	s.updatePen(b, nil)
+	s.updatePen(b, nil) // nil indicates a blank cell with no styles
 }
 
 // Close writes the final screen update and resets the screen.
@@ -1002,9 +1006,9 @@ func (s *Screen) Close() (err error) {
 
 	b := new(bytes.Buffer)
 	s.render(b)
-	s.updatePen(b, &BlankCell)
+	s.updatePen(b, nil)
 	s.move(b, 0, s.newbuf.Height()-1)
-	s.clearToEnd(b, &BlankCell, true)
+	s.clearToEnd(b, nil, true)
 
 	// TODO: Set cursor to visible if needed.
 	// TODO: Exit alternate screen buffer if needed.
