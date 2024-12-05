@@ -484,7 +484,10 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 				return true // cursor in the middle
 			}
 		} else if runes := cellRunes(cell0); s.xtermLike && count > len(rep) &&
-			len(runes) == 1 {
+			len(runes) == 1 && runes[0] < 256 {
+			// We only support ASCII characters. Most terminals will handle
+			// non-ASCII characters correctly, but some might not.
+			//
 			// NOTE: [ansi.REP] only repeats the last rune and won't work
 			// if the last cell contains multiple runes.
 
