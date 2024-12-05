@@ -245,23 +245,56 @@ type ScreenOptions struct {
 	RelativeCursor bool
 	// AltScreen is whether to use the alternate screen buffer.
 	AltScreen bool
+	// ShowCursor is whether to show the cursor.
+	ShowCursor bool
 }
 
 // Screen represents the terminal screen.
 type Screen struct {
-	w         io.Writer
-	curbuf    *Buffer        // the current buffer
-	newbuf    *Buffer        // the new buffer
-	dirty     map[int][2]int // map of the first and last changed cells in a row
-	cur       Cursor         // the current cursor
-	opts      ScreenOptions
-	mu        sync.Mutex
-	lastChar  rune // the last character written to the screen
-	clear     bool // whether to force clear the screen
-	xtermLike bool // whether to use xterm-like optimizations, otherwise, it uses vt100 only
+	w             io.Writer
+	curbuf        *Buffer // the current buffer
+	newbuf        *Buffer // the new buffer
+	dirty         map[int][2]int
+	cur, saved    Cursor // the current and saved cursors
+	opts          ScreenOptions
+	mu            sync.Mutex
+	lastChar      rune // the last character written to the screen
+	altScreenMode bool // whether alternate screen mode is enabled
+	cursorHidden  bool // whether text cursor mode is enabled
+	clear         bool // whether to force clear the screen
+	xtermLike     bool // whether to use xterm-like optimizations, otherwise, it uses vt100 only
 }
 
 var _ Window = &Screen{}
+
+// SetRelativeCursor sets whether to use relative cursor movements.
+func (s *Screen) SetRelativeCursor(v bool) {
+	s.opts.RelativeCursor = v
+}
+
+// EnterAltScreen enters the alternate screen buffer.
+func (s *Screen) EnterAltScreen() {
+	s.opts.AltScreen = true
+	s.clear = true
+	s.saved = s.cur
+}
+
+// ExitAltScreen exits the alternate screen buffer.
+func (s *Screen) ExitAltScreen() {
+	s.opts.AltScreen = false
+	s.clear = true
+	s.cur = s.saved
+}
+
+// ShowCursor shows the cursor.
+func (s *Screen) ShowCursor() {
+	s.opts.ShowCursor = true
+}
+
+// HideCursor hides the cursor.
+func (s *Screen) HideCursor() {
+	s.opts.ShowCursor = false
+}
 
 // Bounds implements Window.
 func (s *Screen) Bounds() Rectangle {
@@ -947,6 +980,31 @@ func (s *Screen) Render() {
 }
 
 func (s *Screen) render(b *bytes.Buffer) {
+	// Do we need alt-screen mode?
+	if s.opts.AltScreen != s.altScreenMode {
+		if s.opts.AltScreen {
+			b.WriteString(ansi.SetAltScreenSaveCursorMode)
+		} else {
+			b.WriteString(ansi.ResetAltScreenSaveCursorMode)
+		}
+		s.altScreenMode = s.opts.AltScreen
+	}
+
+	// Do we need text cursor mode?
+	if s.opts.ShowCursor != !s.cursorHidden {
+		if !s.opts.ShowCursor {
+			b.WriteString(ansi.HideCursor)
+		} else {
+			b.WriteString(ansi.ShowCursor)
+		}
+		s.cursorHidden = !s.opts.ShowCursor
+	}
+
+	// Is the cursor visible? If so, disable it while rendering.
+	if s.opts.ShowCursor && !s.cursorHidden {
+		b.WriteString(ansi.HideCursor)
+	}
+
 	var nonEmpty int
 
 	// Force clear?
@@ -1011,8 +1069,15 @@ func (s *Screen) Close() (err error) {
 	s.move(b, 0, s.newbuf.Height()-1)
 	s.clearToEnd(b, nil, true)
 
-	// TODO: Set cursor to visible if needed.
-	// TODO: Exit alternate screen buffer if needed.
+	if s.cursorHidden {
+		b.WriteString(ansi.ShowCursor)
+		s.cursorHidden = false
+	}
+
+	if s.altScreenMode {
+		b.WriteString(ansi.ResetAltScreenSaveCursorMode)
+		s.altScreenMode = false
+	}
 
 	// Write the buffer
 	_, err = s.w.Write(b.Bytes())
@@ -1027,11 +1092,14 @@ func (s *Screen) Close() (err error) {
 // reset resets the screen to its initial state.
 func (s *Screen) reset() {
 	s.lastChar = -1
+	s.cursorHidden = false
+	s.altScreenMode = false
 	if s.opts.RelativeCursor {
 		s.cur = Cursor{}
 	} else {
 		s.cur = Cursor{Position: Position{X: -1, Y: -1}}
 	}
+	s.saved = s.cur
 	s.dirty = make(map[int][2]int)
 	if s.curbuf != nil {
 		s.curbuf.Clear()

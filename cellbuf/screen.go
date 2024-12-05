@@ -18,7 +18,7 @@ type Segment struct {
 
 // Paint writes the given data to the canvas. If rect is not nil, it only
 // writes to the rectangle. Otherwise, it writes to the whole canvas.
-func Paint(d Drawable, m Method, content string, rect Rectangle) []int {
+func Paint(d Window, m Method, content string, rect Rectangle) []int {
 	return setContent(d, content, m, rect)
 }
 

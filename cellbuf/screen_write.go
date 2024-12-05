@@ -9,15 +9,10 @@ import (
 	"github.com/charmbracelet/x/wcwidth"
 )
 
-// Drawable is an interface for objects that can be drawn to a buffer.
-type Drawable interface {
-	Draw(x, y int, c *Cell) bool
-}
-
 // setContent writes the given data to the buffer starting from the first cell.
 // It accepts both string and []byte data types.
 func setContent(
-	d Drawable,
+	d Window,
 	data string,
 	method Method,
 	rect Rectangle,
@@ -134,10 +129,12 @@ func setContent(
 		data = data[n:]
 	}
 
-	for x < rect.X()+rect.Width() {
-		d.Draw(x, y, nil) //nolint:errcheck
-		x++
-	}
+	// Clear the rest of the row
+	d.ClearInRect(Rect(x, y, rect.Width(), 1))
+
+	y++
+	// Clear the rest of the lines
+	d.ClearInRect(Rect(rect.X(), y, rect.Width(), rect.Height()))
 
 	return linew
 }
