@@ -74,7 +74,7 @@ func setContent(
 				}
 			}
 
-			if x+width >= rect.X()+rect.Width() || y >= rect.Y()+rect.Height() {
+			if x+width > rect.X()+rect.Width() || y > rect.Y()+rect.Height() {
 				break
 			}
 
@@ -111,16 +111,13 @@ func setContent(
 				}
 			case ansi.Equal(seq, "\n"):
 				// Reset the rest of the line
-				for x < rect.X()+rect.Width() {
-					d.Draw(x, y, nil) //nolint:errcheck
-					x++
-				}
+				d.ClearInRect(Rect(x, y, rect.X()+rect.Width(), rect.Y()+rect.Height()))
 
 				y++
 				// XXX: We gotta reset the x position here because we're moving
 				// to the next line. We shouldn't have any "\r\n" sequences,
 				// those are replaced above.
-				x = 0
+				x = rect.X()
 			}
 		}
 
@@ -129,12 +126,11 @@ func setContent(
 		data = data[n:]
 	}
 
-	// Clear the rest of the row
-	d.ClearInRect(Rect(x, y, rect.Width(), 1))
-
 	y++
-	// Clear the rest of the lines
-	d.ClearInRect(Rect(rect.X(), y, rect.Width(), rect.Height()))
+	if y < rect.Height() {
+		// Clear the rest of the lines
+		d.ClearInRect(Rect(rect.X(), y, rect.X()+rect.Width(), rect.Y()+rect.Height()))
+	}
 
 	return linew
 }
