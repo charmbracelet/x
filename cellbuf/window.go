@@ -993,18 +993,11 @@ func (s *Screen) render(b *bytes.Buffer) {
 	}
 
 	// Do we need text cursor mode?
-	if s.opts.ShowCursor != !s.cursorHidden {
-		if !s.opts.ShowCursor {
-			b.WriteString(ansi.HideCursor)
-		} else {
-			b.WriteString(ansi.ShowCursor)
-		}
+	if !s.opts.ShowCursor != s.cursorHidden {
 		s.cursorHidden = !s.opts.ShowCursor
-	}
-
-	// Is the cursor visible? If so, disable it while rendering.
-	if s.opts.ShowCursor && !s.cursorHidden {
-		b.WriteString(ansi.HideCursor)
+		if s.cursorHidden {
+			b.WriteString(ansi.HideCursor)
+		}
 	}
 
 	// Do we have queued strings to write above the screen?
@@ -1081,6 +1074,17 @@ func (s *Screen) render(b *bytes.Buffer) {
 	}
 
 	s.updatePen(b, nil) // nil indicates a blank cell with no styles
+
+	if b.Len() > 0 {
+		// Is the cursor visible? If so, disable it while rendering.
+		if s.opts.ShowCursor && !s.cursorHidden {
+			nb := new(bytes.Buffer)
+			nb.WriteString(ansi.HideCursor)
+			nb.Write(b.Bytes())
+			nb.WriteString(ansi.ShowCursor)
+			*b = *nb
+		}
+	}
 }
 
 // Close writes the final screen update and resets the screen.
