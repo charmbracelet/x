@@ -310,6 +310,7 @@ func (s *Screen) Cell(x int, y int) *Cell {
 
 // Clear implements Window.
 func (s *Screen) Clear() bool {
+	s.clear = true
 	return s.ClearInRect(s.newbuf.Bounds())
 }
 
