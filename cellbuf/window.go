@@ -255,7 +255,7 @@ type Screen struct {
 	curbuf        *Buffer  // the current buffer
 	newbuf        *Buffer  // the new buffer
 	queueAbove    []string // the queue of strings to write above the screen
-	dirty         map[int][2]int
+	touch         map[int][2]int
 	cur, saved    Cursor // the current and saved cursors
 	opts          ScreenOptions
 	mu            sync.Mutex
@@ -319,7 +319,7 @@ func (s *Screen) ClearInRect(r Rectangle) bool {
 	s.newbuf.ClearInRect(r)
 	s.mu.Lock()
 	for i := r.Min.Y; i < r.Max.Y; i++ {
-		s.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
+		s.touch[i] = [2]int{r.Min.X, r.Width() - 1}
 	}
 	s.mu.Unlock()
 	return true
@@ -333,10 +333,10 @@ func (s *Screen) Draw(x int, y int, cell *Cell) (v bool) {
 	}
 
 	s.mu.Lock()
-	chg := s.dirty[y]
+	chg := s.touch[y]
 	chg[0] = min(chg[0], x)
 	chg[1] = max(chg[1], x+cellWidth)
-	s.dirty[y] = chg
+	s.touch[y] = chg
 	s.mu.Unlock()
 
 	return s.newbuf.Draw(x, y, cell)
@@ -352,7 +352,7 @@ func (s *Screen) FillInRect(cell *Cell, r Rectangle) bool {
 	s.newbuf.FillInRect(cell, r)
 	s.mu.Lock()
 	for i := r.Min.Y; i < r.Max.Y; i++ {
-		s.dirty[i] = [2]int{r.Min.X, r.Max.X - 1}
+		s.touch[i] = [2]int{r.Min.X, r.Width() - 1}
 	}
 	s.mu.Unlock()
 	return true
@@ -1033,7 +1033,7 @@ func (s *Screen) render(b *bytes.Buffer) {
 	if s.clear {
 		s.clearUpdate(b, partialClear)
 		s.clear = false
-	} else if len(s.dirty) > 0 {
+	} else if len(s.touch) > 0 {
 		var changedLines int
 		var i int
 
@@ -1045,8 +1045,8 @@ func (s *Screen) render(b *bytes.Buffer) {
 
 		nonEmpty = s.clearBottom(b, nonEmpty, partialClear)
 		for i = 0; i < nonEmpty; i++ {
-			_, dirty := s.dirty[i]
-			if dirty {
+			_, wasTouched := s.touch[i]
+			if wasTouched {
 				s.transformLine(b, i)
 				changedLines++
 			}
@@ -1054,13 +1054,13 @@ func (s *Screen) render(b *bytes.Buffer) {
 
 		// Mark changed lines
 		if i <= s.newbuf.Height() {
-			delete(s.dirty, i)
+			delete(s.touch, i)
 		}
 	}
 
 	// Sync windows and screen
 	for i := 0; i <= s.newbuf.Height(); i++ {
-		delete(s.dirty, i)
+		delete(s.touch, i)
 	}
 
 	if s.curbuf.Width() != s.newbuf.Width() || s.curbuf.Height() != s.newbuf.Height() {
@@ -1129,7 +1129,7 @@ func (s *Screen) reset() {
 		s.cur = Cursor{Position: Position{X: -1, Y: -1}}
 	}
 	s.saved = s.cur
-	s.dirty = make(map[int][2]int)
+	s.touch = make(map[int][2]int)
 	if s.curbuf != nil {
 		s.curbuf.Clear()
 	}
