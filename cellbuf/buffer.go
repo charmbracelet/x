@@ -66,7 +66,7 @@ func (l Line) String() (s string) {
 		} else if c.Empty() {
 			continue
 		} else {
-			s += c.Content()
+			s += c.String()
 		}
 	}
 	s = strings.TrimRight(s, " ")

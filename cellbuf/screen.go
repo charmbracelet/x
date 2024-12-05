@@ -72,11 +72,11 @@ func renderLine(d *Buffer, n int, opt Options) (w int, line string) {
 			// We only write the cell content if it's not empty. If it is, we
 			// append it to the pending line and width to be evaluated later.
 			if cell.Equal(&BlankCell) {
-				pendingLine += cell.Content()
+				pendingLine += cell.String()
 				pendingWidth += cell.Width
 			} else {
 				writePending()
-				buf.WriteString(cell.Content())
+				buf.WriteString(cell.String())
 				w += cell.Width
 			}
 		}

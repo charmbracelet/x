@@ -101,7 +101,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 				for i := 0; i < n; i++ {
 					cell := s.newbuf.Cell(fx+i, ty)
 					if cell != nil {
-						ovw += cell.Content()
+						ovw += cell.String()
 						i += cell.Width - 1
 					} else {
 						ovw += " "
@@ -443,7 +443,7 @@ func (s *Screen) putCell(w *bytes.Buffer, cell *Cell) {
 	}
 
 	s.updatePen(w, cell)
-	w.WriteString(cell.Content())
+	w.WriteString(cell.String())
 	s.cur.X += cell.Width
 	s.lastChar = cell.Rune
 

@@ -217,7 +217,7 @@ func (opt Options) Diff(b, prev *Buffer) (diff []Span) {
 			if span.X+span.Width == x &&
 				span.Style.Equal(cellB.Style) &&
 				span.Link == cellB.Link {
-				span.Content += cellB.Content()
+				span.Content += cellB.String()
 				span.Width += cellB.Width
 				continue
 			}

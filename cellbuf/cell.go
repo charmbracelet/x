@@ -22,11 +22,6 @@ type Cell struct {
 	// Link is the hyperlink of the cell.
 	Link Link
 
-	// TODO: Is it worth it changing this to a single rune with combining
-	// runes? Most of the time, we're only dealing with single runes anyway.
-	// It's more efficient to use a single rune and combining runes when
-	// necessary than allocating a new string for each cell.
-
 	// Comb is the combining runes of the cell. This is nil if the cell is a
 	// single rune or if it's a zero width cell that is part of a wider cell.
 	Comb []rune
@@ -39,8 +34,9 @@ type Cell struct {
 	Width int
 }
 
-// Content returns the content of the cell as a string.
-func (c Cell) Content() string {
+// String returns the string content of the cell excluding any styles, links,
+// and escape sequences.
+func (c Cell) String() string {
 	if len(c.Comb) == 0 {
 		return string(c.Rune)
 	}
@@ -100,7 +96,7 @@ func (c *Cell) Blank() *Cell {
 // Segment returns a segment of the cell.
 func (c *Cell) Segment() Segment {
 	return Segment{
-		Content: c.Content(),
+		Content: c.String(),
 		Style:   c.Style,
 		Link:    c.Link,
 	}
