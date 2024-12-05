@@ -595,15 +595,13 @@ func (s *Screen) clearToEnd(w *bytes.Buffer, blank *Cell, force bool) {
 }
 
 // clearBlank returns a blank cell based on the current cursor background color.
-func (s *Screen) clearBlank() (c *Cell) {
-	c = &BlankCell
+func (s *Screen) clearBlank() *Cell {
+	c := BlankCell
 	if !s.cur.Style.Empty() || !s.cur.Link.Empty() {
-		c = new(Cell)
-		*c = BlankCell
 		c.Style = s.cur.Style
 		c.Link = s.cur.Link
 	}
-	return
+	return &c
 }
 
 // insertCells inserts the count cells pointed by the given line at the current
@@ -647,7 +645,7 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 	const ceolStandoutGlitch = false
 	if ceolStandoutGlitch && lineChanged {
 		s.move(w, 0, y)
-		s.clearToEnd(w, s.clearBlank(), false)
+		s.clearToEnd(w, nil, false)
 		s.putRange(w, oldLine, newLine, y, 0, s.newbuf.Width()-1)
 	} else {
 		blank := newLine.At(0)
