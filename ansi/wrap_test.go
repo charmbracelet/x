@@ -181,7 +181,7 @@ var wrapCases = []struct {
 	{
 		name:     "extra space style",
 		input:    "\x1b[mfoo \x1b[m",
-		expected: "\x1b[mfoo\n \x1b[m",
+		expected: "\x1b[mfoo\x1b[m",
 		width:    3,
 	},
 	{
