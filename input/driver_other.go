@@ -6,7 +6,7 @@ package input
 // ReadEvents reads input events from the terminal.
 //
 // It reads the events available in the input buffer and returns them.
-func (d *driver) ReadEvents() ([]Event, error) {
+func (d *Reader) ReadEvents() ([]Event, error) {
 	return d.readEvents()
 }
 

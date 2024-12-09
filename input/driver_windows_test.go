@@ -127,7 +127,7 @@ func TestWindowsInputEvents(t *testing.T) {
 	}
 
 	// p is the parser to parse the input events
-	var p inputParser
+	var p Parser
 
 	// keep track of the state of the driver to handle ANSI sequences and utf16
 	var state win32InputState

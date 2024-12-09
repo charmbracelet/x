@@ -351,7 +351,7 @@ func TestReadLongInput(t *testing.T) {
 		expect[i] = KeyPressEvent{Code: 'a', Text: "a"}
 	}
 	input := strings.Repeat("a", 1000)
-	drv, err := newDriver(strings.NewReader(input), "dumb", 0)
+	drv, err := NewReader(strings.NewReader(input), "dumb", 0)
 	if err != nil {
 		t.Fatalf("unexpected input driver error: %v", err)
 	}
@@ -644,7 +644,7 @@ func testReadInputs(t *testing.T, input io.Reader) []Event {
 		}
 	}()
 
-	dr, err := newDriver(input, "dumb", 0)
+	dr, err := NewReader(input, "dumb", 0)
 	if err != nil {
 		t.Fatalf("unexpected input driver error: %v", err)
 	}

@@ -26,10 +26,10 @@ type win32InputState struct {
 	lastWinsizeX, lastWinsizeY int16  // the last window size for the previous event to prevent multiple size events from firing
 }
 
-// driver represents an ANSI terminal input driver.
-// It reads input events and parses ANSI sequences from the terminal input
-// buffer.
-type driver struct {
+// Reader represents an input event reader. It reads input events and parses
+// escape sequences from the terminal input buffer and translates them into
+// human-readable events.
+type Reader struct {
 	rd    cancelreader.CancelReader
 	table map[string]Key // table is a lookup table for key sequences.
 
@@ -49,35 +49,48 @@ type driver struct {
 	trace  bool // trace enables input tracing and logging.
 }
 
-// newDriver returns a new ANSI input driver.
-// This driver uses ANSI control codes compatible with VT100/VT200 terminals,
-// and XTerm. It supports reading Terminfo databases to overwrite the default
-// key sequences.
-func newDriver(r io.Reader, term string, flags int) (*driver, error) {
-	d := new(driver)
+// NewReader returns a new input event reader. The reader reads input events
+// from the terminal and parses escape sequences into human-readable events. It
+// supports reading Terminfo databases. See [Parser] for more information.
+//
+// Example:
+//
+//	r, _ := input.NewReader(os.Stdin, os.Getenv("TERM"), 0)
+//	defer r.Close()
+//	events, _ := r.ReadEvents()
+//	for _, ev := range events {
+//	  log.Printf("%v", ev)
+//	}
+func NewReader(r io.Reader, termType string, flags int) (*Reader, error) {
+	d := new(Reader)
 	cr, err := newCancelreader(r)
 	if err != nil {
 		return nil, err
 	}
 
 	d.rd = cr
-	d.table = buildKeysTable(flags, term)
-	d.term = term
+	d.table = buildKeysTable(flags, termType)
+	d.term = termType
 	d.parser.flags = flags
 	return d, nil
 }
 
+// Read implements [io.Reader].
+func (d *Reader) Read(p []byte) (int, error) {
+	return d.rd.Read(p)
+}
+
 // Cancel cancels the underlying reader.
-func (d *driver) Cancel() bool {
+func (d *Reader) Cancel() bool {
 	return d.rd.Cancel()
 }
 
 // Close closes the underlying reader.
-func (d *driver) Close() error {
+func (d *Reader) Close() error {
 	return d.rd.Close()
 }
 
-func (d *driver) readEvents() (Events []Event, err error) {
+func (d *Reader) readEvents() (Events []Event, err error) {
 	nb, err := d.rd.Read(d.buf[:])
 	if err != nil {
 		return nil, err

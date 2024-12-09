@@ -19,7 +19,7 @@ import (
 // ReadEvents reads input events from the terminal.
 //
 // It reads the events available in the input buffer and returns them.
-func (d *driver) ReadEvents() ([]Event, error) {
+func (d *Reader) ReadEvents() ([]Event, error) {
 	events, err := d.handleConInput(readConsoleInput)
 	if errors.Is(err, errNotConInputReader) {
 		return d.readEvents()
@@ -29,7 +29,7 @@ func (d *driver) ReadEvents() ([]Event, error) {
 
 var errNotConInputReader = fmt.Errorf("handleConInput: not a conInputReader")
 
-func (d *driver) handleConInput(
+func (d *Reader) handleConInput(
 	finput func(windows.Handle, []xwindows.InputRecord) (uint32, error),
 ) ([]Event, error) {
 	cc, ok := d.rd.(*conInputReader)
@@ -59,7 +59,7 @@ func (d *driver) handleConInput(
 	return evs, nil
 }
 
-func (p *inputParser) parseConInputEvent(event xwindows.InputRecord, keyState *win32InputState) Event {
+func (p *Parser) parseConInputEvent(event xwindows.InputRecord, keyState *win32InputState) Event {
 	switch event.EventType {
 	case xwindows.KEY_EVENT:
 		kevent := event.KeyEvent()
@@ -213,7 +213,7 @@ func peekConsoleInput(console windows.Handle, inputRecords []xwindows.InputRecor
 // an event from win32-input-mode. Otherwise, it's a key event from the Windows
 // Console API and needs a state to decode ANSI escape sequences and utf16
 // runes.
-func (p *inputParser) parseWin32InputKeyEvent(state *win32InputState, vkc uint16, _ uint16, r rune, keyDown bool, cks uint32, repeatCount uint16) (Event Event) {
+func (p *Parser) parseWin32InputKeyEvent(state *win32InputState, vkc uint16, _ uint16, r rune, keyDown bool, cks uint32, repeatCount uint16) (Event Event) {
 	defer func() {
 		// Respect the repeat count.
 		if repeatCount > 1 {
