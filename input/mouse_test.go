@@ -228,12 +228,12 @@ func TestParseX10MouseDownEvent(t *testing.T) {
 		{
 			name:     "button 10",
 			buf:      encode(0b1000_0010, 32, 16),
-			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseExtra1},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseButton10},
 		},
 		{
 			name:     "button 11",
 			buf:      encode(0b1000_0011, 32, 16),
-			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseExtra2},
+			expected: MouseClickEvent{X: 32, Y: 16, Button: MouseButton11},
 		},
 		// Combinations.
 		{
@@ -317,7 +317,7 @@ func TestParseSGRMouseEvent(t *testing.T) {
 				ansi.Parameter(x + 1),
 				ansi.Parameter(y + 1),
 			},
-			Cmd: ansi.Command(int(re) | ('<' << parser.MarkerShift)),
+			Cmd: ansi.Command(re) | ('<' << parser.MarkerShift),
 		}
 	}
 

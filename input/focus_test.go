@@ -5,7 +5,8 @@ import (
 )
 
 func TestFocus(t *testing.T) {
-	_, e := ParseSequence([]byte("\x1b[I"))
+	var p Parser
+	_, e := p.parseSequence([]byte("\x1b[I"))
 	switch e.(type) {
 	case FocusEvent:
 		// ok
@@ -15,7 +16,8 @@ func TestFocus(t *testing.T) {
 }
 
 func TestBlur(t *testing.T) {
-	_, e := ParseSequence([]byte("\x1b[O"))
+	var p Parser
+	_, e := p.parseSequence([]byte("\x1b[O"))
 	switch e.(type) {
 	case BlurEvent:
 		// ok

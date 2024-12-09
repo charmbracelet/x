@@ -1,12 +1,13 @@
 package input
 
-// PasteEvent is an event that is emitted when a terminal receives pasted text
+// PasteEvent is an message that is emitted when a terminal receives pasted text
 // using bracketed-paste.
 type PasteEvent string
 
-// PasteStartEvent is an event that is emitted when a terminal enters
-// bracketed-paste mode.
+// PasteStartEvent is an message that is emitted when the terminal starts the
+// bracketed-paste text
 type PasteStartEvent struct{}
 
-// PasteEvent is an event that is emitted when a terminal receives pasted text.
+// PasteEndEvent is an message that is emitted when the terminal ends the
+// bracketed-paste text.
 type PasteEndEvent struct{}

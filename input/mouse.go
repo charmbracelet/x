@@ -1,13 +1,13 @@
 package input
 
 import (
-	"regexp"
+	"fmt"
 
 	"github.com/charmbracelet/x/ansi"
 )
 
-// MouseButton represents the button that was pressed during a mouse event.
-type MouseButton byte
+// MouseButton represents the button that was pressed during a mouse message.
+type MouseButton = ansi.MouseButton
 
 // Mouse event buttons
 //
@@ -27,56 +27,67 @@ type MouseButton byte
 //
 // Other buttons are not supported.
 const (
-	MouseNone MouseButton = iota
-	MouseLeft
-	MouseMiddle
-	MouseRight
-	MouseWheelUp
-	MouseWheelDown
-	MouseWheelLeft
-	MouseWheelRight
-	MouseBackward
-	MouseForward
-	MouseExtra1
-	MouseExtra2
+	MouseNone       = ansi.MouseNone
+	MouseLeft       = ansi.MouseLeft
+	MouseMiddle     = ansi.MouseMiddle
+	MouseRight      = ansi.MouseRight
+	MouseWheelUp    = ansi.MouseWheelUp
+	MouseWheelDown  = ansi.MouseWheelDown
+	MouseWheelLeft  = ansi.MouseWheelLeft
+	MouseWheelRight = ansi.MouseWheelRight
+	MouseBackward   = ansi.MouseBackward
+	MouseForward    = ansi.MouseForward
+	MouseButton10   = ansi.MouseButton10
+	MouseButton11   = ansi.MouseButton11
 )
 
-var mouseButtons = map[MouseButton]string{
-	MouseNone:       "none",
-	MouseLeft:       "left",
-	MouseMiddle:     "middle",
-	MouseRight:      "right",
-	MouseWheelUp:    "wheelup",
-	MouseWheelDown:  "wheeldown",
-	MouseWheelLeft:  "wheelleft",
-	MouseWheelRight: "wheelright",
-	MouseBackward:   "backward",
-	MouseForward:    "forward",
-	MouseExtra1:     "button10",
-	MouseExtra2:     "button11",
+// MouseEvent represents a mouse message. This is a generic mouse message that
+// can represent any kind of mouse event.
+type MouseEvent interface {
+	fmt.Stringer
+
+	// Mouse returns the underlying mouse event.
+	Mouse() Mouse
 }
 
-// Mouse represents a Mouse event.
+// Mouse represents a Mouse message. Use [MouseEvent] to represent all mouse
+// messages.
+//
+// The X and Y coordinates are zero-based, with (0,0) being the upper left
+// corner of the terminal.
+//
+//	// Catch all mouse events
+//	switch Event := Event.(type) {
+//	case MouseEvent:
+//	    m := Event.Mouse()
+//	    fmt.Println("Mouse event:", m.X, m.Y, m)
+//	}
+//
+//	// Only catch mouse click events
+//	switch Event := Event.(type) {
+//	case MouseClickEvent:
+//	    fmt.Println("Mouse click event:", Event.X, Event.Y, Event)
+//	}
 type Mouse struct {
 	X, Y   int
 	Button MouseButton
 	Mod    KeyMod
 }
 
-// String implements fmt.Stringer.
+// String returns a string representation of the mouse message.
 func (m Mouse) String() (s string) {
-	if m.Mod.HasCtrl() {
+	if m.Mod.Contains(ModCtrl) {
 		s += "ctrl+"
 	}
-	if m.Mod.HasAlt() {
+	if m.Mod.Contains(ModAlt) {
 		s += "alt+"
 	}
-	if m.Mod.HasShift() {
+	if m.Mod.Contains(ModShift) {
 		s += "shift+"
 	}
 
-	str, ok := mouseButtons[m.Button]
-	if !ok {
+	str := m.Button.String()
+	if str == "" {
 		s += "unknown"
 	} else if str != "none" { // motion events don't have a button
 		s += str
@@ -88,31 +99,52 @@ func (m Mouse) String() (s string) {
 // MouseClickEvent represents a mouse button click event.
 type MouseClickEvent Mouse
 
-// String implements fmt.Stringer.
+// String returns a string representation of the mouse click event.
 func (e MouseClickEvent) String() string {
 	return Mouse(e).String()
+}
+
+// Mouse returns the underlying mouse event. This is a convenience method and
+// syntactic sugar to satisfy the [MouseEvent] interface, and cast the mouse
+// event to [Mouse].
+func (e MouseClickEvent) Mouse() Mouse {
+	return Mouse(e)
 }
 
 // MouseReleaseEvent represents a mouse button release event.
 type MouseReleaseEvent Mouse
 
-// String implements fmt.Stringer.
+// String returns a string representation of the mouse release event.
 func (e MouseReleaseEvent) String() string {
 	return Mouse(e).String()
 }
 
-// MouseWheelEvent represents a mouse wheel event.
+// Mouse returns the underlying mouse event. This is a convenience method and
+// syntactic sugar to satisfy the [MouseEvent] interface, and cast the mouse
+// event to [Mouse].
+func (e MouseReleaseEvent) Mouse() Mouse {
+	return Mouse(e)
+}
+
+// MouseWheelEvent represents a mouse wheel message event.
 type MouseWheelEvent Mouse
 
-// String implements fmt.Stringer.
+// String returns a string representation of the mouse wheel event.
 func (e MouseWheelEvent) String() string {
 	return Mouse(e).String()
+}
+
+// Mouse returns the underlying mouse event. This is a convenience method and
+// syntactic sugar to satisfy the [MouseEvent] interface, and cast the mouse
+// event to [Mouse].
+func (e MouseWheelEvent) Mouse() Mouse {
+	return Mouse(e)
 }
 
 // MouseMotionEvent represents a mouse motion event.
 type MouseMotionEvent Mouse
 
-// String implements fmt.Stringer.
+// String returns a string representation of the mouse motion event.
 func (e MouseMotionEvent) String() string {
 	m := Mouse(e)
 	if m.Button != 0 {
@@ -121,7 +153,12 @@ func (e MouseMotionEvent) String() string {
 	return m.String() + "motion"
 }
 
-var mouseSGRRegex = regexp.MustCompile(`(\d+);(\d+);(\d+)([Mm])`)
+// Mouse returns the underlying mouse event. This is a convenience method and
+// syntactic sugar to satisfy the [MouseEvent] interface, and cast the mouse
+// event to [Mouse].
+func (e MouseMotionEvent) Mouse() Mouse {
+	return Mouse(e)
+}
 
 // Parse SGR-encoded mouse events; SGR extended mouse events. SGR mouse events
 // look like:
@@ -137,10 +174,16 @@ var mouseSGRRegex = regexp.MustCompile(`(\d+);(\d+);(\d+)([Mm])`)
 //
 // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Extended-coordinates
 func parseSGRMouseEvent(csi *ansi.CsiSequence) Event {
-	b, _ := csi.Param(0, -1)
-	x, _ := csi.Param(1, -1)
-	y, _ := csi.Param(2, -1)
+	x, ok := csi.Param(1, 1)
+	if !ok {
+		x = 1
+	}
+	y, ok := csi.Param(2, 1)
+	if !ok {
+		y = 1
+	}
 	release := csi.Command() == 'm'
+	b, _ := csi.Param(0, 0)
 	mod, btn, _, isMotion := parseMouseButton(b)
 
 	// (1,1) is the upper left. We subtract 1 to normalize it to (0,0).

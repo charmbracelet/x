@@ -6,30 +6,35 @@ import (
 
 func parseXTermModifyOtherKeys(csi *ansi.CsiSequence) Event {
 	// XTerm modify other keys starts with ESC [ 27 ; <modifier> ; <code> ~
-	m, _ := csi.Param(1, 0)
-	mod := KeyMod(m - 1)
-	p, _ := csi.Param(2, 0)
-	r := rune(p)
+	xmod, _ := csi.Param(1, 1)
+	xrune, _ := csi.Param(2, 1)
+	mod := KeyMod(xmod - 1)
+	r := rune(xrune)
 
 	switch r {
 	case ansi.BS:
-		return KeyPressEvent{Mod: mod, Sym: KeyBackspace}
+		return KeyPressEvent{Mod: mod, Code: KeyBackspace}
 	case ansi.HT:
-		return KeyPressEvent{Mod: mod, Sym: KeyTab}
+		return KeyPressEvent{Mod: mod, Code: KeyTab}
 	case ansi.CR:
-		return KeyPressEvent{Mod: mod, Sym: KeyEnter}
+		return KeyPressEvent{Mod: mod, Code: KeyEnter}
 	case ansi.ESC:
-		return KeyPressEvent{Mod: mod, Sym: KeyEscape}
+		return KeyPressEvent{Mod: mod, Code: KeyEscape}
 	case ansi.DEL:
-		return KeyPressEvent{Mod: mod, Sym: KeyBackspace}
+		return KeyPressEvent{Mod: mod, Code: KeyBackspace}
 	}
 
 	// CSI 27 ; <modifier> ; <code> ~ keys defined in XTerm modifyOtherKeys
-	return KeyPressEvent{
-		Mod:  mod,
-		Rune: r,
+	k := KeyPressEvent{Code: r, Mod: mod}
+	if k.Mod <= ModShift {
+		k.Text = string(r)
 	}
+
+	return k
 }
+
+// TerminalVersionEvent is a message that represents the terminal version.
+type TerminalVersionEvent string
 
 // ModifyOtherKeysEvent represents a modifyOtherKeys event.
 //

@@ -1,10 +1,7 @@
 package input
 
-// CursorPositionEvent represents a cursor position event.
-type CursorPositionEvent struct {
-	// Row is the row number.
-	Row int
+import "image"
 
-	// Column is the column number.
-	Column int
-}
+// CursorPositionEvent represents a cursor position event. Where X is the
+// zero-based column and Y is the zero-based row.
+type CursorPositionEvent image.Point
