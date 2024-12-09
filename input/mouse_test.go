@@ -317,7 +317,7 @@ func TestParseSGRMouseEvent(t *testing.T) {
 				ansi.Parameter(x + 1),
 				ansi.Parameter(y + 1),
 			},
-			Cmd: ansi.Command(int(re) | ('<' << parser.MarkerShift)),
+			Cmd: ansi.Command(re) | ('<' << parser.MarkerShift),
 		}
 	}
 

@@ -1,12 +1,14 @@
 package input
 
-// ReportModeEvent represents a report mode event for sequence DECRPM.
+import "github.com/charmbracelet/x/ansi"
+
+// ModeReportEvent is a message that represents a mode report event (DECRPM).
 //
 // See: https://vt100.net/docs/vt510-rm/DECRPM.html
-type ReportModeEvent struct {
+type ModeReportEvent struct {
 	// Mode is the mode number.
-	Mode int
+	Mode ansi.Mode
 
 	// Value is the mode value.
-	Value int
+	Value ansi.ModeSetting
 }

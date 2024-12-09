@@ -3,16 +3,33 @@ package input
 import (
 	"bytes"
 	"io"
+	"log"
 	"unicode/utf8"
 
-	"github.com/erikgeiser/coninput"
 	"github.com/muesli/cancelreader"
 )
 
-// Driver represents an ANSI terminal input Driver.
+// win32InputState is a state machine for parsing key events from the Windows
+// Console API into escape sequences and utf8 runes, and keeps track of the last
+// control key state to determine modifier key changes. It also keeps track of
+// the last mouse button state and window size changes to determine which mouse
+// buttons were released and to prevent multiple size events from firing.
+//
+//nolint:unused
+type win32InputState struct {
+	ansiBuf                    [256]byte
+	ansiIdx                    int
+	utf16Buf                   [2]rune
+	utf16Half                  bool
+	lastCks                    uint32 // the last control key state for the previous event
+	lastMouseBtns              uint32 // the last mouse button state for the previous event
+	lastWinsizeX, lastWinsizeY int16  // the last window size for the previous event to prevent multiple size events from firing
+}
+
+// driver represents an ANSI terminal input driver.
 // It reads input events and parses ANSI sequences from the terminal input
 // buffer.
-type Driver struct {
+type driver struct {
 	rd    cancelreader.CancelReader
 	table map[string]Key // table is a lookup table for key sequences.
 
@@ -24,23 +41,20 @@ type Driver struct {
 
 	buf [256]byte // do we need a larger buffer?
 
-	// prevMouseState keeps track of the previous mouse state to determine mouse
-	// up button events.
-	prevMouseState coninput.ButtonState // nolint: unused
+	// keyState keeps track of the current Windows Console API key events state.
+	// It is used to decode ANSI escape sequences and utf16 sequences.
+	keyState win32InputState //nolint:unused
 
-	// lastWinsizeEvent keeps track of the last window size event to prevent
-	// multiple size events from firing.
-	lastWinsizeEvent coninput.WindowBufferSizeEventRecord // nolint: unused
-
-	flags int // control the behavior of the driver.
+	parser inputParser
+	trace  bool // trace enables input tracing and logging.
 }
 
-// NewDriver returns a new ANSI input driver.
+// newDriver returns a new ANSI input driver.
 // This driver uses ANSI control codes compatible with VT100/VT200 terminals,
 // and XTerm. It supports reading Terminfo databases to overwrite the default
 // key sequences.
-func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
-	d := new(Driver)
+func newDriver(r io.Reader, term string, flags int) (*driver, error) {
+	d := new(driver)
 	cr, err := newCancelreader(r)
 	if err != nil {
 		return nil, err
@@ -49,21 +63,21 @@ func NewDriver(r io.Reader, term string, flags int) (*Driver, error) {
 	d.rd = cr
 	d.table = buildKeysTable(flags, term)
 	d.term = term
-	d.flags = flags
+	d.parser.flags = flags
 	return d, nil
 }
 
 // Cancel cancels the underlying reader.
-func (d *Driver) Cancel() bool {
+func (d *driver) Cancel() bool {
 	return d.rd.Cancel()
 }
 
 // Close closes the underlying reader.
-func (d *Driver) Close() error {
+func (d *driver) Close() error {
 	return d.rd.Close()
 }
 
-func (d *Driver) readEvents() (e []Event, err error) {
+func (d *driver) readEvents() (Events []Event, err error) {
 	nb, err := d.rd.Read(d.buf[:])
 	if err != nil {
 		return nil, err
@@ -74,14 +88,17 @@ func (d *Driver) readEvents() (e []Event, err error) {
 	// Lookup table first
 	if bytes.HasPrefix(buf, []byte{'\x1b'}) {
 		if k, ok := d.table[string(buf)]; ok {
-			e = append(e, KeyPressEvent(k))
+			Events = append(Events, KeyPressEvent(k))
 			return
 		}
 	}
 
 	var i int
 	for i < len(buf) {
-		nb, ev := ParseSequence(buf[i:])
+		nb, ev := d.parser.parseSequence(buf[i:])
+		if d.trace {
+			log.Printf("input: %q", buf[i:i+nb])
+		}
 
 		// Handle bracketed-paste
 		if d.paste != nil {
@@ -93,7 +110,7 @@ func (d *Driver) readEvents() (e []Event, err error) {
 		}
 
 		switch ev.(type) {
-		case UnknownCsiEvent, UnknownSs3Event, UnknownEvent:
+		case UnknownEvent:
 			// If the sequence is not recognized by the parser, try looking it up.
 			if k, ok := d.table[string(buf[i:i+nb])]; ok {
 				ev = KeyPressEvent(k)
@@ -111,16 +128,16 @@ func (d *Driver) readEvents() (e []Event, err error) {
 				d.paste = d.paste[w:]
 			}
 			d.paste = nil // reset the buffer
-			e = append(e, PasteEvent(paste))
+			Events = append(Events, PasteEvent(paste))
 		case nil:
 			i++
 			continue
 		}
 
 		if mevs, ok := ev.(MultiEvent); ok {
-			e = append(e, []Event(mevs)...)
+			Events = append(Events, []Event(mevs)...)
 		} else {
-			e = append(e, ev)
+			Events = append(Events, ev)
 		}
 		i += nb
 	}
