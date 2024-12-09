@@ -9,7 +9,6 @@ import (
 	"github.com/charmbracelet/x/cellbuf"
 	"github.com/charmbracelet/x/input"
 	"github.com/charmbracelet/x/term"
-	"github.com/charmbracelet/x/vt"
 )
 
 func main() {
@@ -23,30 +22,74 @@ func main() {
 		log.Fatalf("making raw: %v", err)
 	}
 
-	defer term.Restore(os.Stdin.Fd(), state)
+	defer term.Restore(os.Stdin.Fd(), state) //nolint:errcheck
 
-	drv, err := input.NewDriver(os.Stdin, os.Getenv("TERM"), 0)
+	const altScreen = true
+	if !altScreen {
+		h = 10
+	}
+
+	termType := os.Getenv("TERM")
+	scr := cellbuf.NewScreen(os.Stdout, &cellbuf.ScreenOptions{
+		Width:          w,
+		Height:         h,
+		Term:           termType,
+		RelativeCursor: !altScreen,
+		AltScreen:      altScreen,
+	})
+
+	defer scr.Close() //nolint:errcheck
+
+	drv, err := input.NewDriver(os.Stdin, termType, 0)
 	if err != nil {
 		log.Fatalf("creating input driver: %v", err)
 	}
 
-	os.Stdout.WriteString(ansi.EnableAltScreenBuffer + ansi.EnableMouseCellMotion + ansi.EnableMouseSgrExt)
-	defer os.Stdout.WriteString(ansi.DisableMouseSgrExt + ansi.DisableMouseCellMotion + ansi.DisableAltScreenBuffer)
+	modes := []ansi.Mode{
+		ansi.ButtonEventMouseMode,
+		ansi.SgrExtMouseMode,
+	}
 
-	var style cellbuf.Style
-	buf := vt.NewBuffer(w, h)
-	style.Reverse(true)
+	os.Stdout.WriteString(ansi.SetMode(modes...))         //nolint:errcheck
+	defer os.Stdout.WriteString(ansi.ResetMode(modes...)) //nolint:errcheck
+
 	x, y := (w/2)-8, h/2
 
-	reset(buf, x, y)
+	render := func() {
+		scr.Fill(cellbuf.NewCell('你'))
+		text := " !Hello, world! "
+		rect := cellbuf.Rect(x, y, ansi.StringWidth(text), 1)
+
+		// This will produce the following escape sequence:
+		// "\x1b[7m\x1b]8;;https://charm.sh\x07 ! Hello, world! \x1b]8;;\x07\x1b[m"
+		content := ansi.Style{}.Reverse().String() +
+			ansi.SetHyperlink("https://charm.sh") +
+			text +
+			ansi.ResetHyperlink() +
+			ansi.ResetStyle
+
+		cellbuf.PaintRect(scr, content, rect)
+		scr.Render()
+	}
+
+	resize := func(nw, nh int) {
+		if !altScreen {
+			nh = h
+			w = nw
+		}
+		scr.Resize(nw, nh)
+	}
 
 	if runtime.GOOS != "windows" {
 		// Listen for resize events
 		go listenForResize(func() {
-			updateWinsize(buf)
-			reset(buf, x, y)
+			nw, nh, _ := term.GetSize(os.Stdout.Fd())
+			resize(nw, nh)
 		})
 	}
+
+	// First render
+	render()
 
 	for {
 		evs, err := drv.ReadEvents()
@@ -57,38 +100,33 @@ func main() {
 		for _, ev := range evs {
 			switch ev := ev.(type) {
 			case input.WindowSizeEvent:
-				updateWinsize(buf)
+				resize(ev.Width, ev.Height)
 			case input.MouseClickEvent:
 				x, y = ev.X, ev.Y
 			case input.KeyPressEvent:
 				switch ev.String() {
 				case "ctrl+c", "q":
 					return
-				case "left":
+				case "left", "h":
 					x--
-				case "down":
+				case "down", "j":
 					y++
-				case "up":
+				case "up", "k":
 					y--
-				case "right":
+				case "right", "l":
 					x++
 				}
 			}
 		}
 
-		reset(buf, x, y)
+		render()
 	}
 }
 
-func reset(buf cellbuf.Buffer, x, y int) {
-	cellbuf.Fill(buf, vt.NewCell('你'))
-	rect := cellbuf.Rect(x, y, 16, 1)
-	cellbuf.Paint(buf, cellbuf.WcWidth, "\x1b[7m !Hello, world! \x1b[m", &rect)
-	os.Stdout.WriteString(ansi.SetCursorPosition(1, 1) + cellbuf.Render(buf))
-}
-
-func updateWinsize(buf cellbuf.Resizable) (w, h int) {
-	w, h, _ = term.GetSize(os.Stdout.Fd())
-	buf.Resize(w, h)
-	return
+func init() {
+	f, err := os.OpenFile("cellbuf.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.SetOutput(f)
 }
