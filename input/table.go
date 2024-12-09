@@ -11,37 +11,37 @@ import (
 // TODO: Use flags?
 func buildKeysTable(flags int, term string) map[string]Key {
 	nul := Key{Code: KeySpace, Mod: ModCtrl} // ctrl+@ or ctrl+space
-	if flags&_FlagCtrlAt != 0 {
+	if flags&FlagCtrlAt != 0 {
 		nul = Key{Code: '@', Mod: ModCtrl}
 	}
 
 	tab := Key{Code: KeyTab} // ctrl+i or tab
-	if flags&_FlagCtrlI != 0 {
+	if flags&FlagCtrlI != 0 {
 		tab = Key{Code: 'i', Mod: ModCtrl}
 	}
 
 	enter := Key{Code: KeyEnter} // ctrl+m or enter
-	if flags&_FlagCtrlM != 0 {
+	if flags&FlagCtrlM != 0 {
 		enter = Key{Code: 'm', Mod: ModCtrl}
 	}
 
 	esc := Key{Code: KeyEscape} // ctrl+[ or escape
-	if flags&_FlagCtrlOpenBracket != 0 {
+	if flags&FlagCtrlOpenBracket != 0 {
 		esc = Key{Code: '[', Mod: ModCtrl} // ctrl+[ or escape
 	}
 
 	del := Key{Code: KeyBackspace}
-	if flags&_FlagBackspace != 0 {
+	if flags&FlagBackspace != 0 {
 		del.Code = KeyDelete
 	}
 
 	find := Key{Code: KeyHome}
-	if flags&_FlagFind != 0 {
+	if flags&FlagFind != 0 {
 		find.Code = KeyFind
 	}
 
 	sel := Key{Code: KeyEnd}
-	if flags&_FlagSelect != 0 {
+	if flags&FlagSelect != 0 {
 		sel.Code = KeySelect
 	}
 
@@ -381,7 +381,7 @@ func buildKeysTable(flags int, term string) map[string]Key {
 
 	// Register terminfo keys
 	// XXX: this might override keys already registered in table
-	if flags&_FlagTerminfo != 0 {
+	if flags&FlagTerminfo != 0 {
 		titable := buildTerminfoKeys(flags, term)
 		for seq, key := range titable {
 			table[seq] = key

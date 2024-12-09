@@ -219,7 +219,7 @@ func defaultTerminfoKeys(flags int) map[string]Key {
 
 	// Preserve F keys from F13 to F63 instead of using them for F-keys
 	// modifiers.
-	if flags&_FlagFKeys != 0 {
+	if flags&FlagFKeys != 0 {
 		keys["kf13"] = Key{Code: KeyF13}
 		keys["kf14"] = Key{Code: KeyF14}
 		keys["kf15"] = Key{Code: KeyF15}

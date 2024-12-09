@@ -45,7 +45,7 @@ type driver struct {
 	// It is used to decode ANSI escape sequences and utf16 sequences.
 	keyState win32InputState //nolint:unused
 
-	parser inputParser
+	parser Parser
 	trace  bool // trace enables input tracing and logging.
 }
 

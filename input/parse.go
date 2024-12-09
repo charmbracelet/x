@@ -12,7 +12,6 @@ import (
 )
 
 // Flags to control the behavior of the parser.
-// TODO: Should these be exported?
 const (
 	// When this flag is set, the driver will treat both Ctrl+Space and Ctrl+@
 	// as the same key sequence.
@@ -20,7 +19,7 @@ const (
 	// Historically, the ANSI specs generate NUL (0x00) on both the Ctrl+Space
 	// and Ctrl+@ key sequences. This flag allows the driver to treat both as
 	// the same key sequence.
-	_FlagCtrlAt = 1 << iota
+	FlagCtrlAt = 1 << iota
 
 	// When this flag is set, the driver will treat the Tab key and Ctrl+I as
 	// the same key sequence.
@@ -28,14 +27,14 @@ const (
 	// Historically, the ANSI specs generate HT (0x09) on both the Tab key and
 	// Ctrl+I. This flag allows the driver to treat both as the same key
 	// sequence.
-	_FlagCtrlI
+	FlagCtrlI
 
 	// When this flag is set, the driver will treat the Enter key and Ctrl+M as
 	// the same key sequence.
 	//
 	// Historically, the ANSI specs generate CR (0x0D) on both the Enter key
 	// and Ctrl+M. This flag allows the driver to treat both as the same key
-	_FlagCtrlM
+	FlagCtrlM
 
 	// When this flag is set, the driver will treat Escape and Ctrl+[ as
 	// the same key sequence.
@@ -43,7 +42,7 @@ const (
 	// Historically, the ANSI specs generate ESC (0x1B) on both the Escape key
 	// and Ctrl+[. This flag allows the driver to treat both as the same key
 	// sequence.
-	_FlagCtrlOpenBracket
+	FlagCtrlOpenBracket
 
 	// When this flag is set, the driver will send a BS (0x08 byte) character
 	// instead of a DEL (0x7F byte) character when the Backspace key is
@@ -55,25 +54,25 @@ const (
 	// Modern terminals and PCs later readded the Delete key but used a
 	// different key sequence, and the Backspace key was standardized to send a
 	// DEL character.
-	_FlagBackspace
+	FlagBackspace
 
 	// When this flag is set, the driver will recognize the Find key instead of
 	// treating it as a Home key.
 	//
 	// The Find key was part of the VT220 keyboard, and is no longer used in
 	// modern day PCs.
-	_FlagFind
+	FlagFind
 
 	// When this flag is set, the driver will recognize the Select key instead
 	// of treating it as a End key.
 	//
 	// The Symbol key was part of the VT220 keyboard, and is no longer used in
 	// modern day PCs.
-	_FlagSelect
+	FlagSelect
 
 	// When this flag is set, the driver will use Terminfo databases to
 	// overwrite the default key sequences.
-	_FlagTerminfo
+	FlagTerminfo
 
 	// When this flag is set, the driver will preserve function keys (F13-F63)
 	// as symbols.
@@ -82,13 +81,29 @@ const (
 	// we treat them as F1-F12 modifier keys i.e. ctrl/shift/alt + Fn combos.
 	// Key definitions come from Terminfo, this flag is only useful when
 	// FlagTerminfo is not set.
-	_FlagFKeys
+	FlagFKeys
 )
 
-// inputParser is a parser for input escape sequences.
-// TODO: Use [ansi.DecodeSequence] instead of this parser.
-type inputParser struct {
+// Parser is a parser for input escape sequences.
+type Parser struct {
 	flags int
+}
+
+// NewParser returns a new input parser. This is a low-level parser that parses
+// escape sequences into human-readable events.
+// This differs from [ansi.Parser] and [ansi.DecodeSequence] in which it
+// recognizes incorrect sequences that some terminals may send.
+//
+// For instance, the X10 mouse protocol sends a `CSI M` sequence followed by 3
+// bytes. If the parser doesn't recognize the 3 bytes, they might be echoed to
+// the terminal output causing a mess.
+//
+// Another example is how URxvt sends invalid sequences for modified keys using
+// invalid CSI final characters like '$'.
+//
+// Use flags to control the behavior of ambiguous key sequences.
+func NewParser(flags int) *Parser {
+	return &Parser{flags: flags}
 }
 
 // parseSequence finds the first recognized event sequence and returns it along
@@ -96,7 +111,9 @@ type inputParser struct {
 //
 // It will return zero and nil no sequence is recognized or when the buffer is
 // empty. If a sequence is not supported, an UnknownEvent is returned.
-func (p *inputParser) parseSequence(buf []byte) (n int, Event Event) {
+//
+// TODO: Use [ansi.DecodeSequence] instead of this parser.
+func (p *Parser) parseSequence(buf []byte) (n int, Event Event) {
 	if len(buf) == 0 {
 		return 0, nil
 	}
@@ -155,7 +172,7 @@ func (p *inputParser) parseSequence(buf []byte) (n int, Event Event) {
 	}
 }
 
-func (p *inputParser) parseCsi(b []byte) (int, Event) {
+func (p *Parser) parseCsi(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+[ key
 		return 2, KeyPressEvent{Text: string(rune(b[1])), Mod: ModAlt}
@@ -433,7 +450,7 @@ func (p *inputParser) parseCsi(b []byte) (int, Event) {
 			var k KeyPressEvent
 			switch param {
 			case 1:
-				if p.flags&_FlagFind != 0 {
+				if p.flags&FlagFind != 0 {
 					k = KeyPressEvent{Code: KeyFind}
 				} else {
 					k = KeyPressEvent{Code: KeyHome}
@@ -443,7 +460,7 @@ func (p *inputParser) parseCsi(b []byte) (int, Event) {
 			case 3:
 				k = KeyPressEvent{Code: KeyDelete}
 			case 4:
-				if p.flags&_FlagSelect != 0 {
+				if p.flags&FlagSelect != 0 {
 					k = KeyPressEvent{Code: KeySelect}
 				} else {
 					k = KeyPressEvent{Code: KeyEnd}
@@ -493,7 +510,7 @@ func (p *inputParser) parseCsi(b []byte) (int, Event) {
 
 // parseSs3 parses a SS3 sequence.
 // See https://vt100.net/docs/vt220-rm/chapter4.html#S4.4.4.2
-func (p *inputParser) parseSs3(b []byte) (int, Event) {
+func (p *Parser) parseSs3(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+O key
 		return 2, KeyPressEvent{Code: rune(b[1]), Mod: ModAlt}
@@ -557,7 +574,7 @@ func (p *inputParser) parseSs3(b []byte) (int, Event) {
 	return i, k
 }
 
-func (p *inputParser) parseOsc(b []byte) (int, Event) {
+func (p *Parser) parseOsc(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+] key
 		return 2, KeyPressEvent{Code: rune(b[1]), Mod: ModAlt}
@@ -644,7 +661,7 @@ func (p *inputParser) parseOsc(b []byte) (int, Event) {
 }
 
 // parseStTerminated parses a control sequence that gets terminated by a ST character.
-func (p *inputParser) parseStTerminated(intro8, intro7 byte) func([]byte) (int, Event) {
+func (p *Parser) parseStTerminated(intro8, intro7 byte) func([]byte) (int, Event) {
 	return func(b []byte) (int, Event) {
 		var i int
 		if b[i] == intro8 || b[i] == ansi.ESC {
@@ -675,7 +692,7 @@ func (p *inputParser) parseStTerminated(intro8, intro7 byte) func([]byte) (int, 
 	}
 }
 
-func (p *inputParser) parseDcs(b []byte) (int, Event) {
+func (p *Parser) parseDcs(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+P key
 		return 2, KeyPressEvent{Code: rune(b[1]), Mod: ModAlt}
@@ -789,7 +806,7 @@ func (p *inputParser) parseDcs(b []byte) (int, Event) {
 	return i, UnknownEvent(b[:i])
 }
 
-func (p *inputParser) parseApc(b []byte) (int, Event) {
+func (p *Parser) parseApc(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+_ key
 		return 2, KeyPressEvent{Code: rune(b[1]), Mod: ModAlt}
@@ -799,7 +816,7 @@ func (p *inputParser) parseApc(b []byte) (int, Event) {
 	return p.parseStTerminated(ansi.APC, '_')(b)
 }
 
-func (p *inputParser) parseUtf8(b []byte) (int, Event) {
+func (p *Parser) parseUtf8(b []byte) (int, Event) {
 	if len(b) == 0 {
 		return 0, nil
 	}
@@ -840,32 +857,32 @@ func (p *inputParser) parseUtf8(b []byte) (int, Event) {
 	return len(cluster), KeyPressEvent{Code: code, Text: text}
 }
 
-func (p *inputParser) parseControl(b byte) Event {
+func (p *Parser) parseControl(b byte) Event {
 	switch b {
 	case ansi.NUL:
-		if p.flags&_FlagCtrlAt != 0 {
+		if p.flags&FlagCtrlAt != 0 {
 			return KeyPressEvent{Code: '@', Mod: ModCtrl}
 		}
 		return KeyPressEvent{Code: KeySpace, Mod: ModCtrl}
 	case ansi.BS:
 		return KeyPressEvent{Code: 'h', Mod: ModCtrl}
 	case ansi.HT:
-		if p.flags&_FlagCtrlI != 0 {
+		if p.flags&FlagCtrlI != 0 {
 			return KeyPressEvent{Code: 'i', Mod: ModCtrl}
 		}
 		return KeyPressEvent{Code: KeyTab}
 	case ansi.CR:
-		if p.flags&_FlagCtrlM != 0 {
+		if p.flags&FlagCtrlM != 0 {
 			return KeyPressEvent{Code: 'm', Mod: ModCtrl}
 		}
 		return KeyPressEvent{Code: KeyEnter}
 	case ansi.ESC:
-		if p.flags&_FlagCtrlOpenBracket != 0 {
+		if p.flags&FlagCtrlOpenBracket != 0 {
 			return KeyPressEvent{Code: '[', Mod: ModCtrl}
 		}
 		return KeyPressEvent{Code: KeyEscape}
 	case ansi.DEL:
-		if p.flags&_FlagBackspace != 0 {
+		if p.flags&FlagBackspace != 0 {
 			return KeyPressEvent{Code: KeyDelete}
 		}
 		return KeyPressEvent{Code: KeyBackspace}

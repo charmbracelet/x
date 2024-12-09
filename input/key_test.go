@@ -20,7 +20,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-var sequences = buildKeysTable(_FlagTerminfo, "dumb")
+var sequences = buildKeysTable(FlagTerminfo, "dumb")
 
 func TestKeyString(t *testing.T) {
 	t.Run("alt+space", func(t *testing.T) {
@@ -323,7 +323,7 @@ func TestParseSequence(t *testing.T) {
 		})
 	}
 
-	var p inputParser
+	var p Parser
 	for _, tc := range td {
 		t.Run(fmt.Sprintf("%q", string(tc.seq)), func(t *testing.T) {
 			var events []Event
@@ -777,7 +777,7 @@ func genRandomDataWithSeed(s int64, length int) randTest {
 }
 
 func FuzzParseSequence(f *testing.F) {
-	var p inputParser
+	var p Parser
 	for seq := range sequences {
 		f.Add(seq)
 	}
@@ -796,7 +796,7 @@ func FuzzParseSequence(f *testing.F) {
 // BenchmarkDetectSequenceMap benchmarks the map-based sequence
 // detector.
 func BenchmarkDetectSequenceMap(b *testing.B) {
-	var p inputParser
+	var p Parser
 	td := genRandomDataWithSeed(123, 10000)
 	for i := 0; i < b.N; i++ {
 		for j, w := 0, 0; j < len(td.data); j += w {

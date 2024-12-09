@@ -23,7 +23,7 @@ func TestParseSequence_Events(t *testing.T) {
 		ModeReportEvent{Mode: ansi.InsertReplaceMode, Value: ansi.ModeSet},
 	}
 
-	var p inputParser
+	var p Parser
 	for i := 0; len(input) != 0; i++ {
 		if i >= len(want) {
 			t.Fatalf("reached end of want events")
@@ -37,7 +37,7 @@ func TestParseSequence_Events(t *testing.T) {
 }
 
 func BenchmarkParseSequence(b *testing.B) {
-	var p inputParser
+	var p Parser
 	input := []byte("\x1b\x1b[Ztest\x00\x1b]10;1234/1234/1234\x07\x1b[27;2;27~")
 	b.ReportAllocs()
 	b.ResetTimer()
