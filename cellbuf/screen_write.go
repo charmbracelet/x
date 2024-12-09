@@ -6,14 +6,13 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/vt"
 	"github.com/charmbracelet/x/wcwidth"
 )
 
 // setContent writes the given data to the buffer starting from the first cell.
 // It accepts both string and []byte data types.
 func setContent(
-	d Buffer,
+	d Window,
 	data string,
 	method Method,
 	rect Rectangle,
@@ -38,36 +37,58 @@ func setContent(
 	for len(data) > 0 {
 		seq, width, n, newState := ansi.DecodeSequence(data, state, p)
 
+		var r rune
+		var comb []rune
 		switch width {
-		case 2, 3, 4: // wide cells can go up to 4 cells wide
-
+		case 1, 2, 3, 4: // wide cells can go up to 4 cells wide
 			switch method {
 			case WcWidth:
-				if r, rw := utf8.DecodeRuneInString(data); r != utf8.RuneError {
-					n = rw
-					width = wcwidth.RuneWidth(r)
-					seq = string(r)
-					newState = 0
+				for i, c := range seq {
+					if i == 0 {
+						r = c
+						width = wcwidth.RuneWidth(r)
+						continue
+					}
+					if wcwidth.RuneWidth(c) > 0 {
+						break
+					}
+					comb = append(comb, c)
 				}
+
+				// We're breaking the grapheme to respect wcwidth's behavior
+				// while keeping combining characters together.
+				n = utf8.RuneLen(r)
+				for _, c := range comb {
+					n += utf8.RuneLen(c)
+				}
+				newState = 0
+
 			case GraphemeWidth:
 				// [ansi.DecodeSequence] already handles grapheme clusters
+				for i, c := range seq {
+					if i == 0 {
+						r = c
+					} else {
+						comb = append(comb, c)
+					}
+				}
 			}
-			fallthrough
-		case 1:
-			if x+width >= rect.X()+rect.Width() || y >= rect.Y()+rect.Height() {
+
+			if x+width > rect.X()+rect.Width() || y > rect.Y()+rect.Height() {
 				break
 			}
 
-			cell.Content = seq
+			cell.Rune = r
+			cell.Comb = comb
 			cell.Width = width
 			cell.Style = pen
 			cell.Link = link
 
-			d.SetCell(x, y, &cell) //nolint:errcheck
+			d.Draw(x, y, &cell) //nolint:errcheck
 
 			// Advance the cursor and line width
 			x += cell.Width
-			if cell.Equal(&spaceCell) {
+			if cell.Equal(&BlankCell) {
 				pendingWidth += cell.Width
 			} else if y := y - rect.Y(); y < len(linew) {
 				linew[y] += cell.Width + pendingWidth
@@ -90,16 +111,13 @@ func setContent(
 				}
 			case ansi.Equal(seq, "\n"):
 				// Reset the rest of the line
-				for x < rect.X()+rect.Width() {
-					d.SetCell(x, y, nil) //nolint:errcheck
-					x++
-				}
+				d.ClearInRect(Rect(x, y, rect.Width()+rect.X()-x, 1))
 
 				y++
 				// XXX: We gotta reset the x position here because we're moving
 				// to the next line. We shouldn't have any "\r\n" sequences,
 				// those are replaced above.
-				x = 0
+				x = rect.X()
 			}
 		}
 
@@ -108,9 +126,13 @@ func setContent(
 		data = data[n:]
 	}
 
-	for x < rect.X()+rect.Width() {
-		d.SetCell(x, y, nil) //nolint:errcheck
-		x++
+	// Don't forget to clear the last line
+	d.ClearInRect(Rect(x, y, rect.Width()+rect.X()-x, 1))
+
+	y++
+	if y < rect.Height() {
+		// Clear the rest of the lines
+		d.ClearInRect(Rect(rect.X(), y, rect.X()+rect.Width(), rect.Y()+rect.Height()))
 	}
 
 	return linew
@@ -144,17 +166,17 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 					i++
 					switch nextParam {
 					case 0: // No Underline
-						pen.UnderlineStyle(vt.NoUnderline)
+						pen.UnderlineStyle(NoUnderline)
 					case 1: // Single Underline
-						pen.UnderlineStyle(vt.SingleUnderline)
+						pen.UnderlineStyle(SingleUnderline)
 					case 2: // Double Underline
-						pen.UnderlineStyle(vt.DoubleUnderline)
+						pen.UnderlineStyle(DoubleUnderline)
 					case 3: // Curly Underline
-						pen.UnderlineStyle(vt.CurlyUnderline)
+						pen.UnderlineStyle(CurlyUnderline)
 					case 4: // Dotted Underline
-						pen.UnderlineStyle(vt.DottedUnderline)
+						pen.UnderlineStyle(DottedUnderline)
 					case 5: // Dashed Underline
-						pen.UnderlineStyle(vt.DashedUnderline)
+						pen.UnderlineStyle(DashedUnderline)
 					}
 				}
 			} else {

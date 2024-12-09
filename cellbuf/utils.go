@@ -40,3 +40,31 @@ func readColor(idxp *int, params []ansi.Parameter) (c ansi.Color) {
 	}
 	return
 }
+
+func min(a, b int) int { //nolint:predeclared
+	if a > b {
+		return b
+	}
+	return a
+}
+
+func max(a, b int) int { //nolint:predeclared
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func clamp(v, low, high int) int {
+	if high < low {
+		low, high = high, low
+	}
+	return min(high, max(low, v))
+}
+
+func abs(a int) int {
+	if a < 0 {
+		return -a
+	}
+	return a
+}

@@ -2,11 +2,7 @@ package cellbuf
 
 import (
 	"github.com/charmbracelet/colorprofile"
-	"github.com/charmbracelet/x/vt"
 )
-
-// Style represents the Style of a cell.
-type Style = vt.Style
 
 // Convert converts a style to respect the given color profile.
 func ConvertStyle(s Style, p colorprofile.Profile) Style {
