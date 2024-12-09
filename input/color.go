@@ -6,9 +6,9 @@ import (
 	"math"
 )
 
-// ForegroundColorEvent represents a foreground color message. This message is
-// emitted when the program requests the terminal foreground color with the
-// [RequestForegroundColor] Cmd.
+// ForegroundColorEvent represents a foreground color event. This event is
+// emitted when the terminal requests the terminal foreground color using
+// [ansi.RequestForegroundColor].
 type ForegroundColorEvent struct{ color.Color }
 
 // String returns the hex representation of the color.
@@ -21,25 +21,9 @@ func (e ForegroundColorEvent) IsDark() bool {
 	return isDarkColor(e.Color)
 }
 
-// BackgroundColorEvent represents a background color message. This message is
-// emitted when the program requests the terminal background color with the
-// [RequestBackgroundColor] Cmd.
-//
-// This is commonly used in [Update.Init] to get the terminal background color
-// for style definitions. For that you'll want to call
-// [BackgroundColorEvent.IsDark] to determine if the color is dark or light. For
-// example:
-//
-//	func (m Model) Init() (Model, Cmd) {
-//	  return m, RequestBackgroundColor()
-//	}
-//
-//	func (m Model) Update(Event Event) (Model, Cmd) {
-//	  switch Event := Event.(type) {
-//	  case BackgroundColorEvent:
-//	      m.styles = newStyles(Event.IsDark())
-//	  }
-//	}
+// BackgroundColorEvent represents a background color event. This event is
+// emitted when the terminal requests the terminal background color using
+// [ansi.RequestBackgroundColor].
 type BackgroundColorEvent struct{ color.Color }
 
 // String returns the hex representation of the color.
@@ -52,8 +36,9 @@ func (e BackgroundColorEvent) IsDark() bool {
 	return isDarkColor(e.Color)
 }
 
-// CursorColorEvent represents a cursor color change message. This message is
-// emitted when the program requests the terminal cursor color.
+// CursorColorEvent represents a cursor color change event. This event is
+// emitted when the program requests the terminal cursor color using
+// [ansi.RequestCursorColor].
 type CursorColorEvent struct{ color.Color }
 
 // String returns the hex representation of the color.

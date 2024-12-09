@@ -116,10 +116,10 @@ func (m Mouse) String() (s string) {
 	return s
 }
 
-// MouseClickEvent represents a mouse button click message.
+// MouseClickEvent represents a mouse button click event.
 type MouseClickEvent Mouse
 
-// String returns a string representation of the mouse click message.
+// String returns a string representation of the mouse click event.
 func (e MouseClickEvent) String() string {
 	return Mouse(e).String()
 }
@@ -131,10 +131,10 @@ func (e MouseClickEvent) Mouse() Mouse {
 	return Mouse(e)
 }
 
-// MouseReleaseEvent represents a mouse button release message.
+// MouseReleaseEvent represents a mouse button release event.
 type MouseReleaseEvent Mouse
 
-// String returns a string representation of the mouse release message.
+// String returns a string representation of the mouse release event.
 func (e MouseReleaseEvent) String() string {
 	return Mouse(e).String()
 }
@@ -149,7 +149,7 @@ func (e MouseReleaseEvent) Mouse() Mouse {
 // MouseWheelEvent represents a mouse wheel message event.
 type MouseWheelEvent Mouse
 
-// String returns a string representation of the mouse wheel message.
+// String returns a string representation of the mouse wheel event.
 func (e MouseWheelEvent) String() string {
 	return Mouse(e).String()
 }
@@ -161,10 +161,10 @@ func (e MouseWheelEvent) Mouse() Mouse {
 	return Mouse(e)
 }
 
-// MouseMotionEvent represents a mouse motion message.
+// MouseMotionEvent represents a mouse motion event.
 type MouseMotionEvent Mouse
 
-// String returns a string representation of the mouse motion message.
+// String returns a string representation of the mouse motion event.
 func (e MouseMotionEvent) String() string {
 	m := Mouse(e)
 	if m.Button != 0 {

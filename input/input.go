@@ -8,10 +8,10 @@ import (
 // Event represents a terminal event.
 type Event interface{}
 
-// UnknownEvent represents an unknown message.
+// UnknownEvent represents an unknown event.
 type UnknownEvent string
 
-// String returns a string representation of the unknown message.
+// String returns a string representation of the unknown event.
 func (e UnknownEvent) String() string {
 	return fmt.Sprintf("%q", string(e))
 }
@@ -28,10 +28,10 @@ func (e MultiEvent) String() string {
 	return sb.String()
 }
 
-// WindowSizeEvent is used to report the terminal size. It's sent to Update once
-// initially and then on every terminal resize. Note that Windows does not
-// have support for reporting when resizes occur as it does not support the
-// SIGWINCH signal.
+// WindowSizeEvent is used to report the terminal size. Note that Windows does
+// not have support for reporting resizes via SIGWINCH signals and relies on
+// the Windows Console API to report window size changes. See [newCancelreader]
+// and [conInputReader] for more information.
 type WindowSizeEvent struct {
 	Width  int
 	Height int

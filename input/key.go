@@ -189,7 +189,7 @@ const (
 	KeySpace = rune(ansi.SP)
 )
 
-// KeyPressEvent represents a key press message.
+// KeyPressEvent represents a key press event.
 type KeyPressEvent Key
 
 // String implements [fmt.Stringer] and is quite useful for matching key
@@ -204,7 +204,7 @@ func (k KeyPressEvent) Key() Key {
 	return Key(k)
 }
 
-// KeyReleaseEvent represents a key release message.
+// KeyReleaseEvent represents a key release event.
 type KeyReleaseEvent Key
 
 // String implements [fmt.Stringer] and is quite useful for matching key
@@ -235,9 +235,9 @@ type KeyEvent interface {
 // or releases:
 //
 //	// Switch on the string representation of the key (shorter)
-//	switch Event := Event.(type) {
+//	switch ev := ev.(type) {
 //	case KeyPressEvent:
-//	    switch Event.String() {
+//	    switch ev.String() {
 //	    case "enter":
 //	        fmt.Println("you pressed enter!")
 //	    case "a":
@@ -246,10 +246,10 @@ type KeyEvent interface {
 //	}
 //
 //	// Switch on the key type (more foolproof)
-//	switch Event := Event.(type) {
+//	switch ev := ev.(type) {
 //	case KeyEvent:
 //	    // catch both KeyPressEvent and KeyReleaseEvent
-//	    switch key := Event.Key(); key.Code {
+//	    switch key := ev.Key(); key.Code {
 //	    case KeyEnter:
 //	        fmt.Println("you pressed enter!")
 //	    default:

@@ -2,8 +2,8 @@ package input
 
 import "github.com/charmbracelet/x/ansi"
 
-// PrimaryDeviceAttributesEvent is a message that represents the terminal primary
-// device attributes.
+// PrimaryDeviceAttributesEvent is an event that represents the terminal
+// primary device attributes.
 type PrimaryDeviceAttributesEvent []int
 
 func parsePrimaryDevAttrs(csi *ansi.CsiSequence) Event {
