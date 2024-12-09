@@ -166,12 +166,12 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 }
 
 // moveCursor moves the cursor to the specified position.
-func (s *Screen) moveCursor(w *bytes.Buffer, x, y int, overwrite bool) {
-	w.WriteString(moveCursor(s, x, y, overwrite))
+func (s *Screen) moveCursor(w io.Writer, x, y int, overwrite bool) {
+	io.WriteString(w, moveCursor(s, x, y, overwrite)) //nolint:errcheck
 	s.cur.X, s.cur.Y = x, y
 }
 
-func (s *Screen) move(w *bytes.Buffer, x, y int) {
+func (s *Screen) move(w io.Writer, x, y int) {
 	width, height := s.newbuf.Width(), s.newbuf.Height()
 	if s.cur.X == x && s.cur.Y == y || width <= 0 || height <= 0 {
 		return
@@ -187,7 +187,7 @@ func (s *Screen) move(w *bytes.Buffer, x, y int) {
 	var pen Style
 	if !s.cur.Style.Empty() {
 		pen = s.cur.Style
-		w.WriteString(ansi.ResetStyle)
+		io.WriteString(w, ansi.ResetStyle) //nolint:errcheck
 	}
 
 	if s.cur.X >= width {
@@ -199,9 +199,8 @@ func (s *Screen) move(w *bytes.Buffer, x, y int) {
 		}
 
 		if l > 0 {
-			w.WriteByte(ansi.CR) // '\r'
 			s.cur.X = 0
-			w.WriteString(strings.Repeat("\n", l))
+			io.WriteString(w, "\r"+strings.Repeat("\n", l)) //nolint:errcheck
 		}
 	}
 
@@ -216,7 +215,7 @@ func (s *Screen) move(w *bytes.Buffer, x, y int) {
 	s.moveCursor(w, x, y, true) // Overwrite cells if possible
 
 	if !pen.Empty() {
-		w.WriteString(pen.Sequence())
+		io.WriteString(w, pen.Sequence()) //nolint:errcheck
 	}
 }
 
@@ -432,7 +431,7 @@ func cellRunes(c *Cell) []rune {
 }
 
 // putCell draws a cell at the current cursor position.
-func (s *Screen) putCell(w *bytes.Buffer, cell *Cell) {
+func (s *Screen) putCell(w io.Writer, cell *Cell) {
 	if cell != nil && cell.Empty() {
 		return
 	}
@@ -443,7 +442,7 @@ func (s *Screen) putCell(w *bytes.Buffer, cell *Cell) {
 	}
 
 	s.updatePen(w, cell)
-	w.WriteString(cell.String())
+	io.WriteString(w, cell.String()) //nolint:errcheck
 	s.cur.X += cell.Width
 	s.lastChar = cell.Rune
 
@@ -453,7 +452,7 @@ func (s *Screen) putCell(w *bytes.Buffer, cell *Cell) {
 }
 
 // updatePen updates the cursor pen styles.
-func (s *Screen) updatePen(w *bytes.Buffer, cell *Cell) {
+func (s *Screen) updatePen(w io.Writer, cell *Cell) {
 	if cell == nil {
 		cell = &BlankCell
 	}
@@ -471,11 +470,11 @@ func (s *Screen) updatePen(w *bytes.Buffer, cell *Cell) {
 		if style.Empty() && len(seq) > len(ansi.ResetStyle) {
 			seq = ansi.ResetStyle
 		}
-		w.WriteString(seq)
+		io.WriteString(w, seq) //nolint:errcheck
 		s.cur.Style = style
 	}
 	if !link.Equal(s.cur.Link) {
-		w.WriteString(ansi.SetHyperlink(link.URL, link.URLID))
+		io.WriteString(w, ansi.SetHyperlink(link.URL, link.URLID)) //nolint:errcheck
 		s.cur.Link = link
 	}
 }
@@ -485,7 +484,7 @@ func (s *Screen) updatePen(w *bytes.Buffer, cell *Cell) {
 // [ansi.ECH] and [ansi.REP].
 // Returns whether the cursor is at the end of interval or somewhere in the
 // middle.
-func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
+func (s *Screen) emitRange(w io.Writer, line Line, n int) (eoi bool) {
 	for n > 0 {
 		var count int
 		for n > 1 && !cellEqual(line.At(0), line.At(1)) {
@@ -510,7 +509,7 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 		rep := ansi.RepeatPreviousCharacter(count)
 		if s.xtermLike && count > len(ech)+len(cup) && cell0 != nil && cell0.Clear() {
 			s.updatePen(w, cell0)
-			w.WriteString(ech)
+			io.WriteString(w, ech) //nolint:errcheck
 
 			// If this is the last cell, we don't need to move the cursor.
 			if count < n {
@@ -542,7 +541,7 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 			}
 
 			s.updatePen(w, cell0)
-			w.WriteString(ansi.RepeatPreviousCharacter(repCount))
+			io.WriteString(w, ansi.RepeatPreviousCharacter(repCount)) //nolint:errcheck
 			s.cur.X += repCount
 			if wrapPossible {
 				s.putCell(w, cell0)
@@ -563,7 +562,7 @@ func (s *Screen) emitRange(w *bytes.Buffer, line Line, n int) (eoi bool) {
 // putRange puts a range of cells from the old line to the new line.
 // Returns whether the cursor is at the end of interval or somewhere in the
 // middle.
-func (s *Screen) putRange(w *bytes.Buffer, oldLine, newLine Line, y, start, end int) (eoi bool) {
+func (s *Screen) putRange(w io.Writer, oldLine, newLine Line, y, start, end int) (eoi bool) {
 	inline := min(len(ansi.CursorPosition(start+1, y+1)),
 		min(len(ansi.HorizontalPositionAbsolute(start+1)),
 			len(ansi.CursorForward(start+1))))
@@ -601,7 +600,7 @@ func (s *Screen) putRange(w *bytes.Buffer, oldLine, newLine Line, y, start, end 
 
 // clearToEnd clears the screen from the current cursor position to the end of
 // line.
-func (s *Screen) clearToEnd(w *bytes.Buffer, blank *Cell, force bool) {
+func (s *Screen) clearToEnd(w io.Writer, blank *Cell, force bool) {
 	if s.cur.Y >= 0 {
 		curline := s.curbuf.Line(s.cur.Y)
 		for j := s.cur.X; j < s.curbuf.Width(); j++ {
@@ -620,7 +619,7 @@ func (s *Screen) clearToEnd(w *bytes.Buffer, blank *Cell, force bool) {
 		count := s.newbuf.Width() - s.cur.X
 		eraseRight := ansi.EraseLineRight
 		if len(eraseRight) <= count {
-			w.WriteString(eraseRight)
+			io.WriteString(w, eraseRight) //nolint:errcheck
 		} else {
 			for i := 0; i < count; i++ {
 				s.putCell(w, blank)
@@ -641,13 +640,13 @@ func (s *Screen) clearBlank() *Cell {
 
 // insertCells inserts the count cells pointed by the given line at the current
 // cursor position.
-func (s *Screen) insertCells(w *bytes.Buffer, line Line, count int) {
+func (s *Screen) insertCells(w io.Writer, line Line, count int) {
 	if s.xtermLike {
 		// Use [ansi.ICH] as an optimization.
-		w.WriteString(ansi.InsertCharacter(count))
+		io.WriteString(w, ansi.InsertCharacter(count)) //nolint:errcheck
 	} else {
 		// Otherwise, use [ansi.IRM] mode.
-		w.WriteString(ansi.SetInsertReplaceMode)
+		io.WriteString(w, ansi.SetInsertReplaceMode) //nolint:errcheck
 	}
 
 	for i := 0; count > 0; i++ {
@@ -656,14 +655,14 @@ func (s *Screen) insertCells(w *bytes.Buffer, line Line, count int) {
 	}
 
 	if !s.xtermLike {
-		w.WriteString(ansi.ResetInsertReplaceMode)
+		io.WriteString(w, ansi.ResetInsertReplaceMode) //nolint:errcheck
 	}
 }
 
 // transformLine transforms the given line in the current window to the
 // corresponding line in the new window. It uses [ansi.ICH] and [ansi.DCH] to
 // insert or delete characters.
-func (s *Screen) transformLine(w *bytes.Buffer, y int) {
+func (s *Screen) transformLine(w io.Writer, y int) {
 	var firstCell, oLastCell, nLastCell int // first, old last, new last index
 	oldLine := s.curbuf.Line(y)
 	newLine := s.newbuf.Line(y)
@@ -717,11 +716,11 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 					if nFirstCell >= s.newbuf.Width() {
 						s.move(w, 0, y)
 						s.updatePen(w, blank)
-						w.WriteString(ansi.EraseLineRight)
+						io.WriteString(w, ansi.EraseLineRight) //nolint:errcheck
 					} else {
 						s.move(w, nFirstCell-1, y)
 						s.updatePen(w, blank)
-						w.WriteString(ansi.EraseLineLeft)
+						io.WriteString(w, ansi.EraseLineLeft) //nolint:errcheck
 					}
 
 					for firstCell < nFirstCell {
@@ -863,15 +862,15 @@ func (s *Screen) transformLine(w *bytes.Buffer, y int) {
 
 // deleteCells deletes the count cells at the current cursor position and moves
 // the rest of the line to the left. This is equivalent to [ansi.DCH].
-func (s *Screen) deleteCells(w *bytes.Buffer, count int) {
+func (s *Screen) deleteCells(w io.Writer, count int) {
 	// [ansi.DCH] will shift in cells from the right margin so we need to
 	// ensure that they are the right style.
-	w.WriteString(ansi.DeleteCharacter(count))
+	io.WriteString(w, ansi.DeleteCharacter(count)) //nolint:errcheck
 }
 
 // clearToBottom clears the screen from the current cursor position to the end
 // of the screen.
-func (s *Screen) clearToBottom(w *bytes.Buffer, blank *Cell) {
+func (s *Screen) clearToBottom(w io.Writer, blank *Cell) {
 	row, col := s.cur.Y, s.cur.X
 	if row < 0 {
 		row = 0
@@ -881,7 +880,7 @@ func (s *Screen) clearToBottom(w *bytes.Buffer, blank *Cell) {
 	}
 
 	s.updatePen(w, blank)
-	w.WriteString(ansi.EraseScreenBelow)
+	io.WriteString(w, ansi.EraseScreenBelow) //nolint:errcheck
 	s.curbuf.ClearInRect(Rect(col, row, s.curbuf.Width(), row+1))
 	s.curbuf.ClearInRect(Rect(0, row+1, s.curbuf.Width(), s.curbuf.Height()))
 }
@@ -890,7 +889,7 @@ func (s *Screen) clearToBottom(w *bytes.Buffer, blank *Cell) {
 // the screen update. Scan backwards through lines in the screen checking if
 // each is blank and one or more are changed.
 // It returns the top line.
-func (s *Screen) clearBottom(w *bytes.Buffer, total int, force bool) (top int) {
+func (s *Screen) clearBottom(w io.Writer, total int, force bool) (top int) {
 	top = total
 	if total <= 0 {
 		return
@@ -935,16 +934,16 @@ func (s *Screen) clearBottom(w *bytes.Buffer, total int, force bool) (top int) {
 }
 
 // clearScreen clears the screen and put cursor at home.
-func (s *Screen) clearScreen(w *bytes.Buffer, blank *Cell) {
+func (s *Screen) clearScreen(w io.Writer, blank *Cell) {
 	s.updatePen(w, blank)
-	w.WriteString(ansi.CursorHomePosition)
-	w.WriteString(ansi.EraseEntireScreen)
+	io.WriteString(w, ansi.CursorHomePosition) //nolint:errcheck
+	io.WriteString(w, ansi.EraseEntireScreen)  //nolint:errcheck
 	s.cur.X, s.cur.Y = 0, 0
 	s.curbuf.Fill(blank)
 }
 
 // clearBelow clears everything below the screen.
-func (s *Screen) clearBelow(w *bytes.Buffer, blank *Cell, row int) {
+func (s *Screen) clearBelow(w io.Writer, blank *Cell, row int) {
 	s.updatePen(w, blank)
 	s.moveCursor(w, 0, row, false)
 	s.clearToBottom(w, blank)
@@ -953,7 +952,7 @@ func (s *Screen) clearBelow(w *bytes.Buffer, blank *Cell, row int) {
 }
 
 // clearUpdate forces a screen redraw.
-func (s *Screen) clearUpdate(w *bytes.Buffer, partial bool) {
+func (s *Screen) clearUpdate(w io.Writer, partial bool) {
 	blank := s.clearBlank()
 	var nonEmpty int
 	if s.opts.AltScreen {
