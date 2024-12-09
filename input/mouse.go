@@ -7,7 +7,7 @@ import (
 )
 
 // MouseButton represents the button that was pressed during a mouse message.
-type MouseButton int
+type MouseButton = ansi.MouseButton
 
 // Mouse event buttons
 //
@@ -27,39 +27,19 @@ type MouseButton int
 //
 // Other buttons are not supported.
 const (
-	MouseNone MouseButton = iota
-	MouseLeft
-	MouseMiddle
-	MouseRight
-	MouseWheelUp
-	MouseWheelDown
-	MouseWheelLeft
-	MouseWheelRight
-	MouseBackward
-	MouseForward
-	MouseExtra1
-	MouseExtra2
+	MouseNone       = ansi.MouseNone
+	MouseLeft       = ansi.MouseLeft
+	MouseMiddle     = ansi.MouseMiddle
+	MouseRight      = ansi.MouseRight
+	MouseWheelUp    = ansi.MouseWheelUp
+	MouseWheelDown  = ansi.MouseWheelDown
+	MouseWheelLeft  = ansi.MouseWheelLeft
+	MouseWheelRight = ansi.MouseWheelRight
+	MouseBackward   = ansi.MouseBackward
+	MouseForward    = ansi.MouseForward
+	MouseButton10   = ansi.MouseButton10
+	MouseButton11   = ansi.MouseButton11
 )
-
-// String returns a string representation of the mouse button.
-func (b MouseButton) String() string {
-	return mouseButtons[b]
-}
-
-var mouseButtons = map[MouseButton]string{
-	MouseNone:       "none",
-	MouseLeft:       "left",
-	MouseMiddle:     "middle",
-	MouseRight:      "right",
-	MouseWheelUp:    "wheelup",
-	MouseWheelDown:  "wheeldown",
-	MouseWheelLeft:  "wheelleft",
-	MouseWheelRight: "wheelright",
-	MouseBackward:   "backward",
-	MouseForward:    "forward",
-	MouseExtra1:     "button10",
-	MouseExtra2:     "button11",
-}
 
 // MouseEvent represents a mouse message. This is a generic mouse message that
 // can represent any kind of mouse event.
@@ -106,8 +86,8 @@ func (m Mouse) String() (s string) {
 		s += "shift+"
 	}
 
-	str, ok := mouseButtons[m.Button]
-	if !ok {
+	str := m.Button.String()
+	if str == "" {
 		s += "unknown"
 	} else if str != "none" { // motion events don't have a button
 		s += str
