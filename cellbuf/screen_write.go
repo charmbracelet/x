@@ -126,6 +126,9 @@ func setContent(
 		data = data[n:]
 	}
 
+	// Don't forget to clear the last line
+	d.ClearInRect(Rect(x, y, rect.Width()+rect.X()-x, 1))
+
 	y++
 	if y < rect.Height() {
 		// Clear the rest of the lines
