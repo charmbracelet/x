@@ -530,10 +530,10 @@ func (s *Screen) emitRange(w io.Writer, line Line, n int) (eoi bool) {
 				repCount--
 			}
 
+			s.updatePen(w, cell0)
 			s.putCell(w, cell0)
 			repCount-- // cell0 is a single width cell ASCII character
 
-			s.updatePen(w, cell0)
 			io.WriteString(w, ansi.RepeatPreviousCharacter(repCount)) //nolint:errcheck
 			s.cur.X += repCount
 			if wrapPossible {
