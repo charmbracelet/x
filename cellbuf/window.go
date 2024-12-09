@@ -259,7 +259,6 @@ type Screen struct {
 	pos           Position // the position of the cursor after the last render
 	opts          ScreenOptions
 	mu            sync.Mutex
-	lastChar      rune // the last character written to the screen
 	altScreenMode bool // whether alternate screen mode is enabled
 	cursorHidden  bool // whether text cursor mode is enabled
 	clear         bool // whether to force clear the screen
@@ -445,7 +444,6 @@ func (s *Screen) putCell(w io.Writer, cell *Cell) {
 	s.updatePen(w, cell)
 	io.WriteString(w, cell.String()) //nolint:errcheck
 	s.cur.X += cell.Width
-	s.lastChar = cell.Rune
 
 	if s.cur.X >= s.newbuf.Width() {
 		s.cur.X = s.newbuf.Width() - 1
@@ -532,14 +530,8 @@ func (s *Screen) emitRange(w io.Writer, line Line, n int) (eoi bool) {
 				repCount--
 			}
 
-			if runes[0] != s.lastChar {
-				cellWidth := 1
-				if cell0 != nil {
-					cellWidth = cell0.Width
-				}
-				s.putCell(w, cell0)
-				repCount -= cellWidth
-			}
+			s.putCell(w, cell0)
+			repCount-- // cell0 is a single width cell ASCII character
 
 			s.updatePen(w, cell0)
 			io.WriteString(w, ansi.RepeatPreviousCharacter(repCount)) //nolint:errcheck
@@ -1130,7 +1122,6 @@ func (s *Screen) Close() (err error) {
 
 // reset resets the screen to its initial state.
 func (s *Screen) reset() {
-	s.lastChar = -1
 	s.cursorHidden = false
 	s.altScreenMode = false
 	if s.opts.RelativeCursor {
