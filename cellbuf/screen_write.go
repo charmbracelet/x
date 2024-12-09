@@ -111,7 +111,7 @@ func setContent(
 				}
 			case ansi.Equal(seq, "\n"):
 				// Reset the rest of the line
-				d.ClearInRect(Rect(x, y, rect.X()+rect.Width(), rect.Y()+rect.Height()))
+				d.ClearInRect(Rect(x, y, rect.Width()+rect.X()-x, 1))
 
 				y++
 				// XXX: We gotta reset the x position here because we're moving
