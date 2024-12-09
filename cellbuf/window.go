@@ -255,7 +255,8 @@ type Screen struct {
 	newbuf        *Buffer  // the new buffer
 	queueAbove    []string // the queue of strings to write above the screen
 	touch         map[int][2]int
-	cur, saved    Cursor // the current and saved cursors
+	cur, saved    Cursor   // the current and saved cursors
+	pos           Position // the position of the cursor after the last render
 	opts          ScreenOptions
 	mu            sync.Mutex
 	lastChar      rune // the last character written to the screen
@@ -1074,6 +1075,12 @@ func (s *Screen) render(b *bytes.Buffer) {
 
 	s.updatePen(b, nil) // nil indicates a blank cell with no styles
 
+	// Move the cursor to the specified position.
+	if s.pos != undefinedPos {
+		s.move(b, s.pos.X, s.pos.Y)
+		s.pos = undefinedPos
+	}
+
 	if b.Len() > 0 {
 		// Is the cursor visible? If so, disable it while rendering.
 		if s.opts.ShowCursor && !s.cursorHidden {
@@ -1085,6 +1092,10 @@ func (s *Screen) render(b *bytes.Buffer) {
 		}
 	}
 }
+
+// undefinedPos is the position used when the cursor position is undefined and
+// in its initial state.
+var undefinedPos = Pos(-1, -1)
 
 // Close writes the final screen update and resets the screen.
 func (s *Screen) Close() (err error) {
@@ -1125,7 +1136,7 @@ func (s *Screen) reset() {
 	if s.opts.RelativeCursor {
 		s.cur = Cursor{}
 	} else {
-		s.cur = Cursor{Position: Position{X: -1, Y: -1}}
+		s.cur = Cursor{Position: undefinedPos}
 	}
 	s.saved = s.cur
 	s.touch = make(map[int][2]int)
@@ -1169,6 +1180,16 @@ func (s *Screen) Resize(width, height int) bool {
 	return true
 }
 
+// MoveTo moves the cursor to the specified position.
+func (s *Screen) MoveTo(x, y int) bool {
+	pos := Pos(x, y)
+	if !s.Bounds().Contains(pos) {
+		return false
+	}
+	s.pos = pos
+	return true
+}
+
 // InsertAbove inserts string above the screen. The inserted string is not
 // managed by the screen. This does nothing when alternate screen mode is
 // enabled.
@@ -1208,6 +1229,7 @@ type Window interface {
 	Draw(x int, y int, cell *Cell) (v bool)
 	Bounds() Rectangle
 	Resize(width, height int) bool
+	MoveTo(x, y int) bool
 }
 
 // SubWindow represents a terminal SubWindow.
@@ -1229,6 +1251,17 @@ func (w *SubWindow) NewWindow(x, y, width, height int) (s *SubWindow, err error)
 	s, err = w.scr.newWindow(x, y, width, height)
 	w.par = w
 	return
+}
+
+// MoveTo moves the cursor to the specified position.
+func (w *SubWindow) MoveTo(x, y int) bool {
+	pos := Pos(x, y)
+	if !w.Bounds().Contains(pos) {
+		return false
+	}
+
+	x, y = w.bounds.Min.X+x, w.bounds.Min.Y+y
+	return w.scr.MoveTo(x, y)
 }
 
 // Cell implements Window.
