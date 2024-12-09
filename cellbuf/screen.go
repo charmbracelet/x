@@ -17,9 +17,15 @@ type Segment struct {
 }
 
 // Paint writes the given data to the canvas. If rect is not nil, it only
-// writes to the rectangle. Otherwise, it writes to the whole canvas.
-func Paint(d Window, m Method, content string, rect Rectangle) []int {
-	return setContent(d, content, m, rect)
+// writes to the rectangle.
+func Paint(d Window, content string) []int {
+	return PaintRect(d, content, d.Bounds())
+}
+
+// PaintRect writes the given data to the canvas starting from the given
+// rectangle.
+func PaintRect(d Window, content string, rect Rectangle) []int {
+	return setContent(d, content, WcWidth, rect)
 }
 
 func renderLine(d *Buffer, n int, opt Options) (w int, line string) {
