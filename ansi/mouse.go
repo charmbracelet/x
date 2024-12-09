@@ -84,7 +84,7 @@ func (b MouseButton) String() string {
 //   - The eighth bit indicates additional buttons.
 //
 // If button is [MouseRelease], and motion is false, this returns a release
-// event.
+// event. If button is undefined, this function returns 0xff.
 func (b MouseButton) Button(motion, shift, alt, ctrl bool) (m byte) {
 	// mouse bit shifts
 	const (
@@ -108,6 +108,8 @@ func (b MouseButton) Button(motion, shift, alt, ctrl bool) (m byte) {
 	} else if b >= MouseBackward && b <= MouseButton11 {
 		m = byte(b - MouseBackward)
 		m |= bitAdd
+	} else {
+		m = 0xff // invalid button
 	}
 
 	if shift {
@@ -126,6 +128,10 @@ func (b MouseButton) Button(motion, shift, alt, ctrl bool) (m byte) {
 	return
 }
 
+// x10Offset is the offset for X10 mouse events.
+// See https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
+const x10Offset = 32
+
 // MouseX10 returns an escape sequence representing a mouse event in X10 mode.
 // Note that this requires the terminal support X10 mouse modes.
 //
@@ -133,7 +139,6 @@ func (b MouseButton) Button(motion, shift, alt, ctrl bool) (m byte) {
 //
 // See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#Mouse%20Tracking
 func MouseX10(b byte, x, y int) string {
-	const x10Offset = 32
 	return "\x1b[M" + string(b+x10Offset) + string(byte(x)+x10Offset+1) + string(byte(y)+x10Offset+1)
 }
 
