@@ -120,7 +120,7 @@ func (l Line) set(x int, c *Cell, clone bool) bool {
 		// Writing to wide cell placeholders
 		for j := 1; j < maxCellWidth && x-j >= 0; j++ {
 			wide := l.At(x - j)
-			if wide != nil && wide.Width > 1 {
+			if wide != nil && wide.Width > 1 && j < wide.Width {
 				for k := 0; k < wide.Width; k++ {
 					l[x-j+k] = wide.Clone().Blank()
 				}
