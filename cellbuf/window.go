@@ -310,12 +310,12 @@ func (s *Screen) Cell(x int, y int) *Cell {
 // Clear implements Window.
 func (s *Screen) Clear() bool {
 	s.clear = true
-	return s.ClearInRect(s.newbuf.Bounds())
+	return s.ClearRect(s.newbuf.Bounds())
 }
 
-// ClearInRect implements Window.
-func (s *Screen) ClearInRect(r Rectangle) bool {
-	s.newbuf.ClearInRect(r)
+// ClearRect implements Window.
+func (s *Screen) ClearRect(r Rectangle) bool {
+	s.newbuf.ClearRect(r)
 	s.mu.Lock()
 	for i := r.Min.Y; i < r.Max.Y; i++ {
 		s.touch[i] = [2]int{r.Min.X, r.Width() - 1}
@@ -343,12 +343,12 @@ func (s *Screen) Draw(x int, y int, cell *Cell) (v bool) {
 
 // Fill implements Window.
 func (s *Screen) Fill(cell *Cell) bool {
-	return s.FillInRect(cell, s.newbuf.Bounds())
+	return s.FillRect(cell, s.newbuf.Bounds())
 }
 
-// FillInRect implements Window.
-func (s *Screen) FillInRect(cell *Cell, r Rectangle) bool {
-	s.newbuf.FillInRect(cell, r)
+// FillRect implements Window.
+func (s *Screen) FillRect(cell *Cell, r Rectangle) bool {
+	s.newbuf.FillRect(cell, r)
 	s.mu.Lock()
 	for i := r.Min.Y; i < r.Max.Y; i++ {
 		s.touch[i] = [2]int{r.Min.X, r.Width() - 1}
@@ -867,8 +867,8 @@ func (s *Screen) clearToBottom(w io.Writer, blank *Cell) {
 
 	s.updatePen(w, blank)
 	io.WriteString(w, ansi.EraseScreenBelow) //nolint:errcheck
-	s.curbuf.ClearInRect(Rect(col, row, s.curbuf.Width(), row+1))
-	s.curbuf.ClearInRect(Rect(0, row+1, s.curbuf.Width(), s.curbuf.Height()))
+	s.curbuf.ClearRect(Rect(col, row, s.curbuf.Width(), row+1))
+	s.curbuf.ClearRect(Rect(0, row+1, s.curbuf.Width(), s.curbuf.Height()))
 }
 
 // clearBottom tests if clearing the end of the screen would satisfy part of
@@ -934,7 +934,7 @@ func (s *Screen) clearBelow(w io.Writer, blank *Cell, row int) {
 	s.moveCursor(w, 0, row, false)
 	s.clearToBottom(w, blank)
 	s.cur.X, s.cur.Y = 0, row
-	s.curbuf.FillInRect(blank, Rect(0, row, s.curbuf.Width(), s.curbuf.Height()))
+	s.curbuf.FillRect(blank, Rect(0, row, s.curbuf.Width(), s.curbuf.Height()))
 }
 
 // clearUpdate forces a screen redraw.
@@ -1146,15 +1146,15 @@ func (s *Screen) Resize(width, height int) bool {
 
 	// Clear new columns and lines
 	if width > oldh {
-		s.ClearInRect(Rect(oldw-2, 0, width-oldw, height))
+		s.ClearRect(Rect(oldw-2, 0, width-oldw, height))
 	} else if width < oldw {
-		s.ClearInRect(Rect(width-1, 0, oldw-width, height))
+		s.ClearRect(Rect(width-1, 0, oldw-width, height))
 	}
 
 	if height > oldh {
-		s.ClearInRect(Rect(0, oldh-1, width, height-oldh))
+		s.ClearRect(Rect(0, oldh-1, width, height-oldh))
 	} else if height < oldh {
-		s.ClearInRect(Rect(0, height-1, width, oldh-height))
+		s.ClearRect(Rect(0, height-1, width, oldh-height))
 	}
 
 	s.mu.Lock()
@@ -1210,9 +1210,9 @@ func (s *Screen) newWindow(x, y, width, height int) (w *SubWindow, err error) {
 type Window interface {
 	Cell(x int, y int) *Cell
 	Fill(cell *Cell) bool
-	FillInRect(cell *Cell, r Rectangle) bool
+	FillRect(cell *Cell, r Rectangle) bool
 	Clear() bool
-	ClearInRect(r Rectangle) bool
+	ClearRect(r Rectangle) bool
 	Draw(x int, y int, cell *Cell) (v bool)
 	Bounds() Rectangle
 	Resize(width, height int) bool
@@ -1262,33 +1262,33 @@ func (w *SubWindow) Cell(x int, y int) *Cell {
 
 // Fill implements Window.
 func (w *SubWindow) Fill(cell *Cell) bool {
-	return w.FillInRect(cell, w.Bounds())
+	return w.FillRect(cell, w.Bounds())
 }
 
-// FillInRect fills the cells in the specified rectangle with the specified
+// FillRect fills the cells in the specified rectangle with the specified
 // cell.
-func (w *SubWindow) FillInRect(cell *Cell, r Rectangle) bool {
+func (w *SubWindow) FillRect(cell *Cell, r Rectangle) bool {
 	if !r.In(w.Bounds().Rectangle) {
 		return false
 	}
 
-	w.scr.FillInRect(cell, r)
+	w.scr.FillRect(cell, r)
 	return true
 }
 
 // Clear implements Window.
 func (w *SubWindow) Clear() bool {
-	return w.ClearInRect(w.Bounds())
+	return w.ClearRect(w.Bounds())
 }
 
-// ClearInRect clears the cells in the specified rectangle based on the current
+// ClearRect clears the cells in the specified rectangle based on the current
 // cursor background color. Use [SetPen] to set the background color.
-func (w *SubWindow) ClearInRect(r Rectangle) bool {
+func (w *SubWindow) ClearRect(r Rectangle) bool {
 	if !r.In(w.Bounds().Rectangle) {
 		return false
 	}
 
-	w.scr.ClearInRect(r)
+	w.scr.ClearRect(r)
 	return true
 }
 

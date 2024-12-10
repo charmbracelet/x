@@ -111,7 +111,7 @@ func setContent(
 				}
 			case ansi.Equal(seq, "\n"):
 				// Reset the rest of the line
-				d.ClearInRect(Rect(x, y, rect.Width()+rect.X()-x, 1))
+				d.ClearRect(Rect(x, y, rect.Width()+rect.X()-x, 1))
 
 				y++
 				// XXX: We gotta reset the x position here because we're moving
@@ -127,12 +127,12 @@ func setContent(
 	}
 
 	// Don't forget to clear the last line
-	d.ClearInRect(Rect(x, y, rect.Width()+rect.X()-x, 1))
+	d.ClearRect(Rect(x, y, rect.Width()+rect.X()-x, 1))
 
 	y++
 	if y < rect.Height() {
 		// Clear the rest of the lines
-		d.ClearInRect(Rect(rect.X(), y, rect.X()+rect.Width(), rect.Y()+rect.Height()))
+		d.ClearRect(Rect(rect.X(), y, rect.X()+rect.Width(), rect.Y()+rect.Height()))
 	}
 
 	return linew

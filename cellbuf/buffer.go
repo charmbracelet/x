@@ -264,8 +264,8 @@ func (b *Buffer) Resize(width int, height int) {
 	}
 }
 
-// FillInRect fills the buffer with the given cell and rectangle.
-func (b *Buffer) FillInRect(c *Cell, rect Rectangle) {
+// FillRect fills the buffer with the given cell and rectangle.
+func (b *Buffer) FillRect(c *Cell, rect Rectangle) {
 	cellWidth := 1
 	if c != nil && c.Width > 1 {
 		cellWidth = c.Width
@@ -279,18 +279,18 @@ func (b *Buffer) FillInRect(c *Cell, rect Rectangle) {
 
 // Fill fills the buffer with the given cell and rectangle.
 func (b *Buffer) Fill(c *Cell) {
-	b.FillInRect(c, b.Bounds())
+	b.FillRect(c, b.Bounds())
 }
 
 // Clear clears the buffer with space cells and rectangle.
 func (b *Buffer) Clear() {
-	b.ClearInRect(b.Bounds())
+	b.ClearRect(b.Bounds())
 }
 
-// ClearInRect clears the buffer with space cells within the specified
+// ClearRect clears the buffer with space cells within the specified
 // rectangles. Only cells within the rectangle's bounds are affected.
-func (b *Buffer) ClearInRect(rect Rectangle) {
-	b.FillInRect(nil, rect)
+func (b *Buffer) ClearRect(rect Rectangle) {
+	b.FillRect(nil, rect)
 }
 
 // InsertLine inserts n lines at the given line position, with the given
