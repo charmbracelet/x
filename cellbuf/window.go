@@ -359,6 +359,10 @@ func (s *Screen) FillRect(cell *Cell, r Rectangle) bool {
 
 // isXtermLike returns whether the terminal is xterm-like. This means that the
 // terminal supports ECMA-48 and ANSI X3.64 escape sequences.
+// TODO: Should this be a lookup table into each $TERM terminfo database? Like
+// we could keep a map of ANSI escape sequence to terminfo capability name and
+// check if the database supports the escape sequence. Instead of keeping a
+// list of terminal names here.
 func isXtermLike(termtype string) (v bool) {
 	parts := strings.Split(termtype, "-")
 	if len(parts) == 0 {
