@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"log"
 	"os"
 	"strings"
 	"sync"
@@ -422,15 +423,6 @@ func cellEqual(a, b *Cell) bool {
 	return a.Equal(b)
 }
 
-// cellRunes returns the runes of the cell content. A nil cell is considered a
-// [BlankCell].
-func cellRunes(c *Cell) []rune {
-	if c == nil {
-		return []rune{BlankCell.Rune}
-	}
-	return append([]rune{c.Rune}, c.Comb...)
-}
-
 // putCell draws a cell at the current cursor position.
 func (s *Screen) putCell(w io.Writer, cell *Cell) {
 	if cell != nil && cell.Empty() {
@@ -496,7 +488,7 @@ func (s *Screen) emitRange(w io.Writer, line Line, n int) (eoi bool) {
 		cell0 := line[0]
 		if n == 1 {
 			s.putCell(w, cell0)
-			return
+			return false
 		}
 
 		count = 2
@@ -517,10 +509,10 @@ func (s *Screen) emitRange(w io.Writer, line Line, n int) (eoi bool) {
 			} else {
 				return true // cursor in the middle
 			}
-		} else if runes := cellRunes(cell0); s.xtermLike && count > len(rep) &&
-			len(runes) == 1 && runes[0] < 256 {
+		} else if s.xtermLike && count > len(rep) &&
+			(cell0 == nil || (len(cell0.Comb) == 0 && cell0.Rune < 256)) {
 			// We only support ASCII characters. Most terminals will handle
-			// non-ASCII characters correctly, but some might not.
+			// non-ASCII characters correctly, but some might not, ahem xterm.
 			//
 			// NOTE: [ansi.REP] only repeats the last rune and won't work
 			// if the last cell contains multiple runes.
@@ -969,6 +961,7 @@ func (s *Screen) Render() {
 	s.render(b)
 	// Write the buffer
 	if b.Len() > 0 {
+		log.Printf("Render: %q", b.String())
 		s.w.Write(b.Bytes()) //nolint:errcheck
 	}
 	s.mu.Unlock()
