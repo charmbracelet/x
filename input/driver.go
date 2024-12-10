@@ -3,11 +3,15 @@ package input
 import (
 	"bytes"
 	"io"
-	"log"
 	"unicode/utf8"
 
 	"github.com/muesli/cancelreader"
 )
+
+// Logger is a simple logger interface.
+type Logger interface {
+	Printf(format string, v ...interface{})
+}
 
 // win32InputState is a state machine for parsing key events from the Windows
 // Console API into escape sequences and utf8 runes, and keeps track of the last
@@ -46,7 +50,7 @@ type Reader struct {
 	keyState win32InputState //nolint:unused
 
 	parser Parser
-	trace  bool // trace enables input tracing and logging.
+	logger Logger
 }
 
 // NewReader returns a new input event reader. The reader reads input events
@@ -75,6 +79,11 @@ func NewReader(r io.Reader, termType string, flags int) (*Reader, error) {
 	return d, nil
 }
 
+// SetLogger sets a logger for the reader.
+func (d *Reader) SetLogger(l Logger) {
+	d.logger = l
+}
+
 // Read implements [io.Reader].
 func (d *Reader) Read(p []byte) (int, error) {
 	return d.rd.Read(p)
@@ -90,7 +99,7 @@ func (d *Reader) Close() error {
 	return d.rd.Close()
 }
 
-func (d *Reader) readEvents() (Events []Event, err error) {
+func (d *Reader) readEvents() (events []Event, err error) {
 	nb, err := d.rd.Read(d.buf[:])
 	if err != nil {
 		return nil, err
@@ -101,7 +110,10 @@ func (d *Reader) readEvents() (Events []Event, err error) {
 	// Lookup table first
 	if bytes.HasPrefix(buf, []byte{'\x1b'}) {
 		if k, ok := d.table[string(buf)]; ok {
-			Events = append(Events, KeyPressEvent(k))
+			if d.logger != nil {
+				d.logger.Printf("input: %q", buf)
+			}
+			events = append(events, KeyPressEvent(k))
 			return
 		}
 	}
@@ -109,8 +121,8 @@ func (d *Reader) readEvents() (Events []Event, err error) {
 	var i int
 	for i < len(buf) {
 		nb, ev := d.parser.parseSequence(buf[i:])
-		if d.trace {
-			log.Printf("input: %q", buf[i:i+nb])
+		if d.logger != nil {
+			d.logger.Printf("input: %q", buf[i:i+nb])
 		}
 
 		// Handle bracketed-paste
@@ -141,16 +153,16 @@ func (d *Reader) readEvents() (Events []Event, err error) {
 				d.paste = d.paste[w:]
 			}
 			d.paste = nil // reset the buffer
-			Events = append(Events, PasteEvent(paste))
+			events = append(events, PasteEvent(paste))
 		case nil:
 			i++
 			continue
 		}
 
 		if mevs, ok := ev.(MultiEvent); ok {
-			Events = append(Events, []Event(mevs)...)
+			events = append(events, []Event(mevs)...)
 		} else {
-			Events = append(Events, ev)
+			events = append(events, ev)
 		}
 		i += nb
 	}
