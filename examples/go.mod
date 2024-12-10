@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/examples
 go 1.18
 
 require (
-	github.com/charmbracelet/colorprofile v0.1.8
+	github.com/charmbracelet/colorprofile v0.1.9
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2.0.20241204155804-59cbf2850015
 	github.com/charmbracelet/x/ansi v0.5.1
 	github.com/charmbracelet/x/cellbuf v0.0.6-0.20241106170917-eb0997d7d743
@@ -12,10 +12,7 @@ require (
 	github.com/lucasb-eyer/go-colorful v1.2.0
 )
 
-require (
-	github.com/charmbracelet/x/windows v0.2.0 // indirect
-	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
-)
+require github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
 
 require (
 	github.com/charmbracelet/x/term v0.2.1
