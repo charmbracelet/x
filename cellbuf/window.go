@@ -368,6 +368,7 @@ func isXtermLike(termtype string) (v bool) {
 	switch parts[0] {
 	case
 		"alacritty",
+		"contour",
 		"foot",
 		"ghostty",
 		"kitty",
