@@ -118,6 +118,11 @@ func TestSetMode(t *testing.T) {
 			modes:    []Mode{KeyboardActionMode, CursorKeysMode},
 			expected: "\x1b[2h\x1b[?1h",
 		},
+		{
+			name:     "multiple mixed ANSI and DEC modes",
+			modes:    []Mode{KeyboardActionMode, InsertReplaceMode, CursorKeysMode, AutoWrapMode},
+			expected: "\x1b[2;4h\x1b[?1;7h",
+		},
 	}
 
 	for _, tt := range tests {
@@ -164,6 +169,11 @@ func TestResetMode(t *testing.T) {
 			name:     "mixed ANSI and DEC modes",
 			modes:    []Mode{KeyboardActionMode, CursorKeysMode},
 			expected: "\x1b[2l\x1b[?1l",
+		},
+		{
+			name:     "multiple mixed ANSI and DEC modes",
+			modes:    []Mode{KeyboardActionMode, InsertReplaceMode, CursorKeysMode, AutoWrapMode},
+			expected: "\x1b[2;4l\x1b[?1;7l",
 		},
 	}
 
