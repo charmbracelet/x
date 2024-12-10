@@ -375,6 +375,7 @@ func isXtermLike(termtype string) (v bool) {
 		"linux",
 		"rio",
 		"screen",
+		"st",
 		"tmux",
 		"wezterm",
 		"xterm":
