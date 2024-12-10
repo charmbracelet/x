@@ -83,8 +83,8 @@ func (b MouseButton) String() string {
 //
 //   - The eighth bit indicates additional buttons.
 //
-// If button is [MouseRelease], and motion is false, this returns a release
-// event. If button is undefined, this function returns 0xff.
+// If button is [MouseNone], and motion is false, this returns a release event.
+// If button is undefined, this function returns 0xff.
 func (b MouseButton) Button(motion, shift, alt, ctrl bool) (m byte) {
 	// mouse bit shifts
 	const (
@@ -98,7 +98,7 @@ func (b MouseButton) Button(motion, shift, alt, ctrl bool) (m byte) {
 		bitsMask = 0b0000_0011
 	)
 
-	if b == MouseRelease {
+	if b == MouseNone {
 		m = bitsMask
 	} else if b >= MouseLeft && b <= MouseRight {
 		m = byte(b - MouseLeft)

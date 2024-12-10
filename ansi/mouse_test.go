@@ -16,8 +16,14 @@ func TestMouseButton(t *testing.T) {
 	cases := []test{
 		{
 			name: "mouse release",
-			btn:  MouseRelease,
+			btn:  MouseNone,
 			want: 0b0000_0011,
+		},
+		{
+			name: "mouse release with ctrl",
+			btn:  MouseNone,
+			ctrl: true,
+			want: 0b0001_0011,
 		},
 		{
 			name: "mouse left",
@@ -177,7 +183,7 @@ func TestMouseSgr(t *testing.T) {
 		},
 		{
 			name:    "mouse release",
-			btn:     MouseRelease.Button(false, false, false, false),
+			btn:     MouseNone.Button(false, false, false, false),
 			x:       5,
 			y:       5,
 			release: true,
