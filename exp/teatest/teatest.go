@@ -81,7 +81,7 @@ func WaitFor(
 func doWaitFor(r io.Reader, condition func(bts []byte) bool, options ...WaitForOption) error {
 	wf := WaitingForContext{
 		Duration:      time.Second,
-		CheckInterval: 50 * time.Millisecond, //nolint: gomnd
+		CheckInterval: 50 * time.Millisecond, //nolint: mnd
 	}
 
 	for _, opt := range options {
@@ -275,7 +275,7 @@ func (tm *TestModel) GetProgram() *tea.Program {
 // You can update the golden files by running your tests with the -update flag.
 func RequireEqualOutput(tb testing.TB, out []byte) {
 	tb.Helper()
-	golden.RequireEqualEscape(tb, out, true)
+	golden.RequireEqual(tb, out)
 }
 
 func safe(rw io.ReadWriter) io.ReadWriter {
