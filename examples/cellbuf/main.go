@@ -40,7 +40,7 @@ func main() {
 
 	defer scr.Close() //nolint:errcheck
 
-	drv, err := input.NewDriver(os.Stdin, termType, 0)
+	drv, err := input.NewReader(os.Stdin, termType, 0)
 	if err != nil {
 		log.Fatalf("creating input driver: %v", err)
 	}

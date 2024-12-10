@@ -401,7 +401,7 @@ func main() {
 
 	defer term.Restore(os.Stdin.Fd(), state) //nolint:errcheck
 
-	drv, err := input.NewDriver(os.Stdin, termType, 0)
+	drv, err := input.NewReader(os.Stdin, termType, 0)
 	if err != nil {
 		log.Fatalf("creating input driver: %v", err)
 	}
