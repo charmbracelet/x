@@ -1165,9 +1165,10 @@ func (s *Screen) Resize(width, height int) bool {
 		s.ClearInRect(Rect(0, height-1, width, oldh-height))
 	}
 
+	s.mu.Lock()
 	s.newbuf.Resize(width, height)
-
 	s.opts.Width, s.opts.Height = width, height
+	s.mu.Unlock()
 
 	return true
 }
@@ -1178,7 +1179,9 @@ func (s *Screen) MoveTo(x, y int) bool {
 	if !s.Bounds().Contains(pos) {
 		return false
 	}
+	s.mu.Lock()
 	s.pos = pos
+	s.mu.Unlock()
 	return true
 }
 
