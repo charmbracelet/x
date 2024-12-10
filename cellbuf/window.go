@@ -251,13 +251,13 @@ type ScreenOptions struct {
 // Screen represents the terminal screen.
 type Screen struct {
 	w             io.Writer
-	curbuf        *Buffer  // the current buffer
-	newbuf        *Buffer  // the new buffer
-	queueAbove    []string // the queue of strings to write above the screen
+	curbuf        *Buffer // the current buffer
+	newbuf        *Buffer // the new buffer
 	touch         map[int][2]int
+	queueAbove    []string // the queue of strings to write above the screen
 	cur, saved    Cursor   // the current and saved cursors
-	pos           Position // the position of the cursor after the last render
 	opts          ScreenOptions
+	pos           Position // the position of the cursor after the last render
 	mu            sync.Mutex
 	altScreenMode bool // whether alternate screen mode is enabled
 	cursorHidden  bool // whether text cursor mode is enabled
