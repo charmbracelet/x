@@ -26,19 +26,28 @@ type MouseButton byte
 // Other buttons are not supported.
 const (
 	MouseNone MouseButton = iota
-	MouseLeft
-	MouseMiddle
-	MouseRight
-	MouseWheelUp
-	MouseWheelDown
-	MouseWheelLeft
-	MouseWheelRight
-	MouseBackward
-	MouseForward
+	MouseButton1
+	MouseButton2
+	MouseButton3
+	MouseButton4
+	MouseButton5
+	MouseButton6
+	MouseButton7
+	MouseButton8
+	MouseButton9
 	MouseButton10
 	MouseButton11
 
-	MouseRelease = MouseNone
+	MouseLeft       = MouseButton1
+	MouseMiddle     = MouseButton2
+	MouseRight      = MouseButton3
+	MouseWheelUp    = MouseButton4
+	MouseWheelDown  = MouseButton5
+	MouseWheelLeft  = MouseButton6
+	MouseWheelRight = MouseButton7
+	MouseBackward   = MouseButton8
+	MouseForward    = MouseButton9
+	MouseRelease    = MouseNone
 )
 
 var mouseButtons = map[MouseButton]string{
