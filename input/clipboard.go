@@ -1,13 +1,15 @@
 package input
 
+import "github.com/charmbracelet/x/ansi"
+
 // ClipboardSelection represents a clipboard selection. The most common
 // clipboard selections are "system" and "primary" and selections.
-type ClipboardSelection byte
+type ClipboardSelection = byte
 
 // Clipboard selections.
 const (
-	SystemClipboard  = ClipboardSelection('c')
-	PrimaryClipboard = ClipboardSelection('p')
+	SystemClipboard  ClipboardSelection = ansi.SystemClipboard
+	PrimaryClipboard ClipboardSelection = ansi.PrimaryClipboard
 )
 
 // ClipboardEvent is a clipboard read message event. This message is emitted when
