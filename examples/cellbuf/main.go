@@ -78,6 +78,7 @@ func main() {
 			w = nw
 		}
 		scr.Resize(nw, nh)
+		render()
 	}
 
 	if runtime.GOOS != "windows" {

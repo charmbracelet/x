@@ -1,6 +1,6 @@
 github.com/charmbracelet/harmonica v0.2.0/go.mod h1:KSri/1RMQOZLbw7AHqgcBycp8pgJnQMYYT8QZRqZ1Ao=
 github.com/charmbracelet/x/ansi v0.5.0/go.mod h1:dk73KoMTT5AX5BsX0KrqhsTqAnhZZoCBjs7dGWp4Ktw=
-github.com/charmbracelet/x/input v0.2.0/go.mod h1:KUSFIS6uQymtnr5lHVSOK9j8RvwTD4YHnWnzJUYnd/M=
+github.com/charmbracelet/x/cellbuf v0.0.6-0.20241106170917-eb0997d7d743/go.mod h1:FaDNlvrPSNCEnih536+xi5f8iqxRQfDA20TVTs30CPU=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/mattn/go-isatty v0.0.19/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
