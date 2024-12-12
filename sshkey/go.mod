@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/charmbracelet/huh v0.6.0
-	golang.org/x/crypto v0.30.0
+	golang.org/x/crypto v0.31.0
 )
 
 require (
