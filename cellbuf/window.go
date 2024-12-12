@@ -267,6 +267,11 @@ type Screen struct {
 
 var _ Window = &Screen{}
 
+// SetColorProfile sets the color profile to use when writing to the screen.
+func (s *Screen) SetColorProfile(p colorprofile.Profile) {
+	s.opts.Profile = p
+}
+
 // SetRelativeCursor sets whether to use relative cursor movements.
 func (s *Screen) SetRelativeCursor(v bool) {
 	s.opts.RelativeCursor = v
