@@ -300,14 +300,14 @@ func (b *Buffer) ClearRect(rect Rectangle) {
 // rectangle bounds and lost. This follows terminal [ansi.IL] behavior.
 // It returns the pushed out lines.
 func (b *Buffer) InsertLine(y, n int, c *Cell) {
-	b.InsertLineInRect(y, n, c, b.Bounds())
+	b.InsertLineRect(y, n, c, b.Bounds())
 }
 
-// InsertLineInRect inserts new lines at the given line position, with the
+// InsertLineRect inserts new lines at the given line position, with the
 // given optional cell, within the rectangle bounds. Only cells within the
 // rectangle's horizontal bounds are affected. Lines are pushed out of the
 // rectangle bounds and lost. This follows terminal [ansi.IL] behavior.
-func (b *Buffer) InsertLineInRect(y, n int, c *Cell, rect Rectangle) {
+func (b *Buffer) InsertLineRect(y, n int, c *Cell, rect Rectangle) {
 	if n <= 0 || y < rect.Min.Y || y >= rect.Max.Y || y >= b.Height() {
 		return
 	}
@@ -333,12 +333,12 @@ func (b *Buffer) InsertLineInRect(y, n int, c *Cell, rect Rectangle) {
 	}
 }
 
-// DeleteLineInRect deletes lines at the given line position, with the given
+// DeleteLineRect deletes lines at the given line position, with the given
 // optional cell, within the rectangle bounds. Only cells within the
 // rectangle's bounds are affected. Lines are shifted up within the bounds and
 // new blank lines are created at the bottom. This follows terminal [ansi.DL]
 // behavior.
-func (b *Buffer) DeleteLineInRect(y, n int, c *Cell, rect Rectangle) {
+func (b *Buffer) DeleteLineRect(y, n int, c *Cell, rect Rectangle) {
 	if n <= 0 || y < rect.Min.Y || y >= rect.Max.Y || y >= b.Height() {
 		return
 	}
@@ -370,7 +370,7 @@ func (b *Buffer) DeleteLineInRect(y, n int, c *Cell, rect Rectangle) {
 // optional cell, within the specified rectangles. If no rectangles are
 // specified, it deletes lines in the entire buffer.
 func (b *Buffer) DeleteLine(y, n int, c *Cell) {
-	b.DeleteLineInRect(y, n, c, b.Bounds())
+	b.DeleteLineRect(y, n, c, b.Bounds())
 }
 
 // InsertCell inserts new cells at the given position, with the given optional
@@ -378,13 +378,13 @@ func (b *Buffer) DeleteLine(y, n int, c *Cell) {
 // inserts cells in the entire buffer. This follows terminal [ansi.ICH]
 // behavior.
 func (b *Buffer) InsertCell(x, y, n int, c *Cell) {
-	b.InsertCellInRect(x, y, n, c, b.Bounds())
+	b.InsertCellRect(x, y, n, c, b.Bounds())
 }
 
-// InsertCellInRect inserts new cells at the given position, with the given
+// InsertCellRect inserts new cells at the given position, with the given
 // optional cell, within the rectangle bounds. Only cells within the
 // rectangle's bounds are affected, following terminal [ansi.ICH] behavior.
-func (b *Buffer) InsertCellInRect(x, y, n int, c *Cell, rect Rectangle) {
+func (b *Buffer) InsertCellRect(x, y, n int, c *Cell, rect Rectangle) {
 	if n <= 0 || y < rect.Min.Y || y >= rect.Max.Y || y >= b.Height() ||
 		x < rect.Min.X || x >= rect.Max.X || x >= b.Width() {
 		return
@@ -414,13 +414,13 @@ func (b *Buffer) InsertCellInRect(x, y, n int, c *Cell, rect Rectangle) {
 // deletes cells in the entire buffer. This follows terminal [ansi.DCH]
 // behavior.
 func (b *Buffer) DeleteCell(x, y, n int, c *Cell) {
-	b.DeleteCellInRect(x, y, n, c, b.Bounds())
+	b.DeleteCellRect(x, y, n, c, b.Bounds())
 }
 
-// DeleteCellInRect deletes cells at the given position, with the given
+// DeleteCellRect deletes cells at the given position, with the given
 // optional cell, within the rectangle bounds. Only cells within the
 // rectangle's bounds are affected, following terminal [ansi.DCH] behavior.
-func (b *Buffer) DeleteCellInRect(x, y, n int, c *Cell, rect Rectangle) {
+func (b *Buffer) DeleteCellRect(x, y, n int, c *Cell, rect Rectangle) {
 	if n <= 0 || y < rect.Min.Y || y >= rect.Max.Y || y >= b.Height() ||
 		x < rect.Min.X || x >= rect.Max.X || x >= b.Width() {
 		return
