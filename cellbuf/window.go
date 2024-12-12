@@ -1102,14 +1102,14 @@ func (s *Screen) Close() (err error) {
 	s.move(b, 0, s.newbuf.Height()-1)
 	s.clearToEnd(b, nil, true)
 
-	if s.cursorHidden {
-		b.WriteString(ansi.ShowCursor)
-		s.cursorHidden = false
-	}
-
 	if s.altScreenMode {
 		b.WriteString(ansi.ResetAltScreenSaveCursorMode)
 		s.altScreenMode = false
+	}
+
+	if s.cursorHidden {
+		b.WriteString(ansi.ShowCursor)
+		s.cursorHidden = false
 	}
 
 	// Write the buffer
