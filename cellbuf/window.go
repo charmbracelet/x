@@ -434,9 +434,8 @@ func (s *Screen) putCell(w io.Writer, cell *Cell) {
 		return
 	}
 
-	blank := s.clearBlank()
 	if cell == nil {
-		cell = blank
+		cell = s.clearBlank()
 	}
 
 	s.updatePen(w, cell)
