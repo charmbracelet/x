@@ -49,8 +49,8 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 			if cud := ansi.CursorDown(n); yseq == "" || len(cud) < len(yseq) {
 				yseq = cud
 			}
-			shouldScroll := !s.opts.AltScreen && fy+n >= s.newbuf.Height()
-			if lf := strings.Repeat("\n", n); yseq == "" || shouldScroll || fy+n < s.newbuf.Height() && len(lf) < len(yseq) {
+			shouldScroll := !s.opts.AltScreen
+			if lf := strings.Repeat("\n", n); yseq == "" || shouldScroll || (fy+n < s.newbuf.Height() && len(lf) < len(yseq)) {
 				// TODO: Ensure we're not unintentionally scrolling the screen down.
 				yseq = lf
 			}
