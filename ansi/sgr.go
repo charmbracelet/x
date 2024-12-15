@@ -46,7 +46,7 @@ var attrStrings = map[int]string{
 	ReverseAttr:                      "7",
 	ConcealAttr:                      "8",
 	StrikethroughAttr:                "9",
-	NoBoldAttr:                       "21",
+	DoubleUnderlineAttr:              "21",
 	NormalIntensityAttr:              "22",
 	NoItalicAttr:                     "23",
 	NoUnderlineAttr:                  "24",
