@@ -173,10 +173,6 @@ func (s *Screen) moveCursor(x, y int, overwrite bool) {
 
 func (s *Screen) move(x, y int) {
 	width, height := s.newbuf.Width(), s.newbuf.Height()
-	if s.cur.X == x && s.cur.Y == y || width <= 0 || height <= 0 {
-		return
-	}
-
 	if x >= width {
 		// Handle autowrap
 		y += (x / width)
@@ -184,11 +180,13 @@ func (s *Screen) move(x, y int) {
 	}
 
 	// Disable styles if there's any
-	var pen Style
-	if !s.cur.Style.Empty() {
-		pen = s.cur.Style
-		s.buf.WriteString(ansi.ResetStyle) //nolint:errcheck
-	}
+	// TODO: Do we need this? It seems like it's only needed when used with
+	// alternate character sets which we don't support.
+	// var pen Style
+	// if !s.cur.Style.Empty() {
+	// 	pen = s.cur.Style
+	// 	s.buf.WriteString(ansi.ResetStyle) //nolint:errcheck
+	// }
 
 	if s.cur.X >= width {
 		l := (s.cur.X + 1) / width
@@ -200,7 +198,7 @@ func (s *Screen) move(x, y int) {
 
 		if l > 0 {
 			s.cur.X = 0
-			s.buf.WriteString(strings.Repeat("\n", l)) //nolint:errcheck
+			s.buf.WriteString("\r" + strings.Repeat("\n", l)) //nolint:errcheck
 		}
 	}
 
@@ -214,9 +212,11 @@ func (s *Screen) move(x, y int) {
 	// We set the new cursor in [Screen.moveCursor].
 	s.moveCursor(x, y, true) // Overwrite cells if possible
 
-	if !pen.Empty() {
-		s.buf.WriteString(pen.Sequence()) //nolint:errcheck
-	}
+	// TODO: Do we need this? It seems like it's only needed when used with
+	// alternate character sets which we don't support.
+	// if !pen.Empty() {
+	// 	s.buf.WriteString(pen.Sequence()) //nolint:errcheck
+	// }
 }
 
 // Cursor represents a terminal Cursor.
