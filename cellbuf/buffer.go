@@ -102,11 +102,6 @@ func (l Line) set(x int, c *Cell, clone bool) bool {
 		return false
 	}
 
-	// Don't allocate a new cell if the cell is a clear blank.
-	if c != nil && c.Equal(&BlankCell) {
-		c = nil
-	}
-
 	// When a wide cell is partially overwritten, we need
 	// to fill the rest of the cell with space cells to
 	// avoid rendering issues.
