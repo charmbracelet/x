@@ -270,7 +270,6 @@ func (s Style) DiffSequence(o Style) string {
 			if s.Attrs&FaintAttr != 0 {
 				b = b.Faint()
 			} else if !isNormal {
-				isNormal = true
 				b = b.NormalIntensity()
 			}
 		}
@@ -285,6 +284,7 @@ func (s Style) DiffSequence(o Style) string {
 			if s.Attrs&SlowBlinkAttr != 0 {
 				b = b.SlowBlink()
 			} else if !noBlink {
+				noBlink = true
 				b = b.NoBlink()
 			}
 		}
