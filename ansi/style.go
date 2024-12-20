@@ -199,7 +199,7 @@ func (s Style) UnderlineColor(c Color) Style {
 
 // UnderlineStyle represents an ANSI SGR (Select Graphic Rendition) underline
 // style.
-type UnderlineStyle = int
+type UnderlineStyle = byte
 
 const (
 	doubleUnderlineStyle = "4:2"
