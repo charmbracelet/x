@@ -318,6 +318,10 @@ func (s Style) DiffSequence(o Style) string {
 		}
 	}
 
+	if s.UlStyle != o.UlStyle {
+		b = b.UnderlineStyle(s.UlStyle)
+	}
+
 	return b.String()
 }
 
