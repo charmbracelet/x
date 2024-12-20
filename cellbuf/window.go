@@ -1071,6 +1071,13 @@ func (s *Screen) render() {
 		s.clearUpdate(partialClear)
 		s.clear = false
 	} else if len(s.touch) > 0 {
+		if s.opts.AltScreen {
+			// Optimize scrolling for the alternate screen buffer.
+			// TODO: Should we optimize for inline mode as well? If so, we need
+			// to know the actual cursor position to use [ansi.DECSTBM].
+			s.scrollOptimize()
+		}
+
 		var changedLines int
 		var i int
 
@@ -1082,8 +1089,8 @@ func (s *Screen) render() {
 
 		nonEmpty = s.clearBottom(nonEmpty, partialClear)
 		for i = 0; i < nonEmpty; i++ {
-			_, wasTouched := s.touch[i]
-			if wasTouched {
+			chg, wasTouched := s.touch[i]
+			if wasTouched && chg.firstCell != newIndex && chg.lastCell != newIndex {
 				s.transformLine(i)
 				changedLines++
 			}
