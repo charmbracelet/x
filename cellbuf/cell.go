@@ -148,44 +148,18 @@ const (
 	ResetAttr AttrMask = 0
 )
 
-var attrMaskNames = map[AttrMask]string{
-	BoldAttr:          "BoldAttr",
-	FaintAttr:         "FaintAttr",
-	ItalicAttr:        "ItalicAttr",
-	SlowBlinkAttr:     "SlowBlinkAttr",
-	RapidBlinkAttr:    "RapidBlinkAttr",
-	ReverseAttr:       "ReverseAttr",
-	ConcealAttr:       "ConcealAttr",
-	StrikethroughAttr: "StrikethroughAttr",
-	ResetAttr:         "ResetAttr",
-}
-
 // UnderlineStyle is the style of underline to use for text.
-type UnderlineStyle uint8
+type UnderlineStyle = ansi.UnderlineStyle
 
 // These are the available underline styles.
 const (
-	NoUnderline UnderlineStyle = iota
-	SingleUnderline
-	DoubleUnderline
-	CurlyUnderline
-	DottedUnderline
-	DashedUnderline
+	NoUnderline     = ansi.NoUnderlineStyle
+	SingleUnderline = ansi.SingleUnderlineStyle
+	DoubleUnderline = ansi.DoubleUnderlineStyle
+	CurlyUnderline  = ansi.CurlyUnderlineStyle
+	DottedUnderline = ansi.DottedUnderlineStyle
+	DashedUnderline = ansi.DashedUnderlineStyle
 )
-
-var underlineStyleNames = map[UnderlineStyle]string{
-	NoUnderline:     "NoUnderline",
-	SingleUnderline: "SingleUnderline",
-	DoubleUnderline: "DoubleUnderline",
-	CurlyUnderline:  "CurlyUnderline",
-	DottedUnderline: "DottedUnderline",
-	DashedUnderline: "DashedUnderline",
-}
-
-// String returns a string representation of the underline style.
-func (u UnderlineStyle) String() string {
-	return underlineStyleNames[u]
-}
 
 // Style represents the Style of a cell.
 type Style struct {
