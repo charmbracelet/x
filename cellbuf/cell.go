@@ -477,9 +477,8 @@ func (s *Style) Empty() bool {
 // Clear returns whether the style consists of only attributes that don't
 // affect appearance of a space character.
 func (s *Style) Clear() bool {
-	return s.Fg == nil && s.Bg == nil &&
-		s.UlStyle == NoUnderline &&
-		s.Attrs&^(BoldAttr|FaintAttr|ItalicAttr) == 0
+	return s.UlStyle == NoUnderline &&
+		s.Attrs&^(BoldAttr|FaintAttr|ItalicAttr|SlowBlinkAttr|RapidBlinkAttr) == 0
 }
 
 func runesEqual(a, b []rune) bool {

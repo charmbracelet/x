@@ -818,7 +818,7 @@ func (s *Screen) transformLine(y int) {
 			s.move(firstCell, y)
 			if oLastCell-nLastCell > el0Cost {
 				if s.putRange(oldLine, newLine, y, firstCell, nLastCell) {
-					s.move(nLastCell, y)
+					s.move(nLastCell+1, y)
 				}
 				s.clearToEnd(blank, false)
 			} else {
