@@ -1019,6 +1019,16 @@ func (s *Screen) Render() {
 }
 
 func (s *Screen) render() {
+	// Do we need to render anything?
+	if s.opts.AltScreen == s.altScreenMode &&
+		!s.opts.ShowCursor == s.cursorHidden &&
+		!s.clear &&
+		len(s.touch) == 0 &&
+		len(s.queueAbove) == 0 &&
+		s.pos == undefinedPos {
+		return
+	}
+
 	// Do we need alt-screen mode?
 	if s.opts.AltScreen != s.altScreenMode {
 		if s.opts.AltScreen {
