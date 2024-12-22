@@ -31,24 +31,21 @@ const newIndex = -1
 // updateHashmap updates the hashmap with the new hash value.
 func (s *Screen) updateHashmap() {
 	height := s.newbuf.Height()
-	if height > len(s.hashtab) {
-		s.hashtab = make([]hashmap, height*2)
-	}
-
-	if s.oldhash != nil && s.newhash != nil {
+	if len(s.oldhash) >= height && len(s.newhash) >= height {
 		// rehash changed lines
 		for i := 0; i < height; i++ {
 			_, ok := s.touch[i]
 			if ok {
+				s.oldhash[i] = hash(s.curbuf.Line(i))
 				s.newhash[i] = hash(s.newbuf.Line(i))
 			}
 		}
 	} else {
 		// rehash all
-		if s.oldhash == nil {
+		if len(s.oldhash) != height {
 			s.oldhash = make([]uint64, height)
 		}
-		if s.newhash == nil {
+		if len(s.newhash) != height {
 			s.newhash = make([]uint64, height)
 		}
 		for i := 0; i < height; i++ {
@@ -94,7 +91,8 @@ func (s *Screen) updateHashmap() {
 	}
 
 	// Mark line pair corresponding to unique hash pairs.
-	for _, hsp := range s.hashtab {
+	for i := 0; i < len(s.hashtab) && s.hashtab[i].value != 0; i++ {
+		hsp := &s.hashtab[i]
 		if hsp.oldcount == 1 && hsp.newcount == 1 && hsp.oldindex != hsp.newindex {
 			s.oldnum[hsp.newindex] = hsp.oldindex
 		}
@@ -116,7 +114,7 @@ func (s *Screen) updateHashmap() {
 		start = i
 		shift = s.oldnum[i] - i
 		i++
-		for i < height && i < len(s.oldnum) && s.oldnum[i] != newIndex && s.oldnum[i]-i == shift {
+		for i < height && s.oldnum[i] != newIndex && s.oldnum[i]-i == shift {
 			i++
 		}
 		size = i - start
@@ -134,7 +132,7 @@ func (s *Screen) updateHashmap() {
 
 // scrollOldhash
 func (s *Screen) scrollOldhash(n, top, bot int) {
-	if s.oldhash == nil {
+	if len(s.oldhash) == 0 {
 		return
 	}
 
@@ -165,7 +163,7 @@ func (s *Screen) growHunks() {
 	)
 
 	height := s.newbuf.Height()
-	for i < height && i < len(s.oldnum) && s.oldnum[i] == newIndex {
+	for i < height && s.oldnum[i] == newIndex {
 		i++
 	}
 	for ; i < height; i = nextHunk {
@@ -179,20 +177,20 @@ func (s *Screen) growHunks() {
 
 		// get forward limit
 		i = start + 1
-		for i < height && i < len(s.oldnum) &&
+		for i < height &&
 			s.oldnum[i] != newIndex &&
 			s.oldnum[i]-i == shift {
 			i++
 		}
 
 		end = i
-		for i < height && i < len(s.oldnum) && s.oldnum[i] == newIndex {
+		for i < height && s.oldnum[i] == newIndex {
 			i++
 		}
 
 		nextHunk = i
 		forwardLimit = i
-		if i >= height || (i < len(s.oldnum) && s.oldnum[i] >= i) {
+		if i >= height || s.oldnum[i] >= i {
 			forwardRefLimit = i
 		} else {
 			forwardRefLimit = s.oldnum[i]
@@ -284,7 +282,7 @@ func (s *Screen) costEffective(from, to int, blank bool) bool {
 
 func (s *Screen) updateCost(from, to Line) (cost int) {
 	var fidx, tidx int
-	for i := s.newbuf.Width(); i > 0; i, fidx, tidx = i-1, fidx+1, tidx+1 {
+	for i := s.newbuf.Width() - 1; i > 0; i, fidx, tidx = i-1, fidx+1, tidx+1 {
 		if !cellEqual(from.At(fidx), to.At(tidx)) {
 			cost++
 		}
@@ -294,7 +292,7 @@ func (s *Screen) updateCost(from, to Line) (cost int) {
 
 func (s *Screen) updateCostBlank(to Line) (cost int) {
 	var tidx int
-	for i := s.newbuf.Width(); i > 0; i, tidx = i-1, tidx+1 {
+	for i := s.newbuf.Width() - 1; i > 0; i, tidx = i-1, tidx+1 {
 		if !cellEqual(nil, to.At(tidx)) {
 			cost++
 		}

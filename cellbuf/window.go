@@ -332,29 +332,27 @@ func (s *Screen) Clear() bool {
 
 // ClearRect implements Window.
 func (s *Screen) ClearRect(r Rectangle) bool {
-	s.newbuf.ClearRect(r)
-	s.mu.Lock()
-	for i := r.Min.Y; i < r.Max.Y; i++ {
-		s.touch[i] = lineData{firstCell: r.Min.X, lastCell: r.Max.X - 1}
-	}
-	s.mu.Unlock()
-	return true
+	return s.FillRect(nil, r)
 }
 
 // Draw implements Window.
 func (s *Screen) Draw(x int, y int, cell *Cell) (v bool) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
+	cellWidth := 1
+	if cell != nil {
+		cellWidth = cell.Width
+	}
 	if prev := s.curbuf.Cell(x, y); !cellEqual(prev, cell) {
 		chg, ok := s.touch[y]
 		if !ok {
-			chg = lineData{firstCell: x, lastCell: x}
+			chg = lineData{firstCell: x, lastCell: x + cellWidth}
 		} else {
 			chg.firstCell = min(chg.firstCell, x)
-			chg.lastCell = max(chg.lastCell, x)
+			chg.lastCell = max(chg.lastCell, x+cellWidth)
 		}
 		s.touch[y] = chg
 	}
-	s.mu.Unlock()
 
 	return s.newbuf.Draw(x, y, cell)
 }
@@ -366,12 +364,12 @@ func (s *Screen) Fill(cell *Cell) bool {
 
 // FillRect implements Window.
 func (s *Screen) FillRect(cell *Cell, r Rectangle) bool {
-	s.newbuf.FillRect(cell, r)
 	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.newbuf.FillRect(cell, r)
 	for i := r.Min.Y; i < r.Max.Y; i++ {
-		s.touch[i] = lineData{firstCell: r.Min.X, lastCell: r.Max.X - 1}
+		s.touch[i] = lineData{firstCell: r.Min.X, lastCell: r.Max.X}
 	}
-	s.mu.Unlock()
 	return true
 }
 
@@ -893,7 +891,7 @@ func (s *Screen) transformLine(y int) {
 	}
 
 	// Update the old line with the new line
-	if s.newbuf.Width() > firstCell && len(oldLine) != 0 {
+	if s.newbuf.Width() >= firstCell && len(oldLine) != 0 {
 		copy(oldLine[firstCell:], newLine[firstCell:])
 	}
 }
@@ -1099,8 +1097,8 @@ func (s *Screen) render() {
 
 		nonEmpty = s.clearBottom(nonEmpty, partialClear)
 		for i = 0; i < nonEmpty; i++ {
-			chg, wasTouched := s.touch[i]
-			if wasTouched && chg.firstCell != newIndex && chg.lastCell != newIndex {
+			_, ok := s.touch[i]
+			if ok {
 				s.transformLine(i)
 				changedLines++
 			}
@@ -1108,7 +1106,7 @@ func (s *Screen) render() {
 	}
 
 	// Sync windows and screen
-	s.touch = make(map[int]lineData)
+	s.touch = make(map[int]lineData, s.newbuf.Height())
 
 	if s.curbuf.Width() != s.newbuf.Width() || s.curbuf.Height() != s.newbuf.Height() {
 		// Resize the old buffer to match the new buffer.
@@ -1185,7 +1183,7 @@ func (s *Screen) reset() {
 		s.cur = Cursor{Position: undefinedPos}
 	}
 	s.saved = s.cur
-	s.touch = make(map[int]lineData)
+	s.touch = make(map[int]lineData, s.newbuf.Height())
 	if s.curbuf != nil {
 		s.curbuf.Clear()
 	}
@@ -1209,20 +1207,21 @@ func (s *Screen) Resize(width, height int) bool {
 
 	// Clear new columns and lines
 	if width > oldh {
-		s.ClearRect(Rect(oldw-2, 0, width-oldw, height))
+		s.ClearRect(Rect(max(oldw-2, 0), 0, width-oldw, height))
 	} else if width < oldw {
-		s.ClearRect(Rect(width-1, 0, oldw-width, height))
+		s.ClearRect(Rect(max(width-1, 0), 0, oldw-width, height))
 	}
 
 	if height > oldh {
-		s.ClearRect(Rect(0, oldh-1, width, height-oldh))
+		s.ClearRect(Rect(0, max(oldh-1, 0), width, height-oldh))
 	} else if height < oldh {
-		s.ClearRect(Rect(0, height-1, width, oldh-height))
+		s.ClearRect(Rect(0, max(height-1, 0), width, oldh-height))
 	}
 
 	s.mu.Lock()
 	s.newbuf.Resize(width, height)
 	s.opts.Width, s.opts.Height = width, height
+	s.oldhash, s.newhash = nil, nil
 	s.mu.Unlock()
 
 	return true
