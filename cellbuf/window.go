@@ -653,9 +653,8 @@ func (s *Screen) clearToEnd(blank *Cell, force bool) {
 	if force {
 		s.updatePen(blank)
 		count := s.newbuf.Width() - s.cur.X
-		eraseRight := ansi.EraseLineRight
-		if len(eraseRight) <= count {
-			s.buf.WriteString(eraseRight) //nolint:errcheck)
+		if s.el0Cost() <= count {
+			s.buf.WriteString(ansi.EraseLineRight) //nolint:errcheck)
 		} else {
 			for i := 0; i < count; i++ {
 				s.putCell(blank)
@@ -693,6 +692,17 @@ func (s *Screen) insertCells(line Line, count int) {
 	if !s.xtermLike {
 		s.buf.WriteString(ansi.ResetInsertReplaceMode) //nolint:errcheck
 	}
+}
+
+// el0Cost returns the cost of using [ansi.EL] 0 i.e. [ansi.EraseLineRight]. If
+// this terminal supports background color erase, it can be cheaper to use
+// [ansi.EL] 0 i.e. [ansi.EraseLineRight] to clear
+// trailing spaces.
+func (s *Screen) el0Cost() int {
+	if s.xtermLike {
+		return 0
+	}
+	return len(ansi.EraseLineRight)
 }
 
 // transformLine transforms the given line in the current window to the
@@ -806,8 +816,7 @@ func (s *Screen) transformLine(y int) {
 			nLastCell--
 		}
 
-		el0Cost := len(ansi.EraseLineRight)
-		if nLastCell == firstCell && el0Cost < oLastCell-nLastCell {
+		if nLastCell == firstCell && s.el0Cost() < oLastCell-nLastCell {
 			s.move(firstCell, y)
 			if !cellEqual(newLine.At(firstCell), blank) {
 				s.putCell(newLine.At(firstCell))
@@ -816,7 +825,7 @@ func (s *Screen) transformLine(y int) {
 		} else if nLastCell != oLastCell &&
 			!cellEqual(newLine.At(nLastCell), oldLine.At(oLastCell)) {
 			s.move(firstCell, y)
-			if oLastCell-nLastCell > el0Cost {
+			if oLastCell-nLastCell > s.el0Cost() {
 				if s.putRange(oldLine, newLine, y, firstCell, nLastCell) {
 					s.move(nLastCell+1, y)
 				}
