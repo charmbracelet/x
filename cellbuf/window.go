@@ -38,6 +38,7 @@ func notLocal(cols, fx, fy, tx, ty int) bool {
 func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) string {
 	var seq strings.Builder
 
+	width, height := s.newbuf.Width(), s.newbuf.Height()
 	if ty != fy {
 		var yseq string
 		if s.xtermLike && !s.opts.RelativeCursor {
@@ -52,7 +53,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) string {
 				yseq = cud
 			}
 			shouldScroll := !s.opts.AltScreen
-			if lf := strings.Repeat("\n", n); shouldScroll || (fy+n < s.newbuf.Height() && len(lf) < len(yseq)) {
+			if lf := strings.Repeat("\n", n); shouldScroll || (fy+n < height && len(lf) < len(yseq)) {
 				// TODO: Ensure we're not unintentionally scrolling the screen down.
 				yseq = lf
 			}
@@ -78,6 +79,28 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) string {
 
 		if tx > fx {
 			n := tx - fx
+			if s.opts.HardTabs {
+				var tabs int
+				var col int
+				for col = fx; s.tabs.Next(col) <= tx; col = s.tabs.Next(col) {
+					tabs++
+					if col == s.tabs.Next(col) || col >= width-1 {
+						break
+					}
+				}
+
+				if tabs > 0 {
+					if s.xtermLike {
+						seq.WriteString(ansi.CursorHorizontalForwardTab(tabs))
+					} else {
+						seq.WriteString(strings.Repeat("\t", tabs))
+					}
+
+					n = tx - col
+					fx = col
+				}
+			}
+
 			if cuf := ansi.CursorForward(n); xseq == "" || len(cuf) < len(xseq) {
 				xseq = cuf
 			}
@@ -114,6 +137,26 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) string {
 			}
 		} else if tx < fx {
 			n := fx - tx
+			if s.opts.HardTabs && s.xtermLike {
+				// VT100 does not support backward tabs [ansi.CBT].
+
+				col := fx
+
+				var cbt int // cursor backward tabs count
+				for s.tabs.Prev(col) >= tx {
+					col = s.tabs.Prev(col)
+					cbt++
+					if col == s.tabs.Prev(col) || col <= 0 {
+						break
+					}
+				}
+
+				if cbt > 0 {
+					seq.WriteString(ansi.CursorBackwardTab(cbt))
+					n = col - tx
+				}
+			}
+
 			if bs := strings.Repeat("\b", n); xseq == "" || len(bs) < len(xseq) {
 				xseq = bs
 			}
@@ -248,6 +291,8 @@ type ScreenOptions struct {
 	AltScreen bool
 	// ShowCursor is whether to show the cursor.
 	ShowCursor bool
+	// HardTabs is whether to use hard tabs to optimize cursor movements.
+	HardTabs bool
 }
 
 // lineData represents the metadata for a line.
@@ -264,6 +309,7 @@ type Screen struct {
 	buf              *bytes.Buffer // buffer for writing to the screen
 	curbuf           *Buffer       // the current buffer
 	newbuf           *Buffer       // the new buffer
+	tabs             *TabStops
 	touch            map[int]lineData
 	queueAbove       []string  // the queue of strings to write above the screen
 	oldhash, newhash []uint64  // the old and new hash values for each line
@@ -1202,7 +1248,13 @@ func (s *Screen) reset() {
 		s.newbuf.Clear()
 	}
 	s.buf.Reset()
+	s.tabs = DefaultTabStops(s.newbuf.Width())
 	s.oldhash, s.newhash = nil, nil
+
+	// We always disable HardTabs when termtype is "linux".
+	if strings.HasPrefix(s.opts.Term, "linux") {
+		s.opts.HardTabs = false
+	}
 }
 
 // Resize resizes the screen.
@@ -1233,6 +1285,7 @@ func (s *Screen) Resize(width, height int) bool {
 	s.mu.Lock()
 	s.newbuf.Resize(width, height)
 	s.opts.Width, s.opts.Height = width, height
+	s.tabs.Resize(width)
 	s.oldhash, s.newhash = nil, nil
 	s.mu.Unlock()
 
