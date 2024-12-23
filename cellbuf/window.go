@@ -35,7 +35,9 @@ func notLocal(cols, fx, fy, tx, ty int) bool {
 // [ansi.VPA], [ansi.HPA].
 // When overwrite is true, this will try to optimize the sequence by using the
 // screen cells values to move the cursor instead of using escape sequences.
-func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq string) {
+func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) string {
+	var seq strings.Builder
+
 	if ty != fy {
 		var yseq string
 		if s.xtermLike && !s.opts.RelativeCursor {
@@ -50,7 +52,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 				yseq = cud
 			}
 			shouldScroll := !s.opts.AltScreen
-			if lf := strings.Repeat("\n", n); yseq == "" || shouldScroll || (fy+n < s.newbuf.Height() && len(lf) < len(yseq)) {
+			if lf := strings.Repeat("\n", n); shouldScroll || (fy+n < s.newbuf.Height() && len(lf) < len(yseq)) {
 				// TODO: Ensure we're not unintentionally scrolling the screen down.
 				yseq = lf
 			}
@@ -59,13 +61,13 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 			if cuu := ansi.CursorUp(n); yseq == "" || len(cuu) < len(yseq) {
 				yseq = cuu
 			}
-			if yseq == "" || n == 1 && fy-1 > 0 {
+			if n == 1 && fy-1 > 0 {
 				// TODO: Ensure we're not unintentionally scrolling the screen up.
 				yseq = ansi.ReverseIndex
 			}
 		}
 
-		seq += yseq
+		seq.WriteString(yseq)
 	}
 
 	if tx != fx {
@@ -79,8 +81,6 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 			if cuf := ansi.CursorForward(n); xseq == "" || len(cuf) < len(xseq) {
 				xseq = cuf
 			}
-
-			// OPTIM: Use [ansi.HT] and hard tabs as an optimization.
 
 			// If we have no attribute and style changes, overwrite is cheaper.
 			var ovw string
@@ -109,22 +109,24 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) (seq stri
 				}
 			}
 
-			if overwrite && (xseq == "" || len(ovw) < len(xseq)) {
+			if overwrite && len(ovw) < len(xseq) {
 				xseq = ovw
 			}
 		} else if tx < fx {
 			n := fx - tx
-			if cub := ansi.CursorBackward(n); xseq == "" || len(cub) < len(xseq) {
-				xseq = cub
+			if bs := strings.Repeat("\b", n); xseq == "" || len(bs) < len(xseq) {
+				xseq = bs
 			}
 
-			// OPTIM: Use back tabs as an optimization.
+			if cub := ansi.CursorBackward(n); len(cub) < len(xseq) {
+				xseq = cub
+			}
 		}
 
-		seq += xseq
+		seq.WriteString(xseq)
 	}
 
-	return
+	return seq.String()
 }
 
 // moveCursor moves and returns the cursor movement sequence to move the cursor
@@ -144,20 +146,20 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 
 	// Method #1: Use local movement sequences.
 	nseq := relativeCursorMove(s, fx, fy, x, y, overwrite)
-	if seq == "" || len(nseq) < len(seq) {
+	if len(seq) == 0 || len(nseq) < len(seq) {
 		seq = nseq
 	}
 
 	// Method #2: Use [ansi.CR] and local movement sequences.
 	nseq = "\r" + relativeCursorMove(s, 0, fy, x, y, overwrite)
-	if seq == "" || len(nseq) < len(seq) {
+	if len(nseq) < len(seq) {
 		seq = nseq
 	}
 
 	if !s.opts.RelativeCursor {
 		// Method #3: Use [ansi.CursorHomePosition] and local movement sequences.
 		nseq = ansi.CursorHomePosition + relativeCursorMove(s, 0, 0, x, y, overwrite)
-		if seq == "" || len(nseq) < len(seq) {
+		if len(nseq) < len(seq) {
 			seq = nseq
 		}
 	}
@@ -1200,6 +1202,7 @@ func (s *Screen) reset() {
 		s.newbuf.Clear()
 	}
 	s.buf.Reset()
+	s.oldhash, s.newhash = nil, nil
 }
 
 // Resize resizes the screen.
