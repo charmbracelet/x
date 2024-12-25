@@ -172,6 +172,45 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 	return tm
 }
 
+// WaitForMsg keeps checking messages until the condition matches or timeout is reached.
+// Default duration is 1s, default check interval is 50ms.
+func (tm *TestModel) WaitForMsg(
+	tb testing.TB,
+	condition func(msg tea.Msg) bool,
+	options ...WaitForOption,
+) tea.Msg {
+	tb.Helper()
+	msg, err := tm.doWaitForMsg(condition, options...)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return msg
+}
+
+func (tm *TestModel) doWaitForMsg(
+	condition func(msg tea.Msg) bool,
+	options ...WaitForOption,
+) (tea.Msg, error) {
+	wf := WaitingForContext{
+		Duration:      time.Second,
+		CheckInterval: 50 * time.Millisecond,
+	}
+
+	for _, opt := range options {
+		opt(&wf)
+	}
+
+	start := time.Now()
+	for time.Since(start) <= wf.Duration {
+		if msg := tm.msgs.forEach(condition); msg != nil {
+			return msg, nil
+		}
+		time.Sleep(wf.CheckInterval)
+	}
+
+	return nil, fmt.Errorf("WaitForMsg: condition not met after %s", wf.Duration)
+}
+
 func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
 	tm.done.Do(func() {
 		fopts := FinalOpts{}
