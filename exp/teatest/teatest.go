@@ -114,6 +114,8 @@ type TestModel struct {
 
 	done   sync.Once
 	doneCh chan bool
+
+	msgs *msgBuffer
 }
 
 // NewTestModel makes a new TestModel which can be used for tests.
@@ -123,11 +125,19 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		out:     safe(bytes.NewBuffer(nil)),
 		modelCh: make(chan tea.Model, 1),
 		doneCh:  make(chan bool, 1),
+		msgs: &msgBuffer{
+			msgs: make([]tea.Msg, 0),
+		},
+	}
+
+	wrappedModel := msgCaptureModel{
+		model:  m,
+		buffer: tm.msgs,
 	}
 
 	//nolint: staticcheck
 	tm.program = tea.NewProgram(
-		m,
+		wrappedModel,
 		tea.WithInput(tm.in),
 		tea.WithOutput(tm.out),
 		tea.WithoutSignals(),
