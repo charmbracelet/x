@@ -63,22 +63,22 @@ func WithDuration(d time.Duration) WaitForOption {
 	}
 }
 
-// WaitFor keeps reading from r until the condition matches.
+// WaitForOutput keeps reading from r until the condition matches.
 // Default duration is 1s, default check interval is 50ms.
 // These defaults can be changed with WithDuration and WithCheckInterval.
-func WaitFor(
+func WaitForOutput(
 	tb testing.TB,
 	r io.Reader,
 	condition func(bts []byte) bool,
 	options ...WaitForOption,
 ) {
 	tb.Helper()
-	if err := doWaitFor(r, condition, options...); err != nil {
+	if err := doWaitForOutput(r, condition, options...); err != nil {
 		tb.Fatal(err)
 	}
 }
 
-func doWaitFor(r io.Reader, condition func(bts []byte) bool, options ...WaitForOption) error {
+func doWaitForOutput(r io.Reader, condition func(bts []byte) bool, options ...WaitForOption) error {
 	wf := WaitingForContext{
 		Duration:      time.Second,
 		CheckInterval: 50 * time.Millisecond, //nolint: mnd

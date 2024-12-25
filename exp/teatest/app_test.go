@@ -60,7 +60,7 @@ func TestAppInteractive(t *testing.T) {
 		t.Fatalf("output does not match: expected %q", string(bts))
 	}
 
-	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
+	teatest.WaitForOutput(t, tm.Output(), func(out []byte) bool {
 		return bytes.Contains(out, []byte("This program will exit in 7 seconds"))
 	}, teatest.WithDuration(5*time.Second), teatest.WithCheckInterval(time.Millisecond*10))
 
