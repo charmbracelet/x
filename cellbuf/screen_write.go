@@ -20,7 +20,7 @@ func setContent(
 	var cell Cell
 	var pen Style
 	var link Link
-	x, y := rect.X(), rect.Y()
+	x, y := rect.Min.X, rect.Min.Y
 
 	p := ansi.GetParser()
 	defer ansi.PutParser(p)
@@ -29,7 +29,7 @@ func setContent(
 	// linew is a slice of line widths. We use this to keep track of the
 	// written widths of each line. We use this information later to optimize
 	// rendering of the buffer.
-	linew := make([]int, rect.Height())
+	linew := make([]int, rect.Dy())
 
 	var pendingWidth int
 
@@ -74,7 +74,7 @@ func setContent(
 				}
 			}
 
-			if x+width > rect.X()+rect.Width() || y > rect.Y()+rect.Height() {
+			if x+width > rect.Min.X+rect.Dx() || y > rect.Min.Y+rect.Dy() {
 				break
 			}
 
@@ -90,7 +90,7 @@ func setContent(
 			x += cell.Width
 			if cell.Equal(&BlankCell) {
 				pendingWidth += cell.Width
-			} else if y := y - rect.Y(); y < len(linew) {
+			} else if y := y - rect.Min.Y; y < len(linew) {
 				linew[y] += cell.Width + pendingWidth
 				pendingWidth = 0
 			}
@@ -111,13 +111,13 @@ func setContent(
 				}
 			case ansi.Equal(seq, "\n"):
 				// Reset the rest of the line
-				d.ClearRect(Rect(x, y, rect.Width()+rect.X()-x, 1))
+				d.ClearRect(Rect(x, y, rect.Dx()+rect.Min.X-x, 1))
 
 				y++
 				// XXX: We gotta reset the x position here because we're moving
 				// to the next line. We shouldn't have any "\r\n" sequences,
 				// those are replaced above.
-				x = rect.X()
+				x = rect.Min.X
 			}
 		}
 
@@ -127,12 +127,12 @@ func setContent(
 	}
 
 	// Don't forget to clear the last line
-	d.ClearRect(Rect(x, y, rect.Width()+rect.X()-x, 1))
+	d.ClearRect(Rect(x, y, rect.Dx()+rect.Min.X-x, 1))
 
 	y++
-	if y < rect.Height() {
+	if y < rect.Dy() {
 		// Clear the rest of the lines
-		d.ClearRect(Rect(rect.X(), y, rect.X()+rect.Width(), rect.Y()+rect.Height()))
+		d.ClearRect(Rect(rect.Min.X, y, rect.Min.X+rect.Dx(), rect.Min.Y+rect.Dy()))
 	}
 
 	return linew
