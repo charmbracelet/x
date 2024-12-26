@@ -90,10 +90,16 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) string {
 				}
 
 				if tabs > 0 {
-					if s.xtermLike {
-						seq.WriteString(ansi.CursorHorizontalForwardTab(tabs))
+					cht := ansi.CursorHorizontalForwardTab(tabs)
+					tab := strings.Repeat("\t", tabs)
+					if false && s.xtermLike && len(cht) < len(tab) {
+						// TODO: The linux console and some terminals such as
+						// Alacritty don't support [ansi.CHT]. Enable this when
+						// we have a way to detect this, or after 5 years when
+						// we're sure everyone has updated their terminals :P
+						seq.WriteString(cht)
 					} else {
-						seq.WriteString(strings.Repeat("\t", tabs))
+						seq.WriteString(tab)
 					}
 
 					n = tx - col
@@ -327,6 +333,11 @@ type Screen struct {
 
 var _ Window = &Screen{}
 
+// UseHardTabs sets whether to use hard tabs to optimize cursor movements.
+func (s *Screen) UseHardTabs(v bool) {
+	s.opts.HardTabs = v
+}
+
 // SetColorProfile sets the color profile to use when writing to the screen.
 func (s *Screen) SetColorProfile(p colorprofile.Profile) {
 	s.opts.Profile = p
@@ -368,6 +379,7 @@ func (s *Screen) Bounds() Rectangle {
 }
 
 // Cell implements Window.
+// TODO: Rename this to [CellAt]
 func (s *Screen) Cell(x int, y int) *Cell {
 	return s.newbuf.Cell(x, y)
 }
@@ -384,6 +396,7 @@ func (s *Screen) ClearRect(r Rectangle) bool {
 }
 
 // Draw implements Window.
+// TODO: Rename this to [SetCell]
 func (s *Screen) Draw(x int, y int, cell *Cell) (v bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -481,6 +494,16 @@ func NewScreen(w io.Writer, opts *ScreenOptions) (s *Screen) {
 	return
 }
 
+// Width returns the width of the screen.
+func (s *Screen) Width() int {
+	return s.opts.Width
+}
+
+// Height returns the height of the screen.
+func (s *Screen) Height() int {
+	return s.opts.Height
+}
+
 // cellEqual returns whether the two cells are equal. A nil cell is considered
 // a [BlankCell].
 func cellEqual(a, b *Cell) bool {
@@ -514,7 +537,7 @@ func (s *Screen) wrapCursor() {
 }
 
 func (s *Screen) putAttrCell(cell *Cell) {
-	if cell != nil && cell.Empty() {
+	if cell != nil && cell.Width <= 0 {
 		return
 	}
 
@@ -522,11 +545,17 @@ func (s *Screen) putAttrCell(cell *Cell) {
 		cell = s.clearBlank()
 	}
 
+	// if s.cur.X >= s.newbuf.Width() {
+	// 	// TODO: Properly handle autowrap.
+	// 	s.wrapCursor()
+	// }
+
 	s.updatePen(cell)
 	s.buf.WriteString(cell.String()) //nolint:errcheck
 	s.cur.X += cell.Width
 
 	if s.cur.X >= s.newbuf.Width() {
+		// TODO: Properly handle autowrap. This is a hack.
 		s.cur.X = s.newbuf.Width() - 1
 	}
 }
@@ -1084,6 +1113,17 @@ func (s *Screen) render() {
 		return
 	}
 
+	// TODO: Investigate whether this is necessary. Theoretically, terminals
+	// can add/remove tab stops and we should be able to handle that. We could
+	// use [ansi.DECTABSR] to read the tab stops, but that's not implemented in
+	// most terminals :/
+	// // Are we using hard tabs? If so, ensure tabs are using the
+	// // default interval using [ansi.DECST8C].
+	// if s.opts.HardTabs && !s.initTabs {
+	// 	s.buf.WriteString(ansi.SetTabEvery8Columns)
+	// 	s.initTabs = true
+	// }
+
 	// Do we need alt-screen mode?
 	if s.opts.AltScreen != s.altScreenMode {
 		if s.opts.AltScreen {
@@ -1295,7 +1335,7 @@ func (s *Screen) Resize(width, height int) bool {
 // MoveTo moves the cursor to the specified position.
 func (s *Screen) MoveTo(x, y int) bool {
 	pos := Pos(x, y)
-	if !s.Bounds().Contains(pos) {
+	if !pos.In(s.Bounds()) {
 		return false
 	}
 	s.mu.Lock()
@@ -1325,7 +1365,7 @@ func (s *Screen) newWindow(x, y, width, height int) (w *SubWindow, err error) {
 		return nil, ErrInvalidDimensions
 	}
 
-	scrw, scrh := s.Bounds().Width(), s.Bounds().Height()
+	scrw, scrh := s.Bounds().Dx(), s.Bounds().Dy()
 	if x+width > scrw || y+height > scrh {
 		return nil, ErrInvalidDimensions
 	}
@@ -1370,7 +1410,7 @@ func (w *SubWindow) NewWindow(x, y, width, height int) (s *SubWindow, err error)
 // MoveTo moves the cursor to the specified position.
 func (w *SubWindow) MoveTo(x, y int) bool {
 	pos := Pos(x, y)
-	if !w.Bounds().Contains(pos) {
+	if !pos.In(w.Bounds()) {
 		return false
 	}
 
@@ -1380,7 +1420,8 @@ func (w *SubWindow) MoveTo(x, y int) bool {
 
 // Cell implements Window.
 func (w *SubWindow) Cell(x int, y int) *Cell {
-	if !Pos(x, y).In(w.Bounds().Rectangle) {
+	pos := Pos(x, y)
+	if !pos.In(w.Bounds()) {
 		return nil
 	}
 	bx, by := w.Bounds().Min.X, w.Bounds().Min.Y
@@ -1395,7 +1436,7 @@ func (w *SubWindow) Fill(cell *Cell) bool {
 // FillRect fills the cells in the specified rectangle with the specified
 // cell.
 func (w *SubWindow) FillRect(cell *Cell, r Rectangle) bool {
-	if !r.In(w.Bounds().Rectangle) {
+	if !r.In(w.Bounds()) {
 		return false
 	}
 
@@ -1411,7 +1452,7 @@ func (w *SubWindow) Clear() bool {
 // ClearRect clears the cells in the specified rectangle based on the current
 // cursor background color. Use [SetPen] to set the background color.
 func (w *SubWindow) ClearRect(r Rectangle) bool {
-	if !r.In(w.Bounds().Rectangle) {
+	if !r.In(w.Bounds()) {
 		return false
 	}
 
@@ -1421,7 +1462,7 @@ func (w *SubWindow) ClearRect(r Rectangle) bool {
 
 // Draw implements Window.
 func (w *SubWindow) Draw(x int, y int, cell *Cell) (v bool) {
-	if !Pos(x, y).In(w.Bounds().Rectangle) {
+	if !Pos(x, y).In(w.Bounds()) {
 		return
 	}
 
@@ -1440,12 +1481,12 @@ func (w *SubWindow) Resize(width int, height int) bool {
 		return false
 	}
 
-	if w.Bounds().Width() == width && w.Bounds().Height() == height {
+	if w.Bounds().Dx() == width && w.Bounds().Dy() == height {
 		return true
 	}
 
 	x, y := w.bounds.Min.X, w.bounds.Min.Y
-	scrw, scrh := w.scr.Bounds().Width(), w.scr.Bounds().Height()
+	scrw, scrh := w.scr.Bounds().Dx(), w.scr.Bounds().Dy()
 	if x+width > scrw || y+height > scrh {
 		return false
 	}
