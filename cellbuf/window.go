@@ -394,10 +394,10 @@ func (s *Screen) Draw(x int, y int, cell *Cell) (v bool) {
 	if prev := s.curbuf.Cell(x, y); !cellEqual(prev, cell) {
 		chg, ok := s.touch[y]
 		if !ok {
-			chg = lineData{firstCell: x, lastCell: x + cellWidth}
+			chg = lineData{firstCell: x, lastCell: x + cellWidth - 1}
 		} else {
 			chg.firstCell = min(chg.firstCell, x)
-			chg.lastCell = max(chg.lastCell, x+cellWidth)
+			chg.lastCell = max(chg.lastCell, x+cellWidth-1)
 		}
 		s.touch[y] = chg
 	}
@@ -416,7 +416,7 @@ func (s *Screen) FillRect(cell *Cell, r Rectangle) bool {
 	defer s.mu.Unlock()
 	s.newbuf.FillRect(cell, r)
 	for i := r.Min.Y; i < r.Max.Y; i++ {
-		s.touch[i] = lineData{firstCell: r.Min.X, lastCell: r.Max.X}
+		s.touch[i] = lineData{firstCell: r.Min.X, lastCell: r.Max.X - 1}
 	}
 	return true
 }
