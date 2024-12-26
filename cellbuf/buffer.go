@@ -19,6 +19,34 @@ func NewCell(r rune, comb ...rune) *Cell {
 	}
 }
 
+// NewCellString returns a new cell with the given string content. This is a
+// convenience function that initializes a new cell with the given content. The
+// cell's width is determined by the content using [wcwidth.StringWidth].
+// This will only use the first combined rune in the string. If the string is
+// empty, it will return an empty cell with a width of 0.
+func NewCellString(s string) *Cell {
+	var r rune
+	var comb []rune
+	var w int
+	for i, c := range s {
+		if i == 0 {
+			r = c
+			w = wcwidth.RuneWidth(c)
+			continue
+		}
+		if wcwidth.RuneWidth(c) > 0 {
+			break
+		}
+		comb = append(comb, c)
+	}
+
+	return &Cell{
+		Rune:  r,
+		Comb:  comb,
+		Width: w,
+	}
+}
+
 // NewGraphemeCell returns a new cell. This is a convenience function that
 // initializes a new cell with the given content. The cell's width is determined
 // by the content using [uniseg.FirstGraphemeClusterInString].
@@ -27,10 +55,14 @@ func NewCell(r rune, comb ...rune) *Cell {
 // This will only return the first grapheme cluster in the string. If the
 // string is empty, it will return an empty cell with a width of 0.
 func NewGraphemeCell(s string) (c *Cell) {
-	c = new(Cell)
 	g, _, w, _ := uniseg.FirstGraphemeClusterInString(s, -1)
+	return newGraphemeCell(g, w)
+}
+
+func newGraphemeCell(s string, w int) (c *Cell) {
+	c = new(Cell)
 	c.Width = w
-	for i, r := range g {
+	for i, r := range s {
 		if i == 0 {
 			c.Rune = r
 		} else {
