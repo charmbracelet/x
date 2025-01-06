@@ -989,18 +989,14 @@ func (s *Screen) deleteCells(count int) {
 // clearToBottom clears the screen from the current cursor position to the end
 // of the screen.
 func (s *Screen) clearToBottom(blank *Cell) {
-	row, col := s.cur.Y, s.cur.X
+	row, _ := s.cur.Y, s.cur.X
 	if row < 0 {
 		row = 0
-	}
-	if col < 0 {
-		col = 0
 	}
 
 	s.updatePen(blank)
 	s.buf.WriteString(ansi.EraseScreenBelow) //nolint:errcheck
-	s.curbuf.ClearRect(Rect(col, row, s.curbuf.Width(), row+1))
-	s.curbuf.ClearRect(Rect(0, row+1, s.curbuf.Width(), s.curbuf.Height()))
+	s.curbuf.ClearRect(Rect(0, row, s.curbuf.Width(), s.curbuf.Height()-row))
 }
 
 // clearBottom tests if clearing the end of the screen would satisfy part of
