@@ -1040,7 +1040,12 @@ func (s *Screen) clearBottom(total int, force bool) (top int) {
 				// Move to the last line of the screen
 				s.moveCursor(0, s.newbuf.Height()-1, false)
 			}
-			// TODO: Line hashing
+			if s.oldhash != nil && s.newhash != nil &&
+				row < len(s.oldhash) && row < len(s.newhash) {
+				for row := top; row < s.newbuf.Height(); row++ {
+					s.oldhash[row] = s.newhash[row]
+				}
+			}
 		}
 	}
 
