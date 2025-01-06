@@ -1004,12 +1004,12 @@ func (s *Screen) clearToBottom(blank *Cell) {
 // each is blank and one or more are changed.
 // It returns the top line.
 func (s *Screen) clearBottom(total int, force bool) (top int) {
-	top = total
 	if total <= 0 {
 		return
 	}
 
-	last := min(s.curbuf.Width(), s.newbuf.Width())
+	top = total
+	last := s.newbuf.Width()
 	blank := s.clearBlank()
 	canClearWithBlank := blank == nil || blank.Clear()
 
