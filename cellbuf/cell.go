@@ -93,15 +93,6 @@ func (c *Cell) Blank() *Cell {
 	return c
 }
 
-// Segment returns a segment of the cell.
-func (c *Cell) Segment() Segment {
-	return Segment{
-		Content: c.String(),
-		Style:   c.Style,
-		Link:    c.Link,
-	}
-}
-
 // Link represents a hyperlink in the terminal screen.
 type Link struct {
 	URL   string

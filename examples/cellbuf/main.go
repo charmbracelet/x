@@ -53,22 +53,17 @@ func main() {
 	os.Stdout.WriteString(ansi.SetMode(modes...))         //nolint:errcheck
 	defer os.Stdout.WriteString(ansi.ResetMode(modes...)) //nolint:errcheck
 
-	x, y := (w/2)-8, h/2
+	x, y := 0, 0
 
+	ctx := scr.NewWindow(10, 5, 40, 10)
 	render := func() {
-		scr.Fill(cellbuf.NewCell('你'))
+		scr.Clear()
+		ctx.Fill(cellbuf.NewCell('你'))
 		text := " !Hello, world! "
-		rect := cellbuf.Rect(x, y, ansi.StringWidth(text), 1)
-
-		// This will produce the following escape sequence:
-		// "\x1b[7m\x1b]8;;https://charm.sh\x07 ! Hello, world! \x1b]8;;\x07\x1b[m"
-		content := ansi.Style{}.Reverse().String() +
-			ansi.SetHyperlink("https://charm.sh") +
-			text +
-			ansi.ResetHyperlink() +
-			ansi.ResetStyle
-
-		cellbuf.PaintRect(scr, content, rect)
+		ctx.SetHyperlink("https://charm.sh")
+		ctx.EnableAttributes(cellbuf.ReverseAttr)
+		ctx.MoveTo(x, y)
+		ctx.PrintTruncate(text, "")
 		scr.Render()
 	}
 
@@ -78,6 +73,7 @@ func main() {
 			w = nw
 		}
 		scr.Resize(nw, nh)
+		ctx.Resize(nw, nh)
 		render()
 	}
 
@@ -103,7 +99,7 @@ func main() {
 			case input.WindowSizeEvent:
 				resize(ev.Width, ev.Height)
 			case input.MouseClickEvent:
-				x, y = ev.X, ev.Y
+				x, y = ev.X-10, ev.Y-5
 			case input.KeyPressEvent:
 				switch ev.String() {
 				case "ctrl+c", "q":

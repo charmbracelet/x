@@ -224,11 +224,6 @@ func (b *Buffer) Cell(x int, y int) *Cell {
 	return b.Lines[y].At(x)
 }
 
-// Draw implements Screen.
-func (b *Buffer) Draw(x int, y int, c *Cell) bool {
-	return b.SetCell(x, y, c)
-}
-
 // maxCellWidth is the maximum width a terminal cell can get.
 const maxCellWidth = 4
 
