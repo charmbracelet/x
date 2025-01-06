@@ -188,7 +188,10 @@ func (c *Window) MoveTo(x, y int) (v bool) {
 		return
 	}
 	c.cur.X, c.cur.Y = x, y
-	return c.s.MoveTo(c.x+x, c.y+y)
+	if c.s.opts.ShowCursor {
+		return c.s.MoveTo(c.x+x, c.y+y)
+	}
+	return true
 }
 
 // Print prints the given string at the current cursor position. If the cursor
