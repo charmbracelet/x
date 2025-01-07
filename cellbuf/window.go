@@ -154,7 +154,7 @@ func (c *Window) SetContent(s string) {
 	s = strings.ReplaceAll(s, "\n", "\r\n")
 	c.Clear()
 	c.MoveTo(0, 0)
-	c.Print(s)
+	c.PrintTruncate(s, "")
 }
 
 // Fill fills the window with the given cell and resets the cursor position,
@@ -275,7 +275,7 @@ func (c *Window) drawString(s string, x, y int, opts *drawOpts) {
 				cell = newGraphemeCell(seq, width)
 			}
 
-			if !opts.truncate && x >= c.w {
+			if !opts.truncate && x+width > c.x+c.w {
 				// Auto wrap the cursor.
 				wrapCursor()
 				if y >= c.h {
