@@ -1308,7 +1308,7 @@ func (s *Screen) Resize(width, height int) bool {
 
 	// Clear new columns and lines
 	if width > oldh {
-		s.ClearRect(Rect(max(oldw-2, 0), 0, width-oldw, height))
+		s.ClearRect(Rect(max(oldw-1, 0), 0, width-oldw, height))
 	} else if width < oldw {
 		s.ClearRect(Rect(max(width-1, 0), 0, oldw-width, height))
 	}
