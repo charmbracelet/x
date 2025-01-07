@@ -275,7 +275,7 @@ func (c *Window) drawString(s string, x, y int, opts *drawOpts) {
 				cell = newGraphemeCell(seq, width)
 			}
 
-			if !opts.truncate && x+width > c.x+c.w {
+			if !opts.truncate && x >= c.w {
 				// Auto wrap the cursor.
 				wrapCursor()
 				if y >= c.h {
