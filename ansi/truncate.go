@@ -7,10 +7,10 @@ import (
 	"github.com/rivo/uniseg"
 )
 
-// Cut the string, without adding any prefix or tail strings.
-// This function is aware of ANSI escape codes and will not break them, and
-// accounts for wide-characters (such as East Asians and emojis).
-// Note that the [left] parameter is inclusive, while [right] isn't.
+// Cut the string, without adding any prefix or tail strings. This function is
+// aware of ANSI escape codes and will not break them, and accounts for
+// wide-characters (such as East-Asian characters and emojis). Note that the
+// [left] parameter is inclusive, while [right] isn't.
 func Cut(s string, left, right int) string {
 	if left == 0 {
 		return Truncate(s, right, "")
@@ -18,10 +18,10 @@ func Cut(s string, left, right int) string {
 	return TruncateLeft(Truncate(s, right, ""), left, "")
 }
 
-// Truncate truncates a string to a given length, adding a tail to the
-// end if the string is longer than the given length.
-// This function is aware of ANSI escape codes and will not break them, and
-// accounts for wide-characters (such as East Asians and emojis).
+// Truncate truncates a string to a given length, adding a tail to the end if
+// the string is longer than the given length. This function is aware of ANSI
+// escape codes and will not break them, and accounts for wide-characters (such
+// as East-Asian characters and emojis).
 func Truncate(s string, length int, tail string) string {
 	if sw := StringWidth(s); sw <= length {
 		return s
@@ -44,6 +44,7 @@ func Truncate(s string, length int, tail string) string {
 	// Here we iterate over the bytes of the string and collect printable
 	// characters and runes. We also keep track of the width of the string
 	// in cells.
+	//
 	// Once we reach the given length, we start ignoring characters and only
 	// collect ANSI escape codes until we reach the end of string.
 	for i < len(b) {
@@ -120,7 +121,7 @@ func Truncate(s string, length int, tail string) string {
 // TruncateLeft truncates a string from the left side to a given length, adding
 // a prefix to the beginning if the string is longer than the given length.
 // This function is aware of ANSI escape codes and will not break them, and
-// accounts for wide-characters (such as East Asians and emojis).
+// accounts for wide-characters (such as East-Asian characters and emojis).
 func TruncateLeft(s string, length int, prefix string) string {
 	if length == 0 {
 		return ""

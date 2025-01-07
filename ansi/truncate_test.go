@@ -302,27 +302,49 @@ func TestTruncateLeft(t *testing.T) {
 }
 
 func TestCut(t *testing.T) {
-	t.Run("simple string", func(t *testing.T) {
-		got := Cut("This is a long string", 2, 6)
-		expect := "is i"
-		if got != expect {
-			t.Errorf("exptected %q, got %q", expect, got)
-		}
-	})
-
-	t.Run("with ansi", func(t *testing.T) {
-		got := Cut("I really \x1B[38;2;249;38;114mlove\x1B[0m Go!", 4, 25)
-		expect := "ally \x1b[38;2;249;38;114mlove\x1b[0m Go!"
-		if got != expect {
-			t.Errorf("exptected %q, got %q", expect, got)
-		}
-	})
-
-	t.Run("left is 0", func(t *testing.T) {
-		got := Cut("Foo \x1B[38;2;249;38;114mbar\x1B[0mbaz", 0, 5)
-		expect := "Foo \x1B[38;2;249;38;114mb\x1B[0m"
-		if got != expect {
-			t.Errorf("exptected %q, got %q", expect, got)
-		}
-	})
+	for i, c := range []struct {
+		desc   string
+		input  string
+		left   int
+		right  int
+		expect string
+	}{
+		{
+			"simple string",
+			"This is a long string", 2, 6,
+			"is i",
+		},
+		{
+			"with ansi",
+			"I really \x1B[38;2;249;38;114mlove\x1B[0m Go!", 4, 25,
+			"ally \x1b[38;2;249;38;114mlove\x1b[0m Go!",
+		},
+		{
+			"left is 0",
+			"Foo \x1B[38;2;249;38;114mbar\x1B[0mbaz", 0, 5,
+			"Foo \x1B[38;2;249;38;114mb\x1B[0m",
+		},
+		{
+			"right is 0",
+			"\x1b[7mHello\x1b[m", 3, 0,
+			"\x1b[7m\x1b[m",
+		},
+		{
+			"cut size is 0",
+			"\x1b[7mHello\x1b[m", 2, 2,
+			"\x1b[7m\x1b[m",
+		},
+		{
+			"maintains open ansi",
+			"\x1b[38;5;212;48;5;63mHello, Artichoke!\x1b[m", 7, 16,
+			"\x1b[38;5;212;48;5;63mArtichoke\x1b[m",
+		},
+	} {
+		t.Run(c.input, func(t *testing.T) {
+			got := Cut(c.input, c.left, c.right)
+			if got != c.expect {
+				t.Errorf("%s (%d):\nexpected: %q\ngot:      %q", c.desc, i+1, c.expect, got)
+			}
+		})
+	}
 }
