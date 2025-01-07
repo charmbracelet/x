@@ -7,6 +7,17 @@ import (
 	"github.com/rivo/uniseg"
 )
 
+// Cut the string, without adding any prefix or tail strings.
+// This function is aware of ANSI escape codes and will not break them, and
+// accounts for wide-characters (such as East Asians and emojis).
+// Note that the [left] parameter is inclusive, while [right] isn't.
+func Cut(s string, left, right int) string {
+	if left == 0 {
+		return Truncate(s, right, "")
+	}
+	return TruncateLeft(Truncate(s, right, ""), left, "")
+}
+
 // Truncate truncates a string to a given length, adding a tail to the
 // end if the string is longer than the given length.
 // This function is aware of ANSI escape codes and will not break them, and

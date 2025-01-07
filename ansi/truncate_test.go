@@ -300,3 +300,29 @@ func TestTruncateLeft(t *testing.T) {
 		})
 	}
 }
+
+func TestCut(t *testing.T) {
+	t.Run("simple string", func(t *testing.T) {
+		got := Cut("This is a long string", 2, 6)
+		expect := "is i"
+		if got != expect {
+			t.Errorf("exptected %q, got %q", expect, got)
+		}
+	})
+
+	t.Run("with ansi", func(t *testing.T) {
+		got := Cut("I really \x1B[38;2;249;38;114mlove\x1B[0m Go!", 4, 25)
+		expect := "ally \x1b[38;2;249;38;114mlove\x1b[0m Go!"
+		if got != expect {
+			t.Errorf("exptected %q, got %q", expect, got)
+		}
+	})
+
+	t.Run("left is 0", func(t *testing.T) {
+		got := Cut("Foo \x1B[38;2;249;38;114mbar\x1B[0mbaz", 0, 5)
+		expect := "Foo \x1B[38;2;249;38;114mb\x1B[0m"
+		if got != expect {
+			t.Errorf("exptected %q, got %q", expect, got)
+		}
+	})
+}
