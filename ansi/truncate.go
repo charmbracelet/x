@@ -12,6 +12,10 @@ import (
 // wide-characters (such as East-Asian characters and emojis). Note that the
 // [left] parameter is inclusive, while [right] isn't.
 func Cut(s string, left, right int) string {
+	if right <= left {
+		return ""
+	}
+
 	if left == 0 {
 		return Truncate(s, right, "")
 	}

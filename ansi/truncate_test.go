@@ -327,12 +327,17 @@ func TestCut(t *testing.T) {
 		{
 			"right is 0",
 			"\x1b[7mHello\x1b[m", 3, 0,
-			"\x1b[7m\x1b[m",
+			"",
+		},
+		{
+			"right is less than left",
+			"\x1b[7mHello\x1b[m", 3, 2,
+			"",
 		},
 		{
 			"cut size is 0",
 			"\x1b[7mHello\x1b[m", 2, 2,
-			"\x1b[7m\x1b[m",
+			"",
 		},
 		{
 			"maintains open ansi",
@@ -343,7 +348,7 @@ func TestCut(t *testing.T) {
 		t.Run(c.input, func(t *testing.T) {
 			got := Cut(c.input, c.left, c.right)
 			if got != c.expect {
-				t.Errorf("%s (%d):\nexpected: %q\ngot:      %q", c.desc, i+1, c.expect, got)
+				t.Errorf("%s (#%d):\nexpected: %q\ngot:      %q", c.desc, i+1, c.expect, got)
 			}
 		})
 	}
