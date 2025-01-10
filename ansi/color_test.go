@@ -12,7 +12,7 @@ func TestRGBAToHex(t *testing.T) {
 	}{
 		{0, 0, 255, 0xffff, 0x0000ff},
 		{255, 255, 255, 0xffff, 0xffffff},
-		{255, 0, 0, 0xffff, 0xff0000},
+		{255, 0, 0, 0xffff, 0xffff0000},
 	}
 
 	for _, c := range cases {
