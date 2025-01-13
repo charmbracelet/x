@@ -130,6 +130,7 @@ type Options struct {
 
 // Options returns the options as a slice of a key-value pairs.
 func (o *Options) Options() (opts []string) {
+	opts = []string{}
 	if o.Format == 0 {
 		o.Format = RGBA
 	}
@@ -140,6 +141,14 @@ func (o *Options) Options() (opts []string) {
 
 	if o.Delete == 0 {
 		o.Delete = DeleteAll
+	}
+
+	if o.Transmission == 0 {
+		if len(o.File) > 0 {
+			o.Transmission = File
+		} else {
+			o.Transmission = Direct
+		}
 	}
 
 	if o.Format != RGBA {
@@ -237,7 +246,7 @@ func (o *Options) Options() (opts []string) {
 	if o.Delete != DeleteAll || o.DeleteResources {
 		da := o.Delete
 		if o.DeleteResources {
-			da = da - 'A' // to uppercase
+			da = da - ' ' // to uppercase
 		}
 
 		opts = append(opts, fmt.Sprintf("d=%c", da))
