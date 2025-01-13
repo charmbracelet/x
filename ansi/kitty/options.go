@@ -1,7 +1,15 @@
 package kitty
 
 import (
+	"encoding"
 	"fmt"
+	"strconv"
+	"strings"
+)
+
+var (
+	_ encoding.TextMarshaler   = Options{}
+	_ encoding.TextUnmarshaler = &Options{}
 )
 
 // Options represents a Kitty Graphics Protocol options.
@@ -45,7 +53,7 @@ type Options struct {
 	Compression byte
 
 	// Transmission (t=d) is the image transmission type. Can be [Direct], [File],
-	// [TempFile], or [SharedMemory].
+	// [TempFile], or[SharedMemory].
 	Transmission byte
 
 	// File is the file path to be used when the transmission type is [File].
@@ -101,7 +109,7 @@ type Options struct {
 	// scaled to fit the number of rows.
 	Rows int
 
-	// VirtualPlacement (V=0) whether to use virtual placement. This is used
+	// VirtualPlacement (U=0) whether to use virtual placement. This is used
 	// with Unicode [Placeholder] to display images.
 	VirtualPlacement bool
 
@@ -257,4 +265,95 @@ func (o *Options) Options() (opts []string) {
 	}
 
 	return
+}
+
+// String returns the string representation of the options.
+func (o Options) String() string {
+	return strings.Join(o.Options(), ",")
+}
+
+// MarshalText returns the string representation of the options.
+func (o Options) MarshalText() ([]byte, error) {
+	return []byte(o.String()), nil
+}
+
+// UnmarshalText parses the options from the given string.
+func (o *Options) UnmarshalText(text []byte) error {
+	opts := strings.Split(string(text), ",")
+	for _, opt := range opts {
+		ps := strings.SplitN(opt, "=", 2)
+		if len(ps) != 2 || len(ps[1]) == 0 {
+			continue
+		}
+
+		switch ps[0] {
+		case "a":
+			o.Action = ps[1][0]
+		case "o":
+			o.Compression = ps[1][0]
+		case "t":
+			o.Transmission = ps[1][0]
+		case "d":
+			d := ps[1][0]
+			if d >= 'A' && d <= 'Z' {
+				o.DeleteResources = true
+				d = d + ' ' // to lowercase
+			}
+			o.Delete = d
+		case "i", "q", "p", "I", "f", "s", "v", "S", "O", "m", "x", "y", "z", "w", "h", "X", "Y", "c", "r", "U", "P", "Q":
+			v, err := strconv.Atoi(ps[1])
+			if err != nil {
+				continue
+			}
+
+			switch ps[0] {
+			case "i":
+				o.ID = v
+			case "q":
+				o.Quite = byte(v)
+			case "p":
+				o.PlacementID = v
+			case "I":
+				o.Number = v
+			case "f":
+				o.Format = v
+			case "s":
+				o.ImageWidth = v
+			case "v":
+				o.ImageHeight = v
+			case "S":
+				o.Size = v
+			case "O":
+				o.Offset = v
+			case "m":
+				o.Chunk = v == 0 || v == 1
+			case "x":
+				o.X = v
+			case "y":
+				o.Y = v
+			case "z":
+				o.Z = v
+			case "w":
+				o.Width = v
+			case "h":
+				o.Height = v
+			case "X":
+				o.OffsetX = v
+			case "Y":
+				o.OffsetY = v
+			case "c":
+				o.Columns = v
+			case "r":
+				o.Rows = v
+			case "U":
+				o.VirtualPlacement = v == 1
+			case "P":
+				o.ParentID = v
+			case "Q":
+				o.ParentPlacementID = v
+			}
+		}
+	}
+
+	return nil
 }
