@@ -89,6 +89,8 @@ func WriteKittyGraphics(w io.Writer, m image.Image, o *kitty.Options) error {
 			return fmt.Errorf("failed to open file: %w", err)
 		}
 
+		defer f.Close() //nolint:errcheck
+
 		stat, err := f.Stat()
 		if err != nil {
 			return fmt.Errorf("failed to get file info: %w", err)
