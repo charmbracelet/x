@@ -224,7 +224,7 @@ func (s *Screen) moveCursor(x, y int, overwrite bool) {
 
 func (s *Screen) move(x, y int) {
 	width, height := s.newbuf.Width(), s.newbuf.Height()
-	if x >= width {
+	if width > 0 && x >= width {
 		// Handle autowrap
 		y += (x / width)
 		x %= width
@@ -239,11 +239,11 @@ func (s *Screen) move(x, y int) {
 	// 	s.buf.WriteString(ansi.ResetStyle) //nolint:errcheck
 	// }
 
-	if s.cur.X >= width {
+	if width > 0 && s.cur.X >= width {
 		l := (s.cur.X + 1) / width
 
 		s.cur.Y += l
-		if s.cur.Y >= height {
+		if height > 0 && s.cur.Y >= height {
 			l -= s.cur.Y - height - 1
 		}
 
@@ -253,11 +253,13 @@ func (s *Screen) move(x, y int) {
 		}
 	}
 
-	if s.cur.Y > height-1 {
-		s.cur.Y = height - 1
-	}
-	if y > height-1 {
-		y = height - 1
+	if height > 0 {
+		if s.cur.Y > height-1 {
+			s.cur.Y = height - 1
+		}
+		if y > height-1 {
+			y = height - 1
+		}
 	}
 
 	// We set the new cursor in [Screen.moveCursor].
