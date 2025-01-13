@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/ansi/kitty"
 )
 
 var sequences = buildKeysTable(FlagTerminfo, "dumb")
@@ -99,6 +100,29 @@ func buildBaseSeqTests() []seqTest {
 func TestParseSequence(t *testing.T) {
 	td := buildBaseSeqTests()
 	td = append(td,
+		// Kitty Graphics response.
+		seqTest{
+			[]byte("\x1b_Ga=t;OK\x1b\\"),
+			[]Event{KittyGraphicsEvent{
+				Options: kitty.Options{Action: kitty.Transmit},
+				Payload: []byte("OK"),
+			}},
+		},
+		seqTest{
+			[]byte("\x1b_Gi=99,I=13;OK\x1b\\"),
+			[]Event{KittyGraphicsEvent{
+				Options: kitty.Options{ID: 99, Number: 13},
+				Payload: []byte("OK"),
+			}},
+		},
+		seqTest{
+			[]byte("\x1b_Gi=1337,q=1;EINVAL:your face\x1b\\"),
+			[]Event{KittyGraphicsEvent{
+				Options: kitty.Options{ID: 1337, Quite: 1},
+				Payload: []byte("EINVAL:your face"),
+			}},
+		},
+
 		// Xterm modifyOtherKeys CSI 27 ; <modifier> ; <code> ~
 		seqTest{
 			[]byte("\x1b[27;3;20320~"),
