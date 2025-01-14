@@ -278,6 +278,82 @@ func TestReadColor(t *testing.T) {
 			wantN:   0,
 			wantNil: true,
 		},
+		// RGBA (type 6) test cases
+		// {
+		// 	name:      "RGBA semicolon separated",
+		// 	params:    []Parameter{38, 6, 100, 150, 200, 128},
+		// 	wantN:     6,
+		// 	wantColor: color.RGBA{R: 100, G: 150, B: 200, A: 128},
+		// },
+		// {
+		// 	name: "RGBA colon separated",
+		// 	params: []Parameter{
+		// 		38 | parser.HasMoreFlag,
+		// 		6 | parser.HasMoreFlag,
+		// 		100 | parser.HasMoreFlag,
+		// 		150 | parser.HasMoreFlag,
+		// 		200 | parser.HasMoreFlag,
+		// 		128,
+		// 	},
+		// 	wantN:     6,
+		// 	wantColor: color.RGBA{R: 100, G: 150, B: 200, A: 128},
+		// },
+		{
+			name: "RGBA with color space",
+			params: []Parameter{
+				38 | parser.HasMoreFlag,
+				6 | parser.HasMoreFlag,
+				1 | parser.HasMoreFlag, // color space id
+				100 | parser.HasMoreFlag,
+				150 | parser.HasMoreFlag,
+				200 | parser.HasMoreFlag,
+				128,
+			},
+			wantN:     7,
+			wantColor: color.RGBA{R: 100, G: 150, B: 200, A: 128},
+		},
+		{
+			name: "RGBA with tolerance and color space",
+			params: []Parameter{
+				38 | parser.HasMoreFlag,
+				6 | parser.HasMoreFlag,
+				1 | parser.HasMoreFlag, // color space id
+				100 | parser.HasMoreFlag,
+				150 | parser.HasMoreFlag,
+				200 | parser.HasMoreFlag,
+				128 | parser.HasMoreFlag,
+				0 | parser.HasMoreFlag, // tolerance value
+				1,                      // tolerance color space
+			},
+			wantN:     9,
+			wantColor: color.RGBA{R: 100, G: 150, B: 200, A: 128},
+		},
+		{
+			name: "RGBA with max values",
+			params: []Parameter{
+				38 | parser.HasMoreFlag,
+				6 | parser.HasMoreFlag,
+				0 | parser.HasMoreFlag, // color space id
+				255 | parser.HasMoreFlag,
+				255 | parser.HasMoreFlag,
+				255 | parser.HasMoreFlag,
+				255,
+			},
+			wantN:     7,
+			wantColor: color.RGBA{R: 255, G: 255, B: 255, A: 255},
+		},
+		{
+			name: "RGBA truncated params",
+			params: []Parameter{
+				38 | parser.HasMoreFlag,
+				6 | parser.HasMoreFlag,
+				100 | parser.HasMoreFlag,
+				150 | parser.HasMoreFlag,
+				200,
+			},
+			wantN:   0,
+			wantNil: true,
+		},
 	}
 
 	for _, tt := range tests {

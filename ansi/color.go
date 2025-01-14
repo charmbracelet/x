@@ -206,6 +206,7 @@ func toRGBA(r, g, b uint32) (uint32, uint32, uint32, uint32) {
 //   - 3: CMY direct color
 //   - 4: CMYK direct color
 //   - 5: indexed color
+//   - 6: RGBA direct color (WezTerm extension)
 //
 // The parameters can be separated by semicolons (;) or colons (:). Mixing
 // separators is not allowed.
@@ -218,6 +219,7 @@ func toRGBA(r, g, b uint32) (uint32, uint32, uint32, uint32) {
 //  1. Support for legacy color values separated by semicolons (;) with respect to RGB, CMY, CMYK, and indexed colors
 //  2. Support ignoring and omitting the color space id (second parameter)
 //  3. Support ignoring and omitting the 6th parameter with respect to RGB and CMY colors
+//  4. Support reading RGBA colors
 func ReadColor(params []Parameter) (n int, co Color) {
 	if len(params) < 2 { // Need at least SGR type and color type
 		return 0, nil
@@ -339,6 +341,24 @@ func ReadColor(params []Parameter) (n int, co Color) {
 		}
 		co = ExtendedColor(params[2].Param(0)) //nolint:gosec
 		return 3, co
+
+	case 6: // RGBA direct color
+		if len(params) < 6 {
+			return 0, nil
+		}
+
+		r, g, b, a := paramsfn()
+		if r == -1 || g == -1 || b == -1 || a == -1 {
+			return 0, nil
+		}
+
+		co = color.RGBA{
+			R: uint8(r), //nolint:gosec
+			G: uint8(g), //nolint:gosec
+			B: uint8(b), //nolint:gosec
+			A: uint8(a), //nolint:gosec
+		}
+		return
 
 	default:
 		return 0, nil
