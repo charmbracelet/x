@@ -216,7 +216,7 @@ func toRGBA(r, g, b uint32) (uint32, uint32, uint32, uint32) {
 // returned color and will be ignored.
 //
 // This implementation includes a few modifications to the specs:
-//  1. Support for legacy color values separated by semicolons (;) with respect to RGB, CMY, CMYK, and indexed colors
+//  1. Support for legacy color values separated by semicolons (;) with respect to RGB, and indexed colors
 //  2. Support ignoring and omitting the color space id (second parameter)
 //  3. Support ignoring and omitting the 6th parameter with respect to RGB and CMY colors
 //  4. Support reading RGBA colors
