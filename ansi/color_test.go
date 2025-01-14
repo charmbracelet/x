@@ -358,7 +358,7 @@ func TestReadColor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotN, gotColor := ReadColor(tt.params)
+			gotN, gotColor := DecodeColor(tt.params)
 			if gotN != tt.wantN {
 				t.Errorf("ReadColor() gotN = %v, want %v", gotN, tt.wantN)
 			}

@@ -195,9 +195,9 @@ func toRGBA(r, g, b uint32) (uint32, uint32, uint32, uint32) {
 	return r, g, b, 0xffff
 }
 
-// ReadColor reads a color from a slice of parameters. It returns the number of
-// parameters read and the color. This function is used to read SGR color
-// parameters following the ITU T.416 standard.
+// DecodeColor decodes a color from a slice of parameters. It returns the
+// number of parameters read and the color. This function is used to read SGR
+// color parameters following the ITU T.416 standard.
 //
 // It supports reading the following color types:
 //   - 0: implementation defined
@@ -220,7 +220,7 @@ func toRGBA(r, g, b uint32) (uint32, uint32, uint32, uint32) {
 //  2. Support ignoring and omitting the color space id (second parameter)
 //  3. Support ignoring and omitting the 6th parameter with respect to RGB and CMY colors
 //  4. Support reading RGBA colors
-func ReadColor(params []Parameter) (n int, co Color) {
+func DecodeColor(params []Parameter) (n int, co Color) {
 	if len(params) < 2 { // Need at least SGR type and color type
 		return 0, nil
 	}
