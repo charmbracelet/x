@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/charmbracelet/colorprofile v0.1.9
-	github.com/charmbracelet/x/ansi v0.6.0
+	github.com/charmbracelet/x/ansi v0.7.0
 	github.com/charmbracelet/x/term v0.2.1
 	github.com/charmbracelet/x/wcwidth v0.0.0-20241011142426-46044092ad91
 	github.com/rivo/uniseg v0.4.7
