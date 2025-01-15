@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/charmbracelet/colorprofile v0.1.9
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2.0.20241204155804-59cbf2850015
-	github.com/charmbracelet/x/ansi v0.6.0
+	github.com/charmbracelet/x/ansi v0.7.0
 	github.com/charmbracelet/x/cellbuf v0.0.7-0.20241212022319-e366fd0098cb
 	github.com/charmbracelet/x/input v0.2.1-0.20241212022319-e366fd0098cb
 	github.com/creack/pty v1.1.24
