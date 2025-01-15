@@ -22,6 +22,14 @@ var tcases = []struct {
 		"",
 	},
 	{
+		"truncate_length_0",
+		"foo",
+		"",
+		0,
+		"",
+		"foo",
+	},
+	{
 		"equalascii",
 		"one",
 		".",

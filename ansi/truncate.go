@@ -122,13 +122,13 @@ func Truncate(s string, length int, tail string) string {
 	return buf.String()
 }
 
-// TruncateLeft truncates a string from the left side to a given length, adding
-// a prefix to the beginning if the string is longer than the given length.
+// TruncateLeft truncates a string from the left side by removing n characters,
+// adding a prefix to the beginning if the string is longer than n.
 // This function is aware of ANSI escape codes and will not break them, and
 // accounts for wide-characters (such as East-Asian characters and emojis).
-func TruncateLeft(s string, length int, prefix string) string {
-	if length == 0 {
-		return ""
+func TruncateLeft(s string, n int, prefix string) string {
+	if n <= 0 {
+		return s
 	}
 
 	var cluster []byte
@@ -153,7 +153,7 @@ func TruncateLeft(s string, length int, prefix string) string {
 			i += len(cluster)
 			curWidth += width
 
-			if curWidth > length && ignoring {
+			if curWidth > n && ignoring {
 				ignoring = false
 				buf.WriteString(prefix)
 			}
@@ -162,7 +162,7 @@ func TruncateLeft(s string, length int, prefix string) string {
 				continue
 			}
 
-			if curWidth > length {
+			if curWidth > n {
 				buf.Write(cluster)
 			}
 
@@ -174,7 +174,7 @@ func TruncateLeft(s string, length int, prefix string) string {
 		case parser.PrintAction:
 			curWidth++
 
-			if curWidth > length && ignoring {
+			if curWidth > n && ignoring {
 				ignoring = false
 				buf.WriteString(prefix)
 			}
@@ -191,7 +191,7 @@ func TruncateLeft(s string, length int, prefix string) string {
 		}
 
 		pstate = state
-		if curWidth > length && ignoring {
+		if curWidth > n && ignoring {
 			ignoring = false
 			buf.WriteString(prefix)
 		}
