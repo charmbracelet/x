@@ -310,12 +310,12 @@ func parseKittyKeyboard(csi *ansi.CsiSequence) (Event Event) {
 	}
 
 	if len(key.Text) == 0 && unicode.IsPrint(key.Code) &&
-		(key.Mod <= ModShift || key.Mod == ModCapsLock) {
+		(key.Mod <= ModShift || key.Mod == ModCapsLock || key.Mod == ModShift|ModCapsLock) {
 		if key.Mod == 0 {
 			key.Text = string(key.Code)
 		} else {
 			desiredCase := unicode.ToLower
-			if key.Mod == ModShift || key.Mod == ModCapsLock {
+			if key.Mod.Contains(ModShift) || key.Mod.Contains(ModCapsLock) {
 				desiredCase = unicode.ToUpper
 			}
 			if key.ShiftedCode != 0 {
