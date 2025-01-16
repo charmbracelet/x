@@ -1,6 +1,7 @@
 package input
 
 import (
+	"bytes"
 	"encoding/base64"
 	"strings"
 	"unicode"
@@ -136,6 +137,10 @@ func (p *Parser) parseSequence(buf []byte) (n int, Event Event) {
 			return p.parseOsc(buf)
 		case '_': // Esc-prefixed APC
 			return p.parseApc(buf)
+		case '^': // Esc-prefixed PM
+			return p.parseStTerminated(ansi.PM, '^', nil)(buf)
+		case 'X': // Esc-prefixed SOS
+			return p.parseStTerminated(ansi.SOS, 'X', nil)(buf)
 		default:
 			n, e := p.parseSequence(buf[1:])
 			if k, ok := e.(KeyPressEvent); ok {
@@ -158,6 +163,10 @@ func (p *Parser) parseSequence(buf []byte) (n int, Event Event) {
 		return p.parseOsc(buf)
 	case ansi.APC:
 		return p.parseApc(buf)
+	case ansi.PM:
+		return p.parseStTerminated(ansi.PM, '^', nil)(buf)
+	case ansi.SOS:
+		return p.parseStTerminated(ansi.SOS, 'X', nil)(buf)
 	default:
 		if b <= ansi.US || b == ansi.DEL || b == ansi.SP {
 			return 1, p.parseControl(b)
@@ -661,7 +670,7 @@ func (p *Parser) parseOsc(b []byte) (int, Event) {
 }
 
 // parseStTerminated parses a control sequence that gets terminated by a ST character.
-func (p *Parser) parseStTerminated(intro8, intro7 byte) func([]byte) (int, Event) {
+func (p *Parser) parseStTerminated(intro8, intro7 byte, fn func([]byte) Event) func([]byte) (int, Event) {
 	return func(b []byte) (int, Event) {
 		var i int
 		if b[i] == intro8 || b[i] == ansi.ESC {
@@ -675,17 +684,27 @@ func (p *Parser) parseStTerminated(intro8, intro7 byte) func([]byte) (int, Event
 		// Most common control sequence is terminated by a ST character
 		// ST is a 7-bit string terminator character is (ESC \)
 		// nolint: revive
+		start := i
 		for ; i < len(b) && b[i] != ansi.ST && b[i] != ansi.ESC; i++ {
 		}
 
 		if i >= len(b) {
 			return i, UnknownEvent(b[:i])
 		}
+
+		end := i // end of the sequence data
 		i++
 
 		// Check 7-bit ST (string terminator) character
 		if i < len(b) && b[i-1] == ansi.ESC && b[i] == '\\' {
 			i++
+		}
+
+		// Call the function to parse the sequence and return the result
+		if fn != nil {
+			if e := fn(b[start:end]); e != nil {
+				return i, e
+			}
 		}
 
 		return i, UnknownEvent(b[:i])
@@ -813,7 +832,24 @@ func (p *Parser) parseApc(b []byte) (int, Event) {
 	}
 
 	// APC sequences are introduced by APC (0x9f) or ESC _ (0x1b 0x5f)
-	return p.parseStTerminated(ansi.APC, '_')(b)
+	return p.parseStTerminated(ansi.APC, '_', func(b []byte) Event {
+		if len(b) == 0 {
+			return nil
+		}
+
+		switch b[0] {
+		case 'G': // Kitty Graphics Protocol
+			var g KittyGraphicsEvent
+			parts := bytes.Split(b[1:], []byte{';'})
+			g.Options.UnmarshalText(parts[0]) //nolint:errcheck
+			if len(parts) > 1 {
+				g.Payload = parts[1]
+			}
+			return g
+		}
+
+		return nil
+	})(b)
 }
 
 func (p *Parser) parseUtf8(b []byte) (int, Event) {

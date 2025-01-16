@@ -5,7 +5,16 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/ansi/kitty"
 )
+
+// KittyGraphicsEvent represents a Kitty Graphics response event.
+//
+// See https://sw.kovidgoyal.net/kitty/graphics-protocol/
+type KittyGraphicsEvent struct {
+	Options kitty.Options
+	Payload []byte
+}
 
 // KittyEnhancementsEvent represents a Kitty enhancements event.
 type KittyEnhancementsEvent int
