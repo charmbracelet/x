@@ -504,6 +504,24 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 
 			return i, k
 		}
+
+	case 't':
+		param, ok := csi.Param(0, 0)
+		if !ok {
+			break
+		}
+
+		switch param {
+		case 4:
+			// Text area size report CSI t
+			height, _ := csi.Param(1, 0)
+			width, _ := csi.Param(2, 0)
+			return i, WindowAreaEvent{
+				Height: height,
+				Width:  width,
+			}
+		}
+
 	}
 	return i, UnknownEvent(b[:i])
 }

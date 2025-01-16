@@ -121,6 +121,14 @@ func TestParseSequence(t *testing.T) {
 			[]Event{KeyPressEvent{Code: KeyBackspace, Mod: ModAlt}},
 		},
 
+		// Xterm report window text area size.
+		seqTest{
+			[]byte("\x1b[4;24;80t"),
+			[]Event{
+				WindowAreaEvent{Width: 80, Height: 24},
+			},
+		},
+
 		// Kitty keyboard / CSI u (fixterms)
 		seqTest{
 			[]byte("\x1b[1B"),
