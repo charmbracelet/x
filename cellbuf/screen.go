@@ -35,7 +35,7 @@ func notLocal(cols, fx, fy, tx, ty int) bool {
 // [ansi.VPA], [ansi.HPA].
 // When overwrite is true, this will try to optimize the sequence by using the
 // screen cells values to move the cursor instead of using escape sequences.
-func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) string {
+func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs bool) string {
 	var seq strings.Builder
 
 	width, height := s.newbuf.Width(), s.newbuf.Height()
@@ -79,7 +79,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) string {
 
 		if tx > fx {
 			n := tx - fx
-			if s.opts.HardTabs {
+			if useTabs && s.opts.HardTabs {
 				var tabs int
 				var col int
 				for col = fx; s.tabs.Next(col) <= tx; col = s.tabs.Next(col) {
@@ -143,7 +143,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite bool) string {
 			}
 		} else if tx < fx {
 			n := fx - tx
-			if s.opts.HardTabs && s.xtermLike {
+			if useTabs && s.opts.HardTabs && s.xtermLike {
 				// VT100 does not support backward tabs [ansi.CBT].
 
 				col := fx
@@ -194,22 +194,44 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 	}
 
 	// Method #1: Use local movement sequences.
-	nseq := relativeCursorMove(s, fx, fy, x, y, overwrite)
+	nseq := relativeCursorMove(s, fx, fy, x, y, overwrite, false)
 	if len(seq) == 0 || len(nseq) < len(seq) {
 		seq = nseq
 	}
 
 	// Method #2: Use [ansi.CR] and local movement sequences.
-	nseq = "\r" + relativeCursorMove(s, 0, fy, x, y, overwrite)
+	nseq = "\r" + relativeCursorMove(s, 0, fy, x, y, overwrite, false)
 	if len(nseq) < len(seq) {
 		seq = nseq
 	}
 
 	if !s.opts.RelativeCursor {
 		// Method #3: Use [ansi.CursorHomePosition] and local movement sequences.
-		nseq = ansi.CursorHomePosition + relativeCursorMove(s, 0, 0, x, y, overwrite)
+		nseq = ansi.CursorHomePosition + relativeCursorMove(s, 0, 0, x, y, overwrite, false)
 		if len(nseq) < len(seq) {
 			seq = nseq
+		}
+	}
+
+	if s.opts.HardTabs {
+		// Method #4: Use tab optimized local movement sequences.
+		nseq := relativeCursorMove(s, fx, fy, x, y, overwrite, true)
+		if len(nseq) < len(seq) {
+			seq = nseq
+		}
+
+		// Method #5: Use [ansi.CR] and tab optimized local movement sequences.
+		nseq = "\r" + relativeCursorMove(s, 0, fy, x, y, overwrite, true)
+		if len(nseq) < len(seq) {
+			seq = nseq
+		}
+
+		if !s.opts.RelativeCursor {
+			// Method #6: Use [ansi.CursorHomePosition] and tab optimized local movement sequences.
+			nseq = ansi.CursorHomePosition + relativeCursorMove(s, 0, 0, x, y, overwrite, true)
+			if len(nseq) < len(seq) {
+				seq = nseq
+			}
 		}
 	}
 
