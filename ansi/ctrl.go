@@ -24,6 +24,7 @@ const (
 //	DCS > | text ST
 //
 // See https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-PC-Style-Function-Keys
+//
 // Deprecated: use [RequestNameVersion] instead.
 const RequestXTVersion = RequestNameVersion
 
