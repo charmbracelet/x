@@ -3,7 +3,7 @@ package cellbuf
 import (
 	"strings"
 
-	"github.com/charmbracelet/x/wcwidth"
+	"github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"
 )
 
@@ -11,7 +11,7 @@ import (
 // new cell with the given content. The cell's width is determined by the
 // content using [wcwidth.RuneWidth].
 func NewCell(r rune, comb ...rune) *Cell {
-	width := wcwidth.StringWidth(string(append([]rune{r}, comb...)))
+	width := runewidth.StringWidth(string(append([]rune{r}, comb...)))
 	return &Cell{
 		Rune:  r,
 		Comb:  comb,
@@ -31,10 +31,10 @@ func NewCellString(s string) *Cell {
 	for i, c := range s {
 		if i == 0 {
 			r = c
-			w = wcwidth.RuneWidth(c)
+			w = runewidth.RuneWidth(c)
 			continue
 		}
-		if wcwidth.RuneWidth(c) > 0 {
+		if runewidth.RuneWidth(c) > 0 {
 			break
 		}
 		comb = append(comb, c)
