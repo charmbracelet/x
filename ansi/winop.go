@@ -13,6 +13,11 @@ const (
 	// ReportWindowSizeWinOp is a window operation that reports the size of the
 	// terminal window in pixels.
 	ReportWindowSizeWinOp = 14
+
+	// RequestCellSizeWinOp is a window operation that requests a report of
+	// the size of the terminal cell size in pixels. The response is in the form:
+	//  CSI 6 ; height ; width t
+	RequestCellSizeWinOp = 16
 )
 
 // WindowOp (XTWINOPS) is a sequence that manipulates the terminal window.
