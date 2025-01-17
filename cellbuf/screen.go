@@ -331,6 +331,7 @@ type Screen struct {
 	cursorHidden     bool // whether text cursor mode is enabled
 	clear            bool // whether to force clear the screen
 	xtermLike        bool // whether to use xterm-like optimizations, otherwise, it uses vt100 only
+	queuedText       bool // whether we have queued non-zero width text queued up
 }
 
 // UseHardTabs sets whether to use hard tabs to optimize cursor movements.
@@ -551,6 +552,9 @@ func (s *Screen) putAttrCell(cell *Cell) {
 	s.updatePen(cell)
 	s.buf.WriteString(cell.String()) //nolint:errcheck
 	s.cur.X += cell.Width
+	if cell.Width > 0 {
+		s.queuedText = true
+	}
 
 	if s.cur.X >= s.newbuf.Width() {
 		// TODO: Properly handle autowrap. This is a hack.
@@ -1134,7 +1138,8 @@ func (s *Screen) render() {
 	}
 
 	// Do we need text cursor mode?
-	if !s.opts.ShowCursor != s.cursorHidden {
+	if !s.opts.ShowCursor != s.cursorHidden && s.queuedText {
+		// OPTIM: We only hide the cursor if we have queued non-zero width text.
 		s.cursorHidden = !s.opts.ShowCursor
 		if s.cursorHidden {
 			s.buf.WriteString(ansi.HideCursor)
@@ -1224,7 +1229,8 @@ func (s *Screen) render() {
 
 	if s.buf.Len() > 0 {
 		// Is the cursor visible? If so, disable it while rendering.
-		if s.opts.ShowCursor && !s.cursorHidden {
+		if s.opts.ShowCursor && !s.cursorHidden && s.queuedText {
+			// OPTIM: We only hide the cursor if we have queued non-zero width text.
 			nb := new(bytes.Buffer)
 			nb.WriteString(ansi.HideCursor)
 			nb.Write(s.buf.Bytes())
@@ -1232,6 +1238,8 @@ func (s *Screen) render() {
 			*s.buf = *nb
 		}
 	}
+
+	s.queuedText = false
 }
 
 // undefinedPos is the position used when the cursor position is undefined and
