@@ -268,13 +268,14 @@ func TestOptions_MarshalText(t *testing.T) {
 		{
 			name: "marshal with values",
 			o: Options{
-				Action: 'A',
-				ID:     123,
-				Width:  400,
-				Height: 500,
-				Quite:  2,
+				Action:          'A',
+				ID:              123,
+				Width:           400,
+				Height:          500,
+				Quite:           2,
+				DoNotMoveCursor: true,
 			},
-			want: []byte("q=2,i=123,w=400,h=500,a=A"),
+			want: []byte("q=2,i=123,C=1,w=400,h=500,a=A"),
 		},
 	}
 

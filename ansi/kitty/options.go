@@ -113,6 +113,10 @@ type Options struct {
 	// with Unicode [Placeholder] to display images.
 	VirtualPlacement bool
 
+	// DoNotMoveCursor (C=0) whether to move the cursor after displaying the
+	// image.
+	DoNotMoveCursor bool
+
 	// ParentID (P=0) is the parent image ID. The parent ID is the ID of the
 	// image that is the parent of the current image. This is used with Unicode
 	// [Placeholder] to display images relative to the parent image.
@@ -205,6 +209,10 @@ func (o *Options) Options() (opts []string) {
 
 	if o.VirtualPlacement {
 		opts = append(opts, "U=1")
+	}
+
+	if o.DoNotMoveCursor {
+		opts = append(opts, "C=1")
 	}
 
 	if o.ParentID > 0 {
