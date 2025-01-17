@@ -153,7 +153,7 @@ func (c *Window) SetContent(s string) {
 	s = strings.ReplaceAll(s, "\r\n", "\n")
 	s = strings.ReplaceAll(s, "\n", "\r\n")
 	c.Clear()
-	c.MoveTo(0, 0)
+	c.cur.X, c.cur.Y = 0, 0
 	c.PrintTruncate(s, "")
 }
 
