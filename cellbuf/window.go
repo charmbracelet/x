@@ -405,22 +405,28 @@ func handleSgr(p *ansi.Parser, pen *Style) {
 		case 30, 31, 32, 33, 34, 35, 36, 37: // Set foreground
 			pen.Foreground(ansi.Black + ansi.BasicColor(param-30)) //nolint:gosec
 		case 38: // Set foreground 256 or truecolor
-			if c := readColor(&i, params); c != nil {
+			n, c := ansi.DecodeColor(params[i:])
+			if n > 0 {
 				pen.Foreground(c)
+				i += n - 1
 			}
 		case 39: // Default foreground
 			pen.Foreground(nil)
 		case 40, 41, 42, 43, 44, 45, 46, 47: // Set background
 			pen.Background(ansi.Black + ansi.BasicColor(param-40)) //nolint:gosec
 		case 48: // Set background 256 or truecolor
-			if c := readColor(&i, params); c != nil {
+			n, c := ansi.DecodeColor(params[i:])
+			if n > 0 {
 				pen.Background(c)
+				i += n - 1
 			}
 		case 49: // Default Background
 			pen.Background(nil)
 		case 58: // Set underline color
-			if c := readColor(&i, params); c != nil {
+			n, c := ansi.DecodeColor(params[i:])
+			if n > 0 {
 				pen.UnderlineColor(c)
+				i += n - 1
 			}
 		case 59: // Default underline color
 			pen.UnderlineColor(nil)
