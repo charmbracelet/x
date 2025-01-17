@@ -1139,7 +1139,6 @@ func (s *Screen) render() {
 
 	// Do we need text cursor mode?
 	if !s.opts.ShowCursor != s.cursorHidden {
-		// OPTIM: We only hide the cursor if we have queued non-zero width text.
 		s.cursorHidden = !s.opts.ShowCursor
 		if s.cursorHidden {
 			s.buf.WriteString(ansi.HideCursor)
