@@ -535,7 +535,7 @@ func (s *Screen) wrapCursor() {
 }
 
 func (s *Screen) putAttrCell(cell *Cell) {
-	if cell != nil && cell.Width <= 0 {
+	if cell != nil && cell.Empty() {
 		return
 	}
 
