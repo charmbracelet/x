@@ -149,7 +149,7 @@ func TestParseSequence(t *testing.T) {
 		seqTest{
 			[]byte("\x1b[4;24;80t"),
 			[]Event{
-				WindowAreaEvent{Width: 80, Height: 24},
+				WindowOpEvent{Op: 4, Args: []int{24, 80}},
 			},
 		},
 

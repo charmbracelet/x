@@ -36,20 +36,10 @@ type WindowSizeEvent struct {
 	Height int
 }
 
-// WindowAreaEvent is used to report the terminal area size in pixels. This is
-// the response from a [ansi.WindowOp] [ansi.ReportWindowSizeWinOp] request.
-// You can use this along with [WindowSizeEvent] to get the terminal cell size.
-//
-// Example:
-//
-//	    // Assuming we already have a WindowSizeEvent
-//		var winsize WindowSizeEvent
-//		switch ev := ev.(type) {
-//		case WindowAreaEvent:
-//		  cellWidth := ev.Width / winsize.Width
-//		  cellHeight := ev.Height / winsize.Height
-//		}
-type WindowAreaEvent struct {
-	Width  int
-	Height int
+// WindowOpEvent is a window operation (XTWINOPS) report event. This is used to
+// report various window operations such as reporting the window size or cell
+// size.
+type WindowOpEvent struct {
+	Op   int
+	Args []int
 }

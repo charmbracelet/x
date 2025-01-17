@@ -520,17 +520,16 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 			break
 		}
 
-		switch param {
-		case 4:
-			// Text area size report CSI t
-			height, _ := csi.Param(1, 0)
-			width, _ := csi.Param(2, 0)
-			return i, WindowAreaEvent{
-				Height: height,
-				Width:  width,
+		var winop WindowOpEvent
+		winop.Op = param
+		for j := 1; j < paramsLen; j++ {
+			val, ok := csi.Param(j, 0)
+			if ok {
+				winop.Args = append(winop.Args, val)
 			}
 		}
 
+		return i, winop
 	}
 	return i, UnknownEvent(b[:i])
 }
