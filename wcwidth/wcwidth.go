@@ -7,7 +7,11 @@
 
 package wcwidth
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/rivo/uniseg"
+)
 
 // Data in combiningRanges and the implementation of RuneWidth is based on
 // http://www.cl.cam.ac.uk/~mgk25/ucs/wcwidth.c, which is in the public domain.
@@ -192,9 +196,17 @@ func RuneWidth(r rune) int {
 
 // StringWidth returns fixed-width width of string.
 // https://en.wikipedia.org/wiki/Halfwidth_and_fullwidth_forms#In_Unicode
-func StringWidth(s string) (n int) {
-	for _, r := range s {
-		n += RuneWidth(r)
+func StringWidth(s string) (width int) {
+	g := uniseg.NewGraphemes(s)
+	for g.Next() {
+		var chWidth int
+		for _, r := range g.Runes() {
+			chWidth = RuneWidth(r)
+			if chWidth > 0 {
+				break // Our best guess at this point is to use the width of the first non-zero-width rune.
+			}
+		}
+		width += chWidth
 	}
 	return
 }
