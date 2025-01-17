@@ -1,10 +1,7 @@
 package cellbuf
 
 import (
-	"image/color"
 	"strings"
-
-	"github.com/charmbracelet/x/ansi"
 )
 
 // Height returns the height of a string.

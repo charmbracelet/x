@@ -188,14 +188,11 @@ func (c *Window) MoveTo(x, y int) (v bool) {
 		return
 	}
 	c.cur.X, c.cur.Y = x, y
-	if c.s.opts.ShowCursor {
-		return c.s.MoveTo(c.x+x, c.y+y)
-	}
-	return true
+	return c.s.MoveTo(c.x+x, c.y+y)
 }
 
-// Print prints the given string at the current cursor position. If the cursor
-// is out of bounds, it will do nothing.
+// Print prints the given string at the current cursor position wrapping the
+// text if necessary. If the cursor is out of bounds, it will do nothing.
 func (c *Window) Print(format string, v ...interface{}) {
 	if len(v) > 0 {
 		format = fmt.Sprintf(format, v...)
@@ -203,10 +200,32 @@ func (c *Window) Print(format string, v ...interface{}) {
 	c.drawString(format, c.cur.X, c.cur.Y, defaultDrawOpts)
 }
 
+// PrintAt prints the given string at the given position wrapping the text if
+// necessary. If the position is out of bounds, it will do nothing.
+func (c *Window) PrintAt(x, y int, format string, v ...interface{}) {
+	if !Pos(c.x+x, c.y+y).In(c.Bounds()) {
+		return
+	}
+	if len(v) > 0 {
+		format = fmt.Sprintf(format, v...)
+	}
+	c.drawString(format, x, y, defaultDrawOpts)
+}
+
 // PrintTruncate draws a string starting at the given position and
 // truncates the string with the given tail if necessary.
 func (c *Window) PrintTruncate(s string, tail string) {
 	c.drawString(s, c.cur.X, c.cur.Y, &drawOpts{tail: tail, truncate: true})
+}
+
+// PrintTruncateAt draws a string starting at the given position and
+// truncates the string with the given tail if necessary.
+// If the position is out of bounds, it will do nothing.
+func (c *Window) PrintTruncateAt(x, y int, s string, tail string) {
+	if !Pos(c.x+x, c.y+y).In(c.Bounds()) {
+		return
+	}
+	c.drawString(s, x, y, &drawOpts{tail: tail, truncate: true})
 }
 
 // SetCell sets a cell at the given position. If the position is out of bounds,
