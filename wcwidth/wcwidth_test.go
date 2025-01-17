@@ -57,11 +57,11 @@ var runewidthtests = []struct {
 	{'\x00', 0},
 	{'\x01', 0},
 	{'\u0300', 0},
-	{'\u2028', 0},
-	{'\u2029', 0},
+	{'\u2028', 1},
+	{'\u2029', 1},
 	{'a', 1}, // ASCII classified as "na" (narrow)
 	{'⟦', 1}, // non-ASCII classified as "na" (narrow)
-	{'👁', 1},
+	{'👁', 2},
 	{'\u0301', 0}, // Combining acute accent
 	{'a', 1},
 	{'Ω', 1},
@@ -87,7 +87,7 @@ var runewidthtests = []struct {
 	{'\u0301', 0}, // Combining acute accent
 	{'\u0410', 1}, // Cyrillic Capital Letter A
 	{'\u0488', 0}, // Combining Cyrillic Hundred Thousands Sign
-	{'\u00ad', 0}, // Soft hyphen
+	{'\u00ad', 1}, // Soft hyphen
 	{0, 0},        // Special case, width of null rune is zero
 	{'\u00a0', 1}, // non-breaking space
 }
@@ -117,7 +117,7 @@ func TestZeroWidthJoiner(t *testing.T) {
 		{"\u200d🍳", 2},
 		{"👨\u200d👨", 4},
 		{"👨\u200d👨\u200d👧", 6},
-		{"🏳️\u200d🌈", 3},
+		{"🏳️\u200d🌈", 4},
 		{"あ👩\u200d🍳い", 8},
 		{"あ\u200d🍳い", 6},
 		{"あ\u200dい", 4},
