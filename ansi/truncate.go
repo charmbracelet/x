@@ -200,7 +200,7 @@ func TruncateLeft(s string, n int, prefix string) string {
 	return buf.String()
 }
 
-// ToCharRange takes a range in byte positions and converts them to chat
+// ToCharRange takes start and stop byte positions and converts them to char
 // positions.
 // You can use this with [Truncate], [TruncateLeft], and [Cut].
 func ToCharRange(str string, byteStart, byteStop int) (charStart, charStop int) {
