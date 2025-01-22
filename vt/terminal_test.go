@@ -1402,7 +1402,7 @@ var cases = []struct {
 		w:    8, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -1411,7 +1411,7 @@ var cases = []struct {
 		},
 		want: []string{
 			"ABC     ",
-			"        ",
+			"D       ",
 			"        ",
 		},
 		pos: Pos(1, 1),
@@ -1431,7 +1431,7 @@ var cases = []struct {
 		},
 		want: []string{
 			"ABC     ",
-			"        ",
+			"D       ",
 			"        ",
 		},
 		pos: Pos(1, 1),
@@ -1441,26 +1441,26 @@ var cases = []struct {
 		w:    8, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"AB橋C\r\n",
 			"DE橋F\r\n",
 			"GH橋I",
-			"\x1b[2;4H",
+			"\x1b[2;3H", // move to 2nd row 3rd column
 			"\x1b[0J",
 		},
 		want: []string{
 			"AB橋C   ",
-			"        ",
+			"DE      ",
 			"        ",
 		},
-		pos: Pos(3, 1),
+		pos: Pos(2, 1),
 	},
 	{
 		name: "ED Simple Erase Above",
 		w:    8, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
