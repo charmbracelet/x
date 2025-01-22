@@ -70,7 +70,7 @@ var cases = []struct {
 		w:    10, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?W",   // reset tab stops
 			"\x1b[?6h",  // origin mode
 			"\x1b[?69h", // left margin mode
@@ -114,7 +114,7 @@ var cases = []struct {
 		w:    10, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?W",   // reset tab stops
 			"\x1b[?69h", // enable left/right margins
 			"\x1b[3;6s", // scroll region left/right
@@ -148,7 +148,7 @@ var cases = []struct {
 		w:    10, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?69h", // enable left/right margin mode
 			"\x1b[2;5s", // set left/right margin
 			"\x1b[4G",   // move to column 4
@@ -164,7 +164,7 @@ var cases = []struct {
 		w:    10, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?69h", // enable left/right margin mode
 			"\x1b[2;5s", // set left/right margin
 			"\x1b[4G",   // move to column 4
@@ -181,7 +181,7 @@ var cases = []struct {
 		w:    10, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?6h",  // enable origin mode
 			"\x1b[?69h", // enable left/right margin mode
 			"\x1b[2;5s", // set left/right margin
@@ -233,7 +233,7 @@ var cases = []struct {
 			"\x1b[?7h",  // enable wraparound
 			"\x1b[?45h", // enable reverse wrap
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[10G",  // move to end of line
 			"AB",        // write and wrap
 			"\x1b[D",    // move back one
@@ -253,7 +253,7 @@ var cases = []struct {
 	// 		"\x1b[?7h",    // enable wraparound
 	// 		"\x1b[?1045h", // enable extended reverse wrap
 	// 		"\x1b[1;1H",   // move to top-left
-	// 		"\x1b[0J",     // clear screen
+	// 		"\x1b[2J",     // clear screen
 	// 		"A\nB",
 	// 		"\x1b[2D", // move back two
 	// 		"X",
@@ -271,7 +271,7 @@ var cases = []struct {
 	// 		"\x1b[?7h",    // enable wraparound
 	// 		"\x1b[?1045h", // enable extended reverse wrap
 	// 		"\x1b[1;1H",   // move to top-left
-	// 		"\x1b[0J",     // clear screen
+	// 		"\x1b[2J",     // clear screen
 	// 		"\x1b[1;3r",   // set scrolling region
 	// 		"A\nB",
 	// 		"\x1b[D",   // move back one
@@ -291,7 +291,7 @@ var cases = []struct {
 	// 	w:    10, h: 3,
 	// 	input: []string{
 	// 		"\x1b[1;1H", // move to top-left
-	// 		"\x1b[0J",   // clear screen
+	// 		"\x1b[2J",   // clear screen
 	// 		"\x1b[?45h", // enable reverse wrap
 	// 		"\x1b[3r",   // set scroll region
 	// 		"\b",        // backspace
@@ -342,7 +342,7 @@ var cases = []struct {
 		w:    10, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\n\n\n\n",  // move down 4 lines
 			"\x1b[1;3r", // set scrolling region
 			"A",
@@ -362,7 +362,7 @@ var cases = []struct {
 		w:    10, h: 5,
 		input: []string{
 			"\x1b[1;1H",  // move to top-left
-			"\x1b[0J",    // clear screen
+			"\x1b[2J",    // clear screen
 			"\n\n\n\n\n", // move down 5 lines
 			"\x1b[1;3r",  // set scrolling region
 			"A",
@@ -386,7 +386,7 @@ var cases = []struct {
 		w:    10, h: 2,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[2;3H", // move to row 2, col 3
 			"A",
 		},
@@ -401,7 +401,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H",     // move to top-left
-			"\x1b[0J",       // clear screen
+			"\x1b[2J",       // clear screen
 			"\x1b[500;500H", // move way off screen
 			"A",
 		},
@@ -417,7 +417,7 @@ var cases = []struct {
 		w:    10, h: 2,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[2;3r", // scroll region top/bottom
 			"\x1b[?6h",  // origin mode
 			"\x1b[1;1H", // move to top-left
@@ -434,7 +434,7 @@ var cases = []struct {
 		w:    10, h: 2,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?69h", // enable left/right margins
 			"\x1b[3;5s", // scroll region left/right
 			"\x1b[2;3r", // scroll region top/bottom
@@ -453,7 +453,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H",     // move to top-left
-			"\x1b[0J",       // clear screen
+			"\x1b[2J",       // clear screen
 			"\x1b[?69h",     // enable left/right margins
 			"\x1b[3;5s",     // scroll region left/right
 			"\x1b[2;3r",     // scroll region top/bottom
@@ -517,7 +517,7 @@ var cases = []struct {
 		w:    10, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?69h", // enable left/right margins
 			"\x1b[3;5s", // scroll region left/right
 			"\x1b[1G",   // move to left
@@ -534,7 +534,7 @@ var cases = []struct {
 		w:    10, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?69h", // enable left/right margins
 			"\x1b[3;5s", // scroll region left/right
 			"\x1b[6G",   // move to right of margin
@@ -553,7 +553,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[3;1H", // move to row 3
 			"A",
 			"\x1b[2A", // cursor up 2
@@ -571,7 +571,7 @@ var cases = []struct {
 		w:    10, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[2;4r", // set scrolling region
 			"\x1b[3;1H", // move to row 3
 			"A",
@@ -591,7 +591,7 @@ var cases = []struct {
 		w:    10, h: 5,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[3;5r", // set scrolling region
 			"\x1b[3;1H", // move to row 3
 			"A",
@@ -615,7 +615,7 @@ var cases = []struct {
 		w:    8, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -634,7 +634,7 @@ var cases = []struct {
 		w:    8, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -654,7 +654,7 @@ var cases = []struct {
 		w:    8, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI\r\n",
@@ -676,7 +676,7 @@ var cases = []struct {
 		w:    8, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC123\r\n",
 			"DEF456\r\n",
 			"GHI789",
@@ -699,7 +699,7 @@ var cases = []struct {
 		w:    8, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -719,7 +719,7 @@ var cases = []struct {
 		w:    8, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -739,7 +739,7 @@ var cases = []struct {
 		w:    8, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI\r\n",
@@ -761,7 +761,7 @@ var cases = []struct {
 		w:    8, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC123\r\n",
 			"DEF456\r\n",
 			"GHI789",
@@ -808,7 +808,7 @@ var cases = []struct {
 		w:    8, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC123",
 			"\x1b[?69h", // enable left/right margins
 			"\x1b[3;5s", // scroll region left/right
@@ -823,7 +823,7 @@ var cases = []struct {
 		w:    8, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC123",
 			"\x1b[?69h", // enable left/right margins
 			"\x1b[3;5s", // scroll region left/right
@@ -838,7 +838,7 @@ var cases = []struct {
 		w:    10, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"A橋123",
 			"\x1b[3G",
 			"\x1b[P",
@@ -853,7 +853,7 @@ var cases = []struct {
 		w:    8, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -873,7 +873,7 @@ var cases = []struct {
 		w:    8, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -893,7 +893,7 @@ var cases = []struct {
 		w:    8, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -913,7 +913,7 @@ var cases = []struct {
 		w:    8, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -935,7 +935,7 @@ var cases = []struct {
 		w:    8, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -955,7 +955,7 @@ var cases = []struct {
 		w:    8, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -977,7 +977,7 @@ var cases = []struct {
 		w:    8, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -999,7 +999,7 @@ var cases = []struct {
 		w:    8, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -1081,7 +1081,7 @@ var cases = []struct {
 		w:    10, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?69h", // enable left/right margins
 			"\x1b[1;3s", // scroll region left/right
 			"\x1b[4G",
@@ -1173,7 +1173,7 @@ var cases = []struct {
 		w:    10, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABCDE",
 			"\x1b[?69h", // enable left/right margins
 			"\x1b[1;3s", // scroll region left/right
@@ -1262,7 +1262,7 @@ var cases = []struct {
 		w:    10, h: 2,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"A",
 			"\x1bD", // index
 			"X",
@@ -1278,7 +1278,7 @@ var cases = []struct {
 		w:    10, h: 2,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[2;1H", // move to bottom-left
 			"A",
 			"\x1bD", // index
@@ -1295,7 +1295,7 @@ var cases = []struct {
 		w:    10, h: 2,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[1;3r", // scroll region
 			"A",
 			"\x1bD", // index
@@ -1312,7 +1312,7 @@ var cases = []struct {
 		w:    10, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[1;3r", // scroll region
 			"\x1b[4;1H", // below scroll region
 			"B",
@@ -1334,7 +1334,7 @@ var cases = []struct {
 		w:    10, h: 5,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[1;3r", // scroll region
 			"\x1b[3;1H", // move to last row of region
 			"A",
@@ -1356,7 +1356,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?69h", // enable left/right margins
 			"\x1b[1;3r", // scroll region top/bottom
 			"\x1b[3;5s", // scroll region left/right
@@ -1378,7 +1378,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"AAAAAA\r\n",
 			"AAAAAA\r\n",
 			"AAAAAA",
@@ -1479,7 +1479,7 @@ var cases = []struct {
 		w:    8, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -1500,7 +1500,7 @@ var cases = []struct {
 		w:    10, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"A\r\n",
 			"B\r\n",
 			"C\r\n",
@@ -1521,7 +1521,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"A\r\n",
 			"B\r\n",
 			"C",
@@ -1541,7 +1541,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"A\r\n",
 			"B\r\n",
 			"C",
@@ -1562,7 +1562,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"A\r\n",
 			"B\r\n",
 			"C",
@@ -1582,7 +1582,7 @@ var cases = []struct {
 		w:    10, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -1604,7 +1604,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -1627,7 +1627,7 @@ var cases = []struct {
 		w:    10, h: 4,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -1650,7 +1650,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -1669,7 +1669,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC\r\n",
 			"DEF\r\n",
 			"GHI",
@@ -1689,7 +1689,7 @@ var cases = []struct {
 		w:    10, h: 3,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"ABC123\r\n",
 			"DEF456\r\n",
 			"GHI789",
@@ -1732,7 +1732,7 @@ var cases = []struct {
 		w:    10, h: 5,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"top",
 			"\x1b[5;1H",
 			"ABCDEF",
@@ -1755,7 +1755,7 @@ var cases = []struct {
 		w:    23, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?W",   // reset tabs
 			"\t",        // tab to first stop
 			"\x1b[g",    // clear current tab stop
@@ -1770,7 +1770,7 @@ var cases = []struct {
 		w:    23, h: 1,
 		input: []string{
 			"\x1b[1;1H", // move to top-left
-			"\x1b[0J",   // clear screen
+			"\x1b[2J",   // clear screen
 			"\x1b[?W",   // reset tabs
 			"\x1b[3g",   // clear all tab stops
 			"\x1b[1G",   // move back to start
