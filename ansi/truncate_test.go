@@ -361,3 +361,49 @@ func TestCut(t *testing.T) {
 		})
 	}
 }
+
+func TestToCharRange(t *testing.T) {
+	cases := []struct {
+		name   string
+		feed   [2]int
+		expect [2]int
+		input  string
+	}{
+		{
+			name:   "simple",
+			input:  "hello world from x/ansi",
+			feed:   [2]int{2, 9},
+			expect: [2]int{2, 9},
+		},
+		{
+			name:   "with emoji",
+			input:  " Downloads",
+			feed:   [2]int{4, 7},
+			expect: [2]int{2, 5},
+		},
+		{
+			name:   "start out of bounds",
+			input:  "some text",
+			feed:   [2]int{-1, 5},
+			expect: [2]int{0, 5},
+		},
+		{
+			name:   "end out of bounds",
+			input:  "some text",
+			feed:   [2]int{1, 50},
+			expect: [2]int{1, 9},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			charStart, charStop := ToCharRange(tt.input, tt.feed[0], tt.feed[1])
+			if expect := tt.expect[0]; expect != charStart {
+				t.Errorf("expected start to be %d, got %d", expect, charStart)
+			}
+			if expect := tt.expect[1]; expect != charStop {
+				t.Errorf("expected stop to be %d, got %d", expect, charStop)
+			}
+		})
+	}
+}
