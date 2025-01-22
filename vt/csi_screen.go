@@ -6,15 +6,18 @@ import (
 
 func (t *Terminal) handleScreen() {
 	width, height := t.Width(), t.Height()
-	_, y := t.scr.CursorPosition()
+	x, y := t.scr.CursorPosition()
 
 	switch t.parser.Cmd() {
 	case 'J': // Erase in Display [ansi.ED]
 		count, _ := t.parser.Param(0, 0)
 		switch count {
-		case 0: // Erase screen below (including cursor)
-			rect := Rect(0, y, width, height-y)
-			t.scr.Fill(t.scr.blankCell(), rect)
+		case 0: // Erase screen below (from after cursor position)
+			rect1 := Rect(x, y, width, 1)            // cursor to end of line
+			rect2 := Rect(0, y+1, width, height-y-1) // next line onwards
+			for _, rect := range []Rectangle{rect1, rect2} {
+				t.scr.Fill(t.scr.blankCell(), rect)
+			}
 		case 1: // Erase screen above (including cursor)
 			rect := Rect(0, 0, width, y+1)
 			t.scr.Fill(t.scr.blankCell(), rect)
