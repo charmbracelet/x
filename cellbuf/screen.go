@@ -1380,6 +1380,8 @@ func (s *Screen) InsertAbove(str string) {
 		return
 	}
 	s.mu.Lock()
-	s.queueAbove = append(s.queueAbove, strings.Split(str, "\n")...)
+	for _, line := range strings.Split(str, "\n") {
+		s.queueAbove = append(s.queueAbove, ansi.Truncate(line, s.opts.Width, ""))
+	}
 	s.mu.Unlock()
 }
