@@ -199,3 +199,28 @@ func TruncateLeft(s string, n int, prefix string) string {
 
 	return buf.String()
 }
+
+// ByteToGraphemeRange takes start and stop byte positions and converts them to
+// grapheme-aware char positions.
+// You can use this with [Truncate], [TruncateLeft], and [Cut].
+func ByteToGraphemeRange(str string, byteStart, byteStop int) (charStart, charStop int) {
+	bytePos, charPos := 0, 0
+	gr := uniseg.NewGraphemes(str)
+	for byteStart > bytePos {
+		if !gr.Next() {
+			break
+		}
+		bytePos += len(gr.Str())
+		charPos += max(1, gr.Width())
+	}
+	charStart = charPos
+	for byteStop > bytePos {
+		if !gr.Next() {
+			break
+		}
+		bytePos += len(gr.Str())
+		charPos += max(1, gr.Width())
+	}
+	charStop = charPos
+	return
+}
