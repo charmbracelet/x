@@ -362,7 +362,7 @@ func TestCut(t *testing.T) {
 	}
 }
 
-func TestToCharRange(t *testing.T) {
+func TestByteToGraphemeRange(t *testing.T) {
 	cases := []struct {
 		name   string
 		feed   [2]int
@@ -397,7 +397,7 @@ func TestToCharRange(t *testing.T) {
 
 	for _, tt := range cases {
 		t.Run(tt.name, func(t *testing.T) {
-			charStart, charStop := ToCharRange(tt.input, tt.feed[0], tt.feed[1])
+			charStart, charStop := ByteToGraphemeRange(tt.input, tt.feed[0], tt.feed[1])
 			if expect := tt.expect[0]; expect != charStart {
 				t.Errorf("expected start to be %d, got %d", expect, charStart)
 			}
