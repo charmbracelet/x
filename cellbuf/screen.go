@@ -528,6 +528,9 @@ func (s *Screen) Height() int {
 // cellEqual returns whether the two cells are equal. A nil cell is considered
 // a [BlankCell].
 func cellEqual(a, b *Cell) bool {
+	if a == b {
+		return true
+	}
 	if a == nil {
 		a = &BlankCell
 	}
@@ -572,7 +575,10 @@ func (s *Screen) putAttrCell(cell *Cell) {
 	// }
 
 	s.updatePen(cell)
-	s.buf.WriteString(cell.String()) //nolint:errcheck
+	s.buf.WriteRune(cell.Rune) //nolint:errcheck
+	for _, c := range cell.Comb {
+		s.buf.WriteRune(c) //nolint:errcheck
+	}
 	s.cur.X += cell.Width
 	if cell.Width > 0 {
 		s.queuedText = true
