@@ -11,11 +11,11 @@ import (
 
 // Window represents a [Screen] 2D window.
 type Window struct {
-	s      *Screen // the screen this window belongs to
-	cur    Cursor  // the current cursor pos, style, and link
-	method Method  // the method to use for calculating the width of the cells
-	x, y   int     // the starting position of the window
-	w, h   int     // the width and height of the window
+	s      *Screen     // the screen this window belongs to
+	cur    Cursor      // the current cursor pos, style, and link
+	method ansi.Method // the method to use for calculating the width of the cells
+	x, y   int         // the starting position of the window
+	w, h   int         // the width and height of the window
 }
 
 // NewWindow creates a new window. Note that the window is not
@@ -75,7 +75,7 @@ func (c *Window) CellAt(x, y int) *Cell {
 
 // SetMethod sets the method to use for calculating the width of the cells.
 // The default method is [WcWidth].
-func (c *Window) SetMethod(method Method) {
+func (c *Window) SetMethod(method ansi.Method) {
 	c.method = method
 }
 
@@ -166,9 +166,9 @@ func (c *Window) Fill(cell *Cell) bool {
 // position, styles and attributes.
 func (c *Window) FillString(s string) (v bool) {
 	switch c.method {
-	case WcWidth:
+	case ansi.WcWidth:
 		v = c.Fill(NewCellString(s))
-	case GraphemeWidth:
+	case ansi.GraphemeWidth:
 		v = c.Fill(NewGraphemeCell(s))
 	}
 	return
@@ -262,7 +262,7 @@ func (c *Window) drawString(s string, x, y int, opts *drawOpts) {
 
 	var tail Cell
 	if opts.truncate && len(opts.tail) > 0 {
-		if c.method == WcWidth {
+		if c.method == ansi.WcWidth {
 			tail = *NewCellString(opts.tail)
 		} else {
 			tail = *NewGraphemeCell(opts.tail)
@@ -277,7 +277,7 @@ func (c *Window) drawString(s string, x, y int, opts *drawOpts) {
 		switch width {
 		case 1, 2, 3, 4: // wide cells can go up to 4 cells wide
 			switch c.method {
-			case WcWidth:
+			case ansi.WcWidth:
 				cell = NewCellString(seq)
 
 				// We're breaking the grapheme to respect wcwidth's behavior
@@ -288,7 +288,7 @@ func (c *Window) drawString(s string, x, y int, opts *drawOpts) {
 				}
 				newState = 0
 
-			case GraphemeWidth:
+			case ansi.GraphemeWidth:
 				// [ansi.DecodeSequence] already handles grapheme clusters
 				cell = newGraphemeCell(seq, width)
 			}
