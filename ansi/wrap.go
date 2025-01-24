@@ -23,13 +23,13 @@ func Hardwrap(s string, limit int, preserveSpace bool) string {
 	return hardwrap(GraphemeWidth, s, limit, preserveSpace)
 }
 
-// WcHardwrap wraps a string or a block of text to a given line length, breaking
+// HardwrapWc wraps a string or a block of text to a given line length, breaking
 // word boundaries. This will preserve ANSI escape codes and will account for
 // wide-characters in the string.
 // When preserveSpace is true, spaces at the beginning of a line will be
 // preserved.
 // This treats the text as a sequence of wide characters and runes.
-func WcHardwrap(s string, limit int, preserveSpace bool) string {
+func HardwrapWc(s string, limit int, preserveSpace bool) string {
 	return hardwrap(WcWidth, s, limit, preserveSpace)
 }
 
@@ -133,7 +133,7 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 	return wordwrap(GraphemeWidth, s, limit, breakpoints)
 }
 
-// WcWordwrap wraps a string or a block of text to a given line length, not
+// WordwrapWc wraps a string or a block of text to a given line length, not
 // breaking word boundaries. This will preserve ANSI escape codes and will
 // account for wide-characters in the string.
 // The breakpoints string is a list of characters that are considered
@@ -143,7 +143,7 @@ func Wordwrap(s string, limit int, breakpoints string) string {
 // Note: breakpoints must be a string of 1-cell wide rune characters.
 //
 // This treats the text as a sequence of wide characters and runes.
-func WcWordwrap(s string, limit int, breakpoints string) string {
+func WordwrapWc(s string, limit int, breakpoints string) string {
 	return wordwrap(WcWidth, s, limit, breakpoints)
 }
 
@@ -284,7 +284,7 @@ func Wrap(s string, limit int, breakpoints string) string {
 	return wrap(GraphemeWidth, s, limit, breakpoints)
 }
 
-// WcWrap wraps a string or a block of text to a given line length, breaking word
+// WrapWc wraps a string or a block of text to a given line length, breaking word
 // boundaries if necessary. This will preserve ANSI escape codes and will
 // account for wide-characters in the string. The breakpoints string is a list
 // of characters that are considered breakpoints for word wrapping. A hyphen
@@ -293,7 +293,7 @@ func Wrap(s string, limit int, breakpoints string) string {
 // Note: breakpoints must be a string of 1-cell wide rune characters.
 //
 // This treats the text as a sequence of wide characters and runes.
-func WcWrap(s string, limit int, breakpoints string) string {
+func WrapWc(s string, limit int, breakpoints string) string {
 	return wrap(WcWidth, s, limit, breakpoints)
 }
 

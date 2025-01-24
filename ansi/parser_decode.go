@@ -72,7 +72,7 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 	return decodeSequence(GraphemeWidth, b, state, p)
 }
 
-// WcDecodeSequence decodes the first ANSI escape sequence or a printable
+// DecodeSequenceWc decodes the first ANSI escape sequence or a printable
 // grapheme from the given data. It returns the sequence slice, the number of
 // bytes read, the cell width for each sequence, and the new state.
 //
@@ -111,14 +111,14 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 //	p := NewParser(32, 1024) // create a new parser with a 32 params buffer and 1024 data buffer (optional)
 //	input := []byte("\x1b[31mHello, World!\x1b[0m")
 //	for len(input) > 0 {
-//		seq, width, n, newState := WcDecodeSequence(input, state, p)
+//		seq, width, n, newState := DecodeSequenceWc(input, state, p)
 //		log.Printf("seq: %q, width: %d", seq, width)
 //		state = newState
 //		input = input[n:]
 //	}
 //
 // This function treats the text as a sequence of wide characters and runes.
-func WcDecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
+func DecodeSequenceWc[T string | []byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
 	return decodeSequence(WcWidth, b, state, p)
 }
 

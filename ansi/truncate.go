@@ -17,12 +17,12 @@ func Cut(s string, left, right int) string {
 	return cut(GraphemeWidth, s, left, right)
 }
 
-// WcCut the string, without adding any prefix or tail strings. This function is
+// CutWc the string, without adding any prefix or tail strings. This function is
 // aware of ANSI escape codes and will not break them, and accounts for
 // wide-characters (such as East-Asian characters and emojis). Note that the
 // [left] parameter is inclusive, while [right] isn't.
 // This treats the text as a sequence of wide characters and runes.
-func WcCut(s string, left, right int) string {
+func CutWc(s string, left, right int) string {
 	return cut(WcWidth, s, left, right)
 }
 
@@ -34,8 +34,8 @@ func cut(m Method, s string, left, right int) string {
 	truncate := Truncate
 	truncateLeft := TruncateLeft
 	if m == WcWidth {
-		truncate = WcTruncate
-		truncateLeft = WcTruncate
+		truncate = TruncateWc
+		truncateLeft = TruncateWc
 	}
 
 	if left == 0 {
@@ -53,12 +53,12 @@ func Truncate(s string, length int, tail string) string {
 	return truncate(GraphemeWidth, s, length, tail)
 }
 
-// WcTruncate truncates a string to a given length, adding a tail to the end if
+// TruncateWc truncates a string to a given length, adding a tail to the end if
 // the string is longer than the given length. This function is aware of ANSI
 // escape codes and will not break them, and accounts for wide-characters (such
 // as East-Asian characters and emojis).
 // This treats the text as a sequence of wide characters and runes.
-func WcTruncate(s string, length int, tail string) string {
+func TruncateWc(s string, length int, tail string) string {
 	return truncate(WcWidth, s, length, tail)
 }
 
@@ -170,12 +170,12 @@ func TruncateLeft(s string, n int, prefix string) string {
 	return truncateLeft(GraphemeWidth, s, n, prefix)
 }
 
-// WcTruncateLeft truncates a string from the left side by removing n characters,
+// TruncateLeftWc truncates a string from the left side by removing n characters,
 // adding a prefix to the beginning if the string is longer than n.
 // This function is aware of ANSI escape codes and will not break them, and
 // accounts for wide-characters (such as East-Asian characters and emojis).
 // This treats the text as a sequence of wide characters and runes.
-func WcTruncateLeft(s string, n int, prefix string) string {
+func TruncateLeftWc(s string, n int, prefix string) string {
 	return truncateLeft(WcWidth, s, n, prefix)
 }
 

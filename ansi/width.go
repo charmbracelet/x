@@ -68,12 +68,12 @@ func StringWidth(s string) int {
 	return stringWidth(GraphemeWidth, s)
 }
 
-// WcStringWidth returns the width of a string in cells. This is the number of
+// StringWidthWc returns the width of a string in cells. This is the number of
 // cells that the string will occupy when printed in a terminal. ANSI escape
 // codes are ignored and wide characters (such as East Asians and emojis) are
 // accounted for.
 // This treats the text as a sequence of wide characters and runes.
-func WcStringWidth(s string) int {
+func StringWidthWc(s string) int {
 	return stringWidth(WcWidth, s)
 }
 

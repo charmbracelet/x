@@ -59,7 +59,7 @@ func TestStringWidth(t *testing.T) {
 func TestWcStringWidth(t *testing.T) {
 	for i, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			if width := WcStringWidth(c.input); width != c.wcwidth {
+			if width := StringWidthWc(c.input); width != c.wcwidth {
 				t.Errorf("test case %d failed: expected %d, got %d", i+1, c.wcwidth, width)
 			}
 		})
