@@ -6,10 +6,10 @@ import "github.com/charmbracelet/x/ansi"
 // primary device attributes.
 type PrimaryDeviceAttributesEvent []int
 
-func parsePrimaryDevAttrs(csi *ansi.CsiSequence) Event {
+func parsePrimaryDevAttrs(params ansi.Params) Event {
 	// Primary Device Attributes
-	da1 := make(PrimaryDeviceAttributesEvent, len(csi.Params))
-	for i, p := range csi.Params {
+	da1 := make(PrimaryDeviceAttributesEvent, len(params))
+	for i, p := range params {
 		if !p.HasMore() {
 			da1[i] = p.Param(0)
 		}

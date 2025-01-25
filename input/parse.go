@@ -187,8 +187,8 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 		return 2, KeyPressEvent{Text: string(rune(b[1])), Mod: ModAlt}
 	}
 
-	var csi ansi.CsiSequence
-	var params [parser.MaxParamsSize]ansi.Parameter
+	var cmd ansi.Cmd
+	var params [parser.MaxParamsSize]ansi.Param
 	var paramsLen int
 
 	var i int
@@ -201,7 +201,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 
 	// Initial CSI byte
 	if i < len(b) && b[i] >= '<' && b[i] <= '?' {
-		csi.Cmd |= ansi.Command(b[i]) << parser.MarkerShift
+		cmd |= ansi.Cmd(b[i]) << parser.PrefixShift
 	}
 
 	// Scan parameter bytes in the range 0x30-0x3F
@@ -212,7 +212,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 				params[paramsLen] = 0
 			}
 			params[paramsLen] *= 10
-			params[paramsLen] += ansi.Parameter(b[i]) - '0'
+			params[paramsLen] += ansi.Param(b[i]) - '0'
 		}
 		if b[i] == ':' {
 			params[paramsLen] |= parser.HasMoreFlag
@@ -238,7 +238,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 	}
 
 	// Set the intermediate byte
-	csi.Cmd |= ansi.Command(intermed) << parser.IntermedShift
+	cmd |= ansi.Cmd(intermed) << parser.IntermedShift
 
 	// Scan final byte in the range 0x40-0x7E
 	if i >= len(b) || b[i] < 0x40 || b[i] > 0x7E {
@@ -256,56 +256,56 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 	}
 
 	// Add the final byte
-	csi.Cmd |= ansi.Command(b[i])
+	cmd |= ansi.Cmd(b[i])
 	i++
 
-	csi.Params = params[:paramsLen]
-	switch cmd := csi.Cmd; cmd {
-	case 'y' | '?'<<parser.MarkerShift | '$'<<parser.IntermedShift:
+	pa := ansi.Params(params[:paramsLen])
+	switch cmd {
+	case 'y' | '?'<<parser.PrefixShift | '$'<<parser.IntermedShift:
 		// Report Mode (DECRPM)
-		mode, ok := csi.Param(0, -1)
+		mode, _, ok := pa.Param(0, -1)
 		if !ok || mode == -1 {
 			break
 		}
-		value, ok := csi.Param(1, -1)
+		value, _, ok := pa.Param(1, -1)
 		if !ok || value == -1 {
 			break
 		}
 		return i, ModeReportEvent{Mode: ansi.DECMode(mode), Value: ansi.ModeSetting(value)}
-	case 'c' | '?'<<parser.MarkerShift:
+	case 'c' | '?'<<parser.PrefixShift:
 		// Primary Device Attributes
-		return i, parsePrimaryDevAttrs(&csi)
-	case 'u' | '?'<<parser.MarkerShift:
+		return i, parsePrimaryDevAttrs(pa)
+	case 'u' | '?'<<parser.PrefixShift:
 		// Kitty keyboard flags
-		flags, ok := csi.Param(0, -1)
+		flags, _, ok := pa.Param(0, -1)
 		if !ok || flags == -1 {
 			break
 		}
 		return i, KittyEnhancementsEvent(flags)
-	case 'R' | '?'<<parser.MarkerShift:
+	case 'R' | '?'<<parser.PrefixShift:
 		// This report may return a third parameter representing the page
 		// number, but we don't really need it.
-		row, ok := csi.Param(0, 1)
+		row, _, ok := pa.Param(0, 1)
 		if !ok {
 			break
 		}
-		col, ok := csi.Param(1, 1)
+		col, _, ok := pa.Param(1, 1)
 		if !ok {
 			break
 		}
 		return i, CursorPositionEvent{Y: row - 1, X: col - 1}
-	case 'm' | '<'<<parser.MarkerShift, 'M' | '<'<<parser.MarkerShift:
+	case 'm' | '<'<<parser.PrefixShift, 'M' | '<'<<parser.PrefixShift:
 		// Handle SGR mouse
 		if paramsLen == 3 {
-			return i, parseSGRMouseEvent(&csi)
+			return i, parseSGRMouseEvent(cmd, pa)
 		}
-	case 'm' | '>'<<parser.MarkerShift:
+	case 'm' | '>'<<parser.PrefixShift:
 		// XTerm modifyOtherKeys
-		mok, ok := csi.Param(0, 0)
+		mok, _, ok := pa.Param(0, 0)
 		if !ok || mok != 4 {
 			break
 		}
-		val, ok := csi.Param(1, -1)
+		val, _, ok := pa.Param(1, -1)
 		if !ok || val == -1 {
 			break
 		}
@@ -316,8 +316,8 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 		return i, BlurEvent{}
 	case 'R':
 		// Cursor position report OR modified F3
-		row, rok := csi.Param(0, 1)
-		col, cok := csi.Param(1, 1)
+		row, _, rok := pa.Param(0, 1)
+		col, _, cok := pa.Param(1, 1)
 		if paramsLen == 2 && rok && cok {
 			m := CursorPositionEvent{Y: row - 1, X: col - 1}
 			if row == 1 && col-1 <= int(ModMeta|ModShift|ModAlt|ModCtrl) {
@@ -357,11 +357,11 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 		case 'Z':
 			k = KeyPressEvent{Code: KeyTab, Mod: ModShift}
 		}
-		id, _ := csi.Param(0, 1)
+		id, _, _ := pa.Param(0, 1)
 		if id == 0 {
 			id = 1
 		}
-		mod, _ := csi.Param(1, 1)
+		mod, _, _ := pa.Param(1, 1)
 		if mod == 0 {
 			mod = 1
 		}
@@ -370,7 +370,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 			k.Mod |= KeyMod(mod - 1)
 		}
 		// Don't forget to handle Kitty keyboard protocol
-		return i, parseKittyKeyboardExt(&csi, k)
+		return i, parseKittyKeyboardExt(pa, k)
 	case 'M':
 		// Handle X10 mouse
 		if i+3 > len(b) {
@@ -379,11 +379,11 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 		return i + 3, parseX10MouseEvent(append(b[:i], b[i:i+3]...))
 	case 'y' | '$'<<parser.IntermedShift:
 		// Report Mode (DECRPM)
-		mode, ok := csi.Param(0, -1)
+		mode, _, ok := pa.Param(0, -1)
 		if !ok || mode == -1 {
 			break
 		}
-		val, ok := csi.Param(1, -1)
+		val, _, ok := pa.Param(1, -1)
 		if !ok || val == -1 {
 			break
 		}
@@ -393,24 +393,24 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 		if paramsLen == 0 {
 			return i, UnknownEvent(b[:i])
 		}
-		return i, parseKittyKeyboard(&csi)
+		return i, parseKittyKeyboard(pa)
 	case '_':
 		// Win32 Input Mode
 		if paramsLen != 6 {
 			return i, UnknownEvent(b[:i])
 		}
 
-		vrc, _ := csi.Param(5, 0)
+		vrc, _, _ := pa.Param(5, 0)
 		rc := uint16(vrc) //nolint:gosec
 		if rc == 0 {
 			rc = 1
 		}
 
-		vk, _ := csi.Param(0, 0)
-		sc, _ := csi.Param(1, 0)
-		uc, _ := csi.Param(2, 0)
-		kd, _ := csi.Param(3, 0)
-		cs, _ := csi.Param(4, 0)
+		vk, _, _ := pa.Param(0, 0)
+		sc, _, _ := pa.Param(1, 0)
+		uc, _, _ := pa.Param(2, 0)
+		kd, _, _ := pa.Param(3, 0)
+		cs, _, _ := pa.Param(4, 0)
 		event := p.parseWin32InputKeyEvent(
 			nil,
 			uint16(vk), //nolint:gosec // Vk wVirtualKeyCode
@@ -431,7 +431,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 			return i, UnknownEvent(b[:i])
 		}
 
-		param, _ := csi.Param(0, 0)
+		param, _, _ := pa.Param(0, 0)
 		switch cmd {
 		case '~':
 			switch param {
@@ -440,7 +440,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 				if paramsLen != 3 {
 					return i, UnknownEvent(b[:i])
 				}
-				return i, parseXTermModifyOtherKeys(&csi)
+				return i, parseXTermModifyOtherKeys(pa)
 			case 200:
 				// bracketed-paste start
 				return i, PasteStartEvent{}
@@ -495,7 +495,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 			}
 
 			// modifiers
-			mod, _ := csi.Param(1, -1)
+			mod, _, _ := pa.Param(1, -1)
 			if paramsLen > 1 && mod != -1 {
 				k.Mod |= KeyMod(mod - 1)
 			}
@@ -504,7 +504,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 			switch cmd {
 			case '~':
 				// Don't forget to handle Kitty keyboard protocol
-				return i, parseKittyKeyboardExt(&csi, k)
+				return i, parseKittyKeyboardExt(pa, k)
 			case '^':
 				k.Mod |= ModCtrl
 			case '@':
@@ -515,7 +515,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 		}
 
 	case 't':
-		param, ok := csi.Param(0, 0)
+		param, _, ok := pa.Param(0, 0)
 		if !ok {
 			break
 		}
@@ -523,7 +523,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 		var winop WindowOpEvent
 		winop.Op = param
 		for j := 1; j < paramsLen; j++ {
-			val, ok := csi.Param(j, 0)
+			val, _, ok := pa.Param(j, 0)
 			if ok {
 				winop.Args = append(winop.Args, val)
 			}
@@ -734,9 +734,9 @@ func (p *Parser) parseDcs(b []byte) (int, Event) {
 		return 2, KeyPressEvent{Code: rune(b[1]), Mod: ModAlt}
 	}
 
-	var params [16]ansi.Parameter
+	var params [16]ansi.Param
 	var paramsLen int
-	var dcs ansi.DcsSequence
+	var cmd ansi.Cmd
 
 	// DCS sequences are introduced by DCS (0x90) or ESC P (0x1b 0x50)
 	var i int
@@ -749,7 +749,7 @@ func (p *Parser) parseDcs(b []byte) (int, Event) {
 
 	// initial DCS byte
 	if i < len(b) && b[i] >= '<' && b[i] <= '?' {
-		dcs.Cmd |= ansi.Command(b[i]) << parser.MarkerShift
+		cmd |= ansi.Cmd(b[i]) << parser.PrefixShift
 	}
 
 	// Scan parameter bytes in the range 0x30-0x3F
@@ -760,7 +760,7 @@ func (p *Parser) parseDcs(b []byte) (int, Event) {
 				params[paramsLen] = 0
 			}
 			params[paramsLen] *= 10
-			params[paramsLen] += ansi.Parameter(b[i]) - '0'
+			params[paramsLen] += ansi.Param(b[i]) - '0'
 		}
 		if b[i] == ':' {
 			params[paramsLen] |= parser.HasMoreFlag
@@ -786,7 +786,7 @@ func (p *Parser) parseDcs(b []byte) (int, Event) {
 	}
 
 	// set intermediate byte
-	dcs.Cmd |= ansi.Command(intermed) << parser.IntermedShift
+	cmd |= ansi.Cmd(intermed) << parser.IntermedShift
 
 	// Scan final byte in the range 0x40-0x7E
 	if i >= len(b) || b[i] < 0x40 || b[i] > 0x7E {
@@ -794,7 +794,7 @@ func (p *Parser) parseDcs(b []byte) (int, Event) {
 	}
 
 	// Add the final byte
-	dcs.Cmd |= ansi.Command(b[i])
+	cmd |= ansi.Cmd(b[i])
 	i++
 
 	start := i // start of the sequence data
@@ -816,11 +816,11 @@ func (p *Parser) parseDcs(b []byte) (int, Event) {
 		i++
 	}
 
-	dcs.Params = params[:paramsLen]
-	switch cmd := dcs.Cmd; cmd {
+	pa := ansi.Params(params[:paramsLen])
+	switch cmd {
 	case 'r' | '+'<<parser.IntermedShift:
 		// XTGETTCAP responses
-		param, _ := dcs.Param(0, 0)
+		param, _, _ := pa.Param(0, 0)
 		switch param {
 		case 1: // 1 means valid response, 0 means invalid response
 			tc := parseTermcap(b[start:end])
@@ -834,7 +834,7 @@ func (p *Parser) parseDcs(b []byte) (int, Event) {
 			// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
 			return i, tc
 		}
-	case '|' | '>'<<parser.MarkerShift:
+	case '|' | '>'<<parser.PrefixShift:
 		// XTVersion response
 		return i, TerminalVersionEvent(b[start:end])
 	}

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/charmbracelet/x/ansi/parser"
 )
 
 func TestOscSequence(t *testing.T) {
@@ -14,52 +12,38 @@ func TestOscSequence(t *testing.T) {
 		{
 			name:  "parse",
 			input: "\x1b]2;charmbracelet: ~/Source/bubbletea\x07",
-			expected: []Sequence{
-				OscSequence{
-					Data: []byte("2;charmbracelet: ~/Source/bubbletea"),
-					Cmd:  2,
-				},
+			expected: []any{
+				[]byte("2;charmbracelet: ~/Source/bubbletea"),
 			},
 		},
 		{
 			name:  "empty",
 			input: "\x1b]\x07",
-			expected: []Sequence{
-				OscSequence{
-					Cmd: parser.MissingCommand,
-				},
+			expected: []any{
+				[]byte{},
 			},
 		},
 		{
 			name:  "max_params",
 			input: fmt.Sprintf("\x1b]%s\x1b\\", strings.Repeat(";", 17)),
-			expected: []Sequence{
-				OscSequence{
-					Data: []byte(strings.Repeat(";", 17)),
-					Cmd:  parser.MissingCommand,
-				},
-				EscSequence('\\'),
+			expected: []any{
+				[]byte(strings.Repeat(";", 17)),
+				Cmd('\\'),
 			},
 		},
 		{
 			name:  "bell_terminated",
 			input: "\x1b]11;ff/00/ff\x07",
-			expected: []Sequence{
-				OscSequence{
-					Data: []byte("11;ff/00/ff"),
-					Cmd:  11,
-				},
+			expected: []any{
+				[]byte("11;ff/00/ff"),
 			},
 		},
 		{
 			name:  "esc_st_terminated",
 			input: "\x1b]11;ff/00/ff\x1b\\",
-			expected: []Sequence{
-				OscSequence{
-					Data: []byte("11;ff/00/ff"),
-					Cmd:  11,
-				},
-				EscSequence('\\'),
+			expected: []any{
+				[]byte("11;ff/00/ff"),
+				Cmd('\\'),
 			},
 		},
 		{
@@ -70,57 +54,39 @@ func TestOscSequence(t *testing.T) {
 				0x2f, 0xc2, 0xaf, 0x27, 0x20, 0x26, 0x26, 0x20, 0x73, 0x6c,
 				0x65, 0x65, 0x70, 0x20, 0x31, 0x9c,
 			}),
-			expected: []Sequence{
-				OscSequence{
-					Data: []byte("2;echo '¯\\_(ツ)_/¯' && sleep 1"),
-					Cmd:  2,
-				},
+			expected: []any{
+				[]byte("2;echo '¯\\_(ツ)_/¯' && sleep 1"),
 			},
 		},
 		{
 			name:  "string_terminator",
 			input: "\x1b]2;\xe6\x9c\xab\x1b\\",
-			expected: []Sequence{
-				OscSequence{
-					Data: []byte("2;\xe6"),
-					Cmd:  2,
-				},
-				EscSequence('\\'),
+			expected: []any{
+				[]byte("2;\xe6"),
+				Cmd('\\'),
 			},
 		},
 		{
 			name:  "exceed_max_buffer_size",
 			input: fmt.Sprintf("\x1b]52;s%s\x07", strings.Repeat("a", maxBufferSize)),
-			expected: []Sequence{
-				OscSequence{
-					Data: []byte(fmt.Sprintf("52;s%s", strings.Repeat("a", maxBufferSize-4))), // 4 is the len of "52;s"
-					Cmd:  52,
-				},
+			expected: []any{
+				[]byte(fmt.Sprintf("52;s%s", strings.Repeat("a", maxBufferSize-4))), // 4 is the len of "52;s"
 			},
 		},
 		{
 			name:  "title_empty_params_esc",
 			input: "\x1b]0;abc\x1b\\\x1b];;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\x07",
-			expected: []Sequence{
-				OscSequence{
-					Data: []byte("0;abc"),
-					Cmd:  0,
-				},
-				EscSequence('\\'),
-				OscSequence{
-					Data: []byte(strings.Repeat(";", 45)),
-					Cmd:  parser.MissingCommand,
-				},
+			expected: []any{
+				[]byte("0;abc"),
+				Cmd('\\'),
+				[]byte(strings.Repeat(";", 45)),
 			},
 		},
 		{
 			name:  "just command",
 			input: "\x1b]112\x07",
-			expected: []Sequence{
-				OscSequence{
-					Data: []byte("112"),
-					Cmd:  112,
-				},
+			expected: []any{
+				[]byte("112"),
 			},
 		},
 	}

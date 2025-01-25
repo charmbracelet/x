@@ -306,24 +306,28 @@ func TestParseX10MouseDownEvent(t *testing.T) {
 }
 
 func TestParseSGRMouseEvent(t *testing.T) {
-	encode := func(b, x, y int, r bool) *ansi.CsiSequence {
+	type csiSequence struct {
+		params []ansi.Param
+		cmd    ansi.Cmd
+	}
+	encode := func(b, x, y int, r bool) *csiSequence {
 		re := 'M'
 		if r {
 			re = 'm'
 		}
-		return &ansi.CsiSequence{
-			Params: []ansi.Parameter{
-				ansi.Parameter(b),
-				ansi.Parameter(x + 1),
-				ansi.Parameter(y + 1),
+		return &csiSequence{
+			params: []ansi.Param{
+				ansi.Param(b),
+				ansi.Param(x + 1),
+				ansi.Param(y + 1),
 			},
-			Cmd: ansi.Command(re) | ('<' << parser.MarkerShift),
+			cmd: ansi.Cmd(re) | ('<' << parser.PrefixShift),
 		}
 	}
 
 	tt := []struct {
 		name     string
-		buf      *ansi.CsiSequence
+		buf      *csiSequence
 		expected Event
 	}{
 		// Position.
@@ -465,7 +469,7 @@ func TestParseSGRMouseEvent(t *testing.T) {
 		tc := tt[i]
 
 		t.Run(tc.name, func(t *testing.T) {
-			actual := parseSGRMouseEvent(tc.buf)
+			actual := parseSGRMouseEvent(tc.buf.cmd, tc.buf.params)
 			if tc.expected != actual {
 				t.Fatalf("expected %#v but got %#v",
 					tc.expected,

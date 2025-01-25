@@ -11,8 +11,8 @@ func TestEscSequence(t *testing.T) {
 		{
 			name:  "reset",
 			input: "\x1b[3;1\x1b(A",
-			expected: []Sequence{
-				EscSequence('A' | '('<<parser.IntermedShift),
+			expected: []any{
+				Cmd('A' | '('<<parser.IntermedShift),
 			},
 		},
 	}

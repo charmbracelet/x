@@ -306,7 +306,7 @@ func TestDecodeSequence(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			p := NewParser(nil)
+			p := NewParser()
 			p.SetParamsSize(32)
 			p.SetDataSize(1024)
 
@@ -390,7 +390,7 @@ func BenchmarkDecodeSequence(b *testing.B) {
 	var state byte
 	var n int
 	input := []byte("\x1b[1;2;3màbc\x90?123;456+q\x9c\x7f ")
-	p := NewParser(nil)
+	p := NewParser()
 	p.SetParamsSize(32)
 	p.SetDataSize(1024)
 	b.ReportAllocs()
@@ -404,7 +404,7 @@ func BenchmarkDecodeSequence(b *testing.B) {
 }
 
 func BenchmarkDecodeParser(b *testing.B) {
-	p := NewParser(nil)
+	p := NewParser()
 	p.SetParamsSize(32)
 	p.SetDataSize(1024)
 	input := []byte("\x1b[1;2;3màbc\x90?123;456+q\x9c\x7f ")
@@ -417,10 +417,10 @@ func BenchmarkDecodeParser(b *testing.B) {
 func TestCommand(t *testing.T) {
 	cases := []struct {
 		name     string
-		cmd      int
-		mark     int
-		inter    int
-		expected Command
+		cmd      byte
+		prefix   byte
+		inter    byte
+		expected int
 	}{
 		{
 			name:     "CUU", // Cursor Up
@@ -430,8 +430,8 @@ func TestCommand(t *testing.T) {
 		{
 			name:     "DECAWM", // Auto Wrap Mode
 			cmd:      'h',
-			mark:     '?',
-			expected: 'h' | '?'<<parser.MarkerShift,
+			prefix:   '?',
+			expected: 'h' | '?'<<parser.PrefixShift,
 		},
 		{
 			name:     "DECSCUSR", // Set Cursor Style
@@ -440,19 +440,19 @@ func TestCommand(t *testing.T) {
 			expected: 'q' | ' '<<parser.IntermedShift,
 		},
 		{
-			name:     "imaginary cmd with both marker and intermed",
+			name:     "imaginary cmd with both prefix and intermed",
 			cmd:      'x',
-			mark:     '>',
+			prefix:   '>',
 			inter:    '(',
-			expected: 'x' | '>'<<parser.MarkerShift | '('<<parser.IntermedShift,
+			expected: 'x' | '>'<<parser.PrefixShift | '('<<parser.IntermedShift,
 		},
-		{
-			name:     "ignore bytes beyond the lower 8 bites",
-			cmd:      256 + 'x',
-			mark:     256 + '>',
-			inter:    256 + '(',
-			expected: 'x' | '>'<<parser.MarkerShift | '('<<parser.IntermedShift,
-		},
+		// {
+		// 	name:     "ignore bytes beyond the lower 8 bites",
+		// 	cmd:      256 + 'x',
+		// 	prefix:     256 + '>',
+		// 	inter:    256 + '(',
+		// 	expected: 'x' | '>'<<parser.PrefixShift | '('<<parser.IntermedShift,
+		// },
 		{
 			name:     "OSC11", // Set background color
 			cmd:      11,
@@ -462,7 +462,7 @@ func TestCommand(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if cmd := Cmd(tc.mark, tc.inter, tc.cmd); cmd != tc.expected {
+			if cmd := Command(tc.prefix, tc.inter, tc.cmd); cmd != tc.expected {
 				t.Errorf("expected %d, got %d", tc.expected, cmd)
 			}
 		})
@@ -474,7 +474,7 @@ func TestParameter(t *testing.T) {
 		name     string
 		param    int
 		hasMore  bool
-		expected Parameter
+		expected int
 	}{
 		{
 			name:     "single param",
@@ -502,7 +502,7 @@ func TestParameter(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if p := Param(tc.param, tc.hasMore); p != tc.expected {
+			if p := Parameter(tc.param, tc.hasMore); p != tc.expected {
 				t.Errorf("expected %d, got %d", tc.expected, p)
 			}
 		})
