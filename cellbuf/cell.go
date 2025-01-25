@@ -37,6 +37,9 @@ type Cell struct {
 // String returns the string content of the cell excluding any styles, links,
 // and escape sequences.
 func (c Cell) String() string {
+	if c.Rune == 0 {
+		return ""
+	}
 	if len(c.Comb) == 0 {
 		return string(c.Rune)
 	}

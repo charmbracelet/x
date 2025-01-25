@@ -9,7 +9,7 @@ import (
 
 // NewCell returns a new cell. This is a convenience function that initializes a
 // new cell with the given content. The cell's width is determined by the
-// content using [wcwidth.RuneWidth].
+// content using [runewidth.RuneWidth].
 func NewCell(r rune, comb ...rune) *Cell {
 	width := runewidth.StringWidth(string(append([]rune{r}, comb...)))
 	return &Cell{

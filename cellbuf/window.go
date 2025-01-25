@@ -324,13 +324,13 @@ func (c *Window) drawString(s string, x, y int, opts *drawOpts) {
 			// Valid sequences always have a non-zero Cmd.
 			// TODO: Handle cursor movement and other sequences
 			switch {
-			case ansi.HasCsiPrefix(seq) && p.Cmd() != 0:
-				switch p.Cmd() {
+			case ansi.HasCsiPrefix(seq) && p.Command() != 0:
+				switch p.Command() {
 				case 'm': // SGR - Select Graphic Rendition
 					ReadStyle(p.Params(), &c.cur.Style)
 				}
-			case ansi.HasOscPrefix(seq) && p.Cmd() != 0:
-				switch p.Cmd() {
+			case ansi.HasOscPrefix(seq) && p.Command() != 0:
+				switch p.Command() {
 				case 8: // Hyperlinks
 					ReadLink(p.Data(), &c.cur.Link)
 				}

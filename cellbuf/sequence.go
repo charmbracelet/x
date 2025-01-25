@@ -9,15 +9,14 @@ import (
 
 // ReadStyle reads a Select Graphic Rendition (SGR) escape sequences from a
 // list of parameters.
-func ReadStyle(params []ansi.Parameter, pen *Style) {
+func ReadStyle(params ansi.Params, pen *Style) {
 	if len(params) == 0 {
 		pen.Reset()
 		return
 	}
 
 	for i := 0; i < len(params); i++ {
-		r := params[i]
-		param, hasMore := r.Param(0), r.HasMore() // Are there more subparameters i.e. separated by ":"?
+		param, hasMore, _ := params.Param(i, 0)
 		switch param {
 		case 0: // Reset
 			pen.Reset()
@@ -28,8 +27,8 @@ func ReadStyle(params []ansi.Parameter, pen *Style) {
 		case 3: // Italic
 			pen.Italic(true)
 		case 4: // Underline
-			if hasMore { // Only accept subparameters i.e. separated by ":"
-				nextParam := params[i+1].Param(0)
+			nextParam, _, ok := params.Param(i+1, 0)
+			if hasMore && ok { // Only accept subparameters i.e. separated by ":"
 				switch nextParam {
 				case 0, 1, 2, 3, 4, 5:
 					i++
@@ -154,7 +153,7 @@ func ReadLink(p []byte, link *Link) {
 //  2. Support ignoring and omitting the color space id (second parameter) with respect to RGB colors
 //  3. Support ignoring and omitting the 6th parameter with respect to RGB and CMY colors
 //  4. Support reading RGBA colors
-func ReadStyleColor(params []ansi.Parameter, co *color.Color) (n int) {
+func ReadStyleColor(params ansi.Params, co *color.Color) (n int) {
 	if len(params) < 2 { // Need at least SGR type and color type
 		return 0
 	}
