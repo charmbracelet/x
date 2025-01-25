@@ -17,22 +17,22 @@ func main() {
 	}
 
 	var state byte
-	p := ansi.NewParser(nil)
+	p := ansi.NewParser()
 	for len(input) > 0 {
 		seq, width, n, newState := ansi.DecodeSequence(input, state, p)
 		switch {
 		case ansi.HasOscPrefix(seq):
-			fmt.Printf("OSC sequence: %q, cmd: %d, data: %q", seq, p.Cmd(), p.Data())
+			fmt.Printf("OSC sequence: %q, cmd: %d, data: %q", seq, p.Command(), p.Data())
 			fmt.Println()
 		case ansi.HasDcsPrefix(seq):
-			c := p.Cmd()
-			intermed, marker, cmd := c.Intermediate(), c.Marker(), c.Command()
+			c := ansi.Cmd(p.Command())
+			intermed, prefix, cmd := c.Intermediate(), c.Prefix(), c.Final()
 			fmt.Printf("DCS sequence: %q,", seq)
 			if intermed != 0 {
 				fmt.Printf(" intermed: %q,", intermed)
 			}
-			if marker != 0 {
-				fmt.Printf(" marker: %q,", marker)
+			if prefix != 0 {
+				fmt.Printf(" prefix: %q,", prefix)
 			}
 			if cmd != 0 {
 				fmt.Printf(" cmd: %q,", cmd)
@@ -71,14 +71,14 @@ func main() {
 			fmt.Printf("APC sequence: %q, data: %q", seq, p.Data())
 			fmt.Println()
 		case ansi.HasCsiPrefix(seq):
-			c := p.Cmd()
-			intermed, marker, cmd := c.Intermediate(), c.Marker(), c.Command()
+			c := ansi.Cmd(p.Command())
+			intermed, prefix, cmd := c.Intermediate(), c.Prefix(), c.Final()
 			fmt.Printf("CSI sequence: %q,", seq)
 			if intermed != 0 {
 				fmt.Printf(" intermed: %q,", intermed)
 			}
-			if marker != 0 {
-				fmt.Printf(" marker: %q,", marker)
+			if prefix != 0 {
+				fmt.Printf(" prefix: %q,", prefix)
 			}
 			if cmd != 0 {
 				fmt.Printf(" cmd: %q,", cmd)
@@ -109,8 +109,8 @@ func main() {
 
 		case ansi.HasEscPrefix(seq):
 			if !bytes.Equal(seq, []byte{ansi.ESC}) {
-				c := p.Cmd()
-				intermed, cmd := c.Intermediate(), c.Command()
+				c := ansi.Cmd(p.Command())
+				intermed, cmd := c.Intermediate(), c.Final()
 				fmt.Printf("ESC sequence: %q", seq)
 				if intermed != 0 {
 					fmt.Printf(", intermed: %q", intermed)
