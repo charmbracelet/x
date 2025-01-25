@@ -4,18 +4,17 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func (t *Terminal) handleMode() {
-	cmd := t.parser.Cmd()
-	for _, p := range t.parser.Params() {
+func (t *Terminal) handleMode(params ansi.Params, set, isAnsi bool) {
+	for _, p := range params {
 		param := p.Param(-1)
 		if param == -1 {
 			// Missing parameter, ignore
 			continue
 		}
 
-		var mode ansi.Mode = ansi.ANSIMode(param)
-		if cmd.Marker() == '?' {
-			mode = ansi.DECMode(param)
+		var mode ansi.Mode = ansi.DECMode(param)
+		if isAnsi {
+			mode = ansi.ANSIMode(param)
 		}
 
 		setting := t.modes[mode]
@@ -25,7 +24,7 @@ func (t *Terminal) handleMode() {
 		}
 
 		setting = ansi.ModeReset
-		if cmd.Command() == 'h' {
+		if set {
 			setting = ansi.ModeSet
 		}
 

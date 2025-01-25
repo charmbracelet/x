@@ -1,5 +1,7 @@
 package vt
 
+import "github.com/charmbracelet/x/cellbuf"
+
 // Callbacks represents a set of callbacks for a terminal.
 type Callbacks struct {
 	// Bell callback. When set, this function is called when a bell character is
@@ -24,7 +26,7 @@ type Callbacks struct {
 
 	// CursorPosition callback. When set, this function is called when the cursor
 	// position changes.
-	CursorPosition func(old, new Position) //nolint:predeclared
+	CursorPosition func(old, new cellbuf.Position) //nolint:predeclared
 
 	// CursorVisibility callback. When set, this function is called when the
 	// cursor visibility changes.

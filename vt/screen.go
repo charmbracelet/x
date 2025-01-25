@@ -2,6 +2,8 @@ package vt
 
 import (
 	"sync"
+
+	"github.com/charmbracelet/x/cellbuf"
 )
 
 // Screen represents a virtual terminal screen.
@@ -95,7 +97,13 @@ func (s *Screen) Width() int {
 // Clear clears the screen or part of it.
 func (s *Screen) Clear(rects ...Rectangle) {
 	s.mu.Lock()
-	s.buf.Clear(rects...)
+	if len(rects) == 0 {
+		s.buf.Clear()
+	} else {
+		for _, r := range rects {
+			s.buf.ClearRect(r)
+		}
+	}
 	if s.cb.Damage != nil {
 		for _, r := range rects {
 			s.cb.Damage(RectDamage(r))
@@ -108,7 +116,13 @@ func (s *Screen) Clear(rects ...Rectangle) {
 func (s *Screen) Fill(c *Cell, rects ...Rectangle) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.buf.Fill(c, rects...)
+	if len(rects) == 0 {
+		s.buf.Fill(c)
+	} else {
+		for _, r := range rects {
+			s.buf.FillRect(c, r)
+		}
+	}
 	if s.cb.Damage != nil {
 		for _, r := range rects {
 			s.cb.Damage(RectDamage(r))
@@ -159,7 +173,7 @@ func (s *Screen) setCursor(x, y int, margins bool) {
 	s.cur.X, s.cur.Y = x, y
 	s.mu.Unlock()
 	if s.cb.CursorPosition != nil && (old.X != x || old.Y != y) {
-		s.cb.CursorPosition(old, Pos(x, y))
+		s.cb.CursorPosition(old, cellbuf.Pos(x, y))
 	}
 }
 
@@ -179,10 +193,10 @@ func (s *Screen) moveCursor(dx, dy int) {
 		scroll.Max.X = s.buf.Width()
 	}
 
-	pt := Pos(s.cur.X+dx, s.cur.Y+dy)
+	pt := cellbuf.Pos(s.cur.X+dx, s.cur.Y+dy)
 
 	var x, y int
-	if scroll.Contains(old) {
+	if old.In(scroll) {
 		y = clamp(pt.Y, scroll.Min.Y, scroll.Max.Y-1)
 		x = clamp(pt.X, scroll.Min.X, scroll.Max.X-1)
 	} else {
@@ -193,7 +207,7 @@ func (s *Screen) moveCursor(dx, dy int) {
 	s.cur.X, s.cur.Y = x, y
 	s.mu.Unlock()
 	if s.cb.CursorPosition != nil && (old.X != x || old.Y != y) {
-		s.cb.CursorPosition(old, Pos(x, y))
+		s.cb.CursorPosition(old, cellbuf.Pos(x, y))
 	}
 }
 
@@ -286,9 +300,9 @@ func (s *Screen) InsertCell(n int) {
 	defer s.mu.Unlock()
 	x, y := s.cur.X, s.cur.Y
 
-	s.buf.InsertCell(x, y, n, s.blankCell(), s.scroll)
+	s.buf.InsertCellRect(x, y, n, s.blankCell(), s.scroll)
 	if s.cb.Damage != nil {
-		s.cb.Damage(RectDamage(Rect(x, y, s.scroll.Width()-x, 1)))
+		s.cb.Damage(RectDamage(cellbuf.Rect(x, y, s.scroll.Dx()-x, 1)))
 	}
 }
 
@@ -303,9 +317,9 @@ func (s *Screen) DeleteCell(n int) {
 	defer s.mu.Unlock()
 	x, y := s.cur.X, s.cur.Y
 
-	s.buf.DeleteCell(x, y, n, s.blankCell(), s.scroll)
+	s.buf.DeleteCellRect(x, y, n, s.blankCell(), s.scroll)
 	if s.cb.Damage != nil {
-		s.cb.Damage(RectDamage(Rect(x, y, s.scroll.Width()-x, 1)))
+		s.cb.Damage(RectDamage(cellbuf.Rect(x, y, s.scroll.Dx()-x, 1)))
 	}
 }
 
@@ -348,7 +362,7 @@ func (s *Screen) InsertLine(n int) bool {
 		return false
 	}
 
-	s.buf.InsertLine(y, n, s.blankCell(), s.scroll)
+	s.buf.InsertLineRect(y, n, s.blankCell(), s.scroll)
 	if s.cb.Damage != nil {
 		rect := s.scroll
 		rect.Min.Y = y
@@ -379,7 +393,7 @@ func (s *Screen) DeleteLine(n int) bool {
 		return false
 	}
 
-	s.buf.DeleteLine(y, n, s.blankCell(), scroll)
+	s.buf.DeleteLineRect(y, n, s.blankCell(), scroll)
 	if s.cb.Damage != nil {
 		rect := scroll
 		rect.Min.Y = y
@@ -399,7 +413,7 @@ func (s *Screen) blankCell() (c *Cell) {
 	}
 
 	c = new(Cell)
-	*c = blankCell
+	*c = cellbuf.BlankCell
 	c.Style.Bg = s.cur.Pen.Bg
 	return
 }

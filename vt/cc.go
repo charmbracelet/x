@@ -2,10 +2,11 @@ package vt
 
 import (
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/cellbuf"
 )
 
 // handleControl handles a control character.
-func (t *Terminal) handleControl(r ansi.ControlCode) {
+func (t *Terminal) handleControl(r byte) {
 	switch r {
 	case ansi.NUL: // Null [ansi.NUL]
 		// Ignored
@@ -61,7 +62,7 @@ func (t *Terminal) index() {
 	// TODO: Handle scrollback whenever we add it.
 	if y == scroll.Max.Y-1 && x >= scroll.Min.X && x < scroll.Max.X {
 		t.scr.ScrollUp(1)
-	} else if y < scroll.Max.Y-1 || !scroll.Contains(Pos(x, y)) {
+	} else if y < scroll.Max.Y-1 || !cellbuf.Pos(x, y).In(scroll) {
 		t.scr.moveCursor(0, 1)
 	}
 	t.atPhantom = false
