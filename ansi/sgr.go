@@ -14,7 +14,7 @@ func SelectGraphicRendition(ps ...Attr) string {
 		return ResetStyle
 	}
 
-	var s Style
+	s := make(Style, 0, len(ps))
 	for _, p := range ps {
 		attr, ok := attrStrings[p]
 		if ok {
