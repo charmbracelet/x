@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
@@ -349,11 +350,17 @@ type Screen struct {
 	opts             ScreenOptions
 	pos              Position // the position of the cursor after the last render
 	mu               sync.Mutex
+	method           ansi.Method
 	altScreenMode    bool // whether alternate screen mode is enabled
 	cursorHidden     bool // whether text cursor mode is enabled
 	clear            bool // whether to force clear the screen
 	xtermLike        bool // whether to use xterm-like optimizations, otherwise, it uses vt100 only
 	queuedText       bool // whether we have queued non-zero width text queued up
+}
+
+// SetMethod sets the method used to calculate the width of cells.
+func (s *Screen) SetMethod(method ansi.Method) {
+	s.method = method
 }
 
 // UseHardTabs sets whether to use hard tabs to optimize cursor movements.
@@ -1387,7 +1394,140 @@ func (s *Screen) InsertAbove(str string) {
 	}
 	s.mu.Lock()
 	for _, line := range strings.Split(str, "\n") {
-		s.queueAbove = append(s.queueAbove, ansi.Truncate(line, s.opts.Width, ""))
+		s.queueAbove = append(s.queueAbove, s.method.Truncate(line, s.opts.Width, ""))
 	}
 	s.mu.Unlock()
+}
+
+// SetContent clears the screen with blank cells, and sets the given string as
+// its content. If the height or width of the string exceeds the height or
+// width of the screen, it will be truncated.
+//
+// This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
+// sequences.
+func (s *Screen) SetContent(str string) {
+	// Replace all "\n" with "\r\n" to ensure the cursor is reset to the start
+	// of the line. Make sure we don't replace "\r\n" with "\r\r\n".
+	str = strings.ReplaceAll(str, "\r\n", "\n")
+	str = strings.ReplaceAll(str, "\n", "\r\n")
+	// We're using [Screen.Fill] instead of [Screen.Clear] to avoid force
+	// clearing the screen using [ansi.EraseEntireScreen] which is slow.
+	s.Fill(nil)
+	s.Print(0, 0, str)
+}
+
+// Print prints the string at the given cursor position and truncates the text
+// if it exceeds the width of the screen. Use tail to specify a string to
+// append if the string is truncated.
+// This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
+// sequences.
+func (s *Screen) Print(x, y int, str string, tail ...string) {
+	s.printString(x, y, str, true, strings.Join(tail, ""))
+}
+
+// Printw prints the string at the given cursor position and wraps the text if
+// it exceeds the width of the screen.
+// This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
+// sequences.
+func (s *Screen) Printw(x, y int, str string) {
+	s.printString(x, y, str, false, "")
+}
+
+// printString draws a string starting at the given position.
+func (s *Screen) printString(x, y int, str string, truncate bool, tail string) {
+	wrapCursor := func() {
+		// Wrap the string to the width of the window
+		x = 0
+		y++
+	}
+
+	p := ansi.GetParser()
+	defer ansi.PutParser(p)
+
+	var tailc Cell
+	if truncate && len(tail) > 0 {
+		if s.method == ansi.WcWidth {
+			tailc = *NewCellString(tail)
+		} else {
+			tailc = *NewGraphemeCell(tail)
+		}
+	}
+
+	var state byte
+	for len(str) > 0 {
+		seq, width, n, newState := ansi.DecodeSequence(str, state, p)
+
+		var cell *Cell
+		switch width {
+		case 1, 2, 3, 4: // wide cells can go up to 4 cells wide
+			switch s.method {
+			case ansi.WcWidth:
+				cell = NewCellString(seq)
+
+				// We're breaking the grapheme to respect wcwidth's behavior
+				// while keeping combining characters together.
+				n = utf8.RuneLen(cell.Rune)
+				for _, c := range cell.Comb {
+					n += utf8.RuneLen(c)
+				}
+				newState = 0
+
+			case ansi.GraphemeWidth:
+				// [ansi.DecodeSequence] already handles grapheme clusters
+				cell = newGraphemeCell(seq, width)
+			}
+
+			if !truncate && x >= s.Width() {
+				// Auto wrap the cursor.
+				wrapCursor()
+				if y >= s.Height() {
+					break
+				}
+			} else if truncate && x+width > s.Width()-tailc.Width {
+				if !Pos(x, y).In(s.Bounds()) {
+					break
+				}
+
+				// Truncate the string and append the tail if any.
+				cell := tailc
+				cell.Style = s.cur.Style
+				cell.Link = s.cur.Link
+				s.SetCell(x, y, &cell)
+				break
+			}
+
+			cell.Style = s.cur.Style
+			cell.Link = s.cur.Link
+
+			s.newbuf.SetCell(x, y, cell) //nolint:errcheck
+
+			// Advance the cursor and line width
+			x += cell.Width
+		default:
+			// Valid sequences always have a non-zero Cmd.
+			// TODO: Handle cursor movement and other sequences
+			switch {
+			case ansi.HasCsiPrefix(seq) && p.Command() != 0:
+				switch p.Command() {
+				case 'm': // SGR - Select Graphic Rendition
+					ReadStyle(p.Params(), &s.cur.Style)
+				}
+			case ansi.HasOscPrefix(seq) && p.Command() != 0:
+				switch p.Command() {
+				case 8: // Hyperlinks
+					ReadLink(p.Data(), &s.cur.Link)
+				}
+			case ansi.Equal(seq, "\n"):
+				if y+1 < s.Height() {
+					y++
+				}
+			case ansi.Equal(seq, "\r"):
+				x = 0
+			}
+		}
+
+		// Advance the state and data
+		state = newState
+		str = str[n:]
+	}
 }
