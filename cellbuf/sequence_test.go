@@ -11,38 +11,38 @@ import (
 func TestReadStyleColor(t *testing.T) {
 	tests := []struct {
 		name      string
-		params    []ansi.Parameter
+		params    []ansi.Param
 		wantN     int
 		wantColor color.Color
 		wantNil   bool
 	}{
 		{
 			name:    "invalid - too few parameters",
-			params:  []ansi.Parameter{38},
+			params:  []ansi.Param{38},
 			wantN:   0,
 			wantNil: true,
 		},
 		{
 			name:    "implementation defined",
-			params:  []ansi.Parameter{38, 0},
+			params:  []ansi.Param{38, 0},
 			wantN:   2,
 			wantNil: true,
 		},
 		{
 			name:      "transparent",
-			params:    []ansi.Parameter{38, 1},
+			params:    []ansi.Param{38, 1},
 			wantN:     2,
 			wantColor: color.Transparent,
 		},
 		{
 			name:      "RGB semicolon separated",
-			params:    []ansi.Parameter{38, 2, 100, 150, 200},
+			params:    []ansi.Param{38, 2, 100, 150, 200},
 			wantN:     5,
 			wantColor: color.RGBA{R: 100, G: 150, B: 200, A: 255},
 		},
 		{
 			name: "RGB colon separated",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				2 | parser.HasMoreFlag,
 				100 | parser.HasMoreFlag,
@@ -54,7 +54,7 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name: "RGB with color space",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				2 | parser.HasMoreFlag,
 				1 | parser.HasMoreFlag, // color space id
@@ -73,7 +73,7 @@ func TestReadStyleColor(t *testing.T) {
 		// },
 		{
 			name: "CMY with color space",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				3 | parser.HasMoreFlag,
 				2 | parser.HasMoreFlag, // color space id
@@ -104,7 +104,7 @@ func TestReadStyleColor(t *testing.T) {
 		// },
 		{
 			name: "CMYK with color space",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				4 | parser.HasMoreFlag,
 				1 | parser.HasMoreFlag, // color space id
@@ -131,13 +131,13 @@ func TestReadStyleColor(t *testing.T) {
 		// },
 		{
 			name:      "indexed color semicolon",
-			params:    []ansi.Parameter{38, 5, 123},
+			params:    []ansi.Param{38, 5, 123},
 			wantN:     3,
 			wantColor: ansi.ExtendedColor(123),
 		},
 		{
 			name: "indexed color colon",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				5 | parser.HasMoreFlag,
 				123,
@@ -147,13 +147,13 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name:    "invalid color type",
-			params:  []ansi.Parameter{38, 99},
+			params:  []ansi.Param{38, 99},
 			wantN:   0,
 			wantNil: true,
 		},
 		{
 			name: "RGB with tolerance and color space",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				2 | parser.HasMoreFlag,
 				1 | parser.HasMoreFlag, // color space id
@@ -169,13 +169,13 @@ func TestReadStyleColor(t *testing.T) {
 		// Invalid cases
 		{
 			name:    "empty params",
-			params:  []ansi.Parameter{},
+			params:  []ansi.Param{},
 			wantN:   0,
 			wantNil: true,
 		},
 		{
 			name:    "single param",
-			params:  []ansi.Parameter{38},
+			params:  []ansi.Param{38},
 			wantN:   0,
 			wantNil: true,
 		},
@@ -188,7 +188,7 @@ func TestReadStyleColor(t *testing.T) {
 		// Mixed separator cases (should fail)
 		{
 			name: "RGB mixed separators",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				2,                        // semicolon
 				100 | parser.HasMoreFlag, // colon
@@ -200,7 +200,7 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name: "CMYK mixed separators",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				4,                        // semicolon
 				100 | parser.HasMoreFlag, // colon
@@ -214,7 +214,7 @@ func TestReadStyleColor(t *testing.T) {
 		// Edge cases
 		{
 			name: "RGB with max values",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				2 | parser.HasMoreFlag,
 				255 | parser.HasMoreFlag,
@@ -226,7 +226,7 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name: "RGB with negative values",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				2 | parser.HasMoreFlag,
 				-1 | parser.HasMoreFlag,
@@ -238,7 +238,7 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name: "indexed color with out of range index",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				5 | parser.HasMoreFlag,
 				256, // out of range
@@ -248,7 +248,7 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name: "indexed color with negative index",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				5 | parser.HasMoreFlag,
 				-1,
@@ -258,7 +258,7 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name: "RGB truncated params",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				2 | parser.HasMoreFlag,
 				100 | parser.HasMoreFlag,
@@ -269,7 +269,7 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name: "CMYK truncated params",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				4 | parser.HasMoreFlag,
 				100 | parser.HasMoreFlag,
@@ -301,7 +301,7 @@ func TestReadStyleColor(t *testing.T) {
 		// },
 		{
 			name: "RGBA with color space",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				6 | parser.HasMoreFlag,
 				1 | parser.HasMoreFlag, // color space id
@@ -315,7 +315,7 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name: "RGBA with tolerance and color space",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				6 | parser.HasMoreFlag,
 				1 | parser.HasMoreFlag, // color space id
@@ -331,7 +331,7 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name: "RGBA with max values",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				6 | parser.HasMoreFlag,
 				0 | parser.HasMoreFlag, // color space id
@@ -345,7 +345,7 @@ func TestReadStyleColor(t *testing.T) {
 		},
 		{
 			name: "RGBA truncated params",
-			params: []ansi.Parameter{
+			params: []ansi.Param{
 				38 | parser.HasMoreFlag,
 				6 | parser.HasMoreFlag,
 				100 | parser.HasMoreFlag,

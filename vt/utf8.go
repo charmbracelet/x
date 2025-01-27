@@ -2,23 +2,15 @@ package vt
 
 import (
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/wcwidth"
+	"github.com/mattn/go-runewidth"
 )
 
 // handleUtf8 handles a UTF-8 characters.
-func (t *Terminal) handleUtf8(seq ansi.Sequence) {
+func (t *Terminal) handleUtf8(r rune) {
 	var width int
 	var content string
-	switch seq := seq.(type) {
-	case ansi.Rune:
-		width = wcwidth.RuneWidth(rune(seq))
-		content = string(seq)
-	case ansi.Grapheme:
-		width = seq.Width
-		content = seq.Cluster
-	default:
-		return
-	}
+	width = runewidth.RuneWidth(r)
+	content = string(r)
 
 	x, y := t.scr.CursorPosition()
 	if t.atPhantom || x+width > t.scr.Width() {
@@ -51,14 +43,15 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 	}
 
 	cell := &Cell{
-		Style:   t.scr.cursorPen(),
-		Link:    Link{}, // TODO: Link support
-		Content: content,
-		Width:   width,
+		Style: t.scr.cursorPen(),
+		Link:  Link{}, // TODO: Link support
+		// FIXME: This is incorrect and ignores combining characters
+		Rune:  firstRune(content),
+		Width: width,
 	}
 
 	if t.scr.SetCell(x, y, cell) {
-		t.lastChar = seq
+		t.lastChar = r
 	}
 
 	// Handle phantom state at the end of the line
@@ -72,4 +65,11 @@ func (t *Terminal) handleUtf8(seq ansi.Sequence) {
 
 	// NOTE: We don't reset the phantom state here, we handle it up above.
 	t.scr.setCursor(x, y, false)
+}
+
+func firstRune(s string) rune {
+	for _, r := range s {
+		return r
+	}
+	return 0
 }

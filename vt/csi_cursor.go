@@ -2,64 +2,8 @@ package vt
 
 import (
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/cellbuf"
 )
-
-func (t *Terminal) handleCursor() {
-	width, height := t.Width(), t.Height()
-	n := 1
-	if param, ok := t.parser.Param(0, 1); ok && param > 0 {
-		n = param
-	}
-
-	x, y := t.scr.CursorPosition()
-	switch t.parser.Cmd() {
-	case 'A': // Cursor Up [ansi.CUU]
-		t.moveCursor(0, -n)
-	case 'B': // Cursor Down [ansi.CUD]
-		t.moveCursor(0, n)
-	case 'C': // Cursor Forward [ansi.CUF]
-		t.moveCursor(n, 0)
-	case 'D': // Cursor Backward [ansi.CUB]
-		t.moveCursor(-n, 0)
-	case 'E': // Cursor Next Line [ansi.CNL]
-		t.moveCursor(0, n)
-		t.carriageReturn()
-	case 'F': // Cursor Previous Line [ansi.CPL]
-		t.moveCursor(0, -n)
-		t.carriageReturn()
-	case 'G': // Cursor Horizontal Absolute [ansi.CHA]
-		t.setCursor(n-1, y)
-	case 'H': // Cursor Position [ansi.CUP]
-		row, _ := t.parser.Param(0, 1)
-		col, _ := t.parser.Param(1, 1)
-		y = min(height-1, row-1)
-		x = min(width-1, col-1)
-		t.setCursorPosition(x, y)
-	case 'I': // Cursor Horizontal Tabulation [ansi.CHT]
-		t.nextTab(n)
-	case 'Z': // Cursor Backward Tabulation [ansi.CBT]
-		t.prevTab(n)
-	case '`': // Horizontal Position Absolute [ansi.HPA]
-		t.setCursorPosition(min(width-1, n-1), y)
-	case 'a': // Horizontal Position Relative [ansi.HPR]
-		t.setCursorPosition(min(width-1, x+n), y)
-	case 'b': // Repeat Previous Character [ansi.REP]
-		t.repeatPreviousCharacter(n)
-	case 'e':
-		// Vertical Position Relative [ansi.VPR]
-		t.setCursorPosition(x, min(height-1, y+n))
-	case 'f':
-		// Horizontal and Vertical Position [ansi.HVP]
-		row, _ := t.parser.Param(0, 1)
-		col, _ := t.parser.Param(1, 1)
-		y = min(height-1, row-1)
-		x = min(width-1, col-1)
-		t.setCursor(x, y)
-	case 'd':
-		// Vertical Position Absolute [ansi.VPA]
-		t.setCursorPosition(x, min(height-1, n-1))
-	}
-}
 
 // nextTab moves the cursor to the next tab stop n times. This respects the
 // horizontal scrolling region. This performs the same function as [ansi.CHT].
@@ -145,7 +89,7 @@ func (t *Terminal) carriageReturn() {
 	x, y := t.scr.CursorPosition()
 	if margins {
 		t.scr.setCursor(0, y, true)
-	} else if region := t.scr.ScrollRegion(); region.Contains(Pos(x, y)) {
+	} else if region := t.scr.ScrollRegion(); cellbuf.Pos(x, y).In(region) {
 		t.scr.setCursor(region.Min.X, y, false)
 	} else {
 		t.scr.setCursor(0, y, false)
@@ -157,7 +101,7 @@ func (t *Terminal) carriageReturn() {
 // equivalent to typing the same character n times. This performs the same as
 // [ansi.REP].
 func (t *Terminal) repeatPreviousCharacter(n int) {
-	if t.lastChar == nil {
+	if t.lastChar == 0 {
 		return
 	}
 	for i := 0; i < n; i++ {

@@ -6,22 +6,71 @@ import (
 	"testing"
 )
 
+type csiSequence struct {
+	Cmd    Cmd
+	Params Params
+}
+
+type dcsSequence struct {
+	Cmd    Cmd
+	Params Params
+	Data   []byte
+}
+
 type testCase struct {
 	name     string
 	input    string
-	expected []Sequence
+	expected []any
 }
 
 type testDispatcher struct {
-	dispatched []Sequence
+	dispatched []any
 }
 
-func (d *testDispatcher) Dispatch(s Sequence) {
-	d.dispatched = append(d.dispatched, s.Clone())
+func (d *testDispatcher) dispatchRune(r rune) {
+	d.dispatched = append(d.dispatched, r)
+}
+
+func (d *testDispatcher) dispatchControl(b byte) {
+	d.dispatched = append(d.dispatched, b)
+}
+
+func (d *testDispatcher) dispatchEsc(cmd Cmd) {
+	d.dispatched = append(d.dispatched, cmd)
+}
+
+func (d *testDispatcher) dispatchCsi(cmd Cmd, params Params) {
+	params = append(Params{}, params...)
+	d.dispatched = append(d.dispatched, csiSequence{Cmd: cmd, Params: params})
+}
+
+func (d *testDispatcher) dispatchDcs(cmd Cmd, params Params, data []byte) {
+	params = append(Params{}, params...)
+	data = append([]byte{}, data...)
+	d.dispatched = append(d.dispatched, dcsSequence{Cmd: cmd, Params: params, Data: data})
+}
+
+func (d *testDispatcher) dispatchOsc(cmd int, data []byte) {
+	data = append([]byte{}, data...)
+	d.dispatched = append(d.dispatched, data)
+}
+
+func (d *testDispatcher) dispatchApc(data []byte) {
+	data = append([]byte{}, data...)
+	d.dispatched = append(d.dispatched, data)
 }
 
 func testParser(d *testDispatcher) *Parser {
-	p := NewParser(d.Dispatch)
+	p := NewParser()
+	p.SetHandler(Handler{
+		Print:     d.dispatchRune,
+		Execute:   d.dispatchControl,
+		HandleEsc: d.dispatchEsc,
+		HandleCsi: d.dispatchCsi,
+		HandleDcs: d.dispatchDcs,
+		HandleOsc: d.dispatchOsc,
+		HandleApc: d.dispatchApc,
+	})
 	p.SetParamsSize(16)
 	p.SetDataSize(0)
 	return p
@@ -32,13 +81,13 @@ func TestControlSequence(t *testing.T) {
 		{
 			name:     "just_esc",
 			input:    "\x1b",
-			expected: []Sequence{},
+			expected: []any{},
 		},
 		{
 			name:  "double_esc",
 			input: "\x1b\x1b",
-			expected: []Sequence{
-				ControlCode(0x1b),
+			expected: []any{
+				byte(0x1b),
 			},
 		},
 		// {
@@ -66,26 +115,26 @@ func TestControlSequence(t *testing.T) {
 		{
 			name:  "csi plus text",
 			input: "Hello, \x1b[31mWorld!\x1b[0m",
-			expected: []Sequence{
-				Rune('H'),
-				Rune('e'),
-				Rune('l'),
-				Rune('l'),
-				Rune('o'),
-				Rune(','),
-				Rune(' '),
-				CsiSequence{
-					Params: []Parameter{31},
+			expected: []any{
+				rune('H'),
+				rune('e'),
+				rune('l'),
+				rune('l'),
+				rune('o'),
+				rune(','),
+				rune(' '),
+				csiSequence{
+					Params: Params{31},
 					Cmd:    'm',
 				},
-				Rune('W'),
-				Rune('o'),
-				Rune('r'),
-				Rune('l'),
-				Rune('d'),
-				Rune('!'),
-				CsiSequence{
-					Params: []Parameter{0},
+				rune('W'),
+				rune('o'),
+				rune('r'),
+				rune('l'),
+				rune('d'),
+				rune('!'),
+				csiSequence{
+					Params: Params{0},
 					Cmd:    'm',
 				},
 			},
@@ -115,7 +164,7 @@ var parsers = []struct {
 	{
 		name: "params",
 		parser: func() *Parser {
-			p := NewParser(nil)
+			p := NewParser()
 			p.SetDataSize(0)
 			p.SetParamsSize(16)
 			return p
@@ -124,7 +173,7 @@ var parsers = []struct {
 	{
 		name: "params and data",
 		parser: func() *Parser {
-			p := NewParser(nil)
+			p := NewParser()
 			p.SetDataSize(1024)
 			p.SetParamsSize(16)
 			return p

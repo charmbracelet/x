@@ -224,7 +224,7 @@ func fromKittyMod(mod int) KeyMod {
 //	CSI unicode-key-code:alternate-key-codes ; modifiers:event-type ; text-as-codepoints u
 //
 // See https://sw.kovidgoyal.net/kitty/keyboard-protocol/
-func parseKittyKeyboard(csi *ansi.CsiSequence) (Event Event) {
+func parseKittyKeyboard(params ansi.Params) (Event Event) {
 	var isRelease bool
 	var key Key
 
@@ -232,7 +232,7 @@ func parseKittyKeyboard(csi *ansi.CsiSequence) (Event Event) {
 	// separated by colons ':'.
 	var paramIdx int
 	var sudIdx int // The sub parameter index
-	for _, p := range csi.Params {
+	for _, p := range params {
 		// Kitty Keyboard Protocol has 3 optional components.
 		switch paramIdx {
 		case 0:
@@ -336,12 +336,12 @@ func parseKittyKeyboard(csi *ansi.CsiSequence) (Event Event) {
 // parseKittyKeyboardExt parses a Kitty Keyboard Protocol sequence extensions
 // for non CSI u sequences. This includes things like CSI A, SS3 A and others,
 // and CSI ~.
-func parseKittyKeyboardExt(csi *ansi.CsiSequence, k KeyPressEvent) Event {
+func parseKittyKeyboardExt(params ansi.Params, k KeyPressEvent) Event {
 	// Handle Kitty keyboard protocol
-	if len(csi.Params) > 2 && // We have at least 3 parameters
-		csi.Params[0].Param(1) == 1 && // The first parameter is 1 (defaults to 1)
-		csi.Params[1].HasMore() { // The second parameter is a subparameter (separated by a ":")
-		switch csi.Params[2].Param(1) { // The third parameter is the event type (defaults to 1)
+	if len(params) > 2 && // We have at least 3 parameters
+		params[0].Param(1) == 1 && // The first parameter is 1 (defaults to 1)
+		params[1].HasMore() { // The second parameter is a subparameter (separated by a ":")
+		switch params[2].Param(1) { // The third parameter is the event type (defaults to 1)
 		case 2:
 			k.IsRepeat = true
 		case 3:

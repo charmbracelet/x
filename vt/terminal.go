@@ -9,10 +9,13 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
+	"github.com/charmbracelet/x/cellbuf"
 )
 
 // Terminal represents a virtual terminal.
 type Terminal struct {
+	handlers
+
 	// The terminal's indexed 256 colors.
 	colors [256]color.Color
 
@@ -35,7 +38,7 @@ type Terminal struct {
 	scr *Screen
 
 	// The last written character.
-	lastChar ansi.Sequence // either ansi.Rune or ansi.Grapheme
+	lastChar rune // either ansi.Rune or ansi.Grapheme
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
@@ -79,7 +82,18 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.scrs[0].cb = &t.Callbacks
 	t.scrs[1].cb = &t.Callbacks
 	t.scr = &t.scrs[0]
-	t.parser = ansi.NewParser(t.dispatcher) // 4MB data buffer
+	t.parser = ansi.NewParser() // 4MB data buffer
+	t.parser.SetHandler(ansi.Handler{
+		Print:     t.handleUtf8,
+		Execute:   t.handleControl,
+		HandleCsi: t.handleCsi,
+		HandleEsc: t.handleEsc,
+		HandleDcs: t.handleDcs,
+		HandleOsc: t.handleOsc,
+		// Apc:     t.handleApc,
+		// Pm:      t.handlePm,
+		// Sos:     t.handleSos,
+	})
 	t.parser.SetParamsSize(parser.MaxParamsSize)
 	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
 	t.resetModes()
@@ -87,6 +101,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.fg = defaultFg
 	t.bg = defaultBg
 	t.cur = defaultCur
+	t.registerDefaultHandlers()
 
 	for _, opt := range opts {
 		opt(t)
@@ -119,7 +134,7 @@ func (t *Terminal) Width() int {
 // CursorPosition returns the terminal's cursor position.
 func (t *Terminal) CursorPosition() Position {
 	x, y := t.scr.CursorPosition()
-	return Pos(x, y)
+	return cellbuf.Pos(x, y)
 }
 
 // Resize resizes the terminal.
@@ -180,29 +195,6 @@ func (t *Terminal) Close() error {
 
 	t.closed = true
 	return nil
-}
-
-// dispatcher parses and dispatches escape sequences and operates on the terminal.
-func (t *Terminal) dispatcher(seq ansi.Sequence) {
-	switch seq := seq.(type) {
-	case ansi.ApcSequence:
-	case ansi.PmSequence:
-	case ansi.SosSequence:
-	case ansi.DcsSequence:
-		t.handleDcs(seq)
-	case ansi.OscSequence:
-		t.handleOsc(seq)
-	case ansi.CsiSequence:
-		t.handleCsi(seq)
-	case ansi.EscSequence:
-		t.handleEsc(seq)
-	case ansi.ControlCode:
-		t.handleControl(seq)
-	case ansi.Rune:
-		t.handleUtf8(seq)
-	case ansi.Grapheme:
-		t.handleUtf8(seq)
-	}
 }
 
 // Write writes data to the terminal output buffer.

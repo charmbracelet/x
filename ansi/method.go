@@ -87,25 +87,25 @@ func (m Method) Wrap(s string, length int, breakpoints string) string {
 //
 // Passing a non-nil [*Parser] as the last argument will allow the decoder to
 // collect sequence parameters, data, and commands. The parser cmd will have
-// the packed command value that contains intermediate and marker characters.
+// the packed command value that contains intermediate and prefix characters.
 // In the case of a OSC sequence, the cmd will be the OSC command number. Use
-// [Command] and [Parameter] types to unpack command intermediates and markers as well
+// [Cmd] and [Param] types to unpack command intermediates and prefixes as well
 // as parameters.
 //
-// Zero [Command] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
+// Zero [Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
 // validity of other data sequences, OSC, DCS, etc, will require checking for
 // the returned sequence terminator bytes such as ST (ESC \\) and BEL).
 //
-// We store the command byte in [Command] in the most significant byte, the
-// marker byte in the next byte, and the intermediate byte in the least
+// We store the command byte in [Cmd] in the most significant byte, the
+// prefix byte in the next byte, and the intermediate byte in the least
 // significant byte. This is done to avoid using a struct to store the command
-// and its intermediates and markers. The command byte is always the least
-// significant byte i.e. [Cmd & 0xff]. Use the [Command] type to unpack the
-// command, intermediate, and marker bytes. Note that we only collect the last
-// marker character and intermediate byte.
+// and its intermediates and prefixes. The command byte is always the least
+// significant byte i.e. [Cmd & 0xff]. Use the [Cmd] type to unpack the
+// command, intermediate, and prefix bytes. Note that we only collect the last
+// prefix character and intermediate byte.
 //
 // The [p.Params] slice will contain the parameters of the sequence. Any
-// sub-parameter will have the [parser.HasMoreFlag] set. Use the [Parameter] type
+// sub-parameter will have the [parser.HasMoreFlag] set. Use the [Param] type
 // to unpack the parameters.
 //
 // Example:
@@ -135,25 +135,25 @@ func (m Method) DecodeSequence(data []byte, state byte, p *Parser) (seq []byte, 
 //
 // Passing a non-nil [*Parser] as the last argument will allow the decoder to
 // collect sequence parameters, data, and commands. The parser cmd will have
-// the packed command value that contains intermediate and marker characters.
+// the packed command value that contains intermediate and prefix characters.
 // In the case of a OSC sequence, the cmd will be the OSC command number. Use
-// [Command] and [Parameter] types to unpack command intermediates and markers as well
+// [Cmd] and [Param] types to unpack command intermediates and prefixes as well
 // as parameters.
 //
-// Zero [Command] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
+// Zero [Cmd] means the CSI, DCS, or ESC sequence is invalid. Moreover, checking the
 // validity of other data sequences, OSC, DCS, etc, will require checking for
 // the returned sequence terminator bytes such as ST (ESC \\) and BEL).
 //
-// We store the command byte in [Command] in the most significant byte, the
-// marker byte in the next byte, and the intermediate byte in the least
+// We store the command byte in [Cmd] in the most significant byte, the
+// prefix byte in the next byte, and the intermediate byte in the least
 // significant byte. This is done to avoid using a struct to store the command
-// and its intermediates and markers. The command byte is always the least
-// significant byte i.e. [Cmd & 0xff]. Use the [Command] type to unpack the
-// command, intermediate, and marker bytes. Note that we only collect the last
-// marker character and intermediate byte.
+// and its intermediates and prefixes. The command byte is always the least
+// significant byte i.e. [Cmd & 0xff]. Use the [Cmd] type to unpack the
+// command, intermediate, and prefix bytes. Note that we only collect the last
+// prefix character and intermediate byte.
 //
 // The [p.Params] slice will contain the parameters of the sequence. Any
-// sub-parameter will have the [parser.HasMoreFlag] set. Use the [Parameter] type
+// sub-parameter will have the [parser.HasMoreFlag] set. Use the [Param] type
 // to unpack the parameters.
 //
 // Example:

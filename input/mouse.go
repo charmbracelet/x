@@ -173,17 +173,17 @@ func (e MouseMotionEvent) Mouse() Mouse {
 //	M is for button press, m is for button release
 //
 // https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Extended-coordinates
-func parseSGRMouseEvent(csi *ansi.CsiSequence) Event {
-	x, ok := csi.Param(1, 1)
+func parseSGRMouseEvent(cmd ansi.Cmd, params ansi.Params) Event {
+	x, _, ok := params.Param(1, 1)
 	if !ok {
 		x = 1
 	}
-	y, ok := csi.Param(2, 1)
+	y, _, ok := params.Param(2, 1)
 	if !ok {
 		y = 1
 	}
-	release := csi.Command() == 'm'
-	b, _ := csi.Param(0, 0)
+	release := cmd.Final() == 'm'
+	b, _, _ := params.Param(0, 0)
 	mod, btn, _, isMotion := parseMouseButton(b)
 
 	// (1,1) is the upper left. We subtract 1 to normalize it to (0,0).
