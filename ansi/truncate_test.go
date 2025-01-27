@@ -22,6 +22,14 @@ var tcases = []struct {
 		"",
 	},
 	{
+		"truncate_length_0",
+		"foo",
+		"",
+		0,
+		"",
+		"foo",
+	},
+	{
 		"equalascii",
 		"one",
 		".",
@@ -296,6 +304,105 @@ func TestTruncateLeft(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			if result := TruncateLeft(c.input, c.width, c.extra); result != c.expectLeft {
 				t.Errorf("test case %d failed: expected %q, got %q", i+1, c.expectLeft, result)
+			}
+		})
+	}
+}
+
+func TestCut(t *testing.T) {
+	for i, c := range []struct {
+		desc   string
+		input  string
+		left   int
+		right  int
+		expect string
+	}{
+		{
+			"simple string",
+			"This is a long string", 2, 6,
+			"is i",
+		},
+		{
+			"with ansi",
+			"I really \x1B[38;2;249;38;114mlove\x1B[0m Go!", 4, 25,
+			"ally \x1b[38;2;249;38;114mlove\x1b[0m Go!",
+		},
+		{
+			"left is 0",
+			"Foo \x1B[38;2;249;38;114mbar\x1B[0mbaz", 0, 5,
+			"Foo \x1B[38;2;249;38;114mb\x1B[0m",
+		},
+		{
+			"right is 0",
+			"\x1b[7mHello\x1b[m", 3, 0,
+			"",
+		},
+		{
+			"right is less than left",
+			"\x1b[7mHello\x1b[m", 3, 2,
+			"",
+		},
+		{
+			"cut size is 0",
+			"\x1b[7mHello\x1b[m", 2, 2,
+			"",
+		},
+		{
+			"maintains open ansi",
+			"\x1b[38;5;212;48;5;63mHello, Artichoke!\x1b[m", 7, 16,
+			"\x1b[38;5;212;48;5;63mArtichoke\x1b[m",
+		},
+	} {
+		t.Run(c.input, func(t *testing.T) {
+			got := Cut(c.input, c.left, c.right)
+			if got != c.expect {
+				t.Errorf("%s (#%d):\nexpected: %q\ngot:      %q", c.desc, i+1, c.expect, got)
+			}
+		})
+	}
+}
+
+func TestByteToGraphemeRange(t *testing.T) {
+	cases := []struct {
+		name   string
+		feed   [2]int
+		expect [2]int
+		input  string
+	}{
+		{
+			name:   "simple",
+			input:  "hello world from x/ansi",
+			feed:   [2]int{2, 9},
+			expect: [2]int{2, 9},
+		},
+		{
+			name:   "with emoji",
+			input:  " Downloads",
+			feed:   [2]int{4, 7},
+			expect: [2]int{2, 5},
+		},
+		{
+			name:   "start out of bounds",
+			input:  "some text",
+			feed:   [2]int{-1, 5},
+			expect: [2]int{0, 5},
+		},
+		{
+			name:   "end out of bounds",
+			input:  "some text",
+			feed:   [2]int{1, 50},
+			expect: [2]int{1, 9},
+		},
+	}
+
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			charStart, charStop := ByteToGraphemeRange(tt.input, tt.feed[0], tt.feed[1])
+			if expect := tt.expect[0]; expect != charStart {
+				t.Errorf("expected start to be %d, got %d", expect, charStart)
+			}
+			if expect := tt.expect[1]; expect != charStop {
+				t.Errorf("expected stop to be %d, got %d", expect, charStop)
 			}
 		})
 	}

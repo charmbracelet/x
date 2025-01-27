@@ -5,7 +5,16 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/ansi/kitty"
 )
+
+// KittyGraphicsEvent represents a Kitty Graphics response event.
+//
+// See https://sw.kovidgoyal.net/kitty/graphics-protocol/
+type KittyGraphicsEvent struct {
+	Options kitty.Options
+	Payload []byte
+}
 
 // KittyEnhancementsEvent represents a Kitty enhancements event.
 type KittyEnhancementsEvent int
@@ -301,12 +310,12 @@ func parseKittyKeyboard(csi *ansi.CsiSequence) (Event Event) {
 	}
 
 	if len(key.Text) == 0 && unicode.IsPrint(key.Code) &&
-		(key.Mod <= ModShift || key.Mod == ModCapsLock) {
+		(key.Mod <= ModShift || key.Mod == ModCapsLock || key.Mod == ModShift|ModCapsLock) {
 		if key.Mod == 0 {
 			key.Text = string(key.Code)
 		} else {
 			desiredCase := unicode.ToLower
-			if key.Mod == ModShift || key.Mod == ModCapsLock {
+			if key.Mod.Contains(ModShift) || key.Mod.Contains(ModCapsLock) {
 				desiredCase = unicode.ToUpper
 			}
 			if key.ShiftedCode != 0 {

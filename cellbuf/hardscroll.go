@@ -11,14 +11,7 @@ import (
 func (s *Screen) scrollOptimize() {
 	height := s.newbuf.Height()
 	if s.oldnum == nil || len(s.oldnum) < height {
-		var needLines int
-		if len(s.oldnum) < height {
-			needLines = height
-		} else {
-			needLines = len(s.oldnum)
-		}
-
-		s.oldnum = make([]int, needLines)
+		s.oldnum = make([]int, height)
 	}
 
 	// Calculate the indices
@@ -76,6 +69,11 @@ func (s *Screen) scrollOptimize() {
 
 // scrolln scrolls the screen up by n lines.
 func (s *Screen) scrolln(n, top, bot, maxY int) (v bool) {
+	const (
+		nonDestScrollRegion = false
+		memoryBelow         = false
+	)
+
 	blank := s.clearBlank()
 	if n > 0 {
 		// Scroll up (forward)
@@ -95,14 +93,15 @@ func (s *Screen) scrolln(n, top, bot, maxY int) (v bool) {
 		}
 
 		// Clear newly shifted-in lines.
-		if v {
+		if v &&
+			(nonDestScrollRegion || (memoryBelow && bot == maxY)) {
 			if bot == maxY {
 				s.move(0, bot-n+1)
-				s.clearToBottom(&BlankCell)
+				s.clearToBottom(nil)
 			} else {
 				for i := 0; i < n; i++ {
 					s.move(0, bot-i)
-					s.clearToEnd(&BlankCell, false)
+					s.clearToEnd(nil, false)
 				}
 			}
 		}
@@ -123,10 +122,11 @@ func (s *Screen) scrolln(n, top, bot, maxY int) (v bool) {
 			}
 
 			// Clear newly shifted-in lines.
-			if v {
+			if v &&
+				(nonDestScrollRegion || (memoryBelow && top == 0)) {
 				for i := 0; i < -n; i++ {
 					s.move(0, top+i)
-					s.clearToEnd(&BlankCell, false)
+					s.clearToEnd(nil, false)
 				}
 			}
 		}
@@ -154,10 +154,10 @@ func (s *Screen) scrollBuffer(b *Buffer, n, top, bot int, blank *Cell) {
 	if n < 0 {
 		// shift n lines downwards
 		limit := top - n
-		for line := bot; line >= limit && n >= 0 && n >= top; line-- {
+		for line := bot; line >= limit && line >= 0 && line >= top; line-- {
 			copy(b.Lines[line], b.Lines[line+n])
 		}
-		for line := top; line < limit && n <= b.Height()-1 && n <= bot; line++ {
+		for line := top; line < limit && line <= b.Height()-1 && line <= bot; line++ {
 			b.FillRect(blank, Rect(0, line, b.Width(), 1))
 		}
 	}
@@ -165,10 +165,10 @@ func (s *Screen) scrollBuffer(b *Buffer, n, top, bot int, blank *Cell) {
 	if n > 0 {
 		// shift n lines upwards
 		limit := bot - n
-		for line := top; line <= limit && n <= b.Height()-1 && n <= bot; line++ {
+		for line := top; line <= limit && line <= b.Height()-1 && line <= bot; line++ {
 			copy(b.Lines[line], b.Lines[line+n])
 		}
-		for line := bot; line > limit && n >= 0 && n >= top; line-- {
+		for line := bot; line > limit && line >= 0 && line >= top; line-- {
 			b.FillRect(blank, Rect(0, line, b.Width(), 1))
 		}
 	}
@@ -183,17 +183,11 @@ func (s *Screen) touchLine(width, height, y, n int, changed bool) {
 	}
 
 	for i := y; i < y+n && i < height; i++ {
-		chg, ok := s.touch[i]
 		if changed {
-			chg.firstCell = 0
-			chg.lastCell = width - 1
+			s.touch[i] = lineData{firstCell: 0, lastCell: width - 1}
 		} else {
-			if ok {
-				chg.firstCell = newIndex
-				chg.lastCell = newIndex
-			}
+			delete(s.touch, i)
 		}
-		s.touch[i] = chg
 	}
 }
 

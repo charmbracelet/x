@@ -30,9 +30,16 @@ func (e MultiEvent) String() string {
 
 // WindowSizeEvent is used to report the terminal size. Note that Windows does
 // not have support for reporting resizes via SIGWINCH signals and relies on
-// the Windows Console API to report window size changes. See [newCancelreader]
-// and [conInputReader] for more information.
+// the Windows Console API to report window size changes.
 type WindowSizeEvent struct {
 	Width  int
 	Height int
+}
+
+// WindowOpEvent is a window operation (XTWINOPS) report event. This is used to
+// report various window operations such as reporting the window size or cell
+// size.
+type WindowOpEvent struct {
+	Op   int
+	Args []int
 }

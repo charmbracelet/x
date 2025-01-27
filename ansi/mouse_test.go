@@ -146,7 +146,7 @@ func TestMouseButton(t *testing.T) {
 
 	for i, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got := tc.btn.Button(tc.motion, tc.shift, tc.alt, tc.ctrl)
+			got := EncodeMouseButton(tc.btn, tc.motion, tc.shift, tc.alt, tc.ctrl)
 			if got != tc.want {
 				t.Errorf("test %d: got %08b; want %08b", i+1, got, tc.want)
 			}
@@ -165,63 +165,63 @@ func TestMouseSgr(t *testing.T) {
 	cases := []test{
 		{
 			name: "mouse left",
-			btn:  MouseLeft.Button(false, false, false, false),
+			btn:  EncodeMouseButton(MouseLeft, false, false, false, false),
 			x:    0,
 			y:    0,
 		},
 		{
 			name: "wheel down",
-			btn:  MouseWheelDown.Button(false, false, false, false),
+			btn:  EncodeMouseButton(MouseWheelDown, false, false, false, false),
 			x:    1,
 			y:    10,
 		},
 		{
 			name: "mouse right with shift, alt, and ctrl",
-			btn:  MouseRight.Button(false, true, true, true),
+			btn:  EncodeMouseButton(MouseRight, false, true, true, true),
 			x:    10,
 			y:    1,
 		},
 		{
 			name:    "mouse release",
-			btn:     MouseNone.Button(false, false, false, false),
+			btn:     EncodeMouseButton(MouseNone, false, false, false, false),
 			x:       5,
 			y:       5,
 			release: true,
 		},
 		{
 			name: "mouse button 10 with motion, shift, alt, and ctrl",
-			btn:  MouseButton10.Button(true, true, true, true),
+			btn:  EncodeMouseButton(MouseButton10, true, true, true, true),
 			x:    10,
 			y:    10,
 		},
 		{
 			name: "mouse wheel up with motion",
-			btn:  MouseWheelUp.Button(true, false, false, false),
+			btn:  EncodeMouseButton(MouseWheelUp, true, false, false, false),
 			x:    15,
 			y:    15,
 		},
 		{
 			name: "mouse middle with all modifiers",
-			btn:  MouseMiddle.Button(true, true, true, true),
+			btn:  EncodeMouseButton(MouseMiddle, true, true, true, true),
 			x:    20,
 			y:    20,
 		},
 		{
 			name: "mouse wheel left at max coordinates",
-			btn:  MouseWheelLeft.Button(false, false, false, false),
+			btn:  EncodeMouseButton(MouseWheelLeft, false, false, false, false),
 			x:    223,
 			y:    223,
 		},
 		{
 			name:    "mouse forward release",
-			btn:     MouseForward.Button(false, false, false, false),
+			btn:     EncodeMouseButton(MouseForward, false, false, false, false),
 			x:       100,
 			y:       100,
 			release: true,
 		},
 		{
 			name: "mouse backward with shift and ctrl",
-			btn:  MouseBackward.Button(false, true, false, true),
+			btn:  EncodeMouseButton(MouseBackward, false, true, false, true),
 			x:    50,
 			y:    50,
 		},
