@@ -49,7 +49,7 @@ type Terminal struct {
 	iconName, title string
 
 	// tabstop is the list of tab stops.
-	tabstops *TabStops
+	tabstops *cellbuf.TabStops
 
 	// The input buffer of the terminal.
 	buf bytes.Buffer
@@ -97,7 +97,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.parser.SetParamsSize(parser.MaxParamsSize)
 	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
 	t.resetModes()
-	t.tabstops = DefaultTabStops(w)
+	t.tabstops = cellbuf.DefaultTabStops(w)
 	t.fg = defaultFg
 	t.bg = defaultBg
 	t.cur = defaultCur
@@ -162,7 +162,7 @@ func (t *Terminal) Resize(width int, height int) {
 
 	t.scrs[0].Resize(width, height)
 	t.scrs[1].Resize(width, height)
-	t.tabstops = DefaultTabStops(width)
+	t.tabstops = cellbuf.DefaultTabStops(width)
 
 	t.setCursor(x, y)
 }
@@ -296,4 +296,9 @@ func (t *Terminal) SetIndexedColor(i int, c color.Color) {
 	}
 
 	t.colors[i] = c
+}
+
+// resetTabStops resets the terminal tab stops to the default set.
+func (t *Terminal) resetTabStops() {
+	t.tabstops = cellbuf.DefaultTabStops(t.Width())
 }
