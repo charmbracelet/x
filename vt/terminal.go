@@ -90,7 +90,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 		HandleEsc: t.handleEsc,
 		HandleDcs: t.handleDcs,
 		HandleOsc: t.handleOsc,
-		// Apc:     t.handleApc,
+		HandleApc: t.handleApc,
 		// Pm:      t.handlePm,
 		// Sos:     t.handleSos,
 	})

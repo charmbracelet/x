@@ -25,8 +25,8 @@ type handlers struct {
 	dcsHandlers map[int][]DcsHandler
 	csiHandlers map[int][]CsiHandler
 	oscHandlers map[int][]OscHandler
-	apcHandlers map[int][]ApcHandler
 	escHandler  map[int][]EscHandler
+	apcHandlers []ApcHandler
 }
 
 // RegisterDcsHandler registers a DCS escape sequence handler.
@@ -54,11 +54,8 @@ func (h *handlers) RegisterOscHandler(cmd int, handler OscHandler) {
 }
 
 // RegisterApcHandler registers an APC escape sequence handler.
-func (h *handlers) RegisterApcHandler(cmd int, handler ApcHandler) {
-	if h.apcHandlers == nil {
-		h.apcHandlers = make(map[int][]ApcHandler)
-	}
-	h.apcHandlers[cmd] = append(h.apcHandlers[cmd], handler)
+func (h *handlers) RegisterApcHandler(handler ApcHandler) {
+	h.apcHandlers = append(h.apcHandlers, handler)
 }
 
 // RegisterEscHandler registers an ESC escape sequence handler.
@@ -116,14 +113,12 @@ func (h *handlers) handleOsc(cmd int, data []byte) bool {
 
 // handleApc handles an APC escape sequence.
 // It returns true if the sequence was handled.
-func (h *handlers) handleApc(cmd int, data []byte) bool {
+func (h *handlers) handleApc(data []byte) bool {
 	// Reverse iterate over the handlers so that the last registered handler
 	// is the first to be called.
-	if handlers, ok := h.apcHandlers[cmd]; ok {
-		for i := len(handlers) - 1; i >= 0; i-- {
-			if handlers[i](data) {
-				return true
-			}
+	for i := len(h.apcHandlers) - 1; i >= 0; i-- {
+		if h.apcHandlers[i](data) {
+			return true
 		}
 	}
 	return false
@@ -451,14 +446,14 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 
 	t.RegisterCsiHandler('S', func(params ansi.Params) bool {
 		// Scroll Up [ansi.SU]
-		n, _ := t.parser.Param(0, 1)
+		n, _, _ := params.Param(0, 1)
 		t.scr.ScrollUp(n)
 		return true
 	})
 
 	t.RegisterCsiHandler('T', func(params ansi.Params) bool {
 		// Scroll Down [ansi.SD]
-		n, _ := t.parser.Param(0, 1)
+		n, _, _ := params.Param(0, 1)
 		t.scr.ScrollDown(n)
 		return true
 	})
@@ -474,7 +469,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 
 	t.RegisterCsiHandler('X', func(params ansi.Params) bool {
 		// Erase Character [ansi.ECH]
-		n, _ := t.parser.Param(0, 1)
+		n, _, _ := params.Param(0, 1)
 		t.eraseCharacter(n)
 		return true
 	})
@@ -513,7 +508,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 
 	t.RegisterCsiHandler('c', func(params ansi.Params) bool {
 		// Primary Device Attributes [ansi.DA1]
-		n, _ := t.parser.Param(0, 0)
+		n, _, _ := params.Param(0, 0)
 		if n != 0 {
 			return false
 		}
@@ -530,7 +525,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 
 	t.RegisterCsiHandler(ansi.Command('>', 0, 'c'), func(params ansi.Params) bool {
 		// Secondary Device Attributes [ansi.DA2]
-		n, _ := t.parser.Param(0, 0)
+		n, _, _ := params.Param(0, 0)
 		if n != 0 {
 			return false
 		}
@@ -575,7 +570,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 
 	t.RegisterCsiHandler('g', func(params ansi.Params) bool {
 		// Tab Clear [ansi.TBC]
-		value, _ := t.parser.Param(0, 0)
+		value, _, _ := params.Param(0, 0)
 		switch value {
 		case 0:
 			x, _ := t.scr.CursorPosition()
@@ -621,7 +616,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 
 	t.RegisterCsiHandler('n', func(params ansi.Params) bool {
 		// Device Status Report [ansi.DSR]
-		n, ok := t.parser.Param(0, 1)
+		n, _, ok := params.Param(0, 1)
 		if !ok || n == 0 {
 			return false
 		}
@@ -630,7 +625,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		case 5: // Operating Status
 			// We're always ready ;)
 			// See: https://vt100.net/docs/vt510-rm/DSR-OS.html
-			t.buf.WriteString(ansi.DeviceStatusReport(ansi.DECStatus(0)))
+			t.buf.WriteString(ansi.DeviceStatusReport(ansi.DECStatusReport(0)))
 		case 6: // Cursor Position Report [ansi.CPR]
 			x, y := t.scr.CursorPosition()
 			t.buf.WriteString(ansi.CursorPositionReport(x+1, y+1))
@@ -642,7 +637,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 	})
 
 	t.RegisterCsiHandler(ansi.Command('?', 0, 'n'), func(params ansi.Params) bool {
-		n, ok := t.parser.Param(0, 1)
+		n, _, ok := params.Param(0, 1)
 		if !ok || n == 0 {
 			return false
 		}
@@ -673,7 +668,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 	t.RegisterCsiHandler(ansi.Command(0, ' ', 'q'), func(params ansi.Params) bool {
 		// Set Cursor Style [ansi.DECSCUSR]
 		style := 1
-		if param, ok := t.parser.Param(0, 0); ok && param > style {
+		if param, _, ok := params.Param(0, 0); ok && param > style {
 			style = param
 		}
 		t.scr.setCursorStyle(CursorStyle((style/2)+1), style%2 == 1)
@@ -682,7 +677,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 
 	t.RegisterCsiHandler('r', func(params ansi.Params) bool {
 		// Set Top and Bottom Margins [ansi.DECSTBM]
-		top, _ := t.parser.Param(0, 1)
+		top, _, _ := params.Param(0, 1)
 		if top < 1 {
 			top = 1
 		}
@@ -715,13 +710,13 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 
 		if t.isModeSet(ansi.LeftRightMarginMode) {
 			// Set Left Right Margins [ansi.DECSLRM]
-			left, _ := t.parser.Param(0, 1)
+			left, _, _ := params.Param(0, 1)
 			if left < 1 {
 				left = 1
 			}
 
 			width := t.Width()
-			right, _ := t.parser.Param(1, width)
+			right, _, _ := params.Param(1, width)
 			if right < 1 {
 				right = width
 			}
