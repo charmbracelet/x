@@ -127,9 +127,12 @@ func (s Style) Strikethrough() Style {
 	return append(s, strikethroughAttr)
 }
 
-// NoBold appends the no bold style attribute to the style.
-func (s Style) NoBold() Style {
-	return append(s, noBoldAttr)
+// EcmaDoubleUnderline appends the double underline style attribute to the style.
+// Differs from UnderlineStyle(DoubleUnderlineStyle) by using ECMA-compliant
+// SGR 21 instead of SGR 4 subparameter extension.
+// Some terminals may interpret this as "no bold" attribute.
+func (s Style) EcmaDoubleUnderline() Style {
+	return append(s, doubleUnderlineAttr)
 }
 
 // NormalIntensity appends the normal intensity style attribute to the style.
@@ -236,7 +239,7 @@ const (
 	ReverseAttr                      Attr = 7
 	ConcealAttr                      Attr = 8
 	StrikethroughAttr                Attr = 9
-	NoBoldAttr                       Attr = 21 // Some terminals treat this as double underline.
+	DoubleUnderlineAttr              Attr = 21 // Some terminals treat this as no bold.
 	NormalIntensityAttr              Attr = 22
 	NoItalicAttr                     Attr = 23
 	NoUnderlineAttr                  Attr = 24
@@ -298,7 +301,7 @@ const (
 	reverseAttr                      = "7"
 	concealAttr                      = "8"
 	strikethroughAttr                = "9"
-	noBoldAttr                       = "21"
+	doubleUnderlineAttr              = "21"
 	normalIntensityAttr              = "22"
 	noItalicAttr                     = "23"
 	noUnderlineAttr                  = "24"
