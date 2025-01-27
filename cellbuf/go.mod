@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/cellbuf
 go 1.18
 
 require (
-	github.com/charmbracelet/colorprofile v0.1.10
+	github.com/charmbracelet/colorprofile v0.2.0
 	github.com/charmbracelet/x/ansi v0.8.0
 	github.com/charmbracelet/x/term v0.2.1
 	github.com/mattn/go-runewidth v0.0.16
