@@ -10,13 +10,12 @@ import (
 // NewCell returns a new cell. This is a convenience function that initializes a
 // new cell with the given content. The cell's width is determined by the
 // content using [runewidth.RuneWidth].
-func NewCell(r rune, comb ...rune) *Cell {
-	width := runewidth.StringWidth(string(append([]rune{r}, comb...)))
-	return &Cell{
-		Rune:  r,
-		Comb:  comb,
-		Width: width,
-	}
+func NewCell(r rune, comb ...rune) (c *Cell) {
+	c = new(Cell)
+	c.Rune = r
+	c.Comb = comb
+	c.Width = runewidth.StringWidth(string(append([]rune{r}, comb...)))
+	return
 }
 
 // NewCellString returns a new cell with the given string content. This is a
@@ -24,27 +23,17 @@ func NewCell(r rune, comb ...rune) *Cell {
 // cell's width is determined by the content using [wcwidth.StringWidth].
 // This will only use the first combined rune in the string. If the string is
 // empty, it will return an empty cell with a width of 0.
-func NewCellString(s string) *Cell {
-	var r rune
-	var comb []rune
-	var w int
-	for i, c := range s {
+func NewCellString(s string) (c *Cell) {
+	c = new(Cell)
+	c.Width = runewidth.StringWidth(s)
+	for i, r := range s {
 		if i == 0 {
-			r = c
-			w = runewidth.RuneWidth(c)
+			c.Rune = r
 			continue
 		}
-		if runewidth.RuneWidth(c) > 0 {
-			break
-		}
-		comb = append(comb, c)
+		c.Comb = append(c.Comb, r)
 	}
-
-	return &Cell{
-		Rune:  r,
-		Comb:  comb,
-		Width: w,
-	}
+	return
 }
 
 // NewGraphemeCell returns a new cell. This is a convenience function that
