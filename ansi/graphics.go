@@ -11,7 +11,52 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/x/ansi/kitty"
+	"github.com/charmbracelet/x/ansi/sixel"
 )
+
+// SixelGraphics returns a sequence that encodes the given sixel image payload to
+// a DCS sixel sequence.
+//
+//	DCS p1; p2; p3; q [sixel payload] ST
+//
+// p1 = pixel aspect ratio, deprecated and replaced by pixel metrics in the payload
+//
+// p2 = This is supposed to be 0 for transparency, but terminals don't seem to
+// to use it properly. Value 0 leaves an unsightly black bar on all terminals
+// I've tried and looks correct with value 1.
+//
+// p3 = Horizontal grid size parameter. Everyone ignores this and uses a fixed grid
+// size, as far as I can tell.
+//
+// See https://shuford.invisible-island.net/all_about_sixels.txt
+func SixelGraphics(payload []byte) string {
+	var buf bytes.Buffer
+
+	buf.WriteString("\x1bP0;1;0;q")
+	buf.Write(payload)
+	buf.WriteString("\x1b\\")
+
+	return buf.String()
+}
+
+// WriteSixelGraphics encodes an image as sixels into the provided io.Writer.
+// Options is provided in expectation of future options (such as dithering), but
+// none are yet implemented. o can be nil to use the default options.
+func WriteSixelGraphics(w io.Writer, m image.Image, o *sixel.Options) error {
+	if o == nil {
+		o = &sixel.Options{}
+	}
+
+	e := &sixel.Encoder{}
+
+	data := bytes.NewBuffer(nil)
+	if err := e.Encode(data, m); err != nil {
+		return fmt.Errorf("failed to encode sixel image: %w", err)
+	}
+
+	_, err := io.WriteString(w, SixelGraphics(data.Bytes()))
+	return err
+}
 
 // KittyGraphics returns a sequence that encodes the given image in the Kitty
 // graphics protocol.
