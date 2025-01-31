@@ -16,7 +16,7 @@ func SetWinsize(fd int, w *unix.Winsize) error {
 
 // GetWinsize gets window size for an fd.
 func GetWinsize(fd int) (*unix.Winsize, error) {
-	return unix.IoctlGetWinsize(fd, ioctlSetWinSize)
+	return unix.IoctlGetWinsize(fd, ioctlGetWinSize)
 }
 
 // GetTermios gets the termios of the given fd.
