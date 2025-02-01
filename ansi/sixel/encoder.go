@@ -21,10 +21,12 @@ import (
 // band has been drawn, at which time a line break is written to begin the next band.
 
 const (
-	sixelLineBreak      byte = '-'
-	sixelCarriageReturn byte = '$'
-	sixelRepeat         byte = '!'
-	sixelUseColor       byte = '#'
+	LineBreak      = '-'
+	CarriageReturn = '$'
+	RepeatIntroducer         = '!'
+	ColorIntroducer       = '#'
+	RasterAttribute = '"'
+
 )
 
 type Options struct {
