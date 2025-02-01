@@ -29,7 +29,7 @@ import (
 // size, as far as I can tell.
 //
 // See https://shuford.invisible-island.net/all_about_sixels.txt
-func SixelGraphics(payload []byte) string {
+func SixelGraphics(p1, p2, p3 int, payload []byte) string {
 	var buf bytes.Buffer
 
 	buf.WriteString("\x1bP0;1;0;q")
