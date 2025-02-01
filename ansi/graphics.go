@@ -8,6 +8,7 @@ import (
 	"image"
 	"io"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi/kitty"
@@ -32,7 +33,13 @@ import (
 func SixelGraphics(p1, p2, p3 int, payload []byte) string {
 	var buf bytes.Buffer
 
-	buf.WriteString("\x1bP0;1;0;q")
+	buf.WriteString("\x1bP")
+	buf.WriteString(strconv.Itoa(p1))
+	buf.WriteByte(';')
+	buf.WriteString(strconv.Itoa(p2))
+	buf.WriteByte(';')
+	buf.WriteString(strconv.Itoa(p3))
+	buf.WriteString(";q")
 	buf.Write(payload)
 	buf.WriteString("\x1b\\")
 
@@ -54,7 +61,7 @@ func WriteSixelGraphics(w io.Writer, m image.Image, o *sixel.Options) error {
 		return fmt.Errorf("failed to encode sixel image: %w", err)
 	}
 
-	_, err := io.WriteString(w, SixelGraphics(data.Bytes()))
+	_, err := io.WriteString(w, SixelGraphics(0, 1, 0, data.Bytes()))
 	return err
 }
 

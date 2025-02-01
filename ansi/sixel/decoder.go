@@ -302,7 +302,7 @@ func (d *Decoder) Decode(data []byte) (image.Image, error) {
 	}
 
 	var bounds image.Rectangle
-	if b == '"' {
+	if b == RasterAttribute {
 		var fixedWidth, fixedHeight int
 		// We have pixel dimensions
 		_, err := fmt.Fscanf(buffer, "1;1;%d;%d", &fixedWidth, &fixedHeight)
@@ -331,7 +331,7 @@ func (d *Decoder) Decode(data []byte) (image.Image, error) {
 		}
 
 		// Palette operation
-		if b == sixelUseColor {
+		if b == ColorIntroducer {
 			_, err = fmt.Fscan(buffer, &currentPaletteIndex)
 			if err != nil {
 				return img, d.readError(err)
@@ -370,21 +370,21 @@ func (d *Decoder) Decode(data []byte) (image.Image, error) {
 		}
 
 		// LF
-		if b == sixelLineBreak {
+		if b == LineBreak {
 			currentBandY++
 			currentX = 0
 			continue
 		}
 
 		// CR
-		if b == sixelCarriageReturn {
+		if b == CarriageReturn {
 			currentX = 0
 			continue
 		}
 
 		// RLE operation
 		count := 1
-		if b == sixelRepeat {
+		if b == RepeatIntroducer {
 			_, err = fmt.Fscan(buffer, &count)
 			if err != nil {
 				return img, d.readError(err)

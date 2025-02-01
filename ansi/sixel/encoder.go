@@ -21,12 +21,11 @@ import (
 // band has been drawn, at which time a line break is written to begin the next band.
 
 const (
-	LineBreak      = '-'
-	CarriageReturn = '$'
-	RepeatIntroducer         = '!'
-	ColorIntroducer       = '#'
-	RasterAttribute = '"'
-
+	LineBreak        = '-'
+	CarriageReturn   = '$'
+	RepeatIntroducer = '!'
+	ColorIntroducer  = '#'
+	RasterAttribute  = '"'
 )
 
 type Options struct {
@@ -46,7 +45,8 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 
 	imageBounds := img.Bounds()
 
-	io.WriteString(w, "\"1;1;")                       //nolint:errcheck
+	w.Write([]byte{RasterAttribute})                  //nolint:errcheck
+	io.WriteString(w, "1;1;")                         //nolint:errcheck
 	io.WriteString(w, strconv.Itoa(imageBounds.Dx())) //nolint:errcheck
 	w.Write([]byte{';'})                              //nolint:errcheck
 	io.WriteString(w, strconv.Itoa(imageBounds.Dy())) //nolint:errcheck
@@ -80,7 +80,7 @@ func (e *Encoder) encodePaletteColor(w io.Writer, paletteIndex int, c sixelColor
 	// d = G
 	// e = B
 
-	w.Write([]byte{sixelUseColor})                //nolint:errcheck
+	w.Write([]byte{ColorIntroducer})              //nolint:errcheck
 	io.WriteString(w, strconv.Itoa(paletteIndex)) //nolint:errcheck
 	io.WriteString(w, ";2;")
 	io.WriteString(w, strconv.Itoa(int(c.Red)))   //nolint:errcheck
@@ -157,7 +157,7 @@ func (s *sixelBuilder) GeneratePixels() string {
 
 	for bandY := 0; bandY < bandHeight; bandY++ {
 		if bandY > 0 {
-			s.writeControlRune(sixelLineBreak)
+			s.writeControlRune(LineBreak)
 		}
 
 		hasWrittenAColor := false
@@ -178,11 +178,11 @@ func (s *sixelBuilder) GeneratePixels() string {
 			}
 
 			if hasWrittenAColor {
-				s.writeControlRune(sixelCarriageReturn)
+				s.writeControlRune(CarriageReturn)
 			}
 			hasWrittenAColor = true
 
-			s.writeControlRune(sixelUseColor)
+			s.writeControlRune(ColorIntroducer)
 			s.imageData.WriteString(strconv.Itoa(paletteIndex))
 			for x := 0; x < s.imageWidth; x += 4 {
 				bit := firstColorBit + uint(x*6)
@@ -252,7 +252,7 @@ func (s *sixelBuilder) flushRepeats() {
 	// Only write using the RLE form if it's actually providing space savings
 	if s.repeatCount > 3 {
 		countStr := strconv.Itoa(s.repeatCount)
-		s.imageData.WriteByte(sixelRepeat)
+		s.imageData.WriteByte(RepeatIntroducer)
 		s.imageData.WriteString(countStr)
 		s.imageData.WriteRune(s.repeatRune)
 		return
