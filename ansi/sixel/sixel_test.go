@@ -7,6 +7,52 @@ import (
 	"testing"
 )
 
+func TestScanSize(t *testing.T) {
+	testCases := map[string]struct {
+		data           string
+		expectedWidth  int
+		expectedHeight int
+	}{
+		"two lines": {
+			"~~~~~~-~~~~~~-", 6, 12,
+		},
+		"two lines no newline at end": {
+			"~~~~~~-~~~~~~", 6, 12,
+		},
+		"no pixels": {
+			"", 0, 0,
+		},
+		"smaller carriage returns": {
+			"~$~~$~~~$~~~~$~~~~~$~~~~~~", 6, 6,
+		},
+		"transparent": {
+			"??????", 6, 6,
+		},
+		"RLE": {
+			"??!20?", 22, 6,
+		},
+		"Colors": {
+			"#0;2;0;0;0~~~~~$#1;2;100;100;100;~~~~~~-#0~~~~~~-#1~~~~~~", 6, 18,
+		},
+	}
+
+	for testName, testCase := range testCases {
+		t.Run(testName, func(t *testing.T) {
+			decoder := &Decoder{}
+			width, height := decoder.scanSize([]byte(testCase.data))
+			if width != testCase.expectedWidth {
+				t.Errorf("expected width of %d, but received width of %d", testCase.expectedWidth, width)
+				return
+			}
+
+			if height != testCase.expectedHeight {
+				t.Errorf("expected height of %d, but received height of %d", testCase.expectedHeight, height)
+				return
+			}
+		})
+	}
+}
+
 func TestFullImage(t *testing.T) {
 	testCases := map[string]struct {
 		imageWidth  int

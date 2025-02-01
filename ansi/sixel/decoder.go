@@ -447,7 +447,7 @@ func (d *Decoder) scanSize(data []byte) (int, int) {
 	//
 	// a ! is a RLE indicator, and we should add the numeral to the current width
 	var currentWidth int
-	var newBand bool
+	newBand := true
 	for {
 		b, err := buffer.ReadByte()
 		if err != nil {
