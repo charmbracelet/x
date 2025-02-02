@@ -288,6 +288,11 @@ func ParseRaster(data io.Reader) (pan, pad, ph, pv int, err error) {
 	return
 }
 
+func ParseRepeat(data io.Reader) (count int, r byte, err error) {
+	_, err = fmt.Fscanf(data, "%d%b", &count, &r)
+	return
+}
+
 // Decode will parse sixel image data into an image or return an error.  Because
 // the sixel image format does not have a predictable size, the end of the sixel
 // image data can only be identified when ST, ESC, or BEL has been read from a reader.
@@ -390,13 +395,7 @@ func (d *Decoder) Decode(data []byte) (image.Image, error) {
 		// RLE operation
 		count := 1
 		if b == RepeatIntroducer {
-			_, err = fmt.Fscan(buffer, &count)
-			if err != nil {
-				return img, d.readError(err)
-			}
-
-			// The next byte SHOULD be a pixel
-			b, err = buffer.ReadByte()
+			count, b, err = ParseRepeat(buffer)
 			if err != nil {
 				return img, d.readError(err)
 			}

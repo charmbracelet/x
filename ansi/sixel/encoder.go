@@ -39,6 +39,14 @@ func Raster(pan, pad, ph, pv int) string {
 	return fmt.Sprintf("%s%d;%d;%d;%d", string(RasterAttribute), pan, pad, ph, pv)
 }
 
+func Repeat(count int, repeatRune rune) string {
+	var sb strings.Builder
+	sb.WriteByte(RepeatIntroducer)
+	sb.WriteString(strconv.Itoa(count))
+	sb.WriteRune(repeatRune)
+	return sb.String()
+}
+
 // Encode will accept an Image and write sixel data to a Writer. The sixel data
 // will be everything after the 'q' that ends the DCS parameters and before the ST
 // that ends the sequence.  That means it includes the pixel metrics and color
@@ -252,10 +260,7 @@ func (s *sixelBuilder) flushRepeats() {
 
 	// Only write using the RLE form if it's actually providing space savings
 	if s.repeatCount > 3 {
-		countStr := strconv.Itoa(s.repeatCount)
-		s.imageData.WriteByte(RepeatIntroducer)
-		s.imageData.WriteString(countStr)
-		s.imageData.WriteRune(s.repeatRune)
+		s.imageData.WriteString(Repeat(s.repeatCount, s.repeatRune))
 		return
 	}
 
