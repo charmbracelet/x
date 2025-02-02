@@ -1,6 +1,7 @@
 package sixel
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"io"
@@ -21,17 +22,21 @@ import (
 // band has been drawn, at which time a line break is written to begin the next band.
 
 const (
-	LineBreak        = '-'
-	CarriageReturn   = '$'
-	RepeatIntroducer = '!'
-	ColorIntroducer  = '#'
-	RasterAttribute  = '"'
+	LineBreak        byte = '-'
+	CarriageReturn   byte = '$'
+	RepeatIntroducer byte = '!'
+	ColorIntroducer  byte = '#'
+	RasterAttribute  byte = '"'
 )
 
 type Options struct {
 }
 
 type Encoder struct {
+}
+
+func Raster(pan, pad, ph, pv int) string {
+	return fmt.Sprintf("%s%d;%d;%d;%d", string(RasterAttribute), pan, pad, ph, pv)
 }
 
 // Encode will accept an Image and write sixel data to a Writer. The sixel data
@@ -45,11 +50,7 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 
 	imageBounds := img.Bounds()
 
-	w.Write([]byte{RasterAttribute})                  //nolint:errcheck
-	io.WriteString(w, "1;1;")                         //nolint:errcheck
-	io.WriteString(w, strconv.Itoa(imageBounds.Dx())) //nolint:errcheck
-	w.Write([]byte{';'})                              //nolint:errcheck
-	io.WriteString(w, strconv.Itoa(imageBounds.Dy())) //nolint:errcheck
+	io.WriteString(w, Raster(1, 1, imageBounds.Dx(), imageBounds.Dy())) //nolint:errcheck
 
 	palette := newSixelPalette(img, sixelMaxColors)
 

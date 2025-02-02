@@ -283,6 +283,11 @@ func buildDefaultDecodePalette() map[int]color.Color {
 type Decoder struct {
 }
 
+func ParseRaster(data io.Reader) (pan, pad, ph, pv int, err error) {
+	_, err = fmt.Fscanf(data, "%d;%d;%d;%d", &pan, &pad, &ph, &pv)
+	return
+}
+
 // Decode will parse sixel image data into an image or return an error.  Because
 // the sixel image format does not have a predictable size, the end of the sixel
 // image data can only be identified when ST, ESC, or BEL has been read from a reader.
@@ -305,7 +310,7 @@ func (d *Decoder) Decode(data []byte) (image.Image, error) {
 	if b == RasterAttribute {
 		var fixedWidth, fixedHeight int
 		// We have pixel dimensions
-		_, err := fmt.Fscanf(buffer, "1;1;%d;%d", &fixedWidth, &fixedHeight)
+		_, _, fixedWidth, fixedHeight, err := ParseRaster(buffer)
 		if err != nil {
 			return nil, d.readError(err)
 		}
