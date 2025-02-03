@@ -1075,11 +1075,11 @@ func (s *Screen) clearBottom(total int, force bool) (top int) {
 		}
 
 		if force || top < total {
-			s.moveCursor(0, top, false)
+			s.move(0, top)
 			s.clearToBottom(blank)
 			if !s.opts.AltScreen {
 				// Move to the last line of the screen
-				s.moveCursor(0, s.newbuf.Height()-1, false)
+				s.move(0, s.newbuf.Height()-1)
 			}
 			if s.oldhash != nil && s.newhash != nil &&
 				row < len(s.oldhash) && row < len(s.newhash) {
@@ -1105,7 +1105,7 @@ func (s *Screen) clearScreen(blank *Cell) {
 // clearBelow clears everything below the screen.
 func (s *Screen) clearBelow(blank *Cell, row int) {
 	s.updatePen(blank)
-	s.moveCursor(0, row, false)
+	s.move(0, row)
 	s.clearToBottom(blank)
 	s.cur.X, s.cur.Y = 0, row
 	s.curbuf.FillRect(blank, Rect(0, row, s.curbuf.Width(), s.curbuf.Height()))
@@ -1188,12 +1188,12 @@ func (s *Screen) render() {
 		// We need to scroll the screen up by the number of lines in the queue.
 		// We can't use [ansi.SU] because we want the cursor to move down until
 		// it reaches the bottom of the screen.
-		s.moveCursor(0, s.newbuf.Height()-1, false)
+		s.move(0, s.newbuf.Height()-1)
 		s.buf.WriteString(strings.Repeat("\n", len(s.queueAbove)))
 		s.cur.Y += len(s.queueAbove)
 		// Now go to the top of the screen, insert new lines, and write the
 		// queued strings.
-		s.moveCursor(0, 0, false)
+		s.move(0, 0)
 		s.buf.WriteString(ansi.InsertLine(len(s.queueAbove)))
 		for _, line := range s.queueAbove {
 			s.buf.WriteString(line + "\r\n")
