@@ -246,7 +246,11 @@ func (s *Screen) moveCursor(x, y int, overwrite bool) {
 }
 
 func (s *Screen) move(x, y int) {
-	width, height := s.newbuf.Width(), s.newbuf.Height()
+	// XXX: Make sure we use the max height and width of the buffer in case
+	// we're in the middle of a resize operation.
+	width := max(s.newbuf.Width(), s.curbuf.Width())
+	height := max(s.newbuf.Height(), s.curbuf.Height())
+
 	if width > 0 && x >= width {
 		// Handle autowrap
 		y += (x / width)
@@ -1191,9 +1195,11 @@ func (s *Screen) render() {
 		s.move(0, s.newbuf.Height()-1)
 		s.buf.WriteString(strings.Repeat("\n", len(s.queueAbove)))
 		s.cur.Y += len(s.queueAbove)
-		// Now go to the top of the screen, insert new lines, and write the
-		// queued strings.
-		s.move(0, 0)
+		// XXX: Now go to the top of the screen, insert new lines, and write
+		// the queued strings. It is important to use [Screen.moveCursor]
+		// instead of [Screen.move] because we don't want to perform any checks
+		// on the cursor position.
+		s.moveCursor(0, 0, false)
 		s.buf.WriteString(ansi.InsertLine(len(s.queueAbove)))
 		for _, line := range s.queueAbove {
 			s.buf.WriteString(line + "\r\n")
