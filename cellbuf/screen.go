@@ -914,7 +914,11 @@ func (s *Screen) transformLine(y int) {
 			if nLastCell >= firstCell {
 				s.move(firstCell, y)
 				s.putRange(oldLine, newLine, y, firstCell, nLastCell)
-				copy(oldLine[firstCell:], newLine[firstCell:])
+				if firstCell < len(oldLine) && firstCell < len(newLine) {
+					copy(oldLine[firstCell:], newLine[firstCell:])
+				} else {
+					copy(oldLine, newLine)
+				}
 			}
 
 			return
