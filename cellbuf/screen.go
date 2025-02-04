@@ -730,7 +730,7 @@ func (s *Screen) putRange(oldLine, newLine Line, y, start, end int) (eoi bool) {
 			} else {
 				if same > end-start {
 					s.emitRange(newLine[start:], j-same-start)
-					s.move(y, j)
+					s.move(j, y)
 					start = j
 				}
 				same = 0
