@@ -52,15 +52,15 @@ func (c *Cell) Equal(o *Cell) bool {
 		c.Width == o.Width &&
 		c.Rune == o.Rune &&
 		runesEqual(c.Comb, o.Comb) &&
-		c.Style.Equal(o.Style) &&
-		c.Link.Equal(o.Link)
+		c.Style.Equal(&o.Style) &&
+		c.Link.Equal(&o.Link)
 }
 
 // Empty returns whether the cell is empty.
 func (c Cell) Empty() bool {
-	return c.Rune == 0 &&
+	return c.Width == 0 &&
+		c.Rune == 0 &&
 		len(c.Comb) == 0 &&
-		c.Width == 0 &&
 		c.Style.Empty() &&
 		c.Link.Empty()
 }
@@ -114,8 +114,8 @@ func (h *Link) Reset() {
 }
 
 // Equal returns whether the hyperlink is equal to the other hyperlink.
-func (h Link) Equal(o Link) bool {
-	return h == o
+func (h *Link) Equal(o *Link) bool {
+	return o != nil && h.URL == o.URL && h.URLID == o.URLID
 }
 
 // Empty returns whether the hyperlink is empty.
@@ -320,12 +320,12 @@ func (s Style) DiffSequence(o Style) string {
 }
 
 // Equal returns true if the style is equal to the other style.
-func (s Style) Equal(o Style) bool {
-	return colorEqual(s.Fg, o.Fg) &&
+func (s *Style) Equal(o *Style) bool {
+	return s.Attrs == o.Attrs &&
+		s.UlStyle == o.UlStyle &&
+		colorEqual(s.Fg, o.Fg) &&
 		colorEqual(s.Bg, o.Bg) &&
-		colorEqual(s.Ul, o.Ul) &&
-		s.Attrs == o.Attrs &&
-		s.UlStyle == o.UlStyle
+		colorEqual(s.Ul, o.Ul)
 }
 
 func colorEqual(c, o ansi.Color) bool {

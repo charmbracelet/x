@@ -63,10 +63,6 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs bool) 
 			if cuu := ansi.CursorUp(n); yseq == "" || len(cuu) < len(yseq) {
 				yseq = cuu
 			}
-			if n == 1 && fy-1 > 0 {
-				// TODO: Ensure we're not unintentionally scrolling the screen up.
-				yseq = ansi.ReverseIndex
-			}
 		}
 
 		seq.WriteString(yseq)
@@ -117,9 +113,9 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs bool) 
 			if overwrite && ty >= 0 {
 				for i := 0; i < n; i++ {
 					cell := s.newbuf.Cell(fx+i, ty)
-					if cell != nil {
+					if cell != nil && cell.Width > 0 {
 						i += cell.Width - 1
-						if !cell.Style.Equal(s.cur.Style) || !cell.Link.Equal(s.cur.Link) {
+						if !cell.Style.Equal(&s.cur.Style) || !cell.Link.Equal(&s.cur.Link) {
 							overwrite = false
 							break
 						}
@@ -130,7 +126,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs bool) 
 			if overwrite && ty >= 0 {
 				for i := 0; i < n; i++ {
 					cell := s.newbuf.Cell(fx+i, ty)
-					if cell != nil {
+					if cell != nil && cell.Width > 0 {
 						ovw += cell.String()
 						i += cell.Width - 1
 					} else {
@@ -623,7 +619,7 @@ func (s *Screen) updatePen(cell *Cell) {
 		link = ConvertLink(link, s.opts.Profile)
 	}
 
-	if !style.Equal(s.cur.Style) {
+	if !style.Equal(&s.cur.Style) {
 		seq := style.DiffSequence(s.cur.Style)
 		if style.Empty() && len(seq) > len(ansi.ResetStyle) {
 			seq = ansi.ResetStyle
@@ -631,7 +627,7 @@ func (s *Screen) updatePen(cell *Cell) {
 		s.buf.WriteString(seq) //nolint:errcheck
 		s.cur.Style = style
 	}
-	if !link.Equal(s.cur.Link) {
+	if !link.Equal(&s.cur.Link) {
 		s.buf.WriteString(ansi.SetHyperlink(link.URL, link.URLID)) //nolint:errcheck
 		s.cur.Link = link
 	}
