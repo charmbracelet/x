@@ -63,6 +63,10 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs bool) 
 			if cuu := ansi.CursorUp(n); yseq == "" || len(cuu) < len(yseq) {
 				yseq = cuu
 			}
+			if n == 1 && fy-1 > 0 {
+				// TODO: Ensure we're not unintentionally scrolling the screen up.
+				yseq = ansi.ReverseIndex
+			}
 		}
 
 		seq.WriteString(yseq)
