@@ -279,6 +279,13 @@ func (s *Screen) cursorPen() Style {
 	return s.cur.Pen
 }
 
+// cursorLink returns the cursor link.
+func (s *Screen) cursorLink() Link {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.cur.Link
+}
+
 // ShowCursor shows the cursor.
 func (s *Screen) ShowCursor() {
 	s.setCursorHidden(false)

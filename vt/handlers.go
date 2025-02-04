@@ -159,6 +159,12 @@ func (t *Terminal) registerDefaultOscHandlers() {
 		})
 	}
 
+	t.RegisterOscHandler(8, func(data []byte) bool {
+		// Set/Query Hyperlink [ansi.SetHyperlink]
+		t.handleHyperlink(8, data)
+		return true
+	})
+
 	for _, cmd := range []int{
 		10,  // Set/Query foreground color
 		11,  // Set/Query background color

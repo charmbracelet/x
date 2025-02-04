@@ -12,7 +12,8 @@ const (
 
 // Cursor represents a cursor in a terminal.
 type Cursor struct {
-	Pen Style
+	Pen  Style
+	Link Link
 
 	Position
 

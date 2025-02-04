@@ -64,7 +64,7 @@ func (t *Terminal) handleGrapheme(content string, width int) {
 	}
 
 	cell.Style = t.scr.cursorPen()
-	cell.Link = Link{} // TODO: Link support
+	cell.Link = t.scr.cursorLink()
 
 	if t.scr.SetCell(x, y, cell) {
 		if width == 1 && len(content) == 1 {
