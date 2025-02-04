@@ -2,10 +2,11 @@ package vt
 
 import (
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/input"
 )
 
 // MouseButton represents the button that was pressed during a mouse message.
-type MouseButton byte
+type MouseButton = input.MouseButton
 
 // Mouse event buttons
 //
@@ -25,72 +26,40 @@ type MouseButton byte
 //
 // Other buttons are not supported.
 const (
-	MouseNone MouseButton = iota
-	MouseLeft
-	MouseMiddle
-	MouseRight
-	MouseWheelUp
-	MouseWheelDown
-	MouseWheelLeft
-	MouseWheelRight
-	MouseBackward
-	MouseForward
-	MouseExtra1
-	MouseExtra2
+	MouseNone       = input.MouseNone
+	MouseLeft       = input.MouseLeft
+	MouseMiddle     = input.MouseMiddle
+	MouseRight      = input.MouseRight
+	MouseWheelUp    = input.MouseWheelUp
+	MouseWheelDown  = input.MouseWheelDown
+	MouseWheelLeft  = input.MouseWheelLeft
+	MouseWheelRight = input.MouseWheelRight
+	MouseBackward   = input.MouseBackward
+	MouseForward    = input.MouseForward
+	MouseButton10   = input.MouseButton10
+	MouseButton11   = input.MouseButton11
 )
 
 // Mouse represents a mouse event.
-type Mouse interface {
-	Mouse() mouse
-}
-
-// mouse represents a mouse message. Use [Mouse] to represent all mouse
-// messages.
-//
-// The X and Y coordinates are zero-based, with (0,0) being the upper left
-// corner of the terminal.
-type mouse struct {
-	X, Y   int
-	Button MouseButton
-	Mod    KeyMod
-}
+type Mouse = input.MouseEvent
 
 // MouseClick represents a mouse click event.
-type MouseClick mouse
-
-// Mouse returns the mouse event.
-func (m MouseClick) Mouse() mouse {
-	return mouse(m)
-}
+type MouseClick = input.MouseClickEvent
 
 // MouseRelease represents a mouse release event.
-type MouseRelease mouse
-
-// Mouse returns the mouse event.
-func (m MouseRelease) Mouse() mouse {
-	return mouse(m)
-}
+type MouseRelease = input.MouseReleaseEvent
 
 // MouseWheel represents a mouse wheel event.
-type MouseWheel mouse
-
-// Mouse returns the mouse event.
-func (m MouseWheel) Mouse() mouse {
-	return mouse(m)
-}
+type MouseWheel = input.MouseWheelEvent
 
 // MouseMotion represents a mouse motion event.
-type MouseMotion mouse
+type MouseMotion = input.MouseMotionEvent
 
-// Mouse returns the mouse event.
-func (m MouseMotion) Mouse() mouse {
-	return mouse(m)
-}
-
-// SendMouse sends a mouse event to the terminal.
-// TODO: Support [Utf8ExtMouseMode], [UrxvtExtMouseMode], and
-// [SgrPixelExtMouseMode].
+// SendMouse sends a mouse event to the terminal. This can be any kind of mouse
+// events such as [MouseClick], [MouseRelease], [MouseWheel], or [MouseMotion].
 func (t *Terminal) SendMouse(m Mouse) {
+	// TODO: Support [Utf8ExtMouseMode], [UrxvtExtMouseMode], and
+	// [SgrPixelExtMouseMode].
 	var (
 		enc  ansi.Mode
 		mode ansi.Mode
@@ -123,63 +92,14 @@ func (t *Terminal) SendMouse(m Mouse) {
 		}
 	}
 
-	// mouse bit shifts
-	const (
-		bitShift  = 0b0000_0100
-		bitAlt    = 0b0000_1000
-		bitCtrl   = 0b0001_0000
-		bitMotion = 0b0010_0000
-		bitWheel  = 0b0100_0000
-		bitAdd    = 0b1000_0000 // additional buttons 8-11
-
-		bitsMask = 0b0000_0011
-	)
-
-	var b byte
-	var release bool
-	if _, ok := m.(MouseRelease); ok {
-		release = true
-	}
-
 	// Encode button
 	mouse := m.Mouse()
-	if release && enc == nil {
-		// X10 mouse encoding reports release as a b == 3
-		b = bitsMask
-	} else if mouse.Button >= MouseLeft && mouse.Button <= MouseRight {
-		b = byte(mouse.Button) - byte(MouseLeft)
-	} else if mouse.Button >= MouseWheelUp && mouse.Button <= MouseWheelRight {
-		b = byte(mouse.Button) - byte(MouseWheelUp)
-		b |= bitWheel
-	} else if mouse.Button >= MouseBackward && mouse.Button <= MouseExtra2 {
-		b = byte(mouse.Button) - byte(MouseBackward)
-		b |= bitAdd
-	}
-
-	switch m.(type) {
-	case MouseMotion:
-		switch {
-		case mouse.Button == MouseNone && mode == ansi.AnyEventMouseMode:
-			b = bitsMask
-			fallthrough
-		case mouse.Button > MouseNone && mode == ansi.ButtonEventMouseMode:
-			b |= bitMotion
-		default:
-			// No motion events
-			return
-		}
-	}
-
-	// Encode modifiers
-	if mouse.Mod&ModShift != 0 {
-		b |= bitShift
-	}
-	if mouse.Mod&ModAlt != 0 {
-		b |= bitAlt
-	}
-	if mouse.Mod&ModCtrl != 0 {
-		b |= bitCtrl
-	}
+	_, isMotion := m.(MouseMotion)
+	_, isRelease := m.(MouseRelease)
+	b := ansi.EncodeMouseButton(mouse.Button, isMotion,
+		mouse.Mod.Contains(ModShift),
+		mouse.Mod.Contains(ModAlt),
+		mouse.Mod.Contains(ModCtrl))
 
 	switch enc {
 	// TODO: Support [ansi.HighlightMouseMode].
@@ -188,6 +108,6 @@ func (t *Terminal) SendMouse(m Mouse) {
 	case nil: // X10 mouse encoding
 		t.buf.WriteString(ansi.MouseX10(b, mouse.X, mouse.Y))
 	case ansi.SgrExtMouseMode: // SGR mouse encoding
-		t.buf.WriteString(ansi.MouseSgr(b, mouse.X, mouse.Y, release))
+		t.buf.WriteString(ansi.MouseSgr(b, mouse.X, mouse.Y, isRelease))
 	}
 }
