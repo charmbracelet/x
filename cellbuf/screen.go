@@ -1081,7 +1081,7 @@ func (s *Screen) clearBottom(total int, force bool) (top int) {
 		}
 
 		if force || top < total {
-			s.move(0, top)
+			s.move(0, top-1) // top is 1-based
 			s.clearToBottom(blank)
 			if !s.opts.AltScreen {
 				// Move to the last line of the screen
