@@ -20,10 +20,14 @@ type Option func(editor, filename string) (args []string, pathInArgs bool)
 // OpenAtLine opens the file at the given line number in supported editors.
 //
 // Deprecated: use LineNumber instead.
-func OpenAtLine(n uint) Option { return LineNumber(n) }
+func OpenAtLine(n int) Option { return LineNumber(n) }
 
-// LineNumber opens the file at the given line number in supported editors.
-func LineNumber(number uint) Option {
+// LineNumber opens the file at the given line number in supported editors. If
+// [number] is less than line 1, the file will be opened at line 1.
+func LineNumber(number int) Option {
+	if number < 1 {
+		number = 1
+	}
 	plusLineEditors := []string{"vi", "vim", "nvim", "nano", "emacs", "kak", "gedit"}
 	return func(editor, filename string) ([]string, bool) {
 		for _, e := range plusLineEditors {
