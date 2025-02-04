@@ -105,6 +105,6 @@ func (t *Terminal) repeatPreviousCharacter(n int) {
 		return
 	}
 	for i := 0; i < n; i++ {
-		t.handleUtf8(t.lastChar)
+		t.handlePrint(t.lastChar)
 	}
 }

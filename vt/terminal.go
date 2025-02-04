@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
 	"github.com/charmbracelet/x/cellbuf"
+	"github.com/rivo/uniseg"
 )
 
 // Terminal represents a virtual terminal.
@@ -84,7 +85,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.scr = &t.scrs[0]
 	t.parser = ansi.NewParser() // 4MB data buffer
 	t.parser.SetHandler(ansi.Handler{
-		Print:     t.handleUtf8,
+		Print:     t.handlePrint,
 		Execute:   t.handleControl,
 		HandleCsi: t.handleCsi,
 		HandleEsc: t.handleEsc,
@@ -202,14 +203,24 @@ func (t *Terminal) Write(p []byte) (n int, err error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	var i int
-	for i < len(p) {
-		t.parser.Advance(p[i])
-		// TODO: Support grapheme clusters (mode 2027).
-		i++
+	for len(p) > 0 {
+		action := t.parser.Advance(p[0])
+		if action == parser.CollectAction && t.parser.State() == parser.Utf8State {
+			// Use uniseg to handle UTF-8 sequences.
+			var gr []byte
+			var width int
+			gr, p, width, _ = uniseg.FirstGraphemeCluster(p, -1)
+			t.handleGrapheme(string(gr), width)
+			// Reset the parser back to ground state.
+			t.parser.Reset()
+			n += len(gr)
+		} else {
+			p = p[1:]
+			n++
+		}
 	}
 
-	return i, nil
+	return
 }
 
 // InputPipe returns the terminal's input pipe.

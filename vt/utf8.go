@@ -1,16 +1,34 @@
 package vt
 
 import (
+	"unicode/utf8"
+
 	"github.com/charmbracelet/x/ansi"
+	"github.com/charmbracelet/x/cellbuf"
 	"github.com/mattn/go-runewidth"
 )
 
-// handleUtf8 handles a UTF-8 characters.
-func (t *Terminal) handleUtf8(r rune) {
-	var width int
-	var content string
-	width = runewidth.RuneWidth(r)
-	content = string(r)
+// handlePrint handles printable characters.
+func (t *Terminal) handlePrint(r rune) {
+	t.handleGrapheme(string(r), runewidth.RuneWidth(r))
+}
+
+// handleGrapheme handles UTF-8 graphemes.
+func (t *Terminal) handleGrapheme(content string, width int) {
+	var cell *Cell
+	if t.isModeSet(ansi.GraphemeClusteringMode) {
+		cell = &Cell{}
+		cell.Width = width
+		for i, r := range content {
+			if i == 0 {
+				cell.Rune = r
+			} else {
+				cell.Comb = append(cell.Comb, r)
+			}
+		}
+	} else {
+		cell = cellbuf.NewCellString(content)
+	}
 
 	x, y := t.scr.CursorPosition()
 	if t.atPhantom || x+width > t.scr.Width() {
@@ -37,21 +55,21 @@ func (t *Terminal) handleUtf8(r rune) {
 
 		if charset != nil {
 			if r, ok := charset[c]; ok {
-				content = r
+				cell.Rune = firstRune(r)
+				cell.Comb = nil
+				cell.Width = 1
+				width = 1
 			}
 		}
 	}
 
-	cell := &Cell{
-		Style: t.scr.cursorPen(),
-		Link:  Link{}, // TODO: Link support
-		// FIXME: This is incorrect and ignores combining characters
-		Rune:  firstRune(content),
-		Width: width,
-	}
+	cell.Style = t.scr.cursorPen()
+	cell.Link = Link{} // TODO: Link support
 
 	if t.scr.SetCell(x, y, cell) {
-		t.lastChar = r
+		if width == 1 && len(content) == 1 {
+			t.lastChar, _ = utf8.DecodeRuneInString(content)
+		}
 	}
 
 	// Handle phantom state at the end of the line
