@@ -53,17 +53,14 @@ func main() {
 	os.Stdout.WriteString(ansi.SetMode(modes...))         //nolint:errcheck
 	defer os.Stdout.WriteString(ansi.ResetMode(modes...)) //nolint:errcheck
 
-	x, y := 0, 0
+	x, y := (w/2)-10, h/2
 
-	ctx := scr.NewWindow(10, 5, 40, 10)
 	render := func() {
 		scr.Clear()
-		ctx.Fill(cellbuf.NewCell('你'))
-		text := " !Hello, world! "
-		ctx.SetHyperlink("https://charm.sh")
-		ctx.EnableAttributes(cellbuf.ReverseAttr)
-		ctx.MoveTo(x, y)
-		ctx.PrintTruncate(text, "")
+		scr.Fill(cellbuf.NewCell('你'))
+		text := ansi.SetHyperlink("https://charm.sh") +
+			ansi.Style{}.Reverse().Styled(" !Hello, world! ")
+		scr.Print(x, y, text)
 		scr.Render()
 	}
 
@@ -73,7 +70,6 @@ func main() {
 			w = nw
 		}
 		scr.Resize(nw, nh)
-		ctx.Resize(nw, nh)
 		render()
 	}
 
@@ -99,7 +95,7 @@ func main() {
 			case input.WindowSizeEvent:
 				resize(ev.Width, ev.Height)
 			case input.MouseClickEvent:
-				x, y = ev.X-10, ev.Y-5
+				x, y = ev.X, ev.Y
 			case input.KeyPressEvent:
 				switch ev.String() {
 				case "ctrl+c", "q":
