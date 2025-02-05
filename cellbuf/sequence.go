@@ -120,11 +120,7 @@ func ReadLink(p []byte, link *Link) {
 	if len(params) != 3 {
 		return
 	}
-	for _, param := range bytes.Split(params[1], []byte{':'}) {
-		if bytes.HasPrefix(param, []byte("id=")) {
-			link.URLID = string(param)
-		}
-	}
+	link.Params = string(params[1])
 	link.URL = string(params[2])
 }
 

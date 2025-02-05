@@ -98,8 +98,8 @@ func (c *Cell) Blank() *Cell {
 
 // Link represents a hyperlink in the terminal screen.
 type Link struct {
-	URL   string
-	URLID string
+	URL    string
+	Params string
 }
 
 // String returns a string representation of the hyperlink.
@@ -110,17 +110,17 @@ func (h Link) String() string {
 // Reset resets the hyperlink to the default state zero value.
 func (h *Link) Reset() {
 	h.URL = ""
-	h.URLID = ""
+	h.Params = ""
 }
 
 // Equal returns whether the hyperlink is equal to the other hyperlink.
 func (h *Link) Equal(o *Link) bool {
-	return o != nil && h.URL == o.URL && h.URLID == o.URLID
+	return o != nil && h.URL == o.URL && h.Params == o.Params
 }
 
 // Empty returns whether the hyperlink is empty.
 func (h Link) Empty() bool {
-	return h.URL == "" && h.URLID == ""
+	return h.URL == "" && h.Params == ""
 }
 
 // AttrMask is a bitmask for text attributes that can change the look of text.

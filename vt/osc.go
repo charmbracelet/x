@@ -113,5 +113,5 @@ func (t *Terminal) handleHyperlink(cmd int, data []byte) {
 	}
 
 	t.scr.cur.Link.URL = string(parts[1])
-	t.scr.cur.Link.URLID = string(parts[2])
+	t.scr.cur.Link.Params = string(parts[2])
 }
