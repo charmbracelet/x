@@ -417,13 +417,19 @@ func (s *Screen) Cell(x int, y int) *Cell {
 	return s.newbuf.Cell(x, y)
 }
 
-// Clear implements Window.
-func (s *Screen) Clear() bool {
+// Redraw forces a full redraw of the screen.
+func (s *Screen) Redraw() {
 	s.clear = true
+}
+
+// Clear clears the screen with blank cells. This is a convenience method for
+// [Screen.Fill] with a nil cell.
+func (s *Screen) Clear() bool {
 	return s.ClearRect(s.newbuf.Bounds())
 }
 
-// ClearRect implements Window.
+// ClearRect clears the given rectangle with blank cells. This is a convenience
+// method for [Screen.FillRect] with a nil cell.
 func (s *Screen) ClearRect(r Rectangle) bool {
 	return s.FillRect(nil, r)
 }
@@ -1440,7 +1446,7 @@ func (s *Screen) SetContentRect(str string, rect Rectangle) {
 	str = strings.ReplaceAll(str, "\n", "\r\n")
 	// We're using [Screen.Fill] instead of [Screen.Clear] to avoid force
 	// clearing the screen using [ansi.EraseEntireScreen] which is slow.
-	s.FillRect(nil, rect)
+	s.ClearRect(rect)
 	s.printString(rect.Min.X, rect.Min.Y, rect.Dx(), rect.Dy(), str, true, "")
 }
 
