@@ -1413,41 +1413,52 @@ func (s *Screen) InsertAbove(str string) {
 // its content. If the height or width of the string exceeds the height or
 // width of the screen, it will be truncated.
 //
+// This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape sequences.
+func (s *Screen) SetContent(str string) {
+	s.SetContentRect(str, s.Bounds())
+}
+
+// SetContentRect clears the rectangle within the screen with blank cells, and
+// sets the given string as its content. If the height or width of the string
+// exceeds the height or width of the screen, it will be truncated.
+//
 // This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
 // sequences.
-func (s *Screen) SetContent(str string) {
+func (s *Screen) SetContentRect(str string, rect Rectangle) {
 	// Replace all "\n" with "\r\n" to ensure the cursor is reset to the start
 	// of the line. Make sure we don't replace "\r\n" with "\r\r\n".
 	str = strings.ReplaceAll(str, "\r\n", "\n")
 	str = strings.ReplaceAll(str, "\n", "\r\n")
 	// We're using [Screen.Fill] instead of [Screen.Clear] to avoid force
 	// clearing the screen using [ansi.EraseEntireScreen] which is slow.
-	s.Fill(nil)
-	s.Print(0, 0, str)
+	s.FillRect(nil, rect)
+	s.printString(rect.Min.X, rect.Min.Y, rect.Dx(), rect.Dy(), str, true, "")
 }
 
-// Print prints the string at the given cursor position and truncates the text
-// if it exceeds the width of the screen. Use tail to specify a string to
+// Print prints the string at the current cursor position and truncates the
+// text if it exceeds the width of the screen. Use tail to specify a string to
 // append if the string is truncated.
 // This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
 // sequences.
-func (s *Screen) Print(x, y int, str string, tail ...string) {
-	s.printString(x, y, str, true, strings.Join(tail, ""))
+func (s *Screen) PrintAt(x, y int, str string, tail ...string) {
+	s.printString(x, y, s.Width(), s.Height(), str, true, strings.Join(tail, ""))
 }
 
-// Printw prints the string at the given cursor position and wraps the text if
-// it exceeds the width of the screen.
+// Printw prints the string at the current cursor position and wraps the text
+// if it exceeds the width of the screen.
 // This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
 // sequences.
-func (s *Screen) Printw(x, y int, str string) {
-	s.printString(x, y, str, false, "")
+func (s *Screen) PrintwAt(x, y int, str string) {
+	s.printString(x, y, s.Width(), s.Height(), str, false, "")
 }
 
 // printString draws a string starting at the given position.
-func (s *Screen) printString(x, y int, str string, truncate bool, tail string) {
+func (s *Screen) printString(x, y, w, h int, str string, truncate bool, tail string) {
+	bounds := Rect(x, y, w, h)
+	origX, origY := x, y
 	wrapCursor := func() {
 		// Wrap the string to the width of the window
-		x = 0
+		x = origX
 		y++
 	}
 
@@ -1487,14 +1498,11 @@ func (s *Screen) printString(x, y int, str string, truncate bool, tail string) {
 				cell = newGraphemeCell(seq, width)
 			}
 
-			if !truncate && x >= s.Width() {
+			if !truncate && x >= w+origX {
 				// Auto wrap the cursor.
 				wrapCursor()
-				if y >= s.Height() {
-					break
-				}
-			} else if truncate && x+width > s.Width()-tailc.Width {
-				if !Pos(x, y).In(s.Bounds()) {
+			} else if truncate && x+width > origX+w-tailc.Width {
+				if !Pos(x, y).In(bounds) {
 					break
 				}
 
@@ -1502,7 +1510,12 @@ func (s *Screen) printString(x, y int, str string, truncate bool, tail string) {
 				cell := tailc
 				cell.Style = s.cur.Style
 				cell.Link = s.cur.Link
-				s.SetCell(x, y, &cell)
+				s.newbuf.SetCell(x, y, &cell)
+				break
+			}
+
+			if y >= h+origY {
+				// String is too long for the window.
 				break
 			}
 
@@ -1532,7 +1545,7 @@ func (s *Screen) printString(x, y int, str string, truncate bool, tail string) {
 					y++
 				}
 			case ansi.Equal(seq, "\r"):
-				x = 0
+				x = origX
 			}
 		}
 
