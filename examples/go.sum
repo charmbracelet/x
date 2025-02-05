@@ -1,5 +1,5 @@
-github.com/charmbracelet/colorprofile v0.1.10-0.20250125232710-602ea259b0c8 h1:vG6Rjlc1uOAefKeKKOOgUvfZpzOhZ3CRsrKEIKYMY9A=
-github.com/charmbracelet/colorprofile v0.1.10-0.20250125232710-602ea259b0c8/go.mod h1:F6Bp9eJqNKFwPl00QmAqyEd89wzO8Hhvz+PMCrNp+HQ=
+github.com/charmbracelet/colorprofile v0.2.0 h1:iiIQlp3LSvoJPtR11KoDfIf9wqWm2mn/iU420rHOZ/A=
+github.com/charmbracelet/colorprofile v0.2.0/go.mod h1:6wPrSSR4QtwYtOY3h0bLRw5YOUAIKWlZIJ02CTAsZsk=
 github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2.0.20250125233033-58a153eb00e6 h1:SL+y2koIzHnj8Mlde4UULviy6hPOzIsmroV9CV3jaBc=
 github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2.0.20250125233033-58a153eb00e6/go.mod h1:SmnBx+JGxy7zdh0MrEA+JCxXkWrqVCz1DWQ1RSkjRMc=
 github.com/charmbracelet/x/ansi v0.8.0 h1:9GTq3xq9caJW8ZrBTe0LIe2fvfLR/bYXKTx2llXn7xE=
