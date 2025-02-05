@@ -335,7 +335,7 @@ type lineData struct {
 	// first and last changed cell indices
 	firstCell, lastCell int
 	// old index used for scrolling
-	oldIndex int
+	oldIndex int //nolint:unused
 }
 
 // Screen represents the terminal screen.
