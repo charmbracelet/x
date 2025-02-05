@@ -562,6 +562,8 @@ func (s *Screen) putCell(cell *Cell) {
 }
 
 // wrapCursor wraps the cursor to the next line.
+//
+//nolint:unused
 func (s *Screen) wrapCursor() {
 	const autoRightMargin = true
 	if autoRightMargin {
@@ -582,11 +584,11 @@ func (s *Screen) putAttrCell(cell *Cell) {
 		cell = s.clearBlank()
 	}
 
-	if cell.Width > 0 && s.cur.X >= s.newbuf.Width() {
-		// We're at pending wrap state (phantom cell), incoming cell should
-		// wrap.
-		s.wrapCursor()
-	}
+	// if cell.Width > 0 && s.cur.X >= s.newbuf.Width() {
+	// 	// We're at pending wrap state (phantom cell), incoming cell should
+	// 	// wrap.
+	// 	s.wrapCursor()
+	// }
 
 	s.updatePen(cell)
 	s.buf.WriteRune(cell.Rune) //nolint:errcheck
@@ -596,6 +598,13 @@ func (s *Screen) putAttrCell(cell *Cell) {
 	s.cur.X += cell.Width
 	if cell.Width > 0 {
 		s.queuedText = true
+	}
+
+	if s.cur.X >= s.newbuf.Width() {
+		// TODO: Properly handle autowrap, this is probably wrong.
+		// See commented code above and commit dae086958a3e.
+		// s.wrapCursor()
+		s.cur.X = s.newbuf.Width() - 1
 	}
 }
 
