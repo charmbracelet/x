@@ -56,11 +56,11 @@ func main() {
 	x, y := (w/2)-10, h/2
 
 	render := func() {
-		scr.Clear()
+		scr.Fill(nil)
 		scr.Fill(cellbuf.NewCell('你'))
 		text := ansi.SetHyperlink("https://charm.sh") +
 			ansi.Style{}.Reverse().Styled(" !Hello, world! ")
-		scr.Print(x, y, text)
+		scr.PrintAt(x, y, text)
 		scr.Render()
 	}
 

@@ -407,13 +407,13 @@ func main() {
 	}
 
 	dialogWidth := lipgloss.Width(dialogUI) + dialogBoxStyle.GetHorizontalFrameSize()
-	// dialogHeight := lipgloss.Height(dialogUI) + dialogBoxStyle.GetVerticalFrameSize()
+	dialogHeight := lipgloss.Height(dialogUI) + dialogBoxStyle.GetVerticalFrameSize()
 	dialogX, dialogY := physicalWidth/2-dialogWidth/2-docStyle.GetVerticalFrameSize()-1, 12
 	render := func() {
 		scr.Clear()
 		scr.SetContent(docStyle.Render(doc.String()))
-		// box := scr.NewWindow(dialogX, dialogY, dialogWidth, dialogHeight)
-		// box.SetContent(dialogBoxStyle.Render(dialogUI))
+		box := cellbuf.Rect(dialogX, dialogY, dialogWidth, dialogHeight)
+		scr.SetContentRect(dialogBoxStyle.Render(dialogUI)+"\nabc", box)
 		scr.Render()
 	}
 
