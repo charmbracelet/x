@@ -301,8 +301,8 @@ func (s *Screen) move(x, y int) {
 
 // Cursor represents a terminal Cursor.
 type Cursor struct {
-	Style Style
-	Link  Link
+	Style
+	Link
 	Position
 }
 
@@ -630,25 +630,23 @@ func (s *Screen) updatePen(cell *Cell) {
 		cell = &BlankCell
 	}
 
-	style := cell.Style
-	link := cell.Link
 	if s.opts.Profile != 0 {
 		// Downsample colors to the given color profile.
-		style = ConvertStyle(style, s.opts.Profile)
-		link = ConvertLink(link, s.opts.Profile)
+		cell.Style = ConvertStyle(cell.Style, s.opts.Profile)
+		cell.Link = ConvertLink(cell.Link, s.opts.Profile)
 	}
 
-	if !style.Equal(&s.cur.Style) {
-		seq := style.DiffSequence(s.cur.Style)
-		if style.Empty() && len(seq) > len(ansi.ResetStyle) {
+	if !cell.Style.Equal(&s.cur.Style) {
+		seq := cell.Style.DiffSequence(s.cur.Style)
+		if cell.Style.Empty() && len(seq) > len(ansi.ResetStyle) {
 			seq = ansi.ResetStyle
 		}
 		s.buf.WriteString(seq) //nolint:errcheck
-		s.cur.Style = style
+		s.cur.Style = cell.Style
 	}
-	if !link.Equal(&s.cur.Link) {
-		s.buf.WriteString(ansi.SetHyperlink(link.URL, link.URLID)) //nolint:errcheck
-		s.cur.Link = link
+	if !cell.Link.Equal(&s.cur.Link) {
+		s.buf.WriteString(ansi.SetHyperlink(cell.Link.URL, cell.Link.Params)) //nolint:errcheck
+		s.cur.Link = cell.Link
 	}
 }
 
