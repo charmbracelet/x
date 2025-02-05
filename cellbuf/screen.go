@@ -618,10 +618,14 @@ func (s *Screen) putAttrCell(cell *Cell) {
 func (s *Screen) putCellLR(cell *Cell) {
 	// Optimize for the lower right corner cell.
 	curX := s.cur.X
-	s.buf.WriteString(ansi.ResetAutoWrapMode) //nolint:errcheck
+	if cell == nil || cell.Width > 0 {
+		s.buf.WriteString(ansi.ResetAutoWrapMode) //nolint:errcheck
+	}
 	s.putAttrCell(cell)
-	s.cur.X = curX
-	s.buf.WriteString(ansi.SetAutoWrapMode) //nolint:errcheck
+	if cell == nil || cell.Width > 0 {
+		s.cur.X = curX
+		s.buf.WriteString(ansi.SetAutoWrapMode) //nolint:errcheck
+	}
 }
 
 // updatePen updates the cursor pen styles.
