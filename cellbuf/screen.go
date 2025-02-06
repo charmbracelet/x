@@ -270,19 +270,29 @@ func (s *Screen) move(x, y int) {
 	// 	s.buf.WriteString(ansi.ResetStyle) //nolint:errcheck
 	// }
 
-	if width > 0 && s.cur.X >= width {
-		l := (s.cur.X + 1) / width
-
-		s.cur.Y += l
-		if height > 0 && s.cur.Y >= height {
-			l -= s.cur.Y - height - 1
-		}
-
-		if l > 0 {
-			s.cur.X = 0
-			s.buf.WriteString("\r" + strings.Repeat("\n", l)) //nolint:errcheck
-		}
+	// Reset wrap around (phantom cursor) state
+	if s.atPhantom {
+		s.cur.X = 0
+		s.buf.WriteByte('\r') //nolint:errcheck
+		s.atPhantom = false   // reset phantom cell state
 	}
+
+	// TODO: Investigate if we need to handle this case and/or if we need the
+	// following code.
+	//
+	// if width > 0 && s.cur.X >= width {
+	// 	l := (s.cur.X + 1) / width
+	//
+	// 	s.cur.Y += l
+	// 	if height > 0 && s.cur.Y >= height {
+	// 		l -= s.cur.Y - height - 1
+	// 	}
+	//
+	// 	if l > 0 {
+	// 		s.cur.X = 0
+	// 		s.buf.WriteString("\r" + strings.Repeat("\n", l)) //nolint:errcheck
+	// 	}
+	// }
 
 	if height > 0 {
 		if s.cur.Y > height-1 {
@@ -363,6 +373,7 @@ type Screen struct {
 	clear            bool // whether to force clear the screen
 	xtermLike        bool // whether to use xterm-like optimizations, otherwise, it uses vt100 only
 	queuedText       bool // whether we have queued non-zero width text queued up
+	atPhantom        bool // whether the cursor is out of bounds and at a phantom cell
 }
 
 // SetMethod sets the method used to calculate the width of cells.
@@ -586,6 +597,10 @@ func (s *Screen) wrapCursor() {
 
 func (s *Screen) putAttrCell(cell *Cell) {
 	if cell != nil && cell.Empty() {
+		// XXX: Zero width cells are special and should not be written to the
+		// screen no matter what other attributes they have.
+		// Zero width cells are used for wide characters that are split into
+		// multiple cells.
 		return
 	}
 
@@ -593,27 +608,25 @@ func (s *Screen) putAttrCell(cell *Cell) {
 		cell = s.clearBlank()
 	}
 
-	// if cell.Width > 0 && s.cur.X >= s.newbuf.Width() {
-	// 	// We're at pending wrap state (phantom cell), incoming cell should
-	// 	// wrap.
-	// 	s.wrapCursor()
-	// }
-
-	s.updatePen(cell)
-	s.buf.WriteRune(cell.Rune) //nolint:errcheck
-	for _, c := range cell.Comb {
-		s.buf.WriteRune(c) //nolint:errcheck
+	// We're at pending wrap state (phantom cell), incoming cell should
+	// wrap.
+	if s.atPhantom {
+		s.wrapCursor()
+		s.atPhantom = false
 	}
-	s.cur.X += cell.Width
+
 	if cell.Width > 0 {
+		s.updatePen(cell)
+		s.buf.WriteRune(cell.Rune) //nolint:errcheck
+		for _, c := range cell.Comb {
+			s.buf.WriteRune(c) //nolint:errcheck
+		}
+		s.cur.X += cell.Width
 		s.queuedText = true
 	}
 
 	if s.cur.X >= s.newbuf.Width() {
-		// TODO: Properly handle autowrap, this is probably wrong.
-		// See commented code above and commit dae086958a3e.
-		// s.wrapCursor()
-		s.cur.X = s.newbuf.Width() - 1
+		s.atPhantom = true
 	}
 }
 
