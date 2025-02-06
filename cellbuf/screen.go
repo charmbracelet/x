@@ -615,13 +615,15 @@ func (s *Screen) putAttrCell(cell *Cell) {
 		s.atPhantom = false
 	}
 
+	s.updatePen(cell)
+	s.buf.WriteRune(cell.Rune) //nolint:errcheck
+	for _, c := range cell.Comb {
+		s.buf.WriteRune(c) //nolint:errcheck
+	}
+
+	s.cur.X += cell.Width
+
 	if cell.Width > 0 {
-		s.updatePen(cell)
-		s.buf.WriteRune(cell.Rune) //nolint:errcheck
-		for _, c := range cell.Comb {
-			s.buf.WriteRune(c) //nolint:errcheck
-		}
-		s.cur.X += cell.Width
 		s.queuedText = true
 	}
 
@@ -634,13 +636,11 @@ func (s *Screen) putAttrCell(cell *Cell) {
 func (s *Screen) putCellLR(cell *Cell) {
 	// Optimize for the lower right corner cell.
 	curX := s.cur.X
-	if cell == nil || cell.Width > 0 {
+	if cell == nil || !cell.Empty() {
 		s.buf.WriteString(ansi.ResetAutoWrapMode) //nolint:errcheck
-	}
-	s.putAttrCell(cell)
-	// Writing to lower-right corner cell should not wrap.
-	s.atPhantom = false
-	if cell == nil || cell.Width > 0 {
+		s.putAttrCell(cell)
+		// Writing to lower-right corner cell should not wrap.
+		s.atPhantom = false
 		s.cur.X = curX
 		s.buf.WriteString(ansi.SetAutoWrapMode) //nolint:errcheck
 	}
