@@ -93,8 +93,8 @@ type model int
 
 // Init optionally returns an initial command we should run. In this case we
 // want to start the timer.
-func (m model) Init() (tea.Model, tea.Cmd) {
-	return m, tick
+func (m model) Init() tea.Cmd {
+	return tick
 }
 
 // Update is called when messages are received. The idea is that you inspect the
