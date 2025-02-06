@@ -638,6 +638,8 @@ func (s *Screen) putCellLR(cell *Cell) {
 		s.buf.WriteString(ansi.ResetAutoWrapMode) //nolint:errcheck
 	}
 	s.putAttrCell(cell)
+	// Writing to lower-right corner cell should not wrap.
+	s.atPhantom = false
 	if cell == nil || cell.Width > 0 {
 		s.cur.X = curX
 		s.buf.WriteString(ansi.SetAutoWrapMode) //nolint:errcheck
