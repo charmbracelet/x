@@ -1053,8 +1053,10 @@ func (s *Screen) transformLine(y int) {
 	}
 
 	// Update the old line with the new line
-	if s.newbuf.Width() >= firstCell && len(oldLine) != 0 {
+	if firstCell < len(oldLine) && firstCell < len(newLine) {
 		copy(oldLine[firstCell:], newLine[firstCell:])
+	} else {
+		copy(oldLine, newLine)
 	}
 }
 
