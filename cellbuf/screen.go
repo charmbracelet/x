@@ -1157,7 +1157,9 @@ func (s *Screen) clearUpdate(partial bool) {
 	blank := s.clearBlank()
 	var nonEmpty int
 	if s.opts.AltScreen {
-		nonEmpty = min(s.curbuf.Height(), s.newbuf.Height())
+		// XXX: We're using the maximum height of the two buffers to ensure
+		// we write newly added lines to the screen in [Screen.transformLine].
+		nonEmpty = max(s.curbuf.Height(), s.newbuf.Height())
 		s.clearScreen(blank)
 	} else {
 		nonEmpty = s.newbuf.Height()
