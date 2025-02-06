@@ -352,7 +352,6 @@ type Screen struct {
 	oldnum           []int     // old indices from previous hash
 	cur, saved       Cursor    // the current and saved cursors
 	opts             ScreenOptions
-	finPos           Position // the position of the cursor after the last render
 	mu               sync.Mutex
 	method           ansi.Method
 	altScreenMode    bool // whether alternate screen mode is enabled
@@ -1177,8 +1176,7 @@ func (s *Screen) render() {
 		!s.opts.ShowCursor == s.cursorHidden &&
 		!s.clear &&
 		len(s.touch) == 0 &&
-		len(s.queueAbove) == 0 &&
-		s.finPos == undefinedPos {
+		len(s.queueAbove) == 0 {
 		return
 	}
 
@@ -1287,12 +1285,6 @@ func (s *Screen) render() {
 	}
 
 	s.updatePen(nil) // nil indicates a blank cell with no styles
-
-	// Move the cursor to the specified position.
-	if s.finPos != undefinedPos {
-		s.move(s.finPos.X, s.finPos.Y)
-		s.finPos = undefinedPos
-	}
 
 	if s.buf.Len() > 0 {
 		// Is the cursor visible? If so, disable it while rendering.
@@ -1406,18 +1398,11 @@ func (s *Screen) Resize(width, height int) bool {
 	return true
 }
 
-// SetFinalCursorPosition sets the final cursor position. It returns false if
-// the position is out of bounds.
-// Next call to [Screen.Render] will move the cursor to the final position.
-func (s *Screen) SetFinalCursorPosition(x, y int) bool {
-	pos := Pos(x, y)
-	if !pos.In(s.Bounds()) {
-		return false
-	}
+// MoveTo moves the cursor to the given position.
+func (s *Screen) MoveTo(x, y int) {
 	s.mu.Lock()
-	s.finPos = pos
+	s.move(x, y)
 	s.mu.Unlock()
-	return true
 }
 
 // InsertAbove inserts string above the screen. The inserted string is not
