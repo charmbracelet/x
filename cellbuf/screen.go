@@ -3,11 +3,11 @@ package cellbuf
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"strings"
 	"sync"
-	"unicode/utf8"
 
 	"github.com/charmbracelet/colorprofile"
 	"github.com/charmbracelet/x/ansi"
@@ -1463,36 +1463,51 @@ func (s *Screen) SetContentRect(str string, rect Rectangle) {
 	// We're using [Screen.Fill] instead of [Screen.Clear] to avoid force
 	// clearing the screen using [ansi.EraseEntireScreen] which is slow.
 	s.ClearRect(rect)
-	s.printString(rect.Min.X, rect.Min.Y, rect.Dx(), rect.Dy(), str, true, "")
+	s.printString(rect.Min.X, rect.Min.Y, rect, str, true, "")
 }
 
-// Print prints the string at the current cursor position and truncates the
+// Print prints the string at the current cursor position. It will wrap the
+// string to the width of the screen if it exceeds the width of the screen.
+// This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
+// sequences.
+func (s *Screen) Print(str string, v ...interface{}) {
+	if len(v) > 0 {
+		str = fmt.Sprintf(str, v...)
+	}
+	s.printString(s.cur.X, s.cur.Y, s.Bounds(), str, false, "")
+}
+
+// PrintAt prints the string at the given position. It will wrap the string to
+// the width of the screen if it exceeds the width of the screen.
+// This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
+// sequences.
+func (s *Screen) PrintAt(x, y int, str string, v ...interface{}) {
+	if len(v) > 0 {
+		str = fmt.Sprintf(str, v...)
+	}
+	s.printString(x, y, s.Bounds(), str, false, "")
+}
+
+// PrintCrop prints the string at the current cursor position and truncates the
 // text if it exceeds the width of the screen. Use tail to specify a string to
 // append if the string is truncated.
 // This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
 // sequences.
-func (s *Screen) PrintAt(x, y int, str string, tail ...string) {
-	s.printString(x, y, s.Width(), s.Height(), str, true, strings.Join(tail, ""))
+func (s *Screen) PrintCrop(str string, tail string) {
+	s.printString(s.cur.X, s.cur.Y, s.Bounds(), str, true, tail)
 }
 
-// Printw prints the string at the current cursor position and wraps the text
-// if it exceeds the width of the screen.
+// PrintCropAt prints the string at the given position and truncates the text
+// if it exceeds the width of the screen. Use tail to specify a string to append
+// if the string is truncated.
 // This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
 // sequences.
-func (s *Screen) PrintwAt(x, y int, str string) {
-	s.printString(x, y, s.Width(), s.Height(), str, false, "")
+func (s *Screen) PrintCropAt(x, y int, str string, tail string) {
+	s.printString(x, y, s.Bounds(), str, true, tail)
 }
 
 // printString draws a string starting at the given position.
-func (s *Screen) printString(x, y, w, h int, str string, truncate bool, tail string) {
-	bounds := Rect(x, y, w, h)
-	origX, origY := x, y
-	wrapCursor := func() {
-		// Wrap the string to the width of the window
-		x = origX
-		y++
-	}
-
+func (s *Screen) printString(x, y int, bounds Rectangle, str string, truncate bool, tail string) {
 	p := ansi.GetParser()
 	defer ansi.PutParser(p)
 
@@ -1507,56 +1522,41 @@ func (s *Screen) printString(x, y, w, h int, str string, truncate bool, tail str
 
 	var state byte
 	for len(str) > 0 {
-		seq, width, n, newState := ansi.DecodeSequence(str, state, p)
+		seq, width, n, newState := s.method.DecodeSequenceInString(str, state, p)
 
 		var cell *Cell
 		switch width {
 		case 1, 2, 3, 4: // wide cells can go up to 4 cells wide
-			switch s.method {
-			case ansi.WcWidth:
-				cell = NewCellString(seq)
-
-				// We're breaking the grapheme to respect wcwidth's behavior
-				// while keeping combining characters together.
-				n = utf8.RuneLen(cell.Rune)
-				for _, c := range cell.Comb {
-					n += utf8.RuneLen(c)
+			cell = &Cell{Width: width}
+			for i, r := range seq {
+				if i == 0 {
+					cell.Rune = r
+				} else {
+					cell.Comb = append(cell.Comb, r)
 				}
-				newState = 0
-
-			case ansi.GraphemeWidth:
-				// [ansi.DecodeSequence] already handles grapheme clusters
-				cell = newGraphemeCell(seq, width)
 			}
 
-			if !truncate && x >= w+origX {
-				// Auto wrap the cursor.
-				wrapCursor()
-			} else if truncate && x+width > origX+w-tailc.Width {
-				if !Pos(x, y).In(bounds) {
-					break
+			if !truncate && x+cell.Width > bounds.Max.X {
+				// Wrap the string to the width of the window
+				x = bounds.Min.X
+				y++
+			}
+			if Pos(x, y).In(bounds) {
+				if truncate && tailc.Width > 0 && x+cell.Width > bounds.Max.X-tailc.Width {
+					// Truncate the string and append the tail if any.
+					cell := tailc
+					cell.Style = s.cur.Style
+					cell.Link = s.cur.Link
+					s.SetCell(x, y, &cell)
+					x += tailc.Width
+				} else {
+					// Print the cell to the screen
+					cell.Style = s.cur.Style
+					cell.Link = s.cur.Link
+					s.SetCell(x, y, cell) //nolint:errcheck
+					x += width
 				}
-
-				// Truncate the string and append the tail if any.
-				cell := tailc
-				cell.Style = s.cur.Style
-				cell.Link = s.cur.Link
-				s.newbuf.SetCell(x, y, &cell)
-				break
-			}
-
-			if y >= h+origY {
-				// String is too long for the window.
-				break
-			}
-
-			cell.Style = s.cur.Style
-			cell.Link = s.cur.Link
-
-			s.newbuf.SetCell(x, y, cell) //nolint:errcheck
-
-			// Advance the cursor and line width
-			x += cell.Width
+			} // String is too long for the line, truncate it.
 		default:
 			// Valid sequences always have a non-zero Cmd.
 			// TODO: Handle cursor movement and other sequences
@@ -1572,11 +1572,9 @@ func (s *Screen) printString(x, y, w, h int, str string, truncate bool, tail str
 					ReadLink(p.Data(), &s.cur.Link)
 				}
 			case ansi.Equal(seq, "\n"):
-				if y+1 < s.Height() {
-					y++
-				}
+				y++
 			case ansi.Equal(seq, "\r"):
-				x = origX
+				x = bounds.Min.X
 			}
 		}
 
