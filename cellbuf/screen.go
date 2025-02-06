@@ -1286,16 +1286,16 @@ func (s *Screen) render() {
 
 	s.updatePen(nil) // nil indicates a blank cell with no styles
 
-	if s.buf.Len() > 0 {
+	// Do we have enough changes to justify toggling the cursor?
+	if s.buf.Len() > 1 &&
 		// Is the cursor visible? If so, disable it while rendering.
-		if s.opts.ShowCursor && !s.cursorHidden && s.queuedText {
-			// OPTIM: We only hide the cursor if we have queued non-zero width text.
-			nb := new(bytes.Buffer)
-			nb.WriteString(ansi.HideCursor)
-			nb.Write(s.buf.Bytes())
-			nb.WriteString(ansi.ShowCursor)
-			*s.buf = *nb
-		}
+		s.opts.ShowCursor && !s.cursorHidden && s.queuedText {
+		// OPTIM: We only hide the cursor if we have queued non-zero width text.
+		nb := new(bytes.Buffer)
+		nb.WriteString(ansi.HideCursor)
+		nb.Write(s.buf.Bytes())
+		nb.WriteString(ansi.ShowCursor)
+		*s.buf = *nb
 	}
 
 	s.queuedText = false
