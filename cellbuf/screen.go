@@ -1520,21 +1520,15 @@ func (s *Screen) printString(x, y int, bounds Rectangle, str string, truncate bo
 		}
 	}
 
+	var cell Cell
 	var state byte
 	for len(str) > 0 {
 		seq, width, n, newState := s.method.DecodeSequenceInString(str, state, p)
 
-		var cell *Cell
 		switch width {
 		case 1, 2, 3, 4: // wide cells can go up to 4 cells wide
-			cell = &Cell{Width: width}
-			for i, r := range seq {
-				if i == 0 {
-					cell.Rune = r
-				} else {
-					cell.Comb = append(cell.Comb, r)
-				}
-			}
+			cell.Width += width
+			cell.Append([]rune(seq)...)
 
 			if !truncate && x+cell.Width > bounds.Max.X {
 				// Wrap the string to the width of the window
@@ -1553,7 +1547,8 @@ func (s *Screen) printString(x, y int, bounds Rectangle, str string, truncate bo
 					// Print the cell to the screen
 					cell.Style = s.cur.Style
 					cell.Link = s.cur.Link
-					s.SetCell(x, y, cell) //nolint:errcheck
+					s.SetCell(x, y, &cell) //nolint:errcheck
+					cell.Reset()
 					x += width
 				}
 			} // String is too long for the line, truncate it.
@@ -1561,25 +1556,29 @@ func (s *Screen) printString(x, y int, bounds Rectangle, str string, truncate bo
 			// Valid sequences always have a non-zero Cmd.
 			// TODO: Handle cursor movement and other sequences
 			switch {
-			case ansi.HasCsiPrefix(seq) && p.Command() != 0:
-				switch p.Command() {
-				case 'm': // SGR - Select Graphic Rendition
-					ReadStyle(p.Params(), &s.cur.Style)
-				}
-			case ansi.HasOscPrefix(seq) && p.Command() != 0:
-				switch p.Command() {
-				case 8: // Hyperlinks
-					ReadLink(p.Data(), &s.cur.Link)
-				}
+			case ansi.HasCsiPrefix(seq) && p.Command() == 'm':
+				// SGR - Select Graphic Rendition
+				ReadStyle(p.Params(), &s.cur.Style)
+			case ansi.HasOscPrefix(seq) && p.Command() == 8:
+				// Hyperlinks
+				ReadLink(p.Data(), &s.cur.Link)
 			case ansi.Equal(seq, "\n"):
 				y++
 			case ansi.Equal(seq, "\r"):
 				x = bounds.Min.X
+			default:
+				cell.Append([]rune(seq)...)
 			}
 		}
 
 		// Advance the state and data
 		state = newState
 		str = str[n:]
+	}
+
+	// Make sure to set the last cell if it's not empty.
+	if !cell.Empty() {
+		s.SetCell(x, y, &cell) //nolint:errcheck
+		cell.Reset()
 	}
 }

@@ -34,6 +34,19 @@ type Cell struct {
 	Rune rune
 }
 
+// Append appends runes to the cell without changing the width. This is useful
+// when we want to use the cell to store escape sequences or other runes that
+// don't affect the width of the cell.
+func (c *Cell) Append(r ...rune) {
+	for i, r := range r {
+		if i == 0 && c.Rune == 0 {
+			c.Rune = r
+			continue
+		}
+		c.Comb = append(c.Comb, r)
+	}
+}
+
 // String returns the string content of the cell excluding any styles, links,
 // and escape sequences.
 func (c Cell) String() string {
