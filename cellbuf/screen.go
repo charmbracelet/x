@@ -1151,15 +1151,23 @@ func (s *Screen) clearUpdate(partial bool) {
 	}
 }
 
-// Render implements Window.
+// Flush flushes the buffer to the screen.
+func (s *Screen) Flush() (err error) {
+	s.mu.Lock()
+	// Write the buffer
+	if s.buf.Len() > 0 {
+		_, err = s.w.Write(s.buf.Bytes()) //nolint:errcheck
+		s.buf.Reset()
+	}
+	s.mu.Unlock()
+	return
+}
+
+// Render renders changes of the screen to the internal buffer. Call
+// [Screen.Flush] to flush pending changes to the screen.
 func (s *Screen) Render() {
 	s.mu.Lock()
 	s.render()
-	// Write the buffer
-	if s.buf.Len() > 0 {
-		s.w.Write(s.buf.Bytes()) //nolint:errcheck
-	}
-	s.buf.Reset()
 	s.mu.Unlock()
 }
 
