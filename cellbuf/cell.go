@@ -56,13 +56,12 @@ func (c *Cell) Equal(o *Cell) bool {
 		c.Link.Equal(&o.Link)
 }
 
-// Empty returns whether the cell is empty.
+// Empty returns whether the cell is an empty cell. An empty cell is a cell
+// with a width of 0, a rune of 0, and no combining runes.
 func (c Cell) Empty() bool {
 	return c.Width == 0 &&
 		c.Rune == 0 &&
-		len(c.Comb) == 0 &&
-		c.Style.Empty() &&
-		c.Link.Empty()
+		len(c.Comb) == 0
 }
 
 // Reset resets the cell to the default state zero value.
