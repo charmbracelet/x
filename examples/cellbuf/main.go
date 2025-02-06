@@ -60,8 +60,9 @@ func main() {
 		ansi.ResetHyperlink()
 	render := func() {
 		scr.Fill(cellbuf.NewCell('你'))
-		scr.PrintAt(x, y, text)
+		scr.PrintCropAt(x, y, text, "")
 		scr.Render()
+		scr.Flush()
 	}
 
 	resize := func(nw, nh int) {
