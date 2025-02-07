@@ -3,19 +3,16 @@ package golden
 import "testing"
 
 func TestRequireEqualUpdate(t *testing.T) {
-	enableUpdate(t)
+	*update = true
 	RequireEqual(t, []byte("test"))
 }
 
 func TestRequireEqualNoUpdate(t *testing.T) {
+	*update = false
 	RequireEqual(t, []byte("test"))
 }
 
-func enableUpdate(tb testing.TB) {
-	tb.Helper()
-	previous := update
-	*update = true
-	tb.Cleanup(func() {
-		update = previous
-	})
+func TestRequireWithLineBreaks(t *testing.T) {
+	*update = false
+	RequireEqual(t, []byte("foo\nbar\nbaz\n"))
 }
