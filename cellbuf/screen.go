@@ -246,10 +246,6 @@ func (s *Screen) moveCursor(x, y int, overwrite bool) {
 }
 
 func (s *Screen) move(x, y int) {
-	if x == s.cur.X && y == s.cur.Y {
-		return
-	}
-
 	// XXX: Make sure we use the max height and width of the buffer in case
 	// we're in the middle of a resize operation.
 	width := max(s.newbuf.Width(), s.curbuf.Width())
@@ -301,6 +297,12 @@ func (s *Screen) move(x, y int) {
 		if y > height-1 {
 			y = height - 1
 		}
+	}
+
+	if x == s.cur.X && y == s.cur.Y {
+		// We give up later because we need to run checks for the phantom cell
+		// and others before we can determine if we can give up.
+		return
 	}
 
 	// We set the new cursor in [Screen.moveCursor].
