@@ -239,6 +239,12 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 
 // moveCursor moves the cursor to the specified position.
 func (s *Screen) moveCursor(x, y int, overwrite bool) {
+	if s.opts.RelativeCursor && s.cur.X == -1 && s.cur.Y == -1 {
+		// First cursor movement in inline mode, move the cursor to the first
+		// column before moving to the target position.
+		s.buf.WriteByte('\r') //nolint:errcheck
+		s.cur.X, s.cur.Y = 0, 0
+	}
 	s.buf.WriteString(moveCursor(s, x, y, overwrite)) //nolint:errcheck
 	s.cur.X, s.cur.Y = x, y
 }
@@ -1334,10 +1340,6 @@ func (s *Screen) render() {
 	s.queuedText = false
 }
 
-// undefinedPos is the position used when the cursor position is undefined and
-// in its initial state.
-var undefinedPos = Pos(-1, -1)
-
 // Close writes the final screen update and resets the screen.
 func (s *Screen) Close() (err error) {
 	s.mu.Lock()
@@ -1372,11 +1374,7 @@ func (s *Screen) Close() (err error) {
 func (s *Screen) reset() {
 	s.cursorHidden = false
 	s.altScreenMode = false
-	if s.opts.RelativeCursor {
-		s.cur = Cursor{}
-	} else {
-		s.cur = Cursor{Position: undefinedPos}
-	}
+	s.cur = Cursor{Position: Pos(-1, -1)} // start at -1 to force a move
 	s.saved = s.cur
 	s.touch = make(map[int]lineData, s.newbuf.Height())
 	if s.curbuf != nil {
