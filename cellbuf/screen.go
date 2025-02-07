@@ -1480,6 +1480,7 @@ func (s *Screen) SetContentRect(str string, rect Rectangle) {
 	// of the line. Make sure we don't replace "\r\n" with "\r\r\n".
 	str = strings.ReplaceAll(str, "\r\n", "\n")
 	str = strings.ReplaceAll(str, "\n", "\r\n")
+
 	// We're using [Screen.Fill] instead of [Screen.Clear] to avoid force
 	// clearing the screen using [ansi.EraseEntireScreen] which is slow.
 	s.ClearRect(rect)
@@ -1550,7 +1551,7 @@ func (s *Screen) printString(x, y int, bounds Rectangle, str string, truncate bo
 			cell.Width += width
 			cell.Append([]rune(seq)...)
 
-			if !truncate && x+cell.Width > bounds.Max.X {
+			if !truncate && x+cell.Width > bounds.Max.X && y+1 < bounds.Max.Y {
 				// Wrap the string to the width of the window
 				x = bounds.Min.X
 				y++
@@ -1568,10 +1569,13 @@ func (s *Screen) printString(x, y int, bounds Rectangle, str string, truncate bo
 					cell.Style = s.cur.Style
 					cell.Link = s.cur.Link
 					s.SetCell(x, y, &cell) //nolint:errcheck
-					cell.Reset()
 					x += width
 				}
-			} // String is too long for the line, truncate it.
+			}
+
+			// String is too long for the line, truncate it.
+			// Make sure we reset the cell for the next iteration.
+			cell.Reset()
 		default:
 			// Valid sequences always have a non-zero Cmd.
 			// TODO: Handle cursor movement and other sequences
