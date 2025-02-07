@@ -36,7 +36,7 @@ func notLocal(cols, fx, fy, tx, ty int) bool {
 // [ansi.VPA], [ansi.HPA].
 // When overwrite is true, this will try to optimize the sequence by using the
 // screen cells values to move the cursor instead of using escape sequences.
-func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs bool) string {
+func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBackspace bool) string {
 	var seq strings.Builder
 
 	width, height := s.newbuf.Width(), s.newbuf.Height()
@@ -80,7 +80,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs bool) 
 
 		if tx > fx {
 			n := tx - fx
-			if useTabs && s.opts.HardTabs {
+			if useTabs {
 				var tabs int
 				var col int
 				for col = fx; s.tabs.Next(col) <= tx; col = s.tabs.Next(col) {
@@ -144,7 +144,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs bool) 
 			}
 		} else if tx < fx {
 			n := fx - tx
-			if useTabs && s.opts.HardTabs && s.xtermLike {
+			if useTabs && s.xtermLike {
 				// VT100 does not support backward tabs [ansi.CBT].
 
 				col := fx
@@ -164,12 +164,12 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs bool) 
 				}
 			}
 
-			if bs := strings.Repeat("\b", n); xseq == "" || len(bs) < len(xseq) {
-				xseq = bs
+			if cub := ansi.CursorBackward(n); xseq == "" || len(cub) < len(xseq) {
+				xseq = cub
 			}
 
-			if cub := ansi.CursorBackward(n); len(cub) < len(xseq) {
-				xseq = cub
+			if useBackspace && n < len(xseq) {
+				xseq = strings.Repeat("\b", n)
 			}
 		}
 
@@ -194,42 +194,40 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 		}
 	}
 
-	// Method #1: Use local movement sequences.
-	nseq := relativeCursorMove(s, fx, fy, x, y, overwrite, false)
-	if len(seq) == 0 || len(nseq) < len(seq) {
-		seq = nseq
-	}
-
-	// Method #2: Use [ansi.CR] and local movement sequences.
-	nseq = "\r" + relativeCursorMove(s, 0, fy, x, y, overwrite, false)
-	if len(nseq) < len(seq) {
-		seq = nseq
-	}
-
-	if !s.opts.RelativeCursor {
-		// Method #3: Use [ansi.CursorHomePosition] and local movement sequences.
-		nseq = ansi.CursorHomePosition + relativeCursorMove(s, 0, 0, x, y, overwrite, false)
-		if len(nseq) < len(seq) {
-			seq = nseq
-		}
-	}
-
+	// Optimize based on options.
+	trials := 0
 	if s.opts.HardTabs {
-		// Method #4: Use tab optimized local movement sequences.
-		nseq := relativeCursorMove(s, fx, fy, x, y, overwrite, true)
-		if len(nseq) < len(seq) {
+		trials |= 2 // 0b10 in binary
+	}
+	if s.opts.Backspace {
+		trials |= 1 // 0b01 in binary
+	}
+
+	// Try all possible combinations of hard tabs and backspace optimizations.
+	for i := 0; i <= trials; i++ {
+		// Skip combinations that are not enabled.
+		if i & ^trials != 0 {
+			continue
+		}
+
+		useHardTabs := i&2 != 0
+		useBackspace := i&1 != 0
+
+		// Method #1: Use local movement sequences.
+		nseq := relativeCursorMove(s, fx, fy, x, y, overwrite, useHardTabs, useBackspace)
+		if (i == 0 && len(seq) == 0) || len(nseq) < len(seq) {
 			seq = nseq
 		}
 
-		// Method #5: Use [ansi.CR] and tab optimized local movement sequences.
-		nseq = "\r" + relativeCursorMove(s, 0, fy, x, y, overwrite, true)
+		// Method #2: Use [ansi.CR] and local movement sequences.
+		nseq = "\r" + relativeCursorMove(s, 0, fy, x, y, overwrite, useHardTabs, useBackspace)
 		if len(nseq) < len(seq) {
 			seq = nseq
 		}
 
 		if !s.opts.RelativeCursor {
-			// Method #6: Use [ansi.CursorHomePosition] and tab optimized local movement sequences.
-			nseq = ansi.CursorHomePosition + relativeCursorMove(s, 0, 0, x, y, overwrite, true)
+			// Method #3: Use [ansi.CursorHomePosition] and local movement sequences.
+			nseq = ansi.CursorHomePosition + relativeCursorMove(s, 0, 0, x, y, overwrite, useHardTabs, useBackspace)
 			if len(nseq) < len(seq) {
 				seq = nseq
 			}
@@ -344,6 +342,8 @@ type ScreenOptions struct {
 	ShowCursor bool
 	// HardTabs is whether to use hard tabs to optimize cursor movements.
 	HardTabs bool
+	// Backspace is whether to use backspace characters to move the cursor.
+	Backspace bool
 }
 
 // lineData represents the metadata for a line.
