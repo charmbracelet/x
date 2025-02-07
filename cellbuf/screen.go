@@ -433,7 +433,9 @@ func (s *Screen) Cell(x int, y int) *Cell {
 
 // Redraw forces a full redraw of the screen.
 func (s *Screen) Redraw() {
+	s.mu.Lock()
 	s.clear = true
+	s.mu.Unlock()
 }
 
 // Clear clears the screen with blank cells. This is a convenience method for
@@ -1176,12 +1178,38 @@ func (s *Screen) clearUpdate(partial bool) {
 // Flush flushes the buffer to the screen.
 func (s *Screen) Flush() (err error) {
 	s.mu.Lock()
-	// Write the buffer
-	if s.buf.Len() > 0 {
-		_, err = s.w.Write(s.buf.Bytes()) //nolint:errcheck
-		s.buf.Reset()
+	defer s.mu.Unlock()
+	return s.flush()
+}
+
+func (s *Screen) flush() (err error) {
+	var buf bytes.Buffer
+
+	// Do we have enough changes to justify toggling the cursor?
+	hideCursor := s.buf.Len() > 1 &&
+		// Is the cursor visible? If so, disable it while rendering.
+		s.opts.ShowCursor && !s.cursorHidden && s.queuedText
+
+	buf.Grow(s.buf.Len())
+	if hideCursor {
+		buf.Grow(len(ansi.HideCursor) + len(ansi.ShowCursor))
+		buf.WriteString(ansi.HideCursor)
 	}
-	s.mu.Unlock()
+
+	buf.Write(s.buf.Bytes())
+
+	if hideCursor {
+		buf.WriteString(ansi.ShowCursor)
+	}
+
+	// Write the buffer
+	if buf.Len() > 0 {
+		_, err = s.w.Write(buf.Bytes()) //nolint:errcheck
+		if err == nil {
+			s.buf.Reset()
+		}
+	}
+
 	return
 }
 
@@ -1309,18 +1337,6 @@ func (s *Screen) render() {
 
 	s.updatePen(nil) // nil indicates a blank cell with no styles
 
-	// Do we have enough changes to justify toggling the cursor?
-	if s.buf.Len() > 1 &&
-		// Is the cursor visible? If so, disable it while rendering.
-		s.opts.ShowCursor && !s.cursorHidden && s.queuedText {
-		// OPTIM: We only hide the cursor if we have queued non-zero width text.
-		nb := new(bytes.Buffer)
-		nb.WriteString(ansi.HideCursor)
-		nb.Write(s.buf.Bytes())
-		nb.WriteString(ansi.ShowCursor)
-		*s.buf = *nb
-	}
-
 	s.queuedText = false
 }
 
@@ -1349,8 +1365,7 @@ func (s *Screen) Close() (err error) {
 	}
 
 	// Write the buffer
-	_, err = s.w.Write(s.buf.Bytes())
-	s.buf.Reset()
+	err = s.flush()
 	if err != nil {
 		return
 	}
