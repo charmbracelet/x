@@ -1185,28 +1185,9 @@ func (s *Screen) Flush() (err error) {
 }
 
 func (s *Screen) flush() (err error) {
-	var buf bytes.Buffer
-
-	// Do we have enough changes to justify toggling the cursor?
-	hideCursor := s.buf.Len() > 1 &&
-		// Is the cursor visible? If so, disable it while rendering.
-		s.opts.ShowCursor && !s.cursorHidden && s.queuedText
-
-	buf.Grow(s.buf.Len())
-	if hideCursor {
-		buf.Grow(len(ansi.HideCursor) + len(ansi.ShowCursor))
-		buf.WriteString(ansi.HideCursor)
-	}
-
-	buf.Write(s.buf.Bytes())
-
-	if hideCursor {
-		buf.WriteString(ansi.ShowCursor)
-	}
-
 	// Write the buffer
-	if buf.Len() > 0 {
-		_, err = s.w.Write(buf.Bytes()) //nolint:errcheck
+	if s.buf.Len() > 0 {
+		_, err = s.w.Write(s.buf.Bytes()) //nolint:errcheck
 		if err == nil {
 			s.buf.Reset()
 		}
@@ -1339,6 +1320,16 @@ func (s *Screen) render() {
 	}
 
 	s.updatePen(nil) // nil indicates a blank cell with no styles
+
+	// Do we have enough changes to justify toggling the cursor?
+	if s.buf.Len() > 1 && s.opts.ShowCursor && !s.cursorHidden && s.queuedText {
+		nb := new(bytes.Buffer)
+		nb.Grow(s.buf.Len() + len(ansi.HideCursor) + len(ansi.ShowCursor))
+		nb.WriteString(ansi.HideCursor)
+		nb.Write(s.buf.Bytes())
+		nb.WriteString(ansi.ShowCursor)
+		*s.buf = *nb
+	}
 
 	s.queuedText = false
 }
