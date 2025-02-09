@@ -1277,10 +1277,16 @@ func (s *Screen) render() {
 
 	var nonEmpty int
 
+	firstRender := s.cur.X == -1 && s.cur.Y == -1
+	if firstRender && !s.opts.AltScreen {
+		s.clearBelow(nil, 0)
+	}
+
 	// Force clear?
 	// We only do partial clear if the screen is not in alternate screen mode
-	partialClear := !s.opts.AltScreen && s.cur.X != -1 && s.cur.Y != -1 &&
+	partialClear := !s.opts.AltScreen && !firstRender &&
 		s.curbuf.Width() == s.newbuf.Width() &&
+		s.curbuf.Height() > 0 &&
 		s.curbuf.Height() > s.newbuf.Height()
 
 	if s.clear {
