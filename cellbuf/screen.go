@@ -798,7 +798,7 @@ func (s *Screen) putRange(oldLine, newLine Line, y, start, end int) (eoi bool) {
 
 // clearToEnd clears the screen from the current cursor position to the end of
 // line.
-func (s *Screen) clearToEnd(blank *Cell, force bool) {
+func (s *Screen) clearToEnd(blank *Cell, force bool) { //nolint:unparam
 	if s.cur.Y >= 0 {
 		curline := s.curbuf.Line(s.cur.Y)
 		for j := s.cur.X; j < s.curbuf.Width(); j++ {
@@ -1349,7 +1349,9 @@ func (s *Screen) Close() (err error) {
 	s.render()
 	s.updatePen(nil)
 	s.move(0, s.newbuf.Height()-1)
-	s.clearToEnd(nil, true)
+
+	// TODO: Should we clear the last line?
+	// s.clearToEnd(nil, true)
 
 	if s.altScreenMode {
 		s.buf.WriteString(ansi.ResetAltScreenSaveCursorMode)
