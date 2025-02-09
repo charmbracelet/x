@@ -551,6 +551,7 @@ func NewScreen(w io.Writer, opts *ScreenOptions) (s *Screen) {
 	s.xtermLike = isXtermLike(s.opts.Term)
 	s.curbuf = NewBuffer(width, height)
 	s.newbuf = NewBuffer(width, height)
+	s.cur = Cursor{Position: Pos(-1, -1)} // start at -1 to force a move
 	s.reset()
 
 	return
@@ -1374,7 +1375,6 @@ func (s *Screen) Close() (err error) {
 func (s *Screen) reset() {
 	s.cursorHidden = false
 	s.altScreenMode = false
-	s.cur = Cursor{Position: Pos(-1, -1)} // start at -1 to force a move
 	s.saved = s.cur
 	s.touch = make(map[int]lineData, s.newbuf.Height())
 	if s.curbuf != nil {
