@@ -261,14 +261,15 @@ func (s *Screen) move(x, y int) {
 		x %= width
 	}
 
-	// Disable styles if there's any
-	// TODO: Do we need this? It seems like it's only needed when used with
-	// alternate character sets which we don't support.
-	// var pen Style
-	// if !s.cur.Style.Empty() {
-	// 	pen = s.cur.Style
-	// 	s.buf.WriteString(ansi.ResetStyle) //nolint:errcheck
-	// }
+	// XXX: Disable styles if there's any
+	// Some move operations such as [ansi.LF] can apply styles to the new
+	// cursor position, thus, we need to reset the styles before moving the
+	// cursor.
+	var pen Style
+	if !s.cur.Style.Empty() {
+		pen = s.cur.Style
+		s.buf.WriteString(ansi.ResetStyle) //nolint:errcheck
+	}
 
 	// Reset wrap around (phantom cursor) state
 	if s.atPhantom {
@@ -312,11 +313,10 @@ func (s *Screen) move(x, y int) {
 	// We set the new cursor in [Screen.moveCursor].
 	s.moveCursor(x, y, true) // Overwrite cells if possible
 
-	// TODO: Do we need this? It seems like it's only needed when used with
-	// alternate character sets which we don't support.
-	// if !pen.Empty() {
-	// 	s.buf.WriteString(pen.Sequence()) //nolint:errcheck
-	// }
+	// Restore pen styles before moving the cursor.
+	if !pen.Empty() {
+		s.buf.WriteString(pen.Sequence()) //nolint:errcheck
+	}
 }
 
 // Cursor represents a terminal Cursor.
