@@ -140,7 +140,7 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		tea.WithInput(tm.in),
 		tea.WithOutput(tm.out),
 		tea.WithoutSignals(),
-		tea.WithInitialSize(opts.size.Width, opts.size.Height),
+		tea.WithWindowSize(opts.size.Width, opts.size.Height),
 	)
 
 	interruptions := make(chan os.Signal, 1)
