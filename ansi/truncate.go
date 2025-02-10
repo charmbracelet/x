@@ -99,6 +99,7 @@ func truncate(m Method, s string, length int, tail string) string {
 
 			// increment the index by the length of the cluster
 			i += len(cluster)
+			curWidth += width
 
 			// Are we ignoring? Skip to the next byte
 			if ignoring {
@@ -107,16 +108,15 @@ func truncate(m Method, s string, length int, tail string) string {
 
 			// Is this gonna be too wide?
 			// If so write the tail and stop collecting.
-			if curWidth+width > length && !ignoring {
+			if curWidth > length && !ignoring {
 				ignoring = true
 				buf.WriteString(tail)
 			}
 
-			if curWidth+width > length {
+			if curWidth > length {
 				continue
 			}
 
-			curWidth += width
 			buf.Write(cluster)
 
 			// Done collecting, now we're back in the ground state.
@@ -149,8 +149,7 @@ func truncate(m Method, s string, length int, tail string) string {
 				i++
 				continue
 			}
-			buf.WriteByte(b[i])
-			i++
+			fallthrough
 		default:
 			buf.WriteByte(b[i])
 			i++
@@ -257,8 +256,7 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 				i++
 				continue
 			}
-			buf.WriteByte(b[i])
-			i++
+			fallthrough
 		default:
 			buf.WriteByte(b[i])
 			i++
