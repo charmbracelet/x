@@ -150,9 +150,9 @@ func truncate(m Method, s string, length int, tail string) string {
 			// collects printable ASCII
 			curWidth++
 			fallthrough
-		// execute action will be things like \n, which, if outside the cut,
-		// should be ignored.
 		case parser.ExecuteAction:
+			// execute action will be things like \n, which, if outside the cut,
+			// should be ignored.
 			if ignoring {
 				i++
 				continue
@@ -229,18 +229,17 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 			i += len(cluster)
 			curWidth += width
 
-			// fmt.Println("HERE", string(cluster), width, curWidth)
 			if curWidth > n && ignoring {
 				ignoring = false
 				buf.WriteString(prefix)
 			}
 
-			if ignoring {
-				continue
-			}
-
 			if curWidth > n {
 				buf.Write(cluster)
+			}
+
+			if ignoring {
+				continue
 			}
 
 			pstate = parser.GroundState
@@ -262,9 +261,9 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 			}
 
 			fallthrough
-		// execute action will be things like \n, which, if outside the cut,
-		// should be ignored.
 		case parser.ExecuteAction:
+			// execute action will be things like \n, which, if outside the cut,
+			// should be ignored.
 			if ignoring {
 				i++
 				continue
