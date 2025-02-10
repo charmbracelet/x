@@ -41,7 +41,7 @@ func cut(m Method, s string, left, right int) string {
 	if left == 0 {
 		return truncate(s, right, "")
 	}
-	return truncateLeft(Truncate(s, right, ""), left, "")
+	return truncateLeft(truncate(s, right, ""), left, "")
 }
 
 // Truncate truncates a string to a given length, adding a tail to the end if
