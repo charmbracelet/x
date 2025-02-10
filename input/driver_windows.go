@@ -13,6 +13,7 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 	xwindows "github.com/charmbracelet/x/windows"
+	"github.com/muesli/cancelreader"
 	"golang.org/x/sys/windows"
 )
 
@@ -42,6 +43,9 @@ func (d *Reader) handleConInput(
 	var events [256]xwindows.InputRecord
 	_, err := finput(cc.conin, events[:])
 	if err != nil {
+		if cc.isCanceled() {
+			return nil, cancelreader.ErrCanceled
+		}
 		return nil, fmt.Errorf("read coninput events: %w", err)
 	}
 
