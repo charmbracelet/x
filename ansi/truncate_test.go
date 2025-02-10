@@ -352,8 +352,13 @@ func TestCut(t *testing.T) {
 			"\x1b[38;5;212;48;5;63mHello, Artichoke!\x1b[m", 7, 16,
 			"\x1b[38;5;212;48;5;63mArtichoke\x1b[m",
 		},
+		{
+			"multiline",
+			"\n\x1b[38;2;98;98;98m\nif [ -f README.md ]; then\x1b[m\n\x1b[38;2;98;98;98m    echo oi\x1b[m\n\x1b[38;2;98;98;98mfi\x1b[m\n", 8, 13,
+			"\x1b[38;2;98;98;98mREADM\x1b[m\x1b[38;2;98;98;98m\x1b[m\x1b[38;2;98;98;98m\x1b[m",
+		},
 	} {
-		t.Run(c.input, func(t *testing.T) {
+		t.Run(c.desc, func(t *testing.T) {
 			got := Cut(c.input, c.left, c.right)
 			if got != c.expect {
 				t.Errorf("%s (#%d):\nexpected: %q\ngot:      %q", c.desc, i+1, c.expect, got)

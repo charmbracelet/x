@@ -143,6 +143,11 @@ func truncate(m Method, s string, length int, tail string) string {
 			curWidth++
 			fallthrough
 		default:
+			// Not sure if we need to handle this differently, or if there's a better way.
+			if b[i] == '\n' && ignoring {
+				i++
+				continue
+			}
 			buf.WriteByte(b[i])
 			i++
 		}
@@ -242,6 +247,11 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 
 			fallthrough
 		default:
+			// Not sure if we need to handle this differently, or if there's a better way.
+			if b[i] == '\n' && ignoring {
+				i++
+				continue
+			}
 			buf.WriteByte(b[i])
 			i++
 		}
