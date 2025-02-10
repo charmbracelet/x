@@ -354,8 +354,8 @@ func TestCut(t *testing.T) {
 		},
 		{
 			"multiline",
-			"\n\x1b[38;2;98;98;98m\nif [ -f README.md ]; then\x1b[m\n\x1b[38;2;98;98;98m    echo oi\x1b[m\n\x1b[38;2;98;98;98mfi\x1b[m\n", 8, 13,
-			"\x1b[38;2;98;98;98mREADM\x1b[m\x1b[38;2;98;98;98m\x1b[m\x1b[38;2;98;98;98m\x1b[m",
+			"\n\x1b[38;2;98;98;98m\nif [ -f RE\nADME.md ]; then\x1b[m\n\x1b[38;2;98;98;98m    echo oi\x1b[m\n\x1b[38;2;98;98;98mfi\x1b[m\n", 8, 13,
+			"\x1b[38;2;98;98;98mRE\nADM\x1b[m\x1b[38;2;98;98;98m\x1b[m\x1b[38;2;98;98;98m\x1b[m",
 		},
 	} {
 		t.Run(c.desc, func(t *testing.T) {
