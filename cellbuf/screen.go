@@ -1358,8 +1358,8 @@ func (s *Screen) Close() (err error) {
 	s.updatePen(nil)
 	s.move(0, s.newbuf.Height()-1)
 
-	// TODO: Should we clear the last line?
-	// s.clearToEnd(nil, true)
+	// Scroll to the next line.
+	s.buf.WriteByte('\n') //nolint:errcheck
 
 	if s.altScreenMode {
 		s.buf.WriteString(ansi.ResetAltScreenSaveCursorMode)
