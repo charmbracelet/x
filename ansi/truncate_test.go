@@ -46,6 +46,14 @@ var tcases = []struct {
 		".👋",
 	},
 	{
+		"simple",
+		"a couple of words",
+		"",
+		6,
+		"a coup",
+		"le of words",
+	},
+	{
 		"equalcontrolemoji",
 		"one\x1b[0m",
 		".",
