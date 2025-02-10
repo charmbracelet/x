@@ -305,7 +305,7 @@ func TestTruncate(t *testing.T) {
 	for i, c := range tcases {
 		t.Run(c.name, func(t *testing.T) {
 			if result := Truncate(c.input, c.width, c.extra); result != c.expectRight {
-				t.Errorf("test case %d failed: expected %q, got %q", i+1, c.expectRight, result)
+				t.Errorf("test case %d failed:\nexpected: %q\n     got: %q", i+1, c.expectRight, result)
 			}
 		})
 	}
@@ -325,7 +325,7 @@ func TestTruncateLeft(t *testing.T) {
 	for i, c := range tcases {
 		t.Run(c.name, func(t *testing.T) {
 			if result := TruncateLeft(c.input, c.width, c.extra); result != c.expectLeft {
-				t.Errorf("test case %d failed: expected %q, got %q", i+1, c.expectLeft, result)
+				t.Errorf("test case %d failed:\nexpected: %q\n     got: %q", i+1, c.expectLeft, result)
 			}
 		})
 	}
