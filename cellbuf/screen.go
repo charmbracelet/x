@@ -1278,12 +1278,11 @@ func (s *Screen) render() {
 
 	var nonEmpty int
 
-	// Is this the first render?
-	firstRender := s.cur.X == -1 && s.cur.Y == -1
-
-	// Force clear?
-	// We only do partial clear if the screen is not in alternate screen mode
-	partialClear := !s.opts.AltScreen && !firstRender &&
+	// XXX: In inline mode, after a screen resize, we need to clear the extra
+	// lines at the bottom of the screen. This is because in inline mode, we
+	// don't use the full screen height and the current buffer size might be
+	// larger than the new buffer size.
+	partialClear := !s.opts.AltScreen && s.cur.X != -1 && s.cur.Y != -1 &&
 		s.curbuf.Width() == s.newbuf.Width() &&
 		s.curbuf.Height() > 0 &&
 		s.curbuf.Height() > s.newbuf.Height()
