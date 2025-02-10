@@ -1103,7 +1103,7 @@ func (s *Screen) clearToBottom(blank *Cell) {
 // the screen update. Scan backwards through lines in the screen checking if
 // each is blank and one or more are changed.
 // It returns the top line.
-func (s *Screen) clearBottom(total int, force bool) (top int) {
+func (s *Screen) clearBottom(total int) (top int) {
 	if total <= 0 {
 		return
 	}
@@ -1113,7 +1113,7 @@ func (s *Screen) clearBottom(total int, force bool) (top int) {
 	blank := s.clearBlank()
 	canClearWithBlank := blank == nil || blank.Clear()
 
-	if canClearWithBlank || force {
+	if canClearWithBlank {
 		var row int
 		for row = total - 1; row >= 0; row-- {
 			var col int
@@ -1133,13 +1133,9 @@ func (s *Screen) clearBottom(total int, force bool) (top int) {
 			}
 		}
 
-		if force || top < total {
+		if top < total {
 			s.move(0, top-1) // top is 1-based
 			s.clearToBottom(blank)
-			if !s.opts.AltScreen {
-				// Move to the last line of the screen
-				s.move(0, s.newbuf.Height()-1)
-			}
 			if s.oldhash != nil && s.newhash != nil &&
 				row < len(s.oldhash) && row < len(s.newhash) {
 				for row := top; row < s.newbuf.Height(); row++ {
@@ -1168,7 +1164,7 @@ func (s *Screen) clearBelow(blank *Cell, row int) {
 }
 
 // clearUpdate forces a screen redraw.
-func (s *Screen) clearUpdate(partial bool) {
+func (s *Screen) clearUpdate() {
 	blank := s.clearBlank()
 	var nonEmpty int
 	if s.opts.AltScreen {
@@ -1180,7 +1176,7 @@ func (s *Screen) clearUpdate(partial bool) {
 		nonEmpty = s.newbuf.Height()
 		s.clearBelow(blank, 0)
 	}
-	nonEmpty = s.clearBottom(nonEmpty, partial)
+	nonEmpty = s.clearBottom(nonEmpty)
 	for i := 0; i < nonEmpty; i++ {
 		s.transformLine(i)
 	}
@@ -1289,8 +1285,8 @@ func (s *Screen) render() {
 		s.curbuf.Height() > 0 &&
 		s.curbuf.Height() > s.newbuf.Height()
 
-	if s.clear {
-		s.clearUpdate(partialClear)
+	if s.clear || partialClear {
+		s.clearUpdate()
 		s.clear = false
 	} else if len(s.touch) > 0 {
 		if s.opts.AltScreen {
@@ -1309,7 +1305,7 @@ func (s *Screen) render() {
 			nonEmpty = s.newbuf.Height()
 		}
 
-		nonEmpty = s.clearBottom(nonEmpty, partialClear)
+		nonEmpty = s.clearBottom(nonEmpty)
 		for i = 0; i < nonEmpty; i++ {
 			_, ok := s.touch[i]
 			if ok {
