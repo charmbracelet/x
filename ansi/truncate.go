@@ -145,11 +145,12 @@ func truncate(m Method, s string, length int, tail string) string {
 		// execute action will be things like \n, which, if outside the cut,
 		// should be ignored.
 		case parser.ExecuteAction:
-			if !ignoring {
-				buf.WriteByte(b[i])
+			if ignoring {
+				i++
+				continue
 			}
+			buf.WriteByte(b[i])
 			i++
-			continue
 		default:
 			buf.WriteByte(b[i])
 			i++
@@ -252,11 +253,12 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 		// execute action will be things like \n, which, if outside the cut,
 		// should be ignored.
 		case parser.ExecuteAction:
-			if !ignoring {
-				buf.WriteByte(b[i])
+			if ignoring {
+				i++
+				continue
 			}
+			buf.WriteByte(b[i])
 			i++
-			continue
 		default:
 			buf.WriteByte(b[i])
 			i++
