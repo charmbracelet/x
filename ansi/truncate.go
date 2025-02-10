@@ -10,8 +10,10 @@ import (
 
 // Cut the string, without adding any prefix or tail strings. This function is
 // aware of ANSI escape codes and will not break them, and accounts for
-// wide-characters (such as East-Asian characters and emojis). Note that the
-// [left] parameter is inclusive, while [right] isn't.
+// wide-characters (such as East-Asian characters and emojis).
+// Note that the [left] parameter is inclusive, while [right] isn't,
+// which is to say it'll return `[left, right)`.
+//
 // This treats the text as a sequence of graphemes.
 func Cut(s string, left, right int) string {
 	return cut(GraphemeWidth, s, left, right)
@@ -19,8 +21,10 @@ func Cut(s string, left, right int) string {
 
 // CutWc the string, without adding any prefix or tail strings. This function is
 // aware of ANSI escape codes and will not break them, and accounts for
-// wide-characters (such as East-Asian characters and emojis). Note that the
-// [left] parameter is inclusive, while [right] isn't.
+// wide-characters (such as East-Asian characters and emojis).
+// Note that the [left] parameter is inclusive, while [right] isn't,
+// which is to say it'll return `[left, right)`.
+//
 // This treats the text as a sequence of wide characters and runes.
 func CutWc(s string, left, right int) string {
 	return cut(WcWidth, s, left, right)
@@ -49,6 +53,8 @@ func cut(m Method, s string, left, right int) string {
 // escape codes and will not break them, and accounts for wide-characters (such
 // as East-Asian characters and emojis).
 // This treats the text as a sequence of graphemes.
+//
+// Note that n is inclusive, so this will return `[0, n]`.
 func Truncate(s string, length int, tail string) string {
 	return truncate(GraphemeWidth, s, length, tail)
 }
@@ -58,6 +64,8 @@ func Truncate(s string, length int, tail string) string {
 // escape codes and will not break them, and accounts for wide-characters (such
 // as East-Asian characters and emojis).
 // This treats the text as a sequence of wide characters and runes.
+//
+// Note that n is inclusive, so this will return `[0, n]`.
 func TruncateWc(s string, length int, tail string) string {
 	return truncate(WcWidth, s, length, tail)
 }
@@ -174,6 +182,8 @@ func truncate(m Method, s string, length int, tail string) string {
 // This function is aware of ANSI escape codes and will not break them, and
 // accounts for wide-characters (such as East-Asian characters and emojis).
 // This treats the text as a sequence of graphemes.
+//
+// Note that n is non-inclusive, so this will return `(n, len(s)]`.
 func TruncateLeft(s string, n int, prefix string) string {
 	return truncateLeft(GraphemeWidth, s, n, prefix)
 }
@@ -183,6 +193,8 @@ func TruncateLeft(s string, n int, prefix string) string {
 // This function is aware of ANSI escape codes and will not break them, and
 // accounts for wide-characters (such as East-Asian characters and emojis).
 // This treats the text as a sequence of wide characters and runes.
+//
+// Note that n is non-inclusive, so this will return `(n, len(s)]`.
 func TruncateLeftWc(s string, n int, prefix string) string {
 	return truncateLeft(WcWidth, s, n, prefix)
 }
@@ -217,6 +229,7 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 			i += len(cluster)
 			curWidth += width
 
+			// fmt.Println("HERE", string(cluster), width, curWidth)
 			if curWidth > n && ignoring {
 				ignoring = false
 				buf.WriteString(prefix)
