@@ -266,10 +266,10 @@ func (s *Screen) move(x, y int) {
 	// Some move operations such as [ansi.LF] can apply styles to the new
 	// cursor position, thus, we need to reset the styles before moving the
 	// cursor.
-	var pen Style
-	if !s.cur.Style.Empty() {
-		pen = s.cur.Style
-		s.buf.WriteString(ansi.ResetStyle) //nolint:errcheck
+	blank := s.clearBlank()
+	resetPen := y != s.cur.Y && !blank.Equal(&BlankCell)
+	if resetPen {
+		s.updatePen(nil)
 	}
 
 	// Reset wrap around (phantom cursor) state
@@ -315,8 +315,8 @@ func (s *Screen) move(x, y int) {
 	s.moveCursor(x, y, true) // Overwrite cells if possible
 
 	// Restore pen styles before moving the cursor.
-	if !pen.Empty() {
-		s.buf.WriteString(pen.Sequence()) //nolint:errcheck
+	if resetPen {
+		s.updatePen(blank)
 	}
 }
 
