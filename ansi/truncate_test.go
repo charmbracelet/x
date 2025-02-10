@@ -275,7 +275,7 @@ var tcases = []struct {
 		"…",
 		9,
 		"สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\\n…\x1b]8;;\x1b\\",
-		"\x1b]8;;https://example.com\x1b\\\n…วัสดีสวัสดี\x1b]8;;\x1b\\",
+		"\x1b]8;;https://example.com\x1b\\…วัสดีสวัสดี\x1b]8;;\x1b\\",
 	},
 }
 

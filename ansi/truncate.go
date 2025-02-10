@@ -142,12 +142,15 @@ func truncate(m Method, s string, length int, tail string) string {
 			// collects printable ASCII
 			curWidth++
 			fallthrough
-		default:
-			// Not sure if we need to handle this differently, or if there's a better way.
-			if b[i] == '\n' && ignoring {
-				i++
-				continue
+		// execute action will be things like \n, which, if outside the cut,
+		// should be ignored.
+		case parser.ExecuteAction:
+			if !ignoring {
+				buf.WriteByte(b[i])
 			}
+			i++
+			continue
+		default:
 			buf.WriteByte(b[i])
 			i++
 		}
@@ -246,12 +249,15 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 			}
 
 			fallthrough
-		default:
-			// Not sure if we need to handle this differently, or if there's a better way.
-			if b[i] == '\n' && ignoring {
-				i++
-				continue
+		// execute action will be things like \n, which, if outside the cut,
+		// should be ignored.
+		case parser.ExecuteAction:
+			if !ignoring {
+				buf.WriteByte(b[i])
 			}
+			i++
+			continue
+		default:
 			buf.WriteByte(b[i])
 			i++
 		}
