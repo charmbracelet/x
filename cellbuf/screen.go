@@ -1084,14 +1084,17 @@ func (s *Screen) deleteCells(count int) {
 // clearToBottom clears the screen from the current cursor position to the end
 // of the screen.
 func (s *Screen) clearToBottom(blank *Cell) {
-	row, _ := s.cur.Y, s.cur.X
+	row, col := s.cur.Y, s.cur.X
 	if row < 0 {
 		row = 0
 	}
 
 	s.updatePen(blank)
 	s.buf.WriteString(ansi.EraseScreenBelow) //nolint:errcheck
-	s.curbuf.ClearRect(Rect(0, row, s.curbuf.Width(), s.curbuf.Height()-row))
+	// Clear the rest of the current line
+	s.curbuf.ClearRect(Rect(col, row, s.curbuf.Width()-col, 1))
+	// Clear everything below the current line
+	s.curbuf.ClearRect(Rect(0, row+1, s.curbuf.Width(), s.curbuf.Height()-row-1))
 }
 
 // clearBottom tests if clearing the end of the screen would satisfy part of
@@ -1156,13 +1159,10 @@ func (s *Screen) clearScreen(blank *Cell) {
 	s.curbuf.Fill(blank)
 }
 
-// clearBelow clears everything below the screen.
+// clearBelow clears everything below and including the row.
 func (s *Screen) clearBelow(blank *Cell, row int) {
-	s.updatePen(blank)
 	s.move(0, row)
 	s.clearToBottom(blank)
-	s.cur.X, s.cur.Y = 0, row
-	s.curbuf.FillRect(blank, Rect(0, row, s.curbuf.Width(), s.curbuf.Height()))
 }
 
 // clearUpdate forces a screen redraw.
@@ -1277,10 +1277,8 @@ func (s *Screen) render() {
 
 	var nonEmpty int
 
+	// Is this the first render?
 	firstRender := s.cur.X == -1 && s.cur.Y == -1
-	if firstRender && !s.opts.AltScreen {
-		s.clearBelow(nil, 0)
-	}
 
 	// Force clear?
 	// We only do partial clear if the screen is not in alternate screen mode
