@@ -291,7 +291,7 @@ var tcases = []struct {
 		"",
 		14,
 		"耐許ヱヨカハ",
-		"調出あゆ監こんにちは",
+		"調出あゆ監",
 	},
 	{
 		"multi-width graphemes with newlines - japanese text",
