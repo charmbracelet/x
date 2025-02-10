@@ -53,10 +53,11 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBa
 			if cud := ansi.CursorDown(n); yseq == "" || len(cud) < len(yseq) {
 				yseq = cud
 			}
-			shouldScroll := !s.opts.AltScreen
+			shouldScroll := !s.opts.AltScreen && fy+n >= s.scrollHeight
 			if lf := strings.Repeat("\n", n); shouldScroll || (fy+n < height && len(lf) < len(yseq)) {
 				// TODO: Ensure we're not unintentionally scrolling the screen down.
 				yseq = lf
+				s.scrollHeight = max(s.scrollHeight, fy+n)
 			}
 		} else if ty < fy {
 			n := fy - ty
@@ -376,6 +377,7 @@ type Screen struct {
 	opts             ScreenOptions
 	mu               sync.Mutex
 	method           ansi.Method
+	scrollHeight     int  // keeps track of how many lines we've scrolled down (inline mode)
 	altScreenMode    bool // whether alternate screen mode is enabled
 	cursorHidden     bool // whether text cursor mode is enabled
 	clear            bool // whether to force clear the screen
@@ -1379,6 +1381,7 @@ func (s *Screen) Close() (err error) {
 
 // reset resets the screen to its initial state.
 func (s *Screen) reset() {
+	s.scrollHeight = 0
 	s.cursorHidden = false
 	s.altScreenMode = false
 	s.saved = s.cur
@@ -1429,6 +1432,7 @@ func (s *Screen) Resize(width, height int) bool {
 	s.opts.Width, s.opts.Height = width, height
 	s.tabs.Resize(width)
 	s.oldhash, s.newhash = nil, nil
+	s.scrollHeight = 0 // reset scroll lines
 	s.mu.Unlock()
 
 	return true
