@@ -1116,17 +1116,20 @@ func (s *Screen) clearBottom(total int) (top int) {
 	if canClearWithBlank {
 		var row int
 		for row = total - 1; row >= 0; row-- {
+			oldLine := s.curbuf.Line(row)
+			newLine := s.newbuf.Line(row)
+
 			var col int
-			var ok bool
-			for col, ok = 0, true; ok && col < last; col++ {
-				ok = cellEqual(s.newbuf.Cell(col, row), blank)
+			ok := true
+			for col = 0; ok && col < last; col++ {
+				ok = cellEqual(newLine.At(col), blank)
 			}
 			if !ok {
 				break
 			}
 
 			for col = 0; ok && col < last; col++ {
-				ok = cellEqual(s.curbuf.Cell(col, row), blank)
+				ok = len(oldLine) == last && cellEqual(oldLine.At(col), blank)
 			}
 			if !ok {
 				top = row
@@ -1285,7 +1288,11 @@ func (s *Screen) render() {
 		s.curbuf.Height() > 0 &&
 		s.curbuf.Height() > s.newbuf.Height()
 
-	if s.clear || partialClear {
+	if partialClear {
+		s.clearBelow(nil, s.newbuf.Height()-1)
+	}
+
+	if s.clear {
 		s.clearUpdate()
 		s.clear = false
 	} else if len(s.touch) > 0 {
