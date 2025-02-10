@@ -484,7 +484,10 @@ func (s *Style) Empty() bool {
 // affect appearance of a space character.
 func (s *Style) Clear() bool {
 	return s.UlStyle == NoUnderline &&
-		s.Attrs&^(BoldAttr|FaintAttr|ItalicAttr|SlowBlinkAttr|RapidBlinkAttr) == 0
+		s.Attrs&^(BoldAttr|FaintAttr|ItalicAttr|SlowBlinkAttr|RapidBlinkAttr) == 0 &&
+		s.Fg == nil &&
+		s.Bg == nil &&
+		s.Ul == nil
 }
 
 func runesEqual(a, b []rune) bool {
