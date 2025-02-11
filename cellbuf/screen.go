@@ -332,12 +332,6 @@ type ScreenOptions struct {
 	// Term is the terminal type to use when writing to the screen. When empty,
 	// `$TERM` is used from [os.Getenv].
 	Term string
-	// Width is the desired width of the screen. When 0, the width is
-	// automatically determined using the terminal size.
-	Width int
-	// Height is the desired height of the screen. When 0, the height is
-	// automatically determined using the terminal size.
-	Height int
 	// Profile is the color profile to use when writing to the screen.
 	Profile colorprofile.Profile
 	// RelativeCursor is whether to use relative cursor movements. This is
@@ -531,7 +525,7 @@ func isXtermLike(termtype string) (v bool) {
 }
 
 // NewScreen creates a new Screen.
-func NewScreen(w io.Writer, opts *ScreenOptions) (s *Screen) {
+func NewScreen(w io.Writer, width, height int, opts *ScreenOptions) (s *Screen) {
 	s = new(Screen)
 	s.w = w
 	if opts != nil {
@@ -542,11 +536,16 @@ func NewScreen(w io.Writer, opts *ScreenOptions) (s *Screen) {
 		s.opts.Term = os.Getenv("TERM")
 	}
 
-	width, height := s.opts.Width, s.opts.Height
 	if width <= 0 || height <= 0 {
 		if f, ok := w.(term.File); ok {
 			width, height, _ = term.GetSize(f.Fd())
 		}
+	}
+	if width < 0 {
+		width = 0
+	}
+	if height < 0 {
+		height = 0
 	}
 
 	s.buf = new(bytes.Buffer)
@@ -561,12 +560,12 @@ func NewScreen(w io.Writer, opts *ScreenOptions) (s *Screen) {
 
 // Width returns the width of the screen.
 func (s *Screen) Width() int {
-	return s.opts.Width
+	return s.newbuf.Width()
 }
 
 // Height returns the height of the screen.
 func (s *Screen) Height() int {
-	return s.opts.Height
+	return s.newbuf.Height()
 }
 
 // cellEqual returns whether the two cells are equal. A nil cell is considered
@@ -1431,7 +1430,6 @@ func (s *Screen) Resize(width, height int) bool {
 
 	s.mu.Lock()
 	s.newbuf.Resize(width, height)
-	s.opts.Width, s.opts.Height = width, height
 	s.tabs.Resize(width)
 	s.oldhash, s.newhash = nil, nil
 	s.scrollHeight = 0 // reset scroll lines
@@ -1456,7 +1454,7 @@ func (s *Screen) InsertAbove(str string) {
 	}
 	s.mu.Lock()
 	for _, line := range strings.Split(str, "\n") {
-		s.queueAbove = append(s.queueAbove, s.method.Truncate(line, s.opts.Width, ""))
+		s.queueAbove = append(s.queueAbove, s.method.Truncate(line, s.Width(), ""))
 	}
 	s.mu.Unlock()
 }
