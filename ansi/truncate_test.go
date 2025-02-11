@@ -46,6 +46,14 @@ var tcases = []struct {
 		".👋",
 	},
 	{
+		"simple multiple words",
+		"a couple of words",
+		"",
+		6,
+		"a coup",
+		"le of words",
+	},
+	{
 		"equalcontrolemoji",
 		"one\x1b[0m",
 		".",
@@ -275,7 +283,45 @@ var tcases = []struct {
 		"…",
 		9,
 		"สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\\n…\x1b]8;;\x1b\\",
-		"\x1b]8;;https://example.com\x1b\\\n…วัสดีสวัสดี\x1b]8;;\x1b\\",
+		"\x1b]8;;https://example.com\x1b\\…วัสดีสวัสดี\x1b]8;;\x1b\\",
+	},
+	{
+		"simple japanese text prefix/suffix",
+		"耐許ヱヨカハ調出あゆ監",
+		"…",
+		13,
+		"耐許ヱヨカハ…",
+		"…調出あゆ監",
+	},
+	{
+		"simple japanese text",
+		"耐許ヱヨカハ調出あゆ監",
+		"",
+		14,
+		"耐許ヱヨカハ調",
+		"出あゆ監",
+	},
+	{
+		"new line inside and outside range",
+		"\n\nsomething\nin\nthe\nway\n\n",
+		"-",
+		10,
+		"\n\nsomething\n-",
+		"-n\nthe\nway\n\n",
+	},
+	{
+		"multi-width graphemes with newlines - japanese text",
+		`耐許ヱヨカハ調出あゆ監件び理別よン國給災レホチ権輝モエフ会割もフ響3現エツ文時しだびほ経機ムイメフ敗文ヨク現義なさド請情ゆじょて憶主管州けでふく。排ゃわつげ美刊ヱミ出見ツ南者オ抜豆ハトロネ論索モネニイ任償スヲ話破リヤヨ秒止口イセソス止央のさ食周健でてつだ官送ト読聴遊容ひるべ。際ぐドらづ市居ネムヤ研校35岩6繹ごわク報拐イ革深52球ゃレスご究東スラ衝3間ラ録占たス。
+
+禁にンご忘康ざほぎル騰般ねど事超スんいう真表何カモ自浩ヲシミ図客線るふ静王ぱーま写村月掛焼詐面ぞゃ。昇強ごントほ価保キ族85岡モテ恋困ひりこな刊並せご出来ぼぎむう点目ヲウ止環公ニレ事応タス必書タメムノ当84無信升ちひょ。価ーぐ中客テサ告覧ヨトハ極整
+ラ得95稿はかラせ江利ス宏丸霊ミ考整ス静将ず業巨職ノラホ収嗅ざな。`,
+		"",
+		14,
+		"耐許ヱヨカハ調",
+		`出あゆ監件び理別よン國給災レホチ権輝モエフ会割もフ響3現エツ文時しだびほ経機ムイメフ敗文ヨク現義なさド請情ゆじょて憶主管州けでふく。排ゃわつげ美刊ヱミ出見ツ南者オ抜豆ハトロネ論索モネニイ任償スヲ話破リヤヨ秒止口イセソス止央のさ食周健でてつだ官送ト読聴遊容ひるべ。際ぐドらづ市居ネムヤ研校35岩6繹ごわク報拐イ革深52球ゃレスご究東スラ衝3間ラ録占たス。
+
+禁にンご忘康ざほぎル騰般ねど事超スんいう真表何カモ自浩ヲシミ図客線るふ静王ぱーま写村月掛焼詐面ぞゃ。昇強ごントほ価保キ族85岡モテ恋困ひりこな刊並せご出来ぼぎむう点目ヲウ止環公ニレ事応タス必書タメムノ当84無信升ちひょ。価ーぐ中客テサ告覧ヨトハ極整
+ラ得95稿はかラせ江利ス宏丸霊ミ考整ス静将ず業巨職ノラホ収嗅ざな。`,
 	},
 }
 
@@ -283,7 +329,7 @@ func TestTruncate(t *testing.T) {
 	for i, c := range tcases {
 		t.Run(c.name, func(t *testing.T) {
 			if result := Truncate(c.input, c.width, c.extra); result != c.expectRight {
-				t.Errorf("test case %d failed: expected %q, got %q", i+1, c.expectRight, result)
+				t.Errorf("test case %d failed:\nexpected: %q\n     got: %q", i+1, c.expectRight, result)
 			}
 		})
 	}
@@ -303,7 +349,7 @@ func TestTruncateLeft(t *testing.T) {
 	for i, c := range tcases {
 		t.Run(c.name, func(t *testing.T) {
 			if result := TruncateLeft(c.input, c.width, c.extra); result != c.expectLeft {
-				t.Errorf("test case %d failed: expected %q, got %q", i+1, c.expectLeft, result)
+				t.Errorf("test case %d failed:\nexpected: %q\n     got: %q", i+1, c.expectLeft, result)
 			}
 		})
 	}
@@ -352,8 +398,13 @@ func TestCut(t *testing.T) {
 			"\x1b[38;5;212;48;5;63mHello, Artichoke!\x1b[m", 7, 16,
 			"\x1b[38;5;212;48;5;63mArtichoke\x1b[m",
 		},
+		{
+			"multiline",
+			"\n\x1b[38;2;98;98;98m\nif [ -f RE\nADME.md ]; then\x1b[m\n\x1b[38;2;98;98;98m    echo oi\x1b[m\n\x1b[38;2;98;98;98mfi\x1b[m\n", 8, 13,
+			"\x1b[38;2;98;98;98mRE\nADM\x1b[m\x1b[38;2;98;98;98m\x1b[m\x1b[38;2;98;98;98m\x1b[m",
+		},
 	} {
-		t.Run(c.input, func(t *testing.T) {
+		t.Run(c.desc, func(t *testing.T) {
 			got := Cut(c.input, c.left, c.right)
 			if got != c.expect {
 				t.Errorf("%s (#%d):\nexpected: %q\ngot:      %q", c.desc, i+1, c.expect, got)
