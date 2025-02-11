@@ -385,6 +385,11 @@ func (s *Screen) SetMethod(method ansi.Method) {
 	s.method = method
 }
 
+// UseBackspaces sets whether to use backspace characters to move the cursor.
+func (s *Screen) UseBackspaces(v bool) {
+	s.opts.Backspace = v
+}
+
 // UseHardTabs sets whether to use hard tabs to optimize cursor movements.
 func (s *Screen) UseHardTabs(v bool) {
 	s.opts.HardTabs = v
