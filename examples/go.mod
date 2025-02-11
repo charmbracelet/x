@@ -7,7 +7,7 @@ require (
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2.0.20250125233033-58a153eb00e6
 	github.com/charmbracelet/x/ansi v0.8.0
 	github.com/charmbracelet/x/cellbuf v0.0.8
-	github.com/charmbracelet/x/input v0.3.2
+	github.com/charmbracelet/x/input v0.3.3
 	github.com/creack/pty v1.1.24
 	github.com/lucasb-eyer/go-colorful v1.2.0
 )
