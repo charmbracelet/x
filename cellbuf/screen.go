@@ -240,7 +240,7 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 
 // moveCursor moves the cursor to the specified position.
 func (s *Screen) moveCursor(x, y int, overwrite bool) {
-	if s.opts.RelativeCursor && s.cur.X == -1 && s.cur.Y == -1 {
+	if !s.opts.AltScreen && s.cur.X == -1 && s.cur.Y == -1 {
 		// First cursor movement in inline mode, move the cursor to the first
 		// column before moving to the target position.
 		s.buf.WriteByte('\r') //nolint:errcheck
