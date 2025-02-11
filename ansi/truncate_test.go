@@ -302,6 +302,14 @@ var tcases = []struct {
 		"…出あゆ監",
 	},
 	{
+		"new line inside and outside range",
+		"\n\nsomething\nin\nthe\nway\n\n",
+		"-",
+		10,
+		"\n\nsomething\n-",
+		"-n\nthe\nway\n\n",
+	},
+	{
 		"multi-width graphemes with newlines - japanese text",
 		`耐許ヱヨカハ調出あゆ監件び理別よン國給災レホチ権輝モエフ会割もフ響3現エツ文時しだびほ経機ムイメフ敗文ヨク現義なさド請情ゆじょて憶主管州けでふく。排ゃわつげ美刊ヱミ出見ツ南者オ抜豆ハトロネ論索モネニイ任償スヲ話破リヤヨ秒止口イセソス止央のさ食周健でてつだ官送ト読聴遊容ひるべ。際ぐドらづ市居ネムヤ研校35岩6繹ごわク報拐イ革深52球ゃレスご究東スラ衝3間ラ録占たス。
 
