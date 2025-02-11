@@ -1287,7 +1287,7 @@ func (s *Screen) render() {
 		s.curbuf.Height() > 0 &&
 		s.curbuf.Height() > s.newbuf.Height()
 
-	if partialClear {
+	if !s.clear && partialClear {
 		s.clearBelow(nil, s.newbuf.Height()-1)
 	}
 
