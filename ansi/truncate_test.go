@@ -286,7 +286,7 @@ var tcases = []struct {
 		"\x1b]8;;https://example.com\x1b\\…วัสดีสวัสดี\x1b]8;;\x1b\\",
 	},
 	{
-		"simple japanese text middle",
+		"simple japanese text prefix/suffix",
 		"耐許ヱヨカハ調出あゆ監",
 		"…",
 		13,
@@ -297,9 +297,9 @@ var tcases = []struct {
 		"simple japanese text",
 		"耐許ヱヨカハ調出あゆ監",
 		"",
-		13,
-		"耐許ヱヨカハ",
-		"調出あゆ監",
+		14,
+		"耐許ヱヨカハ調",
+		"出あゆ監",
 	},
 	{
 		"new line inside and outside range",
