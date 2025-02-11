@@ -557,6 +557,7 @@ func NewScreen(w io.Writer, width, height int, opts *ScreenOptions) (s *Screen) 
 	s.curbuf = NewBuffer(width, height)
 	s.newbuf = NewBuffer(width, height)
 	s.cur = Cursor{Position: Pos(-1, -1)} // start at -1 to force a move
+	s.saved = s.cur
 	s.reset()
 
 	return
@@ -1359,10 +1360,8 @@ func (s *Screen) Close() (err error) {
 
 	s.render()
 	s.updatePen(nil)
+	// Go to the bottom of the screen
 	s.move(0, s.newbuf.Height()-1)
-
-	// Scroll to the next line.
-	s.buf.WriteByte('\n') //nolint:errcheck
 
 	if s.altScreenMode {
 		s.buf.WriteString(ansi.ResetAltScreenSaveCursorMode)
@@ -1389,7 +1388,6 @@ func (s *Screen) reset() {
 	s.scrollHeight = 0
 	s.cursorHidden = false
 	s.altScreenMode = false
-	s.saved = s.cur
 	s.touch = make(map[int]lineData, s.newbuf.Height())
 	if s.curbuf != nil {
 		s.curbuf.Clear()
