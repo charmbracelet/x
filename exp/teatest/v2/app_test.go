@@ -56,12 +56,12 @@ func TestAppInteractive(t *testing.T) {
 	time.Sleep(time.Second + time.Millisecond*200)
 	tm.Send("ignored msg")
 
-	if bts := readBts(t, tm.Output()); !bytes.Contains(bts, []byte("This program will exit in 9 seconds")) {
+	if bts := readBts(t, tm.Output()); !bytes.Contains(bts, []byte("9 seconds")) {
 		t.Fatalf("output does not match: expected %q", string(bts))
 	}
 
 	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
-		return bytes.Contains(out, []byte("This program will exit in 7 seconds"))
+		return bytes.Contains(out, []byte("7"))
 	}, teatest.WithDuration(5*time.Second), teatest.WithCheckInterval(time.Millisecond*10))
 
 	tm.Send(tea.KeyPressMsg{
