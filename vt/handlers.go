@@ -20,8 +20,12 @@ type ApcHandler func(data []byte) bool
 // EscHandler is a function that handles an ESC escape sequence.
 type EscHandler func() bool
 
+// CcHandler is a function that handles a control character.
+type CcHandler func() bool
+
 // handlers contains the terminal's escape sequence handlers.
 type handlers struct {
+	ccHandlers  map[byte][]CcHandler
 	dcsHandlers map[int][]DcsHandler
 	csiHandlers map[int][]CsiHandler
 	oscHandlers map[int][]OscHandler
@@ -64,6 +68,27 @@ func (h *handlers) RegisterEscHandler(cmd int, handler EscHandler) {
 		h.escHandler = make(map[int][]EscHandler)
 	}
 	h.escHandler[cmd] = append(h.escHandler[cmd], handler)
+}
+
+// registerCcHandler registers a control character handler.
+func (h *handlers) registerCcHandler(r byte, handler CcHandler) {
+	if h.ccHandlers == nil {
+		h.ccHandlers = make(map[byte][]CcHandler)
+	}
+	h.ccHandlers[r] = append(h.ccHandlers[r], handler)
+}
+
+// handleCc handles a control character.
+// It returns true if the control character was handled.
+func (h *handlers) handleCc(r byte) bool {
+	// Reverse iterate over the handlers so that the last registered handler
+	// is the first to be called.
+	for i := len(h.ccHandlers[r]) - 1; i >= 0; i-- {
+		if h.ccHandlers[r][i]() {
+			return true
+		}
+	}
+	return false
 }
 
 // handleDcs handles a DCS escape sequence.
@@ -141,9 +166,94 @@ func (h *handlers) handleEsc(cmd int) bool {
 
 // registerDefaultHandlers registers the default escape sequence handlers.
 func (t *Terminal) registerDefaultHandlers() {
+	t.registerDefaultCcHandlers()
 	t.registerDefaultCsiHandlers()
 	t.registerDefaultEscHandlers()
 	t.registerDefaultOscHandlers()
+}
+
+// registerDefaultCcHandlers registers the default control character handlers.
+func (t *Terminal) registerDefaultCcHandlers() {
+	for i := byte(ansi.NUL); i <= ansi.US; i++ {
+		switch i {
+		case ansi.NUL: // Null [ansi.NUL]
+			// Ignored
+			t.registerCcHandler(i, func() bool {
+				return true
+			})
+		case ansi.BEL: // Bell [ansi.BEL]
+			t.registerCcHandler(i, func() bool {
+				if t.Callbacks.Bell != nil {
+					t.Callbacks.Bell()
+				}
+				return true
+			})
+		case ansi.BS: // Backspace [ansi.BS]
+			t.registerCcHandler(i, func() bool {
+				// This acts like [ansi.CUB]
+				t.moveCursor(-1, 0)
+				return true
+			})
+		case ansi.HT: // Horizontal Tab [ansi.HT]
+			t.registerCcHandler(i, func() bool {
+				t.nextTab(1)
+				return true
+			})
+		case ansi.LF, ansi.VT, ansi.FF:
+			// Line Feed [ansi.LF]
+			// Vertical Tab [ansi.VT]
+			// Form Feed [ansi.FF]
+			t.registerCcHandler(i, func() bool {
+				t.linefeed()
+				return true
+			})
+		case ansi.CR: // Carriage Return [ansi.CR]
+			t.registerCcHandler(i, func() bool {
+				t.carriageReturn()
+				return true
+			})
+		}
+	}
+
+	for i := byte(ansi.PAD); i <= byte(ansi.APC); i++ {
+		switch i {
+		case ansi.HTS: // Horizontal Tab Set [ansi.HTS]
+			t.registerCcHandler(i, func() bool {
+				t.horizontalTabSet()
+				return true
+			})
+		case ansi.RI: // Reverse Index [ansi.RI]
+			t.registerCcHandler(i, func() bool {
+				t.reverseIndex()
+				return true
+			})
+		case ansi.SO: // Shift Out [ansi.SO]
+			t.registerCcHandler(i, func() bool {
+				t.gl = 1
+				return true
+			})
+		case ansi.SI: // Shift In [ansi.SI]
+			t.registerCcHandler(i, func() bool {
+				t.gl = 0
+				return true
+			})
+		case ansi.IND: // Index [ansi.IND]
+			t.registerCcHandler(i, func() bool {
+				t.index()
+				return true
+			})
+		case ansi.SS2: // Single Shift 2 [ansi.SS2]
+			t.registerCcHandler(i, func() bool {
+				t.gsingle = 2
+				return true
+			})
+		case ansi.SS3: // Single Shift 3 [ansi.SS3]
+			t.registerCcHandler(i, func() bool {
+				t.gsingle = 3
+				return true
+			})
+		}
+	}
 }
 
 // registerDefaultOscHandlers registers the default OSC escape sequence handlers.

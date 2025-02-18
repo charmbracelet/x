@@ -8,10 +8,6 @@ import (
 )
 
 func (t *Terminal) handleCsi(cmd ansi.Cmd, params ansi.Params) {
-	switch int(cmd) {
-	case 'a':
-	case ansi.Command(0, 0, 0):
-	}
 	if !t.handlers.handleCsi(cmd, params) {
 		t.logf("unhandled sequence: CSI %q", paramsString(cmd, params))
 	}
