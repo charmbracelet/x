@@ -104,17 +104,22 @@ func (c BasicColor) RGBA() (uint32, uint32, uint32, uint32) {
 	return toRGBA(r, g, b)
 }
 
-// ExtendedColor is an ANSI 256 (8-bit) color with a value from 0 to 255.
-type ExtendedColor uint8
+// IndexedColor is an ANSI 256 (8-bit) color with a value from 0 to 255.
+type IndexedColor uint8
 
-var _ Color = ExtendedColor(0)
+var _ Color = IndexedColor(0)
 
 // RGBA returns the red, green, blue and alpha components of the color. It
 // satisfies the color.Color interface.
-func (c ExtendedColor) RGBA() (uint32, uint32, uint32, uint32) {
+func (c IndexedColor) RGBA() (uint32, uint32, uint32, uint32) {
 	r, g, b := ansiToRGB(uint32(c))
 	return toRGBA(r, g, b)
 }
+
+// ExtendedColor is an ANSI 256 (8-bit) color with a value from 0 to 255.
+//
+// Deprecated: use [IndexedColor] instead.
+type ExtendedColor = IndexedColor
 
 // TrueColor is a 24-bit color that can be used in the terminal.
 // This can be used to represent RGB colors.
@@ -122,6 +127,8 @@ func (c ExtendedColor) RGBA() (uint32, uint32, uint32, uint32) {
 // For example, the color red can be represented as:
 //
 //	TrueColor(0xff0000)
+//
+// Deprecated: use [RGBColor] instead.
 type TrueColor uint32
 
 var _ Color = TrueColor(0)
@@ -131,6 +138,20 @@ var _ Color = TrueColor(0)
 func (c TrueColor) RGBA() (uint32, uint32, uint32, uint32) {
 	r, g, b := hexToRGB(uint32(c))
 	return toRGBA(r, g, b)
+}
+
+// RGBColor is a 24-bit color that can be used in the terminal.
+// This can be used to represent RGB colors.
+type RGBColor struct {
+	R uint8
+	G uint8
+	B uint8
+}
+
+// RGBA returns the red, green, blue and alpha components of the color. It
+// satisfies the color.Color interface.
+func (c RGBColor) RGBA() (uint32, uint32, uint32, uint32) {
+	return toRGBA(uint32(c.R), uint32(c.G), uint32(c.B))
 }
 
 // ansiToRGB converts an ANSI color to a 24-bit RGB color.

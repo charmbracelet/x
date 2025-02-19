@@ -81,7 +81,7 @@ var (
 	KittyGraphicsTempPattern = "tty-graphics-protocol-*"
 )
 
-// WriteKittyGraphics writes an image using the Kitty Graphics protocol with
+// EncodeKittyGraphics writes an image using the Kitty Graphics protocol with
 // the given options to w. It chunks the written data if o.Chunk is true.
 //
 // You can omit m and use nil when rendering an image from a file. In this
@@ -92,7 +92,7 @@ var (
 // the terminal.
 //
 // See https://sw.kovidgoyal.net/kitty/graphics-protocol/
-func WriteKittyGraphics(w io.Writer, m image.Image, o *kitty.Options) error {
+func EncodeKittyGraphics(w io.Writer, m image.Image, o *kitty.Options) error {
 	if o == nil {
 		o = &kitty.Options{}
 	}

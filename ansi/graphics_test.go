@@ -218,7 +218,7 @@ func TestWriteKittyGraphics(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			err := WriteKittyGraphics(&buf, tt.img, tt.opts)
+			err := EncodeKittyGraphics(&buf, tt.img, tt.opts)
 
 			if (err != nil) != tt.wantError {
 				t.Errorf("WriteKittyGraphics() error = %v, wantError %v", err, tt.wantError)
@@ -268,7 +268,7 @@ func TestWriteKittyGraphicsEdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var buf bytes.Buffer
-			err := WriteKittyGraphics(&buf, tt.img, tt.opts)
+			err := EncodeKittyGraphics(&buf, tt.img, tt.opts)
 
 			if (err != nil) != tt.wantError {
 				t.Errorf("WriteKittyGraphics() error = %v, wantError %v", err, tt.wantError)

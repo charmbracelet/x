@@ -104,3 +104,14 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 
 	setCol(col)
 }
+
+func (t *Terminal) handleHyperlink(cmd int, data []byte) {
+	parts := bytes.Split(data, []byte{';'})
+	if len(parts) != 3 || cmd != 8 {
+		// Invalid, ignore
+		return
+	}
+
+	t.scr.cur.Link.URL = string(parts[1])
+	t.scr.cur.Link.Params = string(parts[2])
+}

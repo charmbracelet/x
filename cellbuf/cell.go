@@ -34,6 +34,19 @@ type Cell struct {
 	Rune rune
 }
 
+// Append appends runes to the cell without changing the width. This is useful
+// when we want to use the cell to store escape sequences or other runes that
+// don't affect the width of the cell.
+func (c *Cell) Append(r ...rune) {
+	for i, r := range r {
+		if i == 0 && c.Rune == 0 {
+			c.Rune = r
+			continue
+		}
+		c.Comb = append(c.Comb, r)
+	}
+}
+
 // String returns the string content of the cell excluding any styles, links,
 // and escape sequences.
 func (c Cell) String() string {
@@ -52,17 +65,16 @@ func (c *Cell) Equal(o *Cell) bool {
 		c.Width == o.Width &&
 		c.Rune == o.Rune &&
 		runesEqual(c.Comb, o.Comb) &&
-		c.Style.Equal(o.Style) &&
-		c.Link.Equal(o.Link)
+		c.Style.Equal(&o.Style) &&
+		c.Link.Equal(&o.Link)
 }
 
-// Empty returns whether the cell is empty.
+// Empty returns whether the cell is an empty cell. An empty cell is a cell
+// with a width of 0, a rune of 0, and no combining runes.
 func (c Cell) Empty() bool {
-	return c.Rune == 0 &&
-		len(c.Comb) == 0 &&
-		c.Width == 0 &&
-		c.Style.Empty() &&
-		c.Link.Empty()
+	return c.Width == 0 &&
+		c.Rune == 0 &&
+		len(c.Comb) == 0
 }
 
 // Reset resets the cell to the default state zero value.
@@ -98,8 +110,8 @@ func (c *Cell) Blank() *Cell {
 
 // Link represents a hyperlink in the terminal screen.
 type Link struct {
-	URL   string
-	URLID string
+	URL    string
+	Params string
 }
 
 // String returns a string representation of the hyperlink.
@@ -110,17 +122,17 @@ func (h Link) String() string {
 // Reset resets the hyperlink to the default state zero value.
 func (h *Link) Reset() {
 	h.URL = ""
-	h.URLID = ""
+	h.Params = ""
 }
 
 // Equal returns whether the hyperlink is equal to the other hyperlink.
-func (h Link) Equal(o Link) bool {
-	return h == o
+func (h *Link) Equal(o *Link) bool {
+	return o != nil && h.URL == o.URL && h.Params == o.Params
 }
 
 // Empty returns whether the hyperlink is empty.
 func (h Link) Empty() bool {
-	return h.URL == "" && h.URLID == ""
+	return h.URL == "" && h.Params == ""
 }
 
 // AttrMask is a bitmask for text attributes that can change the look of text.
@@ -320,12 +332,12 @@ func (s Style) DiffSequence(o Style) string {
 }
 
 // Equal returns true if the style is equal to the other style.
-func (s Style) Equal(o Style) bool {
-	return colorEqual(s.Fg, o.Fg) &&
+func (s *Style) Equal(o *Style) bool {
+	return s.Attrs == o.Attrs &&
+		s.UlStyle == o.UlStyle &&
+		colorEqual(s.Fg, o.Fg) &&
 		colorEqual(s.Bg, o.Bg) &&
-		colorEqual(s.Ul, o.Ul) &&
-		s.Attrs == o.Attrs &&
-		s.UlStyle == o.UlStyle
+		colorEqual(s.Ul, o.Ul)
 }
 
 func colorEqual(c, o ansi.Color) bool {
@@ -472,7 +484,10 @@ func (s *Style) Empty() bool {
 // affect appearance of a space character.
 func (s *Style) Clear() bool {
 	return s.UlStyle == NoUnderline &&
-		s.Attrs&^(BoldAttr|FaintAttr|ItalicAttr|SlowBlinkAttr|RapidBlinkAttr) == 0
+		s.Attrs&^(BoldAttr|FaintAttr|ItalicAttr|SlowBlinkAttr|RapidBlinkAttr) == 0 &&
+		s.Fg == nil &&
+		s.Bg == nil &&
+		s.Ul == nil
 }
 
 func runesEqual(a, b []rune) bool {

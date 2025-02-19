@@ -409,13 +409,13 @@ func main() {
 	dialogWidth := lipgloss.Width(dialogUI) + dialogBoxStyle.GetHorizontalFrameSize()
 	dialogHeight := lipgloss.Height(dialogUI) + dialogBoxStyle.GetVerticalFrameSize()
 	dialogX, dialogY := physicalWidth/2-dialogWidth/2-docStyle.GetVerticalFrameSize()-1, 12
-	ctx := scr.DefaultWindow()
 	render := func() {
-		ctx.Clear()
-		ctx.SetContent(docStyle.Render(doc.String()))
-		box := scr.NewWindow(dialogX, dialogY, dialogWidth, dialogHeight)
-		box.SetContent(dialogBoxStyle.Render(dialogUI))
+		scr.Clear()
+		scr.SetContent(docStyle.Render(doc.String()))
+		box := cellbuf.Rect(dialogX, dialogY, dialogWidth, dialogHeight)
+		scr.SetContentRect(dialogBoxStyle.Render(dialogUI), box)
 		scr.Render()
+		scr.Flush()
 	}
 
 	// First render

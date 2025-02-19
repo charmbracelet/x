@@ -10,9 +10,18 @@ import (
 // NewCell returns a new cell. This is a convenience function that initializes a
 // new cell with the given content. The cell's width is determined by the
 // content using [runewidth.RuneWidth].
+// This will only account for the first combined rune in the content. If the
+// content is empty, it will return an empty cell with a width of 0.
 func NewCell(r rune, comb ...rune) (c *Cell) {
 	c = new(Cell)
 	c.Rune = r
+	c.Width = runewidth.RuneWidth(r)
+	for _, r := range comb {
+		if runewidth.RuneWidth(r) > 0 {
+			break
+		}
+		c.Comb = append(c.Comb, r)
+	}
 	c.Comb = comb
 	c.Width = runewidth.StringWidth(string(append([]rune{r}, comb...)))
 	return
@@ -20,18 +29,22 @@ func NewCell(r rune, comb ...rune) (c *Cell) {
 
 // NewCellString returns a new cell with the given string content. This is a
 // convenience function that initializes a new cell with the given content. The
-// cell's width is determined by the content using [wcwidth.StringWidth].
+// cell's width is determined by the content using [runewidth.StringWidth].
 // This will only use the first combined rune in the string. If the string is
 // empty, it will return an empty cell with a width of 0.
 func NewCellString(s string) (c *Cell) {
 	c = new(Cell)
-	c.Width = runewidth.StringWidth(s)
 	for i, r := range s {
 		if i == 0 {
 			c.Rune = r
-			continue
+			// We only care about the first rune's width
+			c.Width = runewidth.RuneWidth(r)
+		} else {
+			if runewidth.RuneWidth(r) > 0 {
+				break
+			}
+			c.Comb = append(c.Comb, r)
 		}
-		c.Comb = append(c.Comb, r)
 	}
 	return
 }
