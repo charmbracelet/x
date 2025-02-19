@@ -1,10 +1,10 @@
 package teatest_test
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,9 +35,45 @@ func TestApp(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	out := readBts(t, tm.FinalOutput(t, teatest.WithFinalTimeout(time.Second)))
-	if !regexp.MustCompile(`This program will exit in \d+ seconds`).Match(out) {
-		t.Fatalf("output does not match the given regular expression: %s", string(out))
+	out := teatest.TrimEmptyLines(tm.FinalOutput(t, teatest.WithFinalTimeout(time.Second)))
+	if !regexp.MustCompile(`This program will exit in \d+ seconds`).MatchString(out) {
+		t.Fatalf("output does not match the given regular expression: %q", out)
+	}
+	teatest.RequireEqualOutput(t, out)
+
+	if tm.FinalModel(t).(model) != 9 {
+		t.Errorf("expected model to be 10, was %d", m)
+	}
+}
+
+func TestAppAltScreen(t *testing.T) {
+	t.Skip("needs changes in /vt")
+	m := model(10)
+	tm := teatest.NewTestModel(
+		t, m,
+		teatest.WithInitialTermSize(70, 30),
+		teatest.WithProgramOptions(tea.WithAltScreen()),
+	)
+	t.Cleanup(func() {
+		if err := tm.Quit(); err != nil {
+			t.Fatal(err)
+		}
+	})
+
+	time.Sleep(time.Second + time.Millisecond*200)
+	tm.Type("I'm typing things, but it'll be ignored by my program")
+	tm.Send("ignored msg")
+	tm.Send(tea.KeyPressMsg{
+		Code: tea.KeyEnter,
+	})
+
+	if err := tm.Quit(); err != nil {
+		t.Fatal(err)
+	}
+
+	out := teatest.TrimEmptyLines(tm.FinalOutput(t, teatest.WithFinalTimeout(time.Second)))
+	if !regexp.MustCompile(`This program will exit in \d+ seconds`).MatchString(out) {
+		t.Fatalf("output does not match the given regular expression: %q", out)
 	}
 	teatest.RequireEqualOutput(t, out)
 
@@ -56,12 +92,12 @@ func TestAppInteractive(t *testing.T) {
 	time.Sleep(time.Second + time.Millisecond*200)
 	tm.Send("ignored msg")
 
-	if bts := readBts(t, tm.Output()); !bytes.Contains(bts, []byte("This program will exit in 9 seconds")) {
-		t.Fatalf("output does not match: expected %q", string(bts))
+	if s := tm.Output(); !strings.Contains(s, "This program will exit in 9 seconds") {
+		t.Fatalf("output does not match: expected %q", string(s))
 	}
 
-	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
-		return bytes.Contains(out, []byte("This program will exit in 7 seconds"))
+	teatest.WaitForOutput(t, tm, func(s string) bool {
+		return strings.Contains(s, "This program will exit in 7 seconds")
 	}, teatest.WithDuration(5*time.Second), teatest.WithCheckInterval(time.Millisecond*10))
 
 	tm.Send(tea.KeyPressMsg{

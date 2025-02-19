@@ -2,11 +2,10 @@
 package teatest
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -14,6 +13,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea/v2"
 	"github.com/charmbracelet/x/exp/golden"
+	"github.com/charmbracelet/x/vt"
 )
 
 // Program defines the subset of the tea.Program API we need for testing.
@@ -23,11 +23,20 @@ type Program interface {
 
 // TestModelOptions defines all options available to the test function.
 type TestModelOptions struct {
-	size tea.WindowSizeMsg
+	size  tea.WindowSizeMsg
+	topts []tea.ProgramOption
 }
 
 // TestOption is a functional option.
 type TestOption func(opts *TestModelOptions)
+
+// WithProgramOptions allows to give the program additional
+// [tea.ProgramOption]s.
+func WithProgramOptions(topts ...tea.ProgramOption) TestOption {
+	return func(opts *TestModelOptions) {
+		opts.topts = append(opts.topts, topts...)
+	}
+}
 
 // WithInitialTermSize ...
 func WithInitialTermSize(x, y int) TestOption {
@@ -63,22 +72,22 @@ func WithDuration(d time.Duration) WaitForOption {
 	}
 }
 
-// WaitFor keeps reading from r until the condition matches.
+// WaitForOutput keeps reading from r until the condition matches.
 // Default duration is 1s, default check interval is 50ms.
 // These defaults can be changed with WithDuration and WithCheckInterval.
-func WaitFor(
+func WaitForOutput(
 	tb testing.TB,
-	r io.Reader,
-	condition func(bts []byte) bool,
+	tm *TestModel,
+	condition func(string) bool,
 	options ...WaitForOption,
 ) {
 	tb.Helper()
-	if err := doWaitFor(r, condition, options...); err != nil {
+	if err := doWaitFor(tm, condition, options...); err != nil {
 		tb.Fatal(err)
 	}
 }
 
-func doWaitFor(r io.Reader, condition func(bts []byte) bool, options ...WaitForOption) error {
+func doWaitFor(tm *TestModel, condition func(string) bool, options ...WaitForOption) error {
 	wf := WaitingForContext{
 		Duration:      time.Second,
 		CheckInterval: 50 * time.Millisecond, //nolint: gomnd
@@ -88,26 +97,21 @@ func doWaitFor(r io.Reader, condition func(bts []byte) bool, options ...WaitForO
 		opt(&wf)
 	}
 
-	var b bytes.Buffer
 	start := time.Now()
 	for time.Since(start) <= wf.Duration {
-		if _, err := io.ReadAll(io.TeeReader(r, &b)); err != nil {
-			return fmt.Errorf("WaitFor: %w", err)
-		}
-		if condition(b.Bytes()) {
+		if condition(tm.Output()) {
 			return nil
 		}
 		time.Sleep(wf.CheckInterval)
 	}
-	return fmt.Errorf("WaitFor: condition not met after %s. Last output:\n%s", wf.Duration, b.String())
+	return fmt.Errorf("WaitFor: condition not met after %s. Last output:\n%q", wf.Duration, tm.Output())
 }
 
 // TestModel is a model that is being tested.
 type TestModel struct {
 	program *tea.Program
 
-	in  *bytes.Buffer
-	out io.ReadWriter
+	term *vt.Terminal
 
 	modelCh chan tea.Model
 	model   tea.Model
@@ -118,18 +122,28 @@ type TestModel struct {
 
 // NewTestModel makes a new TestModel which can be used for tests.
 func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel {
+	var opts TestModelOptions
+	for _, opt := range options {
+		opt(&opts)
+	}
+	if opts.size.Width == 0 {
+		opts.size.Width, opts.size.Height = 80, 24
+	}
+
 	tm := &TestModel{
-		in:      bytes.NewBuffer(nil),
-		out:     safe(bytes.NewBuffer(nil)),
+		term:    vt.NewTerminal(opts.size.Width, opts.size.Height),
 		modelCh: make(chan tea.Model, 1),
 		doneCh:  make(chan bool, 1),
 	}
 
+	topts := []tea.ProgramOption{
+		tea.WithInput(tm.term),
+		tea.WithOutput(tm.term),
+		tea.WithoutSignals(),
+	}
 	tm.program = tea.NewProgram(
 		m,
-		tea.WithInput(tm.in),
-		tea.WithOutput(tm.out),
-		tea.WithoutSignals(),
+		append(topts, opts.topts...)...,
 	)
 
 	interruptions := make(chan os.Signal, 1)
@@ -149,30 +163,27 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		tm.program.Kill()
 	}()
 
-	var opts TestModelOptions
-	for _, opt := range options {
-		opt(&opts)
-	}
-
-	if opts.size.Width != 0 {
-		tm.program.Send(opts.size)
-	}
+	tm.program.Send(opts.size)
 	return tm
 }
 
-func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
+func mergeOpts(opts []FinalOpt) FinalOpts {
+	r := FinalOpts{}
+	for _, opt := range opts {
+		opt(&r)
+	}
+	return r
+}
+
+func (tm *TestModel) waitDone(tb testing.TB, opts FinalOpts) {
 	tm.done.Do(func() {
-		fopts := FinalOpts{}
-		for _, opt := range opts {
-			opt(&fopts)
-		}
-		if fopts.timeout > 0 {
+		if opts.timeout > 0 {
 			select {
-			case <-time.After(fopts.timeout):
-				if fopts.onTimeout == nil {
-					tb.Fatalf("timeout after %s", fopts.timeout)
+			case <-time.After(opts.timeout):
+				if opts.onTimeout == nil {
+					tb.Fatalf("timeout after %s", opts.timeout)
 				}
-				fopts.onTimeout(tb)
+				opts.onTimeout(tb)
 			case <-tm.doneCh:
 			}
 		} else {
@@ -185,6 +196,7 @@ func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
 type FinalOpts struct {
 	timeout   time.Duration
 	onTimeout func(tb testing.TB)
+	trim      bool
 }
 
 // FinalOpt changes FinalOpts.
@@ -209,14 +221,14 @@ func WithFinalTimeout(d time.Duration) FinalOpt {
 // This method only returns once the program has finished running or when it
 // times out.
 func (tm *TestModel) WaitFinished(tb testing.TB, opts ...FinalOpt) {
-	tm.waitDone(tb, opts)
+	tm.waitDone(tb, mergeOpts(opts))
 }
 
 // FinalModel returns the resulting model, resulting from program.Run().
 // This method only returns once the program has finished running or when it
 // times out.
 func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
-	tm.waitDone(tb, opts)
+	tm.WaitFinished(tb, opts...)
 	select {
 	case m := <-tm.modelCh:
 		tm.model = m
@@ -226,17 +238,20 @@ func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
 	}
 }
 
-// FinalOutput returns the program's final output io.Reader.
+// FinalOutput returns the program's final output.
 // This method only returns once the program has finished running or when it
 // times out.
-func (tm *TestModel) FinalOutput(tb testing.TB, opts ...FinalOpt) io.Reader {
-	tm.waitDone(tb, opts)
+// It's the equivalent of calling both `tm.WaitFinished` and `tm.Output()`.
+func (tm *TestModel) FinalOutput(tb testing.TB, opts ...FinalOpt) string {
+	tm.WaitFinished(tb, opts...)
+	// FIXME: need to check here if term was using alt screen and get that
+	// output instead.
 	return tm.Output()
 }
 
-// Output returns the program's current output io.Reader.
-func (tm *TestModel) Output() io.Reader {
-	return tm.out
+// Output returns the program's current output.
+func (tm *TestModel) Output() string {
+	return tm.term.String()
 }
 
 // Send sends messages to the underlying program.
@@ -271,31 +286,19 @@ func (tm *TestModel) GetProgram() *tea.Program {
 // Important: this uses the system `diff` tool.
 //
 // You can update the golden files by running your tests with the -update flag.
-func RequireEqualOutput(tb testing.TB, out []byte) {
+func RequireEqualOutput(tb testing.TB, out string) {
 	tb.Helper()
-	golden.RequireEqualEscape(tb, out, true)
+	golden.RequireEqualEscape(tb, []byte(out), true)
 }
 
-func safe(rw io.ReadWriter) io.ReadWriter {
-	return &safeReadWriter{rw: rw}
-}
-
-// safeReadWriter implements io.ReadWriter, but locks reads and writes.
-type safeReadWriter struct {
-	rw io.ReadWriter
-	m  sync.RWMutex
-}
-
-// Read implements io.ReadWriter.
-func (s *safeReadWriter) Read(p []byte) (n int, err error) {
-	s.m.RLock()
-	defer s.m.RUnlock()
-	return s.rw.Read(p) //nolint: wrapcheck
-}
-
-// Write implements io.ReadWriter.
-func (s *safeReadWriter) Write(p []byte) (int, error) {
-	s.m.Lock()
-	defer s.m.Unlock()
-	return s.rw.Write(p) //nolint: wrapcheck
+// TrimEmptyLines removes trailing empty lines from the given output.
+func TrimEmptyLines(out string) string {
+	// trim empty trailing lines from the output
+	lines := strings.Split(out, "\n")
+	for i := len(lines) - 1; i >= 0; i-- {
+		if strings.TrimSpace(lines[i]) != "" {
+			return strings.Join(lines[:i], "\n")
+		}
+	}
+	return out
 }
