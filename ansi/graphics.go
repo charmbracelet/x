@@ -34,11 +34,17 @@ func SixelGraphics(p1, p2, p3 int, payload []byte) string {
 	var buf bytes.Buffer
 
 	buf.WriteString("\x1bP")
-	buf.WriteString(strconv.Itoa(p1))
+	if p1 >= 0 {
+		buf.WriteString(strconv.Itoa(p1))
+	}
 	buf.WriteByte(';')
-	buf.WriteString(strconv.Itoa(p2))
+	if p2 >= 0 {
+		buf.WriteString(strconv.Itoa(p2))
+	}
 	buf.WriteByte(';')
-	buf.WriteString(strconv.Itoa(p3))
+	if p3 >= 0 {
+		buf.WriteString(strconv.Itoa(p3))
+	}
 	buf.WriteString(";q")
 	buf.Write(payload)
 	buf.WriteString("\x1b\\")
@@ -49,11 +55,7 @@ func SixelGraphics(p1, p2, p3 int, payload []byte) string {
 // WriteSixelGraphics encodes an image as sixels into the provided io.Writer.
 // Options is provided in expectation of future options (such as dithering), but
 // none are yet implemented. o can be nil to use the default options.
-func WriteSixelGraphics(w io.Writer, m image.Image, o *sixel.Options) error {
-	if o == nil {
-		o = &sixel.Options{}
-	}
-
+func WriteSixelGraphics(w io.Writer, m image.Image) error {
 	e := &sixel.Encoder{}
 
 	data := bytes.NewBuffer(nil)
