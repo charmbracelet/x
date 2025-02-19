@@ -160,7 +160,7 @@ func (p *sixelPalette) createCube(uniqueColors []sixelColor, pixelCounts map[six
 	return cube
 }
 
-type Ordered interface {
+type ordered interface {
 	~int | ~int8 | ~int16 | ~int32 | ~int64 |
 		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
 		~float32 | ~float64 |
@@ -170,11 +170,11 @@ type Ordered interface {
 
 // isNaN reports whether x is a NaN without requiring the math package.
 // This will always return false if T is not floating-point.
-func isNaN[T Ordered](x T) bool {
+func isNaN[T ordered](x T) bool {
 	return x != x
 }
 
-func Compare[T Ordered](x, y T) int {
+func compare[T ordered](x, y T) int {
 	xNaN := isNaN(x)
 	yNaN := isNaN(y)
 	if xNaN {
@@ -223,13 +223,13 @@ func (p *sixelPalette) quantize(uniqueColors []sixelColor, pixelCounts map[sixel
 			func(left sixelColor, right sixelColor) int {
 				switch cubeToSplit.sliceChannel {
 				case quantizationRed:
-					return Compare(left.Red, right.Red)
+					return compare(left.Red, right.Red)
 				case quantizationGreen:
-					return Compare(left.Green, right.Green)
+					return compare(left.Green, right.Green)
 				case quantizationBlue:
-					return Compare(left.Blue, right.Blue)
+					return compare(left.Blue, right.Blue)
 				default:
-					return Compare(left.Alpha, right.Alpha)
+					return compare(left.Alpha, right.Alpha)
 				}
 			})
 
