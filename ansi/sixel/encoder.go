@@ -115,7 +115,7 @@ type sixelBuilder struct {
 	pixelBands bitset.BitSet
 
 	imageData   strings.Builder
-	repeatRune  rune
+	repeatByte  byte
 	repeatCount int
 }
 
@@ -228,14 +228,14 @@ func (s *sixelBuilder) GeneratePixels() string {
 
 // writeImageRune will write a single line of six pixels to pixel data.  The data
 // doesn't get written to the imageData, it gets buffered for the purposes of RLE
-func (s *sixelBuilder) writeImageRune(r rune) {
-	if r == s.repeatRune {
+func (s *sixelBuilder) writeImageRune(r byte) {
+	if r == s.repeatByte {
 		s.repeatCount++
 		return
 	}
 
 	s.flushRepeats()
-	s.repeatRune = r
+	s.repeatByte = r
 	s.repeatCount = 1
 }
 
@@ -245,7 +245,7 @@ func (s *sixelBuilder) writeControlRune(r byte) {
 	if s.repeatCount > 0 {
 		s.flushRepeats()
 		s.repeatCount = 0
-		s.repeatRune = 0
+		s.repeatByte = 0
 	}
 
 	s.imageData.WriteByte(r)
