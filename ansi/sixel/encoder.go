@@ -39,11 +39,11 @@ func Raster(pan, pad, ph, pv int) string {
 	return fmt.Sprintf("%s%d;%d;%d;%d", string(RasterAttribute), pan, pad, ph, pv)
 }
 
-func Repeat(count int, repeatRune rune) string {
+func Repeat(count int, repeatByte byte) string {
 	var sb strings.Builder
 	sb.WriteByte(RepeatIntroducer)
 	sb.WriteString(strconv.Itoa(count))
-	sb.WriteRune(repeatRune)
+	sb.WriteByte(repeatByte)
 	return sb.String()
 }
 
@@ -251,7 +251,7 @@ func (s *sixelBuilder) writeControlRune(r byte) {
 	s.imageData.WriteByte(r)
 }
 
-// flushRepeats is used to actually write the current repeatRune to the imageData when
+// flushRepeats is used to actually write the current repeatByte to the imageData when
 // it is about to change. This buffering is used to manage RLE in the sixelBuilder
 func (s *sixelBuilder) flushRepeats() {
 	if s.repeatCount == 0 {
@@ -260,11 +260,11 @@ func (s *sixelBuilder) flushRepeats() {
 
 	// Only write using the RLE form if it's actually providing space savings
 	if s.repeatCount > 3 {
-		s.imageData.WriteString(Repeat(s.repeatCount, s.repeatRune))
+		s.imageData.WriteString(Repeat(s.repeatCount, s.repeatByte))
 		return
 	}
 
 	for i := 0; i < s.repeatCount; i++ {
-		s.imageData.WriteRune(s.repeatRune)
+		s.imageData.WriteByte(s.repeatByte)
 	}
 }
