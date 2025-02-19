@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/x/ansi/kitty"
-	"github.com/charmbracelet/x/ansi/sixel"
 )
 
 // SixelGraphics returns a sequence that encodes the given sixel image payload to
@@ -50,21 +49,6 @@ func SixelGraphics(p1, p2, p3 int, payload []byte) string {
 	buf.WriteString("\x1b\\")
 
 	return buf.String()
-}
-
-// WriteSixelGraphics encodes an image as sixels into the provided io.Writer.
-// Options is provided in expectation of future options (such as dithering), but
-// none are yet implemented. o can be nil to use the default options.
-func WriteSixelGraphics(w io.Writer, m image.Image) error {
-	e := &sixel.Encoder{}
-
-	data := bytes.NewBuffer(nil)
-	if err := e.Encode(data, m); err != nil {
-		return fmt.Errorf("failed to encode sixel image: %w", err)
-	}
-
-	_, err := io.WriteString(w, SixelGraphics(0, 1, 0, data.Bytes()))
-	return err
 }
 
 // KittyGraphics returns a sequence that encodes the given image in the Kitty
