@@ -44,7 +44,7 @@ func SixelGraphics(p1, p2, p3 int, payload []byte) string {
 		buf.WriteByte(';')
 		buf.WriteString(strconv.Itoa(p3))
 	}
-	buf.WriteString(";q")
+	buf.WriteByte('q')
 	buf.Write(payload)
 	buf.WriteString("\x1b\\")
 
