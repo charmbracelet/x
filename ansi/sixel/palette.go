@@ -1,7 +1,6 @@
 package sixel
 
 import (
-	"cmp"
 	"container/heap"
 	"image"
 	"image/color"
@@ -160,6 +159,41 @@ func (p *sixelPalette) createCube(uniqueColors []sixelColor, pixelCounts map[six
 	return cube
 }
 
+type Ordered interface {
+	~int | ~int8 | ~int16 | ~int32 | ~int64 |
+		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
+		~float32 | ~float64 |
+		~string
+}
+
+
+// isNaN reports whether x is a NaN without requiring the math package.
+// This will always return false if T is not floating-point.
+func isNaN[T Ordered](x T) bool {
+	return x != x
+}
+
+func Compare[T Ordered](x, y T) int {
+	xNaN := isNaN(x)
+	yNaN := isNaN(y)
+	if xNaN {
+		if yNaN {
+			return 0
+		}
+		return -1
+	}
+	if yNaN {
+		return +1
+	}
+	if x < y {
+		return -1
+	}
+	if x > y {
+		return +1
+	}
+	return 0
+}
+
 // quantize is a method that will initialize the palette's colors and lookups, provided a set
 // of unique colors and a map containing pixel counts for those colors
 func (p *sixelPalette) quantize(uniqueColors []sixelColor, pixelCounts map[sixelColor]uint64, maxColors int) {
@@ -188,13 +222,13 @@ func (p *sixelPalette) quantize(uniqueColors []sixelColor, pixelCounts map[sixel
 			func(left sixelColor, right sixelColor) int {
 				switch cubeToSplit.sliceChannel {
 				case quantizationRed:
-					return cmp.Compare(left.Red, right.Red)
+					return Compare(left.Red, right.Red)
 				case quantizationGreen:
-					return cmp.Compare(left.Green, right.Green)
+					return Compare(left.Green, right.Green)
 				case quantizationBlue:
-					return cmp.Compare(left.Blue, right.Blue)
+					return Compare(left.Blue, right.Blue)
 				default:
-					return cmp.Compare(left.Alpha, right.Alpha)
+					return Compare(left.Alpha, right.Alpha)
 				}
 			})
 
