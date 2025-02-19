@@ -197,10 +197,10 @@ func (s *sixelBuilder) GeneratePixels() string {
 				bit := firstColorBit + uint(x*6)
 				word := s.pixelBands.GetWord64AtBit(bit)
 
-				pixel1 := rune((word & 63) + '?')
-				pixel2 := rune(((word >> 6) & 63) + '?')
-				pixel3 := rune(((word >> 12) & 63) + '?')
-				pixel4 := rune(((word >> 18) & 63) + '?')
+				pixel1 := byte((word & 63) + '?')
+				pixel2 := byte(((word >> 6) & 63) + '?')
+				pixel3 := byte(((word >> 12) & 63) + '?')
+				pixel4 := byte(((word >> 18) & 63) + '?')
 
 				s.writeImageRune(pixel1)
 

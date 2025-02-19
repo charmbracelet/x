@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"sort"
 )
 
 // sixelPalette is a palette of up to 256 colors that lists the colors that will be used by
