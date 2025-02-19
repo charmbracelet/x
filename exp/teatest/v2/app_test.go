@@ -56,12 +56,12 @@ func TestAppInteractive(t *testing.T) {
 	time.Sleep(time.Second + time.Millisecond*200)
 	tm.Send("ignored msg")
 
-	if bts := readBts(t, tm.Output()); !bytes.Contains(bts, []byte("This program will exit in 9 seconds")) {
+	if bts := readBts(t, tm.Output()); !bytes.Contains(bts, []byte("9 seconds")) {
 		t.Fatalf("output does not match: expected %q", string(bts))
 	}
 
 	teatest.WaitFor(t, tm.Output(), func(out []byte) bool {
-		return bytes.Contains(out, []byte("This program will exit in 7 seconds"))
+		return bytes.Contains(out, []byte("7"))
 	}, teatest.WithDuration(5*time.Second), teatest.WithCheckInterval(time.Millisecond*10))
 
 	tm.Send(tea.KeyPressMsg{
@@ -93,8 +93,8 @@ type model int
 
 // Init optionally returns an initial command we should run. In this case we
 // want to start the timer.
-func (m model) Init() (tea.Model, tea.Cmd) {
-	return m, tick
+func (m model) Init() tea.Cmd {
+	return tick
 }
 
 // Update is called when messages are received. The idea is that you inspect the

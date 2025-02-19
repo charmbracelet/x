@@ -125,11 +125,22 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		doneCh:  make(chan bool, 1),
 	}
 
+	// We always have an initial size.
+	options = append([]TestOption{
+		WithInitialTermSize(80, 24),
+	}, options...)
+
+	var opts TestModelOptions
+	for _, opt := range options {
+		opt(&opts)
+	}
+
 	tm.program = tea.NewProgram(
 		m,
 		tea.WithInput(tm.in),
 		tea.WithOutput(tm.out),
 		tea.WithoutSignals(),
+		tea.WithWindowSize(opts.size.Width, opts.size.Height),
 	)
 
 	interruptions := make(chan os.Signal, 1)
@@ -148,11 +159,6 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		tb.Log("interrupted")
 		tm.program.Kill()
 	}()
-
-	var opts TestModelOptions
-	for _, opt := range options {
-		opt(&opts)
-	}
 
 	if opts.size.Width != 0 {
 		tm.program.Send(opts.size)
