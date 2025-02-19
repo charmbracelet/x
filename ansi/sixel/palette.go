@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"slices"
 )
 
 // sixelPalette is a palette of up to 256 colors that lists the colors that will be used by
@@ -185,7 +184,7 @@ func (p *sixelPalette) quantize(uniqueColors []sixelColor, pixelCounts map[sixel
 		cubeToSplit := heap.Pop(&cubeHeap).(quantizationCube)
 
 		// Sort the colors in the bucket's range along the cube's longest color axis
-		slices.SortFunc(uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length],
+		sort.SliceFunc(uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length],
 			func(left sixelColor, right sixelColor) int {
 				switch cubeToSplit.sliceChannel {
 				case quantizationRed:
