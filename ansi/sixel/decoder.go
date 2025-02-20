@@ -1,7 +1,7 @@
 package sixel
 
 import (
-	"bytes"
+	"bufio"
 	"errors"
 	"fmt"
 	"image"
@@ -279,18 +279,9 @@ func buildDefaultDecodePalette() map[int]color.Color {
 	}
 }
 
-type Decoder struct {
-}
-
-func ParseRaster(data io.Reader) (pan, pad, ph, pv int, err error) {
-	_, err = fmt.Fscanf(data, "%d;%d;%d;%d", &pan, &pad, &ph, &pv)
-	return
-}
-
-func ParseRepeat(data io.Reader) (count int, r byte, err error) {
-	_, err = fmt.Fscanf(data, "%d%b", &count, &r)
-	return
-}
+// Decoder is a Sixel image decoder. It reads Sixel image data from an
+// io.Reader and decodes it into an image.Image.
+type Decoder struct{}
 
 // Decode will parse sixel image data into an image or return an error.  Because
 // the sixel image format does not have a predictable size, the end of the sixel
@@ -299,31 +290,55 @@ func ParseRepeat(data io.Reader) (count int, r byte, err error) {
 // the end, this method simply accepts a byte slice instead of a reader. Callers
 // should read the entire escape sequence and pass the Ps..Ps portion of the sequence
 // to this method.
-func (d *Decoder) Decode(data []byte) (image.Image, error) {
-	if len(data) == 0 {
-		return image.NewRGBA(image.Rect(0, 0, 0, 0)), nil
-	}
-
-	buffer := bytes.NewBuffer(data)
-	b, err := buffer.ReadByte()
+func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
+	rd := bufio.NewReader(r)
+	peeked, err := rd.Peek(1)
 	if err != nil {
-		return nil, d.readError(err)
+		return nil, err
 	}
 
 	var bounds image.Rectangle
-	if b == RasterAttribute {
-		var fixedWidth, fixedHeight int
-		// We have pixel dimensions
-		_, _, fixedWidth, fixedHeight, err := ParseRaster(buffer)
-		if err != nil {
-			return nil, d.readError(err)
+	var raster Raster
+	if peeked[0] == RasterAttribute {
+		var read int
+		n := 16
+		for {
+			peeked, err = rd.Peek(n) // random number, just need to read a few bytes
+			if err != nil {
+				return nil, err
+			}
+
+			raster, read = DecodeRaster(peeked)
+			if read == 0 {
+				return nil, ErrInvalidRaster
+			}
+			if read >= n {
+				// We need to read more bytes to get the full raster
+				n *= 2
+				continue
+			}
+
+			rd.Discard(read) //nolint:errcheck
+			break
 		}
 
-		bounds = image.Rect(0, 0, fixedWidth, fixedHeight)
-	} else {
+		bounds = image.Rect(0, 0, raster.Ph, raster.Pv)
+	}
+
+	if bounds.Max.X == 0 || bounds.Max.Y == 0 {
 		// We're parsing the image with no pixel metrics so unread the byte for the
 		// main read loop
-		_ = buffer.UnreadByte()
+		// Peek the whole buffer to get the size of the image before we start
+		// decoding it.
+		var data []byte
+		toPeak := 64 // arbitrary number of bytes to peak
+		for {
+			data, err = rd.Peek(toPeak)
+			if err != nil || len(data) < toPeak {
+				break
+			}
+			toPeak *= 2
+		}
 
 		width, height := d.scanSize(data)
 		bounds = image.Rect(0, 0, width, height)
@@ -333,74 +348,80 @@ func (d *Decoder) Decode(data []byte) (image.Image, error) {
 	palette := buildDefaultDecodePalette()
 	var currentX, currentBandY, currentPaletteIndex int
 
+	// data buffer used to decode Sixel commands
+	data := make([]byte, 0, 16) // arbitrary number of bytes to read
 	for {
-		b, err := buffer.ReadByte()
+		b, err := rd.ReadByte()
 		if err != nil {
 			return img, d.readError(err)
 		}
 
-		// Palette operation
-		if b == ColorIntroducer {
-			_, err = fmt.Fscan(buffer, &currentPaletteIndex)
-			if err != nil {
-				return img, d.readError(err)
-			}
-
-			b, err = buffer.ReadByte()
-			if err != nil {
-				return img, d.readError(err)
-			}
-
-			if b != ';' {
-				// If we're not defining a color, move on
-				_ = buffer.UnreadByte()
-				continue
-			}
-
-			var red, green, blue uint32
-			// We only know how to read RGB colors, which is preceded by a 2
-			_, err = fmt.Fscanf(buffer, "2;%d;%d;%d", &red, &green, &blue)
-			if err != nil {
-				return img, d.readError(err)
-			}
-
-			if red > 100 || green > 100 || blue > 100 {
-				return img, fmt.Errorf("invalid palette color: %d,%d,%d", red, green, blue)
-			}
-
-			palette[currentPaletteIndex] = color.RGBA64{
-				R: uint16(imageConvertChannel(red)),
-				G: uint16(imageConvertChannel(green)),
-				B: uint16(imageConvertChannel(blue)),
-				A: 65525,
-			}
-
-			continue
-		}
-
-		// LF
-		if b == LineBreak {
+		count := 1 // default count for Sixel commands
+		switch {
+		case b == LineBreak: // LF
 			currentBandY++
 			currentX = 0
-			continue
-		}
-
-		// CR
-		if b == CarriageReturn {
+		case b == CarriageReturn: // CR
 			currentX = 0
-			continue
-		}
+		case b == ColorIntroducer: // #
+			data = data[0:]
+			data = append(data, b)
+			for {
+				b, err = rd.ReadByte()
+				if err != nil {
+					return img, d.readError(err)
+				}
+				// Read bytes until we hit a non-color byte i.e. non-numeric
+				// and non-;
+				if (b < '0' || b > '9') && b != ';' {
+					rd.UnreadByte() //nolint:errcheck
+					break
+				}
 
-		// RLE operation
-		count := 1
-		if b == RepeatIntroducer {
-			count, b, err = ParseRepeat(buffer)
-			if err != nil {
-				return img, d.readError(err)
+				data = append(data, b)
 			}
-		}
 
-		if b >= '?' && b <= '~' {
+			// Palette operation
+			c, n := DecodeColor(data)
+			if n == 0 {
+				return img, ErrInvalidColor
+			}
+
+			currentPaletteIndex = int(c.Pc)
+			palette[currentPaletteIndex] = c
+			// palette[currentPaletteIndex] = color.RGBA64{
+			// 	R: uint16(imageConvertChannel(uint32(c.Px))),
+			// 	G: uint16(imageConvertChannel(uint32(c.Py))),
+			// 	B: uint16(imageConvertChannel(uint32(c.Pz))),
+			// 	A: 65525,
+			// }
+		case b == RepeatIntroducer: // !
+			data = data[0:]
+			data = append(data, b)
+			for {
+				b, err = rd.ReadByte()
+				if err != nil {
+					return img, d.readError(err)
+				}
+				// Read bytes until we hit a non-numeric and non-repeat byte.
+				if (b < '0' || b > '9') && (b < '?' || b > '~') {
+					rd.UnreadByte() //nolint:errcheck
+					break
+				}
+
+				data = append(data, b)
+			}
+
+			// RLE operation
+			r, n := DecodeRepeat(data)
+			if n == 0 {
+				return img, ErrInvalidRepeat
+			}
+
+			count = r.Count
+			b = r.Char
+			fallthrough
+		case b >= '?' && b <= '~':
 			color := palette[currentPaletteIndex]
 			for i := 0; i < count; i++ {
 				d.writePixel(currentX, currentBandY, b, color, img)
@@ -410,7 +431,7 @@ func (d *Decoder) Decode(data []byte) (image.Image, error) {
 	}
 }
 
-// WritePixel will accept a sixel byte (from ? to ~) that defines 6 vertical pixels
+// writePixel will accept a sixel byte (from ? to ~) that defines 6 vertical pixels
 // and write any filled pixels to the image
 func (d *Decoder) writePixel(x int, bandY int, sixel byte, color color.Color, img *image.RGBA) {
 	maskedSixel := (sixel - '?') & 63
@@ -441,7 +462,6 @@ func (d *Decoder) writePixel(x int, bandY int, sixel byte, color color.Color, im
 // line.
 func (d *Decoder) scanSize(data []byte) (int, int) {
 	var maxWidth, bandCount int
-	buffer := bytes.NewBuffer(data)
 
 	// Pixel values are ? to ~. Each one of these encountered increases the max width.
 	// a - is a LF and increases the max band count by one.  a $ is a CR and resets
@@ -451,49 +471,43 @@ func (d *Decoder) scanSize(data []byte) (int, int) {
 	// a ! is a RLE indicator, and we should add the numeral to the current width
 	var currentWidth int
 	newBand := true
-	for {
-		b, err := buffer.ReadByte()
-		if err != nil {
-			return maxWidth, bandCount * 6
-		}
-
-		if b == '-' {
+	for i := 0; i < len(data); i++ {
+		b := data[i]
+		switch {
+		case b == LineBreak:
 			// LF
 			currentWidth = 0
 			// The image may end with an LF, so we shouldn't increment the band
 			// count until we encounter a pixel
 			newBand = true
-		} else if b == '$' {
+		case b == CarriageReturn:
 			// CR
 			currentWidth = 0
-		} else if b == '!' || (b >= '?' && b <= '~') {
-			// Either an RLE operation or a single pixel
-
-			var count int
-			if b == '!' {
+		case b == RepeatIntroducer || (b <= '~' && b >= '?'):
+			count := 1
+			if b == RepeatIntroducer {
 				// Get the run length for the RLE operation
-				_, err := fmt.Fscan(buffer, &count)
-				if err != nil {
+				r, n := DecodeRepeat(data[i:])
+				if n == 0 {
 					return maxWidth, bandCount * 6
 				}
-				// Decrement the RLE because the pixel code will follow the
-				// RLE and that will count as pixel
-				count--
-			} else {
-				count = 1
+
+				// 1 is added in the loop
+				i += n - 1
+				count = r.Count
 			}
 
 			currentWidth += count
-
 			if newBand {
 				newBand = false
 				bandCount++
 			}
-			if currentWidth > maxWidth {
-				maxWidth = currentWidth
-			}
+
+			maxWidth = max(maxWidth, currentWidth)
 		}
 	}
+
+	return maxWidth, bandCount * 6
 }
 
 // readError will take any error returned from a read method (ReadByte,
