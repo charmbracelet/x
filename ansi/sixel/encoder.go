@@ -53,6 +53,10 @@ type Encoder struct {
 	// palette. If nil, [color.Transparent] will be used.
 	// This field is ignored if [Encoder.AddTransparent] is false.
 	TransparentColor color.Color
+
+	// Ditherer is the ditherer to use. A nil value means no dithering.
+	// A dither example is [draw.FloydSteinberg].
+	Ditherer draw.Drawer
 }
 
 // Encode will accept an Image and write sixel data to a Writer. The sixel data
@@ -90,7 +94,12 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 		}
 		palette = q.Quantize(palette, img) // quantizer.Quantize will only use the remaining space (255 colors)
 		paletted = image.NewPaletted(img.Bounds(), palette)
-		draw.Draw(paletted, img.Bounds(), img, image.Pt(0, 0), draw.Over)
+
+		if e.Ditherer != nil {
+			e.Ditherer.Draw(paletted, img.Bounds(), img, image.Point{})
+		} else {
+			draw.Draw(paletted, img.Bounds(), img, image.Point{}, draw.Over)
+		}
 	}
 
 	imageBounds := img.Bounds()
