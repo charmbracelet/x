@@ -9,11 +9,11 @@ import (
 func TestWriteColor(t *testing.T) {
 	tests := []struct {
 		name     string
-		pc       uint
-		pu       uint
-		px       uint
-		py       uint
-		pz       uint
+		pc       int
+		pu       int
+		px       int
+		py       int
+		pz       int
 		expected string
 	}{
 		{
@@ -181,9 +181,9 @@ func TestColor_RGBA(t *testing.T) {
 func TestSixelRGB(t *testing.T) {
 	tests := []struct {
 		name string
-		r    uint
-		g    uint
-		b    uint
+		r    int
+		g    int
+		b    int
 		want color.Color
 	}{
 		{
@@ -231,9 +231,9 @@ func TestSixelRGB(t *testing.T) {
 func TestSixelHLS(t *testing.T) {
 	tests := []struct {
 		name string
-		h    uint
-		l    uint
-		s    uint
+		h    int
+		l    int
+		s    int
 		want color.Color
 	}{
 		{
