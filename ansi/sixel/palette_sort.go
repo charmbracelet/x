@@ -403,30 +403,6 @@ func swapRangeCmpFunc[E any](data []E, a, b, n int, cmp func(a, b E) int) {
 	}
 }
 
-func stableCmpFunc[E any](data []E, n int, cmp func(a, b E) int) {
-	blockSize := 20 // must be > 0
-	a, b := 0, blockSize
-	for b <= n {
-		insertionSortCmpFunc(data, a, b, cmp)
-		a = b
-		b += blockSize
-	}
-	insertionSortCmpFunc(data, a, n, cmp)
-
-	for blockSize < n {
-		a, b = 0, 2*blockSize
-		for b <= n {
-			symMergeCmpFunc(data, a, a+blockSize, b, cmp)
-			a = b
-			b += 2 * blockSize
-		}
-		if m := a + blockSize; m < n {
-			symMergeCmpFunc(data, a, m, n, cmp)
-		}
-		blockSize *= 2
-	}
-}
-
 // symMergeCmpFunc merges the two sorted subsequences data[a:m] and data[m:b] using
 // the SymMerge algorithm from Pok-Son Kim and Arne Kutzner, "Stable Minimum
 // Storage Merging by Symmetric Comparisons", in Susanne Albers and Tomasz
