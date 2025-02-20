@@ -85,7 +85,7 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 
 		// Make sure we have a transparent color in the palette.
 		palette := color.Palette(make([]color.Color, 0, nc)) // preallocate one space for transparency
-		if e.AddTransparent {
+		if !e.AddTransparent {
 			c := e.TransparentColor
 			if c == nil {
 				c = color.Transparent
