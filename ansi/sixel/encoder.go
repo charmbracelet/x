@@ -21,6 +21,7 @@ import (
 // beginning of a band where a new color is selected and pixels written. This continues until the entire
 // band has been drawn, at which time a line break is written to begin the next band.
 
+// Sixel control functions.
 const (
 	LineBreak        byte = '-'
 	CarriageReturn   byte = '$'
@@ -29,22 +30,9 @@ const (
 	RasterAttribute  byte = '"'
 )
 
-type Options struct {
-}
-
+// Encoder is a Sixel encoder. It encodes an image to Sixel data format.
 type Encoder struct {
-}
-
-func Raster(pan, pad, ph, pv int) string {
-	return fmt.Sprintf("%s%d;%d;%d;%d", string(RasterAttribute), pan, pad, ph, pv)
-}
-
-func Repeat(count int, repeatByte byte) string {
-	var sb strings.Builder
-	sb.WriteByte(RepeatIntroducer)
-	sb.WriteString(strconv.Itoa(count))
-	sb.WriteByte(repeatByte)
-	return sb.String()
+	// TODO: Support aspect ratio
 }
 
 // Encode will accept an Image and write sixel data to a Writer. The sixel data
@@ -58,7 +46,10 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 
 	imageBounds := img.Bounds()
 
-	io.WriteString(w, Raster(1, 1, imageBounds.Dx(), imageBounds.Dy())) //nolint:errcheck
+	// Set the default raster 1:1 aspect ratio if it's not set
+	if _, err := WriteRaster(w, 1, 1, imageBounds.Dx(), imageBounds.Dy()); err != nil {
+		return fmt.Errorf("error encoding raster: %w", err)
+	}
 
 	palette := newSixelPalette(img, sixelMaxColors)
 
@@ -191,8 +182,8 @@ func (s *sixelBuilder) GeneratePixels() string {
 			}
 			hasWrittenAColor = true
 
-			s.writeControlRune(ColorIntroducer)
-			s.imageData.WriteString(strconv.Itoa(paletteIndex))
+			// s.writeControlRune(ColorIntroducer)
+			// s.imageData.WriteString(strconv.Itoa(paletteIndex))
 			for x := 0; x < s.imageWidth; x += 4 {
 				bit := firstColorBit + uint(x*6)
 				word := s.pixelBands.GetWord64AtBit(bit)
@@ -260,7 +251,7 @@ func (s *sixelBuilder) flushRepeats() {
 
 	// Only write using the RLE form if it's actually providing space savings
 	if s.repeatCount > 3 {
-		s.imageData.WriteString(Repeat(s.repeatCount, s.repeatByte))
+		WriteRepeat(&s.imageData, s.repeatCount, s.repeatByte) //nolint:errcheck
 		return
 	}
 

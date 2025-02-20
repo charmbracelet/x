@@ -1,0 +1,129 @@
+package sixel
+
+import (
+	"fmt"
+	"image/color"
+	"io"
+
+	"github.com/lucasb-eyer/go-colorful"
+)
+
+// ErrInvalidColor is returned when a Sixel color is invalid.
+var ErrInvalidColor = fmt.Errorf("invalid color")
+
+// WriteColor writes a Sixel color to a writer. If pu is 0, the rest of the
+// parameters are ignored.
+func WriteColor(w io.Writer, pc, pu, px, py, pz uint) (int, error) {
+	if pu <= 0 || pu > 2 {
+		return fmt.Fprintf(w, "#%d", pc)
+	}
+
+	return fmt.Fprintf(w, "#%d;%d;%d;%d;%d", pc, pu, px, py, pz)
+}
+
+// DecodeColor decodes a Sixel color from a byte slice. It returns the Color and
+// the number of bytes read.
+func DecodeColor(data []byte) (c Color, n int) {
+	if len(data) == 0 || data[0] != ColorIntroducer {
+		return
+	}
+
+	if len(data) < 2 { // The minimum length is 2: the introducer and a digit.
+		return
+	}
+
+	// Parse the color number and optional color system.
+	pc := &c.Pc
+	for n = 1; n < len(data); n++ {
+		if data[n] == ';' {
+			if pc == &c.Pc {
+				pc = &c.Pu
+			} else {
+				n++
+				break
+			}
+		} else if data[n] >= '0' && data[n] <= '9' {
+			*pc = (*pc)*10 + data[n] - '0'
+		} else {
+			break
+		}
+	}
+
+	// Parse the color components.
+	ptr := &c.Px
+	for ; n < len(data); n++ {
+		if data[n] == ';' {
+			if ptr == &c.Px {
+				ptr = &c.Py
+			} else if ptr == &c.Py {
+				ptr = &c.Pz
+			} else {
+				n++
+				break
+			}
+		} else if data[n] >= '0' && data[n] <= '9' {
+			*ptr = (*ptr)*10 + uint(data[n]-'0')
+		} else {
+			break
+		}
+	}
+
+	return
+}
+
+// Color represents a Sixel color.
+type Color struct {
+	// Pc is the color number (0-255).
+	Pc uint8
+	// Pu is an optional color system (1: HLS, 2: RGB, 0: default color map).
+	Pu uint8
+	// Color components range from 0-100 for RGB values. For HLS format, the Px
+	// (Hue) component ranges from 0-360 degrees while L (Lightness) and S
+	// (Saturation) are 0-100.
+	Px, Py, Pz uint
+}
+
+// RGBA implements the color.Color interface.
+func (c Color) RGBA() (r, g, b, a uint32) {
+	switch c.Pu {
+	case 1:
+		return sixelHLS(c.Px, c.Py, c.Pz).RGBA()
+	case 2:
+		return sixelRGB(c.Px, c.Py, c.Pz).RGBA()
+	default:
+		return colors[c.Pc].RGBA()
+	}
+}
+
+var colors = map[uint8]color.Color{
+	// 16 predefined color registers of VT340
+	0:  sixelRGB(0, 0, 0),
+	1:  sixelRGB(20, 20, 80),
+	2:  sixelRGB(80, 13, 13),
+	3:  sixelRGB(20, 80, 20),
+	4:  sixelRGB(80, 20, 80),
+	5:  sixelRGB(20, 80, 80),
+	6:  sixelRGB(80, 80, 20),
+	7:  sixelRGB(53, 53, 53),
+	8:  sixelRGB(26, 26, 26),
+	9:  sixelRGB(33, 33, 60),
+	10: sixelRGB(60, 26, 26),
+	11: sixelRGB(33, 60, 33),
+	12: sixelRGB(60, 33, 60),
+	13: sixelRGB(33, 60, 60),
+	14: sixelRGB(60, 60, 33),
+	15: sixelRGB(80, 80, 80),
+}
+
+// #define PALVAL(n,a,m) (((n) * (a) + ((m) / 2)) / (m))
+func palval(n, a, m uint) uint {
+	return (n*a + m/2) / m
+}
+
+func sixelRGB(r, g, b uint) color.Color {
+	return color.RGBA{uint8(palval(r, 0xff, 100)), uint8(palval(g, 0xff, 100)), uint8(palval(b, 0xff, 100)), 0xFF} //nolint:gosec
+}
+
+func sixelHLS(h, l, s uint) color.Color {
+	return colorful.Hsl(float64(h), float64(s)/100.0, float64(l)/100.0).Clamped()
+}
