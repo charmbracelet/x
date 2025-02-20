@@ -14,7 +14,6 @@ import (
 // we are decoding a legacy sixel image that doesn't define its own colors (technically
 // permitted).
 func buildDefaultDecodePalette() map[int]color.Color {
-
 	// Undefined colors in sixel images use a set of default colors: 0-15
 	// are sixel-specific, 16-255 are the same as the xterm 256-color values
 	return map[int]color.Color{
