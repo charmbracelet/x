@@ -45,9 +45,9 @@ type Encoder struct {
 	// Quantizer is the color quantizer to use. The default is median cut.
 	Quantizer draw.Quantizer
 
-	// AddTransparent is a flag that indicates whether to add a transparent
-	// color to the palette. The default is false.
-	AddTransparent bool
+	// NoTransparency is a flag that indicates whether to not add a transparent
+	// color to the palette.
+	NoTransparency bool
 
 	// TransparentColor is the color to use for the transparent color in the
 	// palette. If nil, [color.Transparent] will be used.
@@ -85,7 +85,7 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 
 		// Make sure we have a transparent color in the palette.
 		palette := color.Palette(make([]color.Color, 0, nc)) // preallocate one space for transparency
-		if !e.AddTransparent {
+		if !e.NoTransparency {
 			c := e.TransparentColor
 			if c == nil {
 				c = color.Transparent
