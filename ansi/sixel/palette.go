@@ -5,7 +5,6 @@ import (
 	"image"
 	"image/color"
 	"math"
-	"sort"
 )
 
 // sixelPalette is a palette of up to 256 colors that lists the colors that will be used by
@@ -185,18 +184,32 @@ func (p *sixelPalette) quantize(uniqueColors []sixelColor, pixelCounts map[sixel
 
 		// Sort the colors in the bucket's range along the cube's longest color axis
 		// TODO: Use slices.SortFunc in the future
-		sort.SliceStable(uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length],
-			func(i, j int) bool {
-				slice := uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length]
+		// sort.SliceStable(uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length],
+		// 	func(i, j int) bool {
+		// 		slice := uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length]
+		// 		switch cubeToSplit.sliceChannel {
+		// 		case quantizationRed:
+		// 			return slice[i].Red < slice[j].Red
+		// 		case quantizationGreen:
+		// 			return slice[i].Green < slice[j].Green
+		// 		case quantizationBlue:
+		// 			return slice[i].Blue < slice[j].Blue
+		// 		default:
+		// 			return slice[i].Alpha < slice[j].Alpha
+		// 		}
+		// 	})
+
+		sortFunc(uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length],
+			func(left sixelColor, right sixelColor) int {
 				switch cubeToSplit.sliceChannel {
 				case quantizationRed:
-					return slice[i].Red < slice[j].Red
+					return compare(left.Red, right.Red)
 				case quantizationGreen:
-					return slice[i].Green < slice[j].Green
+					return compare(left.Green, right.Green)
 				case quantizationBlue:
-					return slice[i].Blue < slice[j].Blue
+					return compare(left.Blue, right.Blue)
 				default:
-					return slice[i].Alpha < slice[j].Alpha
+					return compare(left.Alpha, right.Alpha)
 				}
 			})
 
