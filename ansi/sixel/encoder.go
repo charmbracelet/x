@@ -7,9 +7,9 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/aymanbagabas/quant"
+	"github.com/aymanbagabas/quant/median"
 	"github.com/bits-and-blooms/bitset"
-	"github.com/soniakeys/quant"
-	"github.com/soniakeys/quant/median"
 )
 
 // Sixels are a protocol for writing images to the terminal by writing a large blob of ANSI-escaped data.
