@@ -182,23 +182,8 @@ func (p *sixelPalette) quantize(uniqueColors []sixelColor, pixelCounts map[sixel
 	for cubeHeap.Len() < maxColors {
 		cubeToSplit := heap.Pop(&cubeHeap).(quantizationCube)
 
-		// Sort the colors in the bucket's range along the cube's longest color axis
-		// TODO: Use slices.SortFunc in the future
-		// sort.SliceStable(uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length],
-		// 	func(i, j int) bool {
-		// 		slice := uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length]
-		// 		switch cubeToSplit.sliceChannel {
-		// 		case quantizationRed:
-		// 			return slice[i].Red < slice[j].Red
-		// 		case quantizationGreen:
-		// 			return slice[i].Green < slice[j].Green
-		// 		case quantizationBlue:
-		// 			return slice[i].Blue < slice[j].Blue
-		// 		default:
-		// 			return slice[i].Alpha < slice[j].Alpha
-		// 		}
-		// 	})
-
+		// TODO: Use slices.SortFunc and cmp.Compare in the future (>=1.24)
+		// Then can delete palette_sort.go
 		sortFunc(uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length],
 			func(left sixelColor, right sixelColor) int {
 				switch cubeToSplit.sliceChannel {
