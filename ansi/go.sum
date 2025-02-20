@@ -1,5 +1,3 @@
-github.com/aymanbagabas/quant v0.0.0-20250220211315-dbeb2d26bb3a h1:6ZhOQa8FgHVtSmBW20Nbn6uNA9y1EJjUTtCmL2pJoGI=
-github.com/aymanbagabas/quant v0.0.0-20250220211315-dbeb2d26bb3a/go.mod h1:LZcbdMgqlAs77pcs8WZnQxNflVHNtzWWDDUJoBFC24A=
 github.com/aymanbagabas/quant v0.0.0-20250220224823-9dea6ec382b5 h1:BQwkJD8W8jgJpvJgA3klNG5W4pyrU4wJ7LynWik+uYc=
 github.com/aymanbagabas/quant v0.0.0-20250220224823-9dea6ec382b5/go.mod h1:LZcbdMgqlAs77pcs8WZnQxNflVHNtzWWDDUJoBFC24A=
 github.com/bits-and-blooms/bitset v1.20.0 h1:2F+rfL86jE2d/bmw7OhqUg2Sj/1rURkBn3MdfoPyRVU=

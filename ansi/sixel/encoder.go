@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"fmt"
 	"image"
+	"image/color"
+	"image/draw"
 	"io"
 	"strconv"
 
-	"github.com/aymanbagabas/quant"
 	"github.com/aymanbagabas/quant/median"
 	"github.com/bits-and-blooms/bitset"
 )
@@ -37,12 +38,21 @@ const (
 
 // Encoder is a Sixel encoder. It encodes an image to Sixel data format.
 type Encoder struct {
-	// Colors is the number of colors to use in the palette. The default is
-	// 256.
-	Colors int
+	// NumColors is the number of colors to use in the palette. It ranges from
+	// 1 to 256. Zero or less means to use the default value of 256.
+	NumColors int
 
 	// Quantizer is the color quantizer to use. The default is median cut.
-	Quantizer quant.Quantizer
+	Quantizer draw.Quantizer
+
+	// AddTransparent is a flag that indicates whether to add a transparent
+	// color to the palette. The default is false.
+	AddTransparent bool
+
+	// TransparentColor is the color to use for the transparent color in the
+	// palette. If nil, [color.Transparent] will be used.
+	// This field is ignored if [Encoder.AddTransparent] is false.
+	TransparentColor color.Color
 }
 
 // Encode will accept an Image and write sixel data to a Writer. The sixel data
@@ -54,9 +64,9 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 		return nil
 	}
 
-	nc := MaxColors
-	if e.Colors >= 2 {
-		nc = e.Colors
+	nc := e.NumColors
+	if nc <= 0 || nc > MaxColors {
+		nc = MaxColors
 	}
 
 	var paletted *image.Paletted
@@ -68,7 +78,19 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 		if q == nil {
 			q = median.Quantizer(nc)
 		}
-		paletted = q.Paletted(img)
+
+		// Make sure we have a transparent color in the palette.
+		palette := color.Palette(make([]color.Color, 0, nc)) // preallocate one space for transparency
+		if e.AddTransparent {
+			c := e.TransparentColor
+			if c == nil {
+				c = color.Transparent
+			}
+			palette = append(palette, c)
+		}
+		palette = q.Quantize(palette, img) // quantizer.Quantize will only use the remaining space (255 colors)
+		paletted = image.NewPaletted(img.Bounds(), palette)
+		draw.Draw(paletted, img.Bounds(), img, image.Pt(0, 0), draw.Over)
 	}
 
 	imageBounds := img.Bounds()
@@ -87,7 +109,6 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 		if _, err := WriteColor(w, i, c.Pu, c.Px, c.Py, c.Pz); err != nil {
 			return fmt.Errorf("error encoding color: %w", err)
 		}
-		paletted.Palette[i] = c
 	}
 
 	var pixelBands bitset.BitSet
@@ -96,11 +117,12 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 	// Write pixel data to bitset.
 	for y := 0; y < imageHeight; y++ {
 		for x := 0; x < imageWidth; x++ {
-			setColor(&pixelBands, x, y, imageWidth, bandHeight, int(paletted.ColorIndexAt(x, y)))
+			index := paletted.ColorIndexAt(x, y)
+			setColor(&pixelBands, x, y, imageWidth, bandHeight, int(index))
 		}
 	}
 
-	return newEncoder(w, &pixelBands).writePixelData(img, paletted)
+	return newEncoder(w, &pixelBands).writePixelData(img, paletted.Palette)
 }
 
 // setColor will write a single pixel to the bitset data to be used by
@@ -138,7 +160,7 @@ func newEncoder(w io.Writer, bands *bitset.BitSet) *encoder {
 }
 
 // writePixelData will write the image pixel data to the writer.
-func (s *encoder) writePixelData(img image.Image, paletted *image.Paletted) error {
+func (s *encoder) writePixelData(img image.Image, palette color.Palette) error {
 	imageWidth := img.Bounds().Dx()
 	bandHeight := bandHeight(img)
 	for bandY := 0; bandY < bandHeight; bandY++ {
@@ -148,8 +170,8 @@ func (s *encoder) writePixelData(img image.Image, paletted *image.Paletted) erro
 
 		hasWrittenAColor := false
 
-		for paletteIndex := 0; paletteIndex < len(paletted.Palette); paletteIndex++ {
-			c := paletted.Palette[paletteIndex]
+		for paletteIndex := 0; paletteIndex < len(palette); paletteIndex++ {
+			c := palette[paletteIndex]
 			_, _, _, a := c.RGBA()
 			if a == 0 {
 				// Don't draw anything for purely transparent pixels
