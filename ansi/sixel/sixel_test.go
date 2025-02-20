@@ -170,7 +170,7 @@ func TestFullImage(t *testing.T) {
 				return
 			}
 
-			compareImg, err := decoder.Decode(buffer.Bytes())
+			compareImg, err := decoder.Decode(buffer)
 			if err != nil {
 				t.Errorf("Unexpected error: %+v", err)
 				return
