@@ -123,12 +123,6 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 				// Non-zero Pu means we have a color definition to set.
 				palette[currentPaletteIndex] = c
 			}
-			// palette[currentPaletteIndex] = color.RGBA64{
-			// 	R: uint16(imageConvertChannel(uint32(c.Px))),
-			// 	G: uint16(imageConvertChannel(uint32(c.Py))),
-			// 	B: uint16(imageConvertChannel(uint32(c.Pz))),
-			// 	A: 65525,
-			// }
 		case b == RepeatIntroducer: // !
 			data = data[:0]
 			data = append(data, b)
