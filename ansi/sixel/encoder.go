@@ -31,20 +31,7 @@ const (
 )
 
 // Encoder is a Sixel encoder. It encodes an image to Sixel data format.
-type Encoder struct {
-	// NumColors is the number of colors to use in the palette. It ranges from
-	// 1 to 256. Zero or less means to use the default value of 256.
-	NumColors int
-
-	// AddTransparent is a flag that indicates whether to add a transparent
-	// color to the palette. The default is false.
-	AddTransparent bool
-
-	// TransparentColor is the color to use for the transparent color in the
-	// palette. If nil, [color.Transparent] will be used.
-	// This field is ignored if [Encoder.AddTransparent] is false.
-	TransparentColor color.Color
-}
+type Encoder struct {}
 
 // Encode will accept an Image and write sixel data to a Writer. The sixel data
 // will be everything after the 'q' that ends the DCS parameters and before the ST
@@ -53,11 +40,6 @@ type Encoder struct {
 func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 	if img == nil {
 		return nil
-	}
-
-	nc := e.NumColors
-	if nc <= 0 || nc > MaxColors {
-		nc = MaxColors
 	}
 
 	imageBounds := img.Bounds()
