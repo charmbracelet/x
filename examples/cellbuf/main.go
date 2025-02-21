@@ -56,9 +56,10 @@ func main() {
 	text := ansi.SetHyperlink("https://charm.sh") +
 		ansi.Style{}.Reverse().Styled(" !Hello, world! ") +
 		ansi.ResetHyperlink()
+	scrw := cellbuf.NewScreenWriter(scr)
 	render := func() {
 		scr.Fill(cellbuf.NewCell('你'))
-		scr.PrintCropAt(x, y, text, "")
+		scrw.PrintCropAt(x, y, text, "")
 		scr.Render()
 		scr.Flush()
 	}
