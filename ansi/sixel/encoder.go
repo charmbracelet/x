@@ -198,8 +198,8 @@ func (s *sixelBuilder) GeneratePixels() string {
 			}
 			hasWrittenAColor = true
 
-			// s.writeControlRune(ColorIntroducer)
-			// s.imageData.WriteString(strconv.Itoa(paletteIndex))
+			s.writeControlRune(ColorIntroducer)
+			s.imageData.WriteString(strconv.Itoa(paletteIndex))
 			for x := 0; x < s.imageWidth; x += 4 {
 				bit := firstColorBit + uint(x*6)
 				word := s.pixelBands.GetWord64AtBit(bit)
