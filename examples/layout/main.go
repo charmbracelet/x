@@ -375,10 +375,8 @@ func main() {
 	}
 
 	termType := os.Getenv("TERM")
-	scr := cellbuf.NewScreen(os.Stdout, &cellbuf.ScreenOptions{
+	scr := cellbuf.NewScreen(os.Stdout, physicalWidth, physicalHeight, &cellbuf.ScreenOptions{
 		Term:      termType,
-		Width:     physicalWidth,
-		Height:    physicalHeight,
 		Profile:   colorprofile.Detect(os.Stdout, os.Environ()),
 		AltScreen: true,
 	})
