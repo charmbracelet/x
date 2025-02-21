@@ -412,7 +412,7 @@ func main() {
 		scr.Clear()
 		scrw.SetContent(docStyle.Render(doc.String()))
 		box := cellbuf.Rect(dialogX, dialogY, dialogWidth, dialogHeight)
-		scrw.FillRect(dialogBoxStyle.Render(dialogUI), box)
+		scrw.SetContentRect(dialogBoxStyle.Render(dialogUI), box)
 		scr.Render()
 		scr.Flush()
 	}
