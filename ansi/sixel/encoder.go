@@ -169,12 +169,12 @@ func newEncoder(w io.Writer, bands *bitset.BitSet) *encoder {
 }
 
 // writePixelData will write the image pixel data to the writer.
-func (s *encoder) writePixelData(img image.Image, palette color.Palette) error {
+func (e *encoder) writePixelData(img image.Image, palette color.Palette) error {
 	imageWidth := img.Bounds().Dx()
 	bandHeight := bandHeight(img)
 	for bandY := 0; bandY < bandHeight; bandY++ {
 		if bandY > 0 {
-			s.writeControlRune(LineBreak)
+			e.writeControlRune(LineBreak)
 		}
 
 		hasWrittenAColor := false
@@ -190,50 +190,50 @@ func (s *encoder) writePixelData(img image.Image, palette color.Palette) error {
 			firstColorBit := uint(bandHeight*imageWidth*6*paletteIndex + bandY*imageWidth*6) //nolint:gosec
 			nextColorBit := firstColorBit + uint(imageWidth*6)                               //nolint:gosec
 
-			firstSetBitInBand, anySet := s.bands.NextSet(firstColorBit)
+			firstSetBitInBand, anySet := e.bands.NextSet(firstColorBit)
 			if !anySet || firstSetBitInBand >= nextColorBit {
 				// Color not appearing in this row
 				continue
 			}
 
 			if hasWrittenAColor {
-				s.writeControlRune(CarriageReturn)
+				e.writeControlRune(CarriageReturn)
 			}
 			hasWrittenAColor = true
 
-			s.writeControlRune(ColorIntroducer)
-			io.WriteString(s.w, strconv.Itoa(paletteIndex)) //nolint:errcheck
+			e.writeControlRune(ColorIntroducer)
+			io.WriteString(e.w, strconv.Itoa(paletteIndex)) //nolint:errcheck
 
 			for x := 0; x < imageWidth; x += 4 {
 				bit := firstColorBit + uint(x*6) //nolint:gosec
-				word := s.bands.GetWord64AtBit(bit)
+				word := e.bands.GetWord64AtBit(bit)
 
 				pixel1 := byte((word & 63) + '?')
 				pixel2 := byte(((word >> 6) & 63) + '?')
 				pixel3 := byte(((word >> 12) & 63) + '?')
 				pixel4 := byte(((word >> 18) & 63) + '?')
 
-				s.writeImageRune(pixel1)
+				e.writeImageRune(pixel1)
 
 				if x+1 >= imageWidth {
 					continue
 				}
-				s.writeImageRune(pixel2)
+				e.writeImageRune(pixel2)
 
 				if x+2 >= imageWidth {
 					continue
 				}
-				s.writeImageRune(pixel3)
+				e.writeImageRune(pixel3)
 
 				if x+3 >= imageWidth {
 					continue
 				}
-				s.writeImageRune(pixel4)
+				e.writeImageRune(pixel4)
 			}
 		}
 	}
 
-	s.writeControlRune('-')
+	e.writeControlRune('-')
 	return nil
 }
 
