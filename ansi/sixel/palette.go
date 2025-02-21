@@ -40,7 +40,7 @@ type sixelPalette struct {
 type quantizationChannel int
 
 const (
-	sixelMaxColors  int                 = 256
+	MaxColors       int                 = 256
 	quantizationRed quantizationChannel = iota
 	quantizationGreen
 	quantizationBlue

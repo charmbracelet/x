@@ -32,7 +32,18 @@ const (
 
 // Encoder is a Sixel encoder. It encodes an image to Sixel data format.
 type Encoder struct {
-	// TODO: Support aspect ratio
+	// NumColors is the number of colors to use in the palette. It ranges from
+	// 1 to 256. Zero or less means to use the default value of 256.
+	NumColors int
+
+	// AddTransparent is a flag that indicates whether to add a transparent
+	// color to the palette. The default is false.
+	AddTransparent bool
+
+	// TransparentColor is the color to use for the transparent color in the
+	// palette. If nil, [color.Transparent] will be used.
+	// This field is ignored if [Encoder.AddTransparent] is false.
+	TransparentColor color.Color
 }
 
 // Encode will accept an Image and write sixel data to a Writer. The sixel data
@@ -44,6 +55,11 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 		return nil
 	}
 
+	nc := e.NumColors
+	if nc <= 0 || nc > MaxColors {
+		nc = MaxColors
+	}
+
 	imageBounds := img.Bounds()
 
 	// Set the default raster 1:1 aspect ratio if it's not set
@@ -51,7 +67,7 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 		return fmt.Errorf("error encoding raster: %w", err)
 	}
 
-	palette := newSixelPalette(img, sixelMaxColors)
+	palette := newSixelPalette(img, MaxColors)
 
 	for paletteIndex, color := range palette.PaletteColors {
 		e.encodePaletteColor(w, paletteIndex, color)
