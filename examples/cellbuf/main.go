@@ -30,9 +30,7 @@ func main() {
 	}
 
 	termType := os.Getenv("TERM")
-	scr := cellbuf.NewScreen(os.Stdout, &cellbuf.ScreenOptions{
-		Width:          w,
-		Height:         h,
+	scr := cellbuf.NewScreen(os.Stdout, w, h, &cellbuf.ScreenOptions{
 		Term:           termType,
 		RelativeCursor: !altScreen,
 		AltScreen:      altScreen,
@@ -58,9 +56,10 @@ func main() {
 	text := ansi.SetHyperlink("https://charm.sh") +
 		ansi.Style{}.Reverse().Styled(" !Hello, world! ") +
 		ansi.ResetHyperlink()
+	scrw := cellbuf.NewScreenWriter(scr)
 	render := func() {
 		scr.Fill(cellbuf.NewCell('你'))
-		scr.PrintCropAt(x, y, text, "")
+		scrw.PrintCropAt(x, y, text, "")
 		scr.Render()
 		scr.Flush()
 	}

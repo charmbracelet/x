@@ -375,10 +375,8 @@ func main() {
 	}
 
 	termType := os.Getenv("TERM")
-	scr := cellbuf.NewScreen(os.Stdout, &cellbuf.ScreenOptions{
+	scr := cellbuf.NewScreen(os.Stdout, physicalWidth, physicalHeight, &cellbuf.ScreenOptions{
 		Term:      termType,
-		Width:     physicalWidth,
-		Height:    physicalHeight,
 		Profile:   colorprofile.Detect(os.Stdout, os.Environ()),
 		AltScreen: true,
 	})
@@ -409,11 +407,12 @@ func main() {
 	dialogWidth := lipgloss.Width(dialogUI) + dialogBoxStyle.GetHorizontalFrameSize()
 	dialogHeight := lipgloss.Height(dialogUI) + dialogBoxStyle.GetVerticalFrameSize()
 	dialogX, dialogY := physicalWidth/2-dialogWidth/2-docStyle.GetVerticalFrameSize()-1, 12
+	scrw := cellbuf.NewScreenWriter(scr)
 	render := func() {
 		scr.Clear()
-		scr.SetContent(docStyle.Render(doc.String()))
+		scrw.SetContent(docStyle.Render(doc.String()))
 		box := cellbuf.Rect(dialogX, dialogY, dialogWidth, dialogHeight)
-		scr.SetContentRect(dialogBoxStyle.Render(dialogUI), box)
+		scrw.SetContentRect(dialogBoxStyle.Render(dialogUI), box)
 		scr.Render()
 		scr.Flush()
 	}
