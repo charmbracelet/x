@@ -32,7 +32,7 @@ func ConvertChannel(c uint32) uint32 {
 // FromColor returns a Sixel color from a color.Color. It converts the color
 // channels to the 0-100 range.
 func FromColor(c color.Color) Color {
-	r, g, b, a := c.RGBA()
+	r, g, b, _ := c.RGBA()
 	return Color{
 		Pu: 2, // Always use RGB format "2"
 		Px: int(ConvertChannel(r)),
