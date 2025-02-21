@@ -30,9 +30,7 @@ func main() {
 	}
 
 	termType := os.Getenv("TERM")
-	scr := cellbuf.NewScreen(os.Stdout, &cellbuf.ScreenOptions{
-		Width:          w,
-		Height:         h,
+	scr := cellbuf.NewScreen(os.Stdout, w, h, &cellbuf.ScreenOptions{
 		Term:           termType,
 		RelativeCursor: !altScreen,
 		AltScreen:      altScreen,
