@@ -1,0 +1,1 @@
+ansi/fixtures/graphics/*.png filter=lfs diff=lfs merge=lfs -text
