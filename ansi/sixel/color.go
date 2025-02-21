@@ -117,28 +117,8 @@ func (c Color) RGBA() (r, g, b, a uint32) {
 	case 2:
 		return sixelRGB(c.Px, c.Py, c.Pz).RGBA()
 	default:
-		return colors[c.Pc].RGBA()
+		return colorPalette[c.Pc].RGBA()
 	}
-}
-
-var colors = map[int]color.Color{
-	// 16 predefined color registers of VT340
-	0:  sixelRGB(0, 0, 0),
-	1:  sixelRGB(20, 20, 80),
-	2:  sixelRGB(80, 13, 13),
-	3:  sixelRGB(20, 80, 20),
-	4:  sixelRGB(80, 20, 80),
-	5:  sixelRGB(20, 80, 80),
-	6:  sixelRGB(80, 80, 20),
-	7:  sixelRGB(53, 53, 53),
-	8:  sixelRGB(26, 26, 26),
-	9:  sixelRGB(33, 33, 60),
-	10: sixelRGB(60, 26, 26),
-	11: sixelRGB(33, 60, 33),
-	12: sixelRGB(60, 33, 60),
-	13: sixelRGB(33, 60, 60),
-	14: sixelRGB(60, 60, 33),
-	15: sixelRGB(80, 80, 80),
 }
 
 // #define PALVAL(n,a,m) (((n) * (a) + ((m) / 2)) / (m))
