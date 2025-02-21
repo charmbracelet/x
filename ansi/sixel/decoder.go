@@ -11,7 +11,11 @@ import (
 
 // Decoder is a Sixel image decoder. It reads Sixel image data from an
 // io.Reader and decodes it into an image.Image.
-type Decoder struct{}
+type Decoder struct {
+	// Palette is the color palette used to decode the Sixel image. If the
+	// palette is nil, the default palette is used from [DefaultPalette].
+	Palette color.Palette
+}
 
 // Decode will parse sixel image data into an image or return an error.  Because
 // the sixel image format does not have a predictable size, the end of the sixel
@@ -75,7 +79,10 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 	}
 
 	img := image.NewRGBA(bounds)
-	palette := DefaultPalette()
+	palette := d.Palette
+	if palette == nil {
+		palette = colorPalette[:]
+	}
 	var currentX, currentBandY, currentPaletteIndex int
 
 	// data buffer used to decode Sixel commands
@@ -520,6 +527,7 @@ var colorPalette = [256]color.Color{
 func DefaultPalette() color.Palette {
 	// Undefined colors in sixel images use a set of default colors: 0-15
 	// are sixel-specific, 16-255 are the same as the xterm 256-color values
-	palette := append(color.Palette(nil), colorPalette[:]...)
+	palette := make([]color.Color, len(colorPalette))
+	palette = append(palette, colorPalette[:]...)
 	return palette[:]
 }
