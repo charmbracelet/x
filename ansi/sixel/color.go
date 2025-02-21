@@ -33,9 +33,6 @@ func ConvertChannel(c uint32) uint32 {
 // channels to the 0-100 range.
 func FromColor(c color.Color) Color {
 	r, g, b, a := c.RGBA()
-	if a == 0 {
-		return Color{Pu: 3} // Transparent color
-	}
 	return Color{
 		Pu: 2, // Always use RGB format "2"
 		Px: int(ConvertChannel(r)),
