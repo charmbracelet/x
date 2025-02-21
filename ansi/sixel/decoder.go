@@ -349,7 +349,8 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 	var currentX, currentBandY, currentPaletteIndex int
 
 	// data buffer used to decode Sixel commands
-	data := make([]byte, 0, 16) // arbitrary number of bytes to read
+	data := make([]byte, 0, 6) // arbitrary number of bytes to read
+	// i := 0                     // keeps track of the data buffer index
 	for {
 		b, err := rd.ReadByte()
 		if err != nil {
@@ -364,7 +365,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 		case b == CarriageReturn: // CR
 			currentX = 0
 		case b == ColorIntroducer: // #
-			data = data[0:]
+			data = data[:0]
 			data = append(data, b)
 			for {
 				b, err = rd.ReadByte()
@@ -387,8 +388,11 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 				return img, ErrInvalidColor
 			}
 
-			currentPaletteIndex = int(c.Pc)
-			palette[currentPaletteIndex] = c
+			currentPaletteIndex = c.Pc
+			if c.Pu > 0 {
+				// Non-zero Pu means we have a color definition to set.
+				palette[currentPaletteIndex] = c
+			}
 			// palette[currentPaletteIndex] = color.RGBA64{
 			// 	R: uint16(imageConvertChannel(uint32(c.Px))),
 			// 	G: uint16(imageConvertChannel(uint32(c.Py))),
@@ -396,7 +400,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 			// 	A: 65525,
 			// }
 		case b == RepeatIntroducer: // !
-			data = data[0:]
+			data = data[:0]
 			data = append(data, b)
 			for {
 				b, err = rd.ReadByte()

@@ -13,12 +13,35 @@ var ErrInvalidColor = fmt.Errorf("invalid color")
 
 // WriteColor writes a Sixel color to a writer. If pu is 0, the rest of the
 // parameters are ignored.
-func WriteColor(w io.Writer, pc, pu, px, py, pz uint) (int, error) {
+func WriteColor(w io.Writer, pc, pu, px, py, pz int) (int, error) {
 	if pu <= 0 || pu > 2 {
 		return fmt.Fprintf(w, "#%d", pc)
 	}
 
 	return fmt.Fprintf(w, "#%d;%d;%d;%d;%d", pc, pu, px, py, pz)
+}
+
+// ConvertChannel converts a color channel from color.Color 0xffff to 0-100
+// Sixel RGB format.
+func ConvertChannel(c uint32) uint32 {
+	// We add 328 because that is about 0.5 in the sixel 0-100 color range, we're trying to
+	// round to the nearest value
+	return (c + 328) * 100 / 0xffff
+}
+
+// FromColor returns a Sixel color from a color.Color. It converts the color
+// channels to the 0-100 range.
+func FromColor(c color.Color) Color {
+	r, g, b, a := c.RGBA()
+	if a == 0 {
+		return Color{Pu: 3} // Transparent color
+	}
+	return Color{
+		Pu: 2, // Always use RGB format "2"
+		Px: int(ConvertChannel(r)),
+		Py: int(ConvertChannel(g)),
+		Pz: int(ConvertChannel(b)),
+	}
 }
 
 // DecodeColor decodes a Sixel color from a byte slice. It returns the Color and
@@ -43,7 +66,7 @@ func DecodeColor(data []byte) (c Color, n int) {
 				break
 			}
 		} else if data[n] >= '0' && data[n] <= '9' {
-			*pc = (*pc)*10 + data[n] - '0'
+			*pc = (*pc)*10 + int(data[n]-'0')
 		} else {
 			break
 		}
@@ -62,7 +85,7 @@ func DecodeColor(data []byte) (c Color, n int) {
 				break
 			}
 		} else if data[n] >= '0' && data[n] <= '9' {
-			*ptr = (*ptr)*10 + uint(data[n]-'0')
+			*ptr = (*ptr)*10 + int(data[n]-'0')
 		} else {
 			break
 		}
@@ -74,13 +97,16 @@ func DecodeColor(data []byte) (c Color, n int) {
 // Color represents a Sixel color.
 type Color struct {
 	// Pc is the color number (0-255).
-	Pc uint8
-	// Pu is an optional color system (1: HLS, 2: RGB, 0: default color map).
-	Pu uint8
+	Pc int
+	// Pu is an optional color system
+	//  - 0: default color map
+	//  - 1: HLS
+	//  - 2: RGB
+	Pu int
 	// Color components range from 0-100 for RGB values. For HLS format, the Px
 	// (Hue) component ranges from 0-360 degrees while L (Lightness) and S
 	// (Saturation) are 0-100.
-	Px, Py, Pz uint
+	Px, Py, Pz int
 }
 
 // RGBA implements the color.Color interface.
@@ -95,7 +121,7 @@ func (c Color) RGBA() (r, g, b, a uint32) {
 	}
 }
 
-var colors = map[uint8]color.Color{
+var colors = map[int]color.Color{
 	// 16 predefined color registers of VT340
 	0:  sixelRGB(0, 0, 0),
 	1:  sixelRGB(20, 20, 80),
@@ -116,14 +142,14 @@ var colors = map[uint8]color.Color{
 }
 
 // #define PALVAL(n,a,m) (((n) * (a) + ((m) / 2)) / (m))
-func palval(n, a, m uint) uint {
+func palval(n, a, m int) int {
 	return (n*a + m/2) / m
 }
 
-func sixelRGB(r, g, b uint) color.Color {
-	return color.RGBA{uint8(palval(r, 0xff, 100)), uint8(palval(g, 0xff, 100)), uint8(palval(b, 0xff, 100)), 0xFF} //nolint:gosec
+func sixelRGB(r, g, b int) color.Color {
+	return color.NRGBA{uint8(palval(r, 0xff, 100)), uint8(palval(g, 0xff, 100)), uint8(palval(b, 0xff, 100)), 0xFF} //nolint:gosec
 }
 
-func sixelHLS(h, l, s uint) color.Color {
+func sixelHLS(h, l, s int) color.Color {
 	return colorful.Hsl(float64(h), float64(s)/100.0, float64(l)/100.0).Clamped()
 }

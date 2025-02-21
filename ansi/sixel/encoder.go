@@ -138,7 +138,7 @@ func (s *sixelBuilder) SetColor(x int, y int, color color.Color) {
 	paletteIndex := s.SixelPalette.ColorIndex(sixelConvertColor(color))
 
 	bit := s.BandHeight()*s.imageWidth*6*paletteIndex + bandY*s.imageWidth*6 + (x * 6) + (y % 6)
-	s.pixelBands.Set(uint(bit))
+	s.pixelBands.Set(uint(bit)) //nolint:gosec
 }
 
 // GeneratePixels is used to write the pixel data to the internal imageData string builder.
