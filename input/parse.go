@@ -83,6 +83,10 @@ const (
 	// Key definitions come from Terminfo, this flag is only useful when
 	// FlagTerminfo is not set.
 	FlagFKeys
+
+	// When this flag is set, the driver will enable mouse mode on Windows.
+	// This is only useful on Windows and has no effect on other platforms.
+	FlagMouseMode
 )
 
 // Parser is a parser for input escape sequences.
