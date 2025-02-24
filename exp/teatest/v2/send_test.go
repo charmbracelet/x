@@ -57,8 +57,8 @@ type connectedModel struct {
 
 type ping string
 
-func (m *connectedModel) Init() (tea.Model, tea.Cmd) {
-	return m, nil
+func (m *connectedModel) Init() tea.Cmd {
+	return nil
 }
 
 func (m *connectedModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
