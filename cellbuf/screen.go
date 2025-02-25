@@ -312,11 +312,6 @@ func (s *Screen) move(x, y int) {
 
 	// We set the new cursor in [Screen.moveCursor].
 	s.moveCursor(x, y, true) // Overwrite cells if possible
-
-	// Restore pen styles before moving the cursor.
-	if resetPen {
-		s.updatePen(blank)
-	}
 }
 
 // Cursor represents a terminal Cursor.
