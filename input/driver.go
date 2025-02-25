@@ -67,7 +67,7 @@ type Reader struct {
 //	}
 func NewReader(r io.Reader, termType string, flags int) (*Reader, error) {
 	d := new(Reader)
-	cr, err := newCancelreader(r)
+	cr, err := newCancelreader(r, flags)
 	if err != nil {
 		return nil, err
 	}
