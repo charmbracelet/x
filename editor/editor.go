@@ -73,7 +73,7 @@ func Command(app, path string, options ...Option) (*exec.Cmd, error) {
 // if no $EDITOR is set.
 func CommandContext(ctx context.Context, app, path string, options ...Option) (*exec.Cmd, error) {
 	if os.Getenv("SNAP_REVISION") != "" {
-		return nil, fmt.Errorf("Did you install with Snap? %[1]s is sandboxed and unable to open an editor. Please install %[1]s with Go or another package manager to enable editing.", app)
+		return nil, fmt.Errorf("Did you install with Snap? %[1]s is sandboxed and unable to open an editor. Please install %[1]s with Go or another package manager to enable editing.", app) //nolint:revive
 	}
 
 	editor, args := getEditor()

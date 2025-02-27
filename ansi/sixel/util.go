@@ -1,6 +1,6 @@
 package sixel
 
-func max(a, b int) int {
+func max(a, b int) int { //nolint:predeclared
 	if a > b {
 		return a
 	}

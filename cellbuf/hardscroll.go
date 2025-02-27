@@ -68,7 +68,7 @@ func (s *Screen) scrollOptimize() {
 }
 
 // scrolln scrolls the screen up by n lines.
-func (s *Screen) scrolln(n, top, bot, maxY int) (v bool) {
+func (s *Screen) scrolln(n, top, bot, maxY int) (v bool) { //nolint:unparam
 	const (
 		nonDestScrollRegion = false
 		memoryBelow         = false

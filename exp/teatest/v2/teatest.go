@@ -279,7 +279,7 @@ func (tm *TestModel) GetProgram() *tea.Program {
 // You can update the golden files by running your tests with the -update flag.
 func RequireEqualOutput(tb testing.TB, out []byte) {
 	tb.Helper()
-	golden.RequireEqualEscape(tb, out, true)
+	golden.RequireEqualEscape(tb, out, true) //nolint:staticcheck
 }
 
 func safe(rw io.ReadWriter) io.ReadWriter {
