@@ -313,7 +313,7 @@ func (p *Parser) parseCsi(b []byte) (int, Event) {
 		if !ok || val == -1 {
 			break
 		}
-		return i, ModifyOtherKeysEvent(val)
+		return i, ModifyOtherKeysEvent(val) //nolint:gosec
 	case 'I':
 		return i, FocusEvent{}
 	case 'O':
@@ -683,7 +683,7 @@ func (p *Parser) parseOsc(b []byte) (int, Event) {
 			break
 		}
 
-		sel := ClipboardSelection(parts[0][0])
+		sel := ClipboardSelection(parts[0][0]) //nolint:unconvert
 		return i, ClipboardEvent{Selection: sel, Content: string(bts)}
 	}
 
@@ -704,9 +704,8 @@ func (p *Parser) parseStTerminated(intro8, intro7 byte, fn func([]byte) Event) f
 		// Scan control sequence
 		// Most common control sequence is terminated by a ST character
 		// ST is a 7-bit string terminator character is (ESC \)
-		// nolint: revive
 		start := i
-		for ; i < len(b) && b[i] != ansi.ST && b[i] != ansi.ESC; i++ {
+		for ; i < len(b) && b[i] != ansi.ST && b[i] != ansi.ESC; i++ { // nolint:revive
 		}
 
 		if i >= len(b) {

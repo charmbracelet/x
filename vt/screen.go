@@ -154,7 +154,7 @@ func (s *Screen) setCursorX(x int, margins bool) {
 
 // setCursorY sets the cursor Y position. If margins is true, the cursor is
 // only set if it is within the scroll margins.
-func (s *Screen) setCursorY(y int, margins bool) {
+func (s *Screen) setCursorY(y int, margins bool) { //nolint:unused
 	s.setCursor(s.cur.X, y, margins)
 }
 

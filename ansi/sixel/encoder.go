@@ -80,12 +80,12 @@ func (e *Encoder) encodePaletteColor(w io.Writer, paletteIndex int, c sixelColor
 
 	w.Write([]byte{ColorIntroducer})              //nolint:errcheck
 	io.WriteString(w, strconv.Itoa(paletteIndex)) //nolint:errcheck
-	io.WriteString(w, ";2;")
+	io.WriteString(w, ";2;")                      //nolint:errcheck
 	io.WriteString(w, strconv.Itoa(int(c.Red)))   //nolint:errcheck
 	w.Write([]byte{';'})                          //nolint:errcheck
 	io.WriteString(w, strconv.Itoa(int(c.Green))) //nolint:errcheck
-	w.Write([]byte{';'})
-	io.WriteString(w, strconv.Itoa(int(c.Blue))) //nolint:errcheck
+	w.Write([]byte{';'})                          //nolint:errcheck
+	io.WriteString(w, strconv.Itoa(int(c.Blue)))  //nolint:errcheck
 }
 
 // sixelBuilder is a temporary structure used to create a SixelImage. It handles
@@ -166,8 +166,8 @@ func (s *sixelBuilder) GeneratePixels() string {
 				continue
 			}
 
-			firstColorBit := uint(s.BandHeight()*s.imageWidth*6*paletteIndex + bandY*s.imageWidth*6)
-			nextColorBit := firstColorBit + uint(s.imageWidth*6)
+			firstColorBit := uint(s.BandHeight()*s.imageWidth*6*paletteIndex + bandY*s.imageWidth*6) //nolint:gosec
+			nextColorBit := firstColorBit + uint(s.imageWidth*6)                                     //nolint:gosec
 
 			firstSetBitInBand, anySet := s.pixelBands.NextSet(firstColorBit)
 			if !anySet || firstSetBitInBand >= nextColorBit {
@@ -183,7 +183,7 @@ func (s *sixelBuilder) GeneratePixels() string {
 			s.writeControlRune(ColorIntroducer)
 			s.imageData.WriteString(strconv.Itoa(paletteIndex))
 			for x := 0; x < s.imageWidth; x += 4 {
-				bit := firstColorBit + uint(x*6)
+				bit := firstColorBit + uint(x*6) //nolint:gosec
 				word := s.pixelBands.GetWord64AtBit(bit)
 
 				pixel1 := byte((word & 63) + '?')

@@ -2,6 +2,7 @@ package colors
 
 import "github.com/charmbracelet/lipgloss"
 
+//nolint:revive
 var (
 	WhiteBright = lipgloss.AdaptiveColor{Light: "#FFFDF5", Dark: "#FFFDF5"}
 

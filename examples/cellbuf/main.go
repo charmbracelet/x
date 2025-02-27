@@ -61,7 +61,7 @@ func main() {
 		scr.Fill(cellbuf.NewCell('你'))
 		scrw.PrintCropAt(x, y, text, "")
 		scr.Render()
-		scr.Flush()
+		scr.Flush() //nolint:errcheck
 	}
 
 	resize := func(nw, nh int) {
