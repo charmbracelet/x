@@ -1,0 +1,63 @@
+# https://taskfile.dev
+
+version: '3'
+
+vars:
+  PACKAGES: [
+    ansi,
+    cellbuf,
+    colors,
+    conpty,
+    editor,
+    errors,
+    examples,
+    exp/golden,
+    exp/higherorder,
+    exp/maps,
+    exp/open,
+    exp/ordered,
+    exp/slice,
+    exp/strings,
+    exp/teatest,
+    exp/teatest/v2,
+    input,
+    json,
+    sshkey,
+    term,
+    termios,
+    vt,
+    wcwidth,
+    windows,
+    xpty
+  ]
+
+tasks:
+  fmt:
+    desc: Run gofumpt for all packages
+    cmds:
+      - for: { var: PACKAGES }
+        cmd: cd {{.ITEM}} && gofmt -s -w .
+
+  lint:all:
+    desc: Run all linters for all packages
+    cmds:
+      - task: lint
+      - task: lint:soft
+
+  lint:
+    desc: Run base linters for all packages
+    cmds:
+      - for: { var: PACKAGES }
+        cmd: cd {{.ITEM}} && golangci-lint run
+
+  lint:soft:
+    desc: Run soft linters for all packages
+    cmds:
+      - for: { var: PACKAGES }
+        cmd: cd {{.ITEM}} && golangci-lint run --config=../.golangci-soft.yml
+
+  test:
+    desc: Run tests for all packages
+    cmds:
+      - for: { var: PACKAGES }
+        cmd: cd {{.ITEM}} && go test ./... {{.CLI_ARGS}}

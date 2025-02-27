@@ -13,10 +13,10 @@ func (p *UnixPty) setWinsize(width, height, x, y int) error {
 	var rErr error
 	if err := p.Control(func(fd uintptr) {
 		rErr = termios.SetWinsize(int(fd), &unix.Winsize{
-			Row:    uint16(height),
-			Col:    uint16(width),
-			Xpixel: uint16(x),
-			Ypixel: uint16(y),
+			Row:    uint16(height), //nolint:gosec
+			Col:    uint16(width),  //nolint:gosec
+			Xpixel: uint16(x),      //nolint:gosec
+			Ypixel: uint16(y),      //nolint:gosec
 		})
 	}); err != nil {
 		rErr = err

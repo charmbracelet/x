@@ -55,7 +55,7 @@ func RequireEqual(tb testing.TB, out []byte) {
 // the expected from the golden files, printing its diff in case it is not.
 //
 // Deprecated: Use [RequireEqual] instead.
-func RequireEqualEscape(tb testing.TB, out []byte, escapes bool) {
+func RequireEqualEscape(tb testing.TB, out []byte, escapes bool) { //nolint:revive
 	RequireEqual(tb, out)
 }
 

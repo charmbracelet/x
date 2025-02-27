@@ -10,6 +10,6 @@ func setSpeed(term *unix.Termios, ispeed, ospeed uint32) {
 	term.Ospeed = speed(ospeed)
 }
 
-func getSpeed(term *unix.Termios) (uint32, uint32) {
-	return uint32(term.Ispeed), uint32(term.Ospeed)
+func getSpeed(term *unix.Termios) (uint32, uint32) { //nolint:unused
+	return uint32(term.Ispeed), uint32(term.Ospeed) //nolint:gosec
 }

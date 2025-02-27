@@ -817,7 +817,7 @@ func (s *Screen) clearToEnd(blank *Cell, force bool) { //nolint:unparam
 		s.updatePen(blank)
 		count := s.newbuf.Width() - s.cur.X
 		if s.el0Cost() <= count {
-			s.buf.WriteString(ansi.EraseLineRight) //nolint:errcheck)
+			s.buf.WriteString(ansi.EraseLineRight) //nolint:errcheck
 		} else {
 			for i := 0; i < count; i++ {
 				s.putCell(blank)

@@ -40,7 +40,9 @@ type sixelPalette struct {
 type quantizationChannel int
 
 const (
-	MaxColors       int                 = 256
+	// MaxColors is the maximum number of colors a sixelPalette can contain
+	MaxColors int = 256
+
 	quantizationRed quantizationChannel = iota
 	quantizationGreen
 	quantizationBlue
@@ -248,10 +250,10 @@ func (p *sixelPalette) loadColor(uniqueColors []sixelColor, pixelCounts map[sixe
 	}
 
 	averageColor := sixelColor{
-		Red:   uint32(totalRed / totalCount),
-		Green: uint32(totalGreen / totalCount),
-		Blue:  uint32(totalBlue / totalCount),
-		Alpha: uint32(totalAlpha / totalCount),
+		Red:   uint32(totalRed / totalCount),   //nolint:gosec
+		Green: uint32(totalGreen / totalCount), //nolint:gosec
+		Blue:  uint32(totalBlue / totalCount),  //nolint:gosec
+		Alpha: uint32(totalAlpha / totalCount), //nolint:gosec
 	}
 
 	p.PaletteColors = append(p.PaletteColors, averageColor)
@@ -286,12 +288,6 @@ func sixelConvertChannel(channel uint32) uint32 {
 	return (channel + 328) * 100 / 0xffff
 }
 
-// imageConvertChannel converts a single color channel from sixel's 0-100 range to
-// go's standard 0-0xffff range
-func imageConvertChannel(channel uint32) uint32 {
-	return (channel*0xffff + 50) / 100
-}
-
 // newSixelPalette accepts an image and produces an N-color quantized color palette using the median cut
 // algorithm. The produced sixelPalette can convert colors from the image to the quantized palette
 // in O(1) time.
@@ -305,7 +301,7 @@ func newSixelPalette(image image.Image, maxColors int) sixelPalette {
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			c := sixelConvertColor(image.At(x, y))
-			count, _ := pixelCounts[c]
+			count := pixelCounts[c]
 			count++
 
 			pixelCounts[c] = count

@@ -414,7 +414,7 @@ func main() {
 		box := cellbuf.Rect(dialogX, dialogY, dialogWidth, dialogHeight)
 		scrw.SetContentRect(dialogBoxStyle.Render(dialogUI), box)
 		scr.Render()
-		scr.Flush()
+		scr.Flush() //nolint:errcheck
 	}
 
 	// First render
@@ -480,7 +480,7 @@ func colorGrid(xSteps, ySteps int) [][]string {
 	return grid
 }
 
-func max(a, b int) int {
+func max(a, b int) int { //nolint:predeclared
 	if a > b {
 		return a
 	}

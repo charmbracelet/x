@@ -74,7 +74,7 @@ func (r *xorshift) Next() uint64 {
 }
 
 func nextPowerOfTwo(length int) uint {
-	return 1 << bits.Len(uint(length))
+	return 1 << bits.Len(uint(length)) //nolint:gosec
 }
 
 // insertionSortCmpFunc sorts data[a:b] using insertion sort.
@@ -153,13 +153,13 @@ func pdqsortCmpFunc[E any](data []E, a, b, limit int, cmp func(a, b E) int) {
 
 		// If the last partitioning was imbalanced, we need to breaking patterns.
 		if !wasBalanced {
-			breakPatternsCmpFunc(data, a, b, cmp)
+			breakPatternsCmpFunc(data, a, b)
 			limit--
 		}
 
 		pivot, hint := choosePivotCmpFunc(data, a, b, cmp)
 		if hint == decreasingHint {
-			reverseRangeCmpFunc(data, a, b, cmp)
+			reverseRangeCmpFunc(data, a, b)
 			// The chosen pivot was pivot-a elements after the start of the array.
 			// After reversing it is pivot-a elements before the end of the array.
 			// The idea came from Rust's implementation.
@@ -308,14 +308,14 @@ func partialInsertionSortCmpFunc[E any](data []E, a, b int, cmp func(a, b E) int
 
 // breakPatternsCmpFunc scatters some elements around in an attempt to break some patterns
 // that might cause imbalanced partitions in quicksort.
-func breakPatternsCmpFunc[E any](data []E, a, b int, cmp func(a, b E) int) {
+func breakPatternsCmpFunc[E any](data []E, a, b int) {
 	length := b - a
 	if length >= 8 {
 		random := xorshift(length)
 		modulus := nextPowerOfTwo(length)
 
 		for idx := a + (length/4)*2 - 1; idx <= a+(length/4)*2+1; idx++ {
-			other := int(uint(random.Next()) & (modulus - 1))
+			other := int(uint(random.Next()) & (modulus - 1)) //nolint:gosec
 			if other >= length {
 				other -= length
 			}
@@ -377,8 +377,8 @@ func order2CmpFunc[E any](data []E, a, b int, swaps *int, cmp func(a, b E) int) 
 // medianCmpFunc returns x where data[x] is the median of data[a],data[b],data[c], where x is a, b, or c.
 func medianCmpFunc[E any](data []E, a, b, c int, swaps *int, cmp func(a, b E) int) int {
 	a, b = order2CmpFunc(data, a, b, swaps, cmp)
-	b, c = order2CmpFunc(data, b, c, swaps, cmp)
-	a, b = order2CmpFunc(data, a, b, swaps, cmp)
+	b, _ = order2CmpFunc(data, b, c, swaps, cmp)
+	_, b = order2CmpFunc(data, a, b, swaps, cmp)
 	return b
 }
 
@@ -387,7 +387,7 @@ func medianAdjacentCmpFunc[E any](data []E, a int, swaps *int, cmp func(a, b E) 
 	return medianCmpFunc(data, a-1, a, a+1, swaps, cmp)
 }
 
-func reverseRangeCmpFunc[E any](data []E, a, b int, cmp func(a, b E) int) {
+func reverseRangeCmpFunc[E any](data []E, a, b int) {
 	i := a
 	j := b - 1
 	for i < j {

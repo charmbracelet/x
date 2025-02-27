@@ -26,7 +26,7 @@ type Callbacks struct {
 
 	// CursorPosition callback. When set, this function is called when the cursor
 	// position changes.
-	CursorPosition func(old, new cellbuf.Position) //nolint:predeclared
+	CursorPosition func(old, new cellbuf.Position) //nolint:predeclared,revive
 
 	// CursorVisibility callback. When set, this function is called when the
 	// cursor visibility changes.
