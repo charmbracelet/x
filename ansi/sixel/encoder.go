@@ -31,7 +31,7 @@ const (
 )
 
 // Encoder is a Sixel encoder. It encodes an image to Sixel data format.
-type Encoder struct {}
+type Encoder struct{}
 
 // Encode will accept an Image and write sixel data to a Writer. The sixel data
 // will be everything after the 'q' that ends the DCS parameters and before the ST
