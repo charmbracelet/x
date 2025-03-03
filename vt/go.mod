@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/charmbracelet/x/ansi v0.8.0
 	github.com/charmbracelet/x/cellbuf v0.0.11
-	github.com/charmbracelet/x/input v0.3.3
+	github.com/charmbracelet/x/input v0.3.4
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/rivo/uniseg v0.4.7
 )
