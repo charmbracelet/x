@@ -1,10 +1,11 @@
 module github.com/charmbracelet/x/sshkey
 
 go 1.21
+toolchain go1.23.6
 
 require (
 	github.com/charmbracelet/huh v0.6.0
-	golang.org/x/crypto v0.33.0
+	golang.org/x/crypto v0.35.0
 )
 
 require (
