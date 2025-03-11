@@ -19,6 +19,7 @@ use (
 	./exp/teatest/v2
 	./input
 	./json
+	./mosaic
 	./sshkey
 	./term
 	./termios

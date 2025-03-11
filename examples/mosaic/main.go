@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/charmbracelet/lipgloss"
-	"github.com/charmbracelet/x/ansi/mosaic"
+	"github.com/charmbracelet/x/mosaic"
 )
 
 func main() {
