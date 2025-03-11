@@ -19,5 +19,8 @@
 testdata
 *.png
 
+# MacOS invisible file
+.DS_Store
+
 # Allow graphics used for bench test
 !ansi/fixtures/graphics/*.png
