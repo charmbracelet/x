@@ -24,4 +24,4 @@ testdata
 
 # Allow graphics used for bench test
 !ansi/fixtures/graphics/*.png
-!ansi/mosaic/fixtures/*.png
+!mosaic/fixtures/*.png
