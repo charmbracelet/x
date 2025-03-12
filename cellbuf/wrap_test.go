@@ -123,6 +123,12 @@ var wrapCases = []struct {
 	{"osc8_wrap", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\ สวัสดีสวัสดี\x1b]8;;\x1b\\", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\\x1b]8;;\x07\n\x1b]8;;https://example.com\x07สวัสดีสวัสดี\x1b]8;;\x1b\\", 8},
 	{"tab", "foo\tbar", "foo\nbar", 3},
 	{"wrapped styles example", "", "", 10},
+	{
+		name:     "punctuation after formatted word with space",
+		input:    "\x1b[38;5;203;48;5;236m arm64 \x1b[0m, \x1b[38;5;203;48;5;236m amd64 \x1b[0m, \x1b[38;5;203;48;5;236m i386 \x1b[0m",
+		expected: "\x1b[38;5;203;48;5;236m arm64 \x1b[0m,\n\x1b[38;5;203;48;5;236m amd64 \x1b[0m, \x1b[38;5;203;48;5;236m i386 \x1b[0m",
+		width:    15,
+	},
 }
 
 func TestWrap(t *testing.T) {
@@ -130,7 +136,7 @@ func TestWrap(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			output := Wrap(tc.input, tc.width, "")
 			if output != tc.expected {
-				t.Errorf("case %d, input %q, expected %q, got %q", i+1, tc.input, tc.expected, output)
+				t.Errorf("case %d, input:\n%q\nexpected:\n%q\n%s\n\ngot:\n%q\n%s", i+1, tc.input, tc.expected, tc.expected, output, output)
 			}
 		})
 	}

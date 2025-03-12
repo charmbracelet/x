@@ -39,6 +39,11 @@ func Wrap(s string, limit int, breakpoints string) string {
 		wordLen         int
 	)
 
+	hasBlankStyle := func() bool {
+		// Only follow reverse attribute, bg color and underline style
+		return !style.Attrs.Contains(ReverseAttr) && style.Bg == nil && style.UlStyle == NoUnderline
+	}
+
 	addSpace := func() {
 		curWidth += space.Len()
 		buf.Write(space.Bytes())
@@ -114,7 +119,7 @@ func Wrap(s string, limit int, breakpoints string) string {
 			if len(seq) == 1 {
 				// ASCII
 				r, _ := utf8.DecodeRuneInString(seq)
-				if unicode.IsSpace(r) {
+				if unicode.IsSpace(r) && hasBlankStyle() {
 					addWord()
 					space.WriteRune(r)
 					break
