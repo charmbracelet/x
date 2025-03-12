@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"flag"
+	"fmt"
 	"image"
 	"io"
 	"log"
@@ -13,10 +14,16 @@ import (
 
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/sixel"
+	"github.com/charmbracelet/x/graphics"
 )
 
 // $ go run . ./../../ansi/fixtures/graphics/JigokudaniMonkeyPark.png
 func main() {
+	imageProtocols := graphics.DetectImageProtocols()
+	fmt.Println("sixel  supported:", imageProtocols.Sixel)
+	fmt.Println("iTerm2 supported:", imageProtocols.ITerm2)
+	fmt.Println("kitty  supported", imageProtocols.Kitty)
+
 	flag.Parse()
 	args := flag.Args()
 	if len(args) == 0 {
