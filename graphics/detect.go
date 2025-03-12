@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/charmbracelet/x/term"
-	"github.com/mattn/go-isatty"
 )
 
 // TODO: Verify if it's running with tmux for Kitty and ITerm2
@@ -76,7 +75,7 @@ func detectSixel() bool {
 		"\x1b[?1;2;4c", // Tmux
 	}
 
-	if isatty.IsCygwinTerminal(os.Stdout.Fd()) {
+	if term.IsTerminal(os.Stdout.Fd()) {
 		return true
 	}
 	s, err := term.MakeRaw(1)
