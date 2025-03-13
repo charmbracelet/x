@@ -17,6 +17,26 @@ type Attr = int
 // Style represents an ANSI SGR (Select Graphic Rendition) style.
 type Style []string
 
+// NewStyle returns a new style with the given attributes.
+func NewStyle(attrs ...Attr) Style {
+	if len(attrs) == 0 {
+		return Style{}
+	}
+	s := make(Style, 0, len(attrs))
+	for _, a := range attrs {
+		attr, ok := attrStrings[a]
+		if ok {
+			s = append(s, attr)
+		} else {
+			if a < 0 {
+				a = 0
+			}
+			s = append(s, strconv.Itoa(a))
+		}
+	}
+	return s
+}
+
 // String returns the ANSI SGR (Select Graphic Rendition) style sequence for
 // the given style.
 func (s Style) String() string {

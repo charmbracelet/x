@@ -1,7 +1,5 @@
 package ansi
 
-import "strconv"
-
 // Select Graphic Rendition (SGR) is a command that sets display attributes.
 //
 // Default is 0.
@@ -14,20 +12,7 @@ func SelectGraphicRendition(ps ...Attr) string {
 		return ResetStyle
 	}
 
-	s := make(Style, 0, len(ps))
-	for _, p := range ps {
-		attr, ok := attrStrings[p]
-		if ok {
-			s = append(s, attr)
-		} else {
-			if p < 0 {
-				p = 0
-			}
-			s = append(s, strconv.Itoa(p))
-		}
-	}
-
-	return s.String()
+	return NewStyle(ps...).String()
 }
 
 // SGR is an alias for [SelectGraphicRendition].
