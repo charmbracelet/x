@@ -47,3 +47,32 @@ func TestColorizer(t *testing.T) {
 		t.Errorf("Unexpected sequence for XRGBAColorizer: got %q", seq)
 	}
 }
+
+func TestX11ColorNames(t *testing.T) {
+	purple := "RebeccaPurple"
+	blue := "deep sky blue"
+	gray := "WEBGRAY"
+
+	xnameCamelCase := ansi.XParseColor(purple)
+	xnameSpace := ansi.XParseColor(blue)
+	xnameUppercase := ansi.XParseColor(gray)
+
+	if seq := ansi.SetForegroundX11Color(purple); seq != "\x1b]10;"+purple+"\x07" {
+		t.Errorf("Unexpected sequence for SetForegroundX11Color: got %q", seq)
+	}
+	if seq := ansi.SetForegroundX11Color(blue); seq != "\x1b]10;"+blue+"\x07" {
+		t.Errorf("Unexpected sequence for SetForegroundX11Color: got %q", seq)
+	}
+	if seq := ansi.SetForegroundX11Color(gray); seq != "\x1b]10;"+gray+"\x07" {
+		t.Errorf("Unexpected sequence for SetForegroundX11Color: got %q", seq)
+	}
+	if seq := ansi.SetForegroundColor(xnameCamelCase); seq != "\x1b]10;rgb:6666/3333/9999\x07" {
+		t.Errorf("Unexpected sequence for SetForegroundColor: got %q", seq)
+	}
+	if seq := ansi.SetForegroundColor(xnameSpace); seq != "\x1b]10;rgb:0000/bfbf/ffff\x07" {
+		t.Errorf("Unexpected sequence for SetForegroundColor: got %q", seq)
+	}
+	if seq := ansi.SetForegroundColor(xnameUppercase); seq != "\x1b]10;rgb:8080/8080/8080\x07" {
+		t.Errorf("Unexpected sequence for SetForegroundColor: got %q", seq)
+	}
+}
