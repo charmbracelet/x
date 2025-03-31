@@ -2,6 +2,7 @@ package cellbuf
 
 import (
 	"testing"
+	"fmt"
 )
 
 var wrapCases = []struct {
@@ -140,4 +141,12 @@ func TestWrap(t *testing.T) {
 			}
 		})
 	}
+}
+
+func ExampleWrap() {
+	fmt.Println(Wrap("The quick brown fox jumped over the lazy dog.", 20, ""))
+	// Output:
+	// The quick brown fox
+	// jumped over the lazy
+	// dog.
 }
