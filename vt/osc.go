@@ -82,6 +82,7 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 		} else {
 			col := ansi.XParseColor(string(parts[1]))
 			if col == nil {
+				// Neither an X11 color name nor a valid RGB, ignore
 				return
 			}
 		}
