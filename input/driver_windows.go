@@ -217,15 +217,15 @@ func peekConsoleInput(console windows.Handle, inputRecords []xwindows.InputRecor
 // an event from win32-input-mode. Otherwise, it's a key event from the Windows
 // Console API and needs a state to decode ANSI escape sequences and utf16
 // runes.
-func (p *Parser) parseWin32InputKeyEvent(state *win32InputState, vkc uint16, _ uint16, r rune, keyDown bool, cks uint32, repeatCount uint16) (Event Event) {
+func (p *Parser) parseWin32InputKeyEvent(state *win32InputState, vkc uint16, _ uint16, r rune, keyDown bool, cks uint32, repeatCount uint16) (event Event) {
 	defer func() {
 		// Respect the repeat count.
 		if repeatCount > 1 {
 			var multi MultiEvent
 			for i := 0; i < int(repeatCount); i++ {
-				multi = append(multi, Event)
+				multi = append(multi, event)
 			}
-			Event = multi
+			event = multi
 		}
 	}()
 	if state != nil {
