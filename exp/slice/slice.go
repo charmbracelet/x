@@ -35,3 +35,26 @@ func Uniq[T comparable](list []T) []T {
 
 	return uniqList
 }
+
+// Intersperce puts an item between each element of a slice, returning a new
+// slice.
+func Intersperse[T any](slice []T, insert T) []T {
+	if len(slice) <= 1 {
+		return slice
+	}
+
+	// Create a new slice with the required capacity.
+	result := make([]T, len(slice)*2-1)
+
+	for i := range slice {
+		// Fill the new slice with original elements and the insertion string.
+		result[i*2] = slice[i]
+
+		// Add the insertion string between items (except the last one).
+		if i < len(slice)-1 {
+			result[i*2+1] = insert
+		}
+	}
+
+	return result
+}
