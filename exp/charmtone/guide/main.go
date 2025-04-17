@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"image/color"
+	"os"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss/v2"
@@ -9,9 +11,13 @@ import (
 )
 
 func main() {
+	keys := charmtone.Keys()
+	tones := charmtone.Tones()
+	hexes := charmtone.Hexes()
+
 	// Find the longest key name.
 	var width int
-	for k := range charmtone.Tones {
+	for k := range tones {
 		if w := lipgloss.Width(k.String()); w > width {
 			width = w
 		}
@@ -23,13 +29,21 @@ func main() {
 		Align(lipgloss.Right)
 	bg := lipgloss.NewStyle().
 		Width(8)
+	hex := lipgloss.NewStyle().
+		Foreground(func() color.Color {
+			if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
+				return tones[charmtone.Charcoal]
+			}
+			return tones[charmtone.Smoke]
+		}())
 
 	var b strings.Builder
-	for i, k := range charmtone.Keys {
+	for i, k := range keys {
 		block := fmt.Sprintf(
-			"%s %s",
-			fg.Foreground(charmtone.Tones[k]).Render(k.String()),
-			bg.Background(charmtone.Tones[k]).Render(""),
+			"%s %s %s",
+			fg.Foreground(tones[k]).Render(k.String()),
+			bg.Background(tones[k]).Render(),
+			hex.Render(hexes[k]),
 		)
 
 		fmt.Fprintf(&b, "%s", block)
