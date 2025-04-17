@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/exp/charmtone
 go 1.24.1
 
 require (
-	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.1
+	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.1.0.20250401142624-f274d052315e
 	github.com/lucasb-eyer/go-colorful v1.2.0
 )
 
