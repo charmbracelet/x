@@ -94,3 +94,37 @@ func TestUniq(t *testing.T) {
 		}
 	}
 }
+
+func TestIntersperse(t *testing.T) {
+	for i, tc := range []struct {
+		input    []string
+		insert   string
+		expected []string
+	}{
+		{
+			input:    []string{},
+			insert:   "-",
+			expected: []string{},
+		},
+		{
+			input:    []string{"a"},
+			insert:   "-",
+			expected: []string{"a"},
+		},
+		{
+			input:    []string{"a", "b"},
+			insert:   "-",
+			expected: []string{"a", "-", "b"},
+		},
+		{
+			input:    []string{"a", "b", "c"},
+			insert:   "-",
+			expected: []string{"a", "-", "b", "-", "c"},
+		},
+	} {
+		actual := Intersperse(tc.input, tc.insert)
+		if !reflect.DeepEqual(actual, tc.expected) {
+			t.Errorf("Test %d: Expected %v, got %v", i, tc.expected, actual)
+		}
+	}
+}
