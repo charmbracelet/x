@@ -4,14 +4,14 @@ go 1.19
 
 require (
 	github.com/charmbracelet/x/ansi v0.8.0
-	github.com/charmbracelet/x/cellbuf v0.0.11
+	github.com/charmbracelet/x/cellbuf v0.0.13
 	github.com/charmbracelet/x/input v0.3.4
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/rivo/uniseg v0.4.7
 )
 
 require (
-	github.com/charmbracelet/colorprofile v0.2.0 // indirect
+	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc // indirect
 	github.com/charmbracelet/x/term v0.2.1 // indirect
 	github.com/charmbracelet/x/windows v0.2.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
