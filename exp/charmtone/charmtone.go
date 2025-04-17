@@ -2,6 +2,7 @@ package charmtone
 
 import (
 	"image/color"
+	"slices"
 
 	"github.com/charmbracelet/lipgloss/v2"
 )
@@ -63,6 +64,7 @@ const (
 	Oyster
 	Squid
 	Smoke
+	Ash
 	Butter
 )
 
@@ -121,6 +123,7 @@ func (k Key) String() string {
 		Oyster:   "Oyster",
 		Squid:    "Squid",
 		Smoke:    "Smoke",
+		Ash:      "Ash",
 		Butter:   "Butter",
 	}[k]
 }
@@ -170,17 +173,18 @@ func Hexes() map[Key]string {
 		Zinc:     "#10B1AE",
 		Turtle:   "#0ADCD9",
 		Lichen:   "#5CDFEA",
-		Guac:     "#14DD9F",
+		Guac:     "#12C78F",
 		Julep:    "#00FFB2",
 		Bok:      "#68FFD6",
 		Mustard:  "#F5EF34",
 		Citron:   "#E8FF27",
 		Zest:     "#E8FE96",
-		Pepper:   "#201F26",
-		Charcoal: "#3A3943",
-		Oyster:   "#605F6B",
-		Squid:    "#858392",
-		Smoke:    "#BFBCC8",
+		Pepper:   "#201F26", // Gray 1
+		Charcoal: "#3A3943", // Gray 2
+		Oyster:   "#605F6B", // Gray 3
+		Squid:    "#858392", // Gray 4
+		Smoke:    "#BFBCC8", // Gray 5
+		Ash:      "#DFDBDD", // Gray 6
 		Butter:   "#FFFAF1",
 	}
 }
@@ -240,6 +244,7 @@ func Keys() []Key {
 		Oyster,
 		Squid,
 		Smoke,
+		Ash,
 		Butter,
 	}
 }
@@ -252,4 +257,16 @@ func Tones() map[Key]color.Color {
 		t[name] = lipgloss.Color(hex)
 	}
 	return t
+}
+
+// Core indicates which colors are part of the core palette.
+func IsCore(k Key) bool {
+	return slices.Contains([]Key{
+		Charple,
+		Dolly,
+		Julep,
+		Zest,
+		Butter,
+		Tuna,
+	}, k)
 }

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image/color"
 	"os"
 	"strings"
 
@@ -23,6 +22,18 @@ func main() {
 		}
 	}
 
+	// Styles.
+	hasDarkBG := lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
+	lightDark := lipgloss.LightDark(hasDarkBG)
+	logo := lipgloss.NewStyle().
+		Foreground(tones[charmtone.Ash]).
+		Background(tones[charmtone.Charple]).
+		Padding(0, 1).
+		SetString("Charm™")
+	title := lipgloss.NewStyle().
+		Foreground(lightDark(tones[charmtone.Charcoal], tones[charmtone.Smoke]))
+	subdued := lipgloss.NewStyle().
+		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Oyster]))
 	fg := lipgloss.NewStyle().
 		MarginLeft(2).
 		Width(width).
@@ -30,18 +41,24 @@ func main() {
 	bg := lipgloss.NewStyle().
 		Width(8)
 	hex := lipgloss.NewStyle().
-		Foreground(func() color.Color {
-			if lipgloss.HasDarkBackground(os.Stdin, os.Stdout) {
-				return tones[charmtone.Charcoal]
-			}
-			return tones[charmtone.Smoke]
-		}())
+		Foreground(lightDark(tones[charmtone.Smoke], tones[charmtone.Charcoal]))
 
 	var b strings.Builder
+
+	// Render title and description.
+	fmt.Fprintf(
+		&b,
+		"\n  %s %s %s\n\n",
+		logo.String(),
+		title.Render("CharmTone"),
+		subdued.Render("• Formula Guide"),
+	)
+
+	// Render swatches.
 	for i, k := range keys {
 		block := fmt.Sprintf(
 			"%s %s %s",
-			fg.Foreground(tones[k]).Render(k.String()),
+			fg.Foreground(tones[k]).Underline(charmtone.IsCore(k)).Render(k.String()),
 			bg.Background(tones[k]).Render(),
 			hex.Render(hexes[k]),
 		)
@@ -57,5 +74,7 @@ func main() {
 		}
 	}
 
-	fmt.Println("\n" + b.String())
+	fmt.Fprintf(&b, "\n  %s\n", subdued.Render("Underline: Core System"))
+
+	fmt.Println(b.String())
 }
