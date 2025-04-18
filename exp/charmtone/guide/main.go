@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -42,6 +43,14 @@ func main() {
 		Width(8)
 	hex := lipgloss.NewStyle().
 		Foreground(lightDark(tones[charmtone.Smoke], tones[charmtone.Charcoal]))
+	legend := subdued.
+		BorderStyle(lipgloss.RoundedBorder()).
+		BorderForeground(tones[charmtone.Charcoal]).
+		Padding(0, 2).
+		MarginLeft(2).
+		MarginTop(1)
+	primaryMark := lipgloss.NewStyle().Foreground(tones[charmtone.Squid]).SetString("◉")
+	secondaryMark := primaryMark.SetString("○")
 
 	var b strings.Builder
 
@@ -54,27 +63,53 @@ func main() {
 		subdued.Render("• Formula Guide"),
 	)
 
-	// Render swatches.
-	for i, k := range keys {
-		block := fmt.Sprintf(
-			"%s %s %s",
-			fg.Foreground(tones[k]).Underline(charmtone.IsCore(k)).Render(k.String()),
+	// Render a swatch and its metadata.
+	renderSwatch := func(w io.Writer, k charmtone.Key) {
+		mark := " "
+		if charmtone.IsPrimary(k) {
+			mark = primaryMark.String()
+		} else if charmtone.IsSecondary(k) {
+			mark = secondaryMark.String()
+		}
+		_, _ = fmt.Fprintf(w,
+			"%s %s %s %s",
+			fg.Foreground(tones[k]).Render(k.String()),
+			mark,
 			bg.Background(tones[k]).Render(),
 			hex.Render(hexes[k]),
 		)
+	}
 
-		fmt.Fprintf(&b, "%s", block)
-		if i == int(charmtone.Pepper)-1 {
-			b.WriteRune('\n')
-		}
-		if i%3 == 2 || i >= int(charmtone.Pepper) {
+	// Render main color block.
+	for i := charmtone.Cumin; i < charmtone.Pepper; i++ {
+		k := keys[i]
+		renderSwatch(&b, k)
+		if i%3 == 2 {
 			b.WriteRune('\n')
 		} else {
 			b.WriteRune(' ')
 		}
 	}
 
-	fmt.Fprintf(&b, "\n  %s\n", subdued.Render("Underline: Core System"))
+	// Grayscale block.
+	var grays strings.Builder
+	for i := charmtone.Pepper; i <= charmtone.Butter; i++ {
+		k := keys[i]
+		renderSwatch(&grays, k)
+		if i < charmtone.Butter {
+			grays.WriteRune('\n')
+		}
+	}
 
-	fmt.Println(b.String())
+	// Build legend.
+	legendBlock := legend.Render(
+		primaryMark.String() + subdued.Render(" Primary") + "\n" +
+			secondaryMark.String() + subdued.Render(" Secondary"),
+	)
+
+	// Join Greys and legend.
+	fmt.Fprint(&b, lipgloss.JoinHorizontal(lipgloss.Top, grays.String(), " ", legendBlock))
+
+	// Flush.
+	fmt.Println(b.String() + "\n")
 }

@@ -260,13 +260,26 @@ func Tones() map[Key]color.Color {
 }
 
 // Core indicates which colors are part of the core palette.
-func IsCore(k Key) bool {
+func IsPrimary(k Key) bool {
 	return slices.Contains([]Key{
 		Charple,
 		Dolly,
 		Julep,
 		Zest,
 		Butter,
+		Hazy,
+		Blush,
+		Bok,
+	}, k)
+}
+
+func IsSecondary(k Key) bool {
+	return slices.Contains([]Key{
+		Turtle,
+		Malibu,
+		Violet,
 		Tuna,
+		Coral,
+		Uni,
 	}, k)
 }
