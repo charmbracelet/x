@@ -10,6 +10,11 @@ import (
 	"github.com/charmbracelet/x/exp/charmtone"
 )
 
+const (
+	blackCircle = "\u25CF" // ●
+	whiteCircle = "\u25CB" // ○
+)
+
 func main() {
 	keys := charmtone.Keys()
 	tones := charmtone.Tones()
@@ -49,8 +54,13 @@ func main() {
 		Padding(0, 2).
 		MarginLeft(2).
 		MarginTop(1)
-	primaryMark := lipgloss.NewStyle().Foreground(tones[charmtone.Squid]).SetString("◉")
-	secondaryMark := primaryMark.SetString("○")
+	primaryMark := lipgloss.NewStyle().
+		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Smoke])).
+		SetString(blackCircle)
+	secondaryMark := primaryMark.
+		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Oyster])).
+		SetString(blackCircle)
+	tertiaryMark := primaryMark.SetString(whiteCircle)
 
 	var b strings.Builder
 
@@ -66,10 +76,13 @@ func main() {
 	// Render a swatch and its metadata.
 	renderSwatch := func(w io.Writer, k charmtone.Key) {
 		mark := " "
-		if charmtone.IsPrimary(k) {
+		switch {
+		case charmtone.IsPrimary(k):
 			mark = primaryMark.String()
-		} else if charmtone.IsSecondary(k) {
+		case charmtone.IsSecondary(k):
 			mark = secondaryMark.String()
+		case charmtone.IsTertiary(k):
+			mark = tertiaryMark.String()
 		}
 		_, _ = fmt.Fprintf(w,
 			"%s %s %s %s",
@@ -93,6 +106,7 @@ func main() {
 
 	// Grayscale block.
 	var grays strings.Builder
+	grays.WriteRune('\n')
 	for i := charmtone.Pepper; i <= charmtone.Butter; i++ {
 		k := keys[i]
 		renderSwatch(&grays, k)
@@ -104,12 +118,13 @@ func main() {
 	// Build legend.
 	legendBlock := legend.Render(
 		primaryMark.String() + subdued.Render(" Primary") + "\n" +
-			secondaryMark.String() + subdued.Render(" Secondary"),
+			secondaryMark.String() + subdued.Render(" Secondary") + "\n" +
+			tertiaryMark.String() + subdued.Render(" Tertiary"),
 	)
 
 	// Join Greys and legend.
 	fmt.Fprint(&b, lipgloss.JoinHorizontal(lipgloss.Top, grays.String(), " ", legendBlock))
 
 	// Flush.
-	fmt.Println(b.String() + "\n")
+	lipgloss.Print(b.String() + "\n\n")
 }
