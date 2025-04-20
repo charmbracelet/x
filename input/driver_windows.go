@@ -155,7 +155,7 @@ func mouseEvent(p uint32, e xwindows.MouseEventRecord) (ev Event) {
 
 	wheelDirection := int16(highWord(e.ButtonState)) //nolint:gosec
 	switch e.EventFlags {
-	case xwindows.CLICK, xwindows.DOUBLE_CLICK:
+	case 0, xwindows.DOUBLE_CLICK:
 		m.Button, isRelease = mouseEventButton(p, e.ButtonState)
 	case xwindows.MOUSE_WHEELED:
 		if wheelDirection > 0 {
@@ -462,7 +462,7 @@ func (p *Parser) parseWin32InputKeyEvent(state *win32InputState, vkc uint16, _ u
 	if !unicode.IsControl(r) {
 		rw := utf8.EncodeRune(utf8Buf[:], r)
 		keyCode, _ = utf8.DecodeRune(utf8Buf[:rw])
-		if cks == xwindows.NO_CONTROL_KEY ||
+		if cks == 0 ||
 			cks == xwindows.SHIFT_PRESSED ||
 			cks == xwindows.CAPSLOCK_ON ||
 			altGr {
