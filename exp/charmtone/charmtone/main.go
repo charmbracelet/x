@@ -17,13 +17,9 @@ const (
 )
 
 func main() {
-	keys := charmtone.Keys()
-	tones := charmtone.Tones()
-	hexes := charmtone.Hexes()
-
 	// Find the longest key name.
 	var widestKeyName int
-	for k := range tones {
+	for _, k := range charmtone.Keys() {
 		if w := lipgloss.Width(k.String()); w > widestKeyName {
 			widestKeyName = w
 		}
@@ -33,14 +29,14 @@ func main() {
 	hasDarkBG := lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
 	lightDark := lipgloss.LightDark(hasDarkBG)
 	logo := lipgloss.NewStyle().
-		Foreground(tones[charmtone.Ash]).
-		Background(tones[charmtone.Charple]).
+		Foreground(charmtone.Ash).
+		Background(charmtone.Charple).
 		Padding(0, 1).
 		SetString("Charm™")
 	title := lipgloss.NewStyle().
-		Foreground(lightDark(tones[charmtone.Charcoal], tones[charmtone.Smoke]))
+		Foreground(lightDark(charmtone.Charcoal, charmtone.Smoke))
 	subdued := lipgloss.NewStyle().
-		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Oyster]))
+		Foreground(lightDark(charmtone.Squid, charmtone.Oyster))
 	fg := lipgloss.NewStyle().
 		MarginLeft(2).
 		Width(widestKeyName).
@@ -48,23 +44,23 @@ func main() {
 	bg := lipgloss.NewStyle().
 		Width(8)
 	hex := lipgloss.NewStyle().
-		Foreground(lightDark(tones[charmtone.Smoke], tones[charmtone.Charcoal]))
+		Foreground(lightDark(charmtone.Smoke, charmtone.Charcoal))
 	legend := subdued.
 		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(tones[charmtone.Charcoal]).
+		BorderForeground(charmtone.Charcoal).
 		Padding(0, 2).
 		MarginLeft(2)
 	primaryMark := lipgloss.NewStyle().
-		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Smoke])).
+		Foreground(lightDark(charmtone.Squid, charmtone.Smoke)).
 		SetString(blackCircle)
 	secondaryMark := primaryMark.
-		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Oyster])).
+		Foreground(lightDark(charmtone.Squid, charmtone.Oyster)).
 		SetString(blackCircle)
 	tertiaryMark := primaryMark.
-		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Oyster])).
+		Foreground(lightDark(charmtone.Squid, charmtone.Oyster)).
 		SetString(whiteCircle)
 	rightArrowMark := lipgloss.NewStyle().
-		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Oyster])).
+		Foreground(lightDark(charmtone.Squid, charmtone.Oyster)).
 		Margin(0, 1).
 		SetString(rightArrow)
 
@@ -83,25 +79,25 @@ func main() {
 	renderSwatch := func(w io.Writer, k charmtone.Key) {
 		mark := " "
 		switch {
-		case charmtone.IsPrimary(k):
+		case k.IsPrimary():
 			mark = primaryMark.String()
-		case charmtone.IsSecondary(k):
+		case k.IsSecondary():
 			mark = secondaryMark.String()
-		case charmtone.IsTertiary(k):
+		case k.IsTertiary():
 			mark = tertiaryMark.String()
 		}
 		_, _ = fmt.Fprintf(w,
 			"%s %s %s %s",
-			fg.Foreground(tones[k]).Render(k.String()),
+			fg.Foreground(k).Render(k.String()),
 			mark,
-			bg.Background(tones[k]).Render(),
-			hex.Render(hexes[k]),
+			bg.Background(k).Render(),
+			hex.Render(k.Hex()),
 		)
 	}
 
 	// Render main color block.
 	for i := charmtone.Cumin; i < charmtone.Pepper; i++ {
-		k := keys[i]
+		k := charmtone.Keys()[i]
 		renderSwatch(&b, k)
 		if i%3 == 2 {
 			b.WriteRune('\n')
@@ -121,7 +117,7 @@ func main() {
 	// Grayscale block.
 	var grays strings.Builder
 	for i := charmtone.Pepper; i <= charmtone.Butter; i++ {
-		k := keys[i]
+		k := charmtone.Keys()[i]
 		renderSwatch(&grays, k)
 		if i < charmtone.Butter {
 			grays.WriteRune('\n')
@@ -162,7 +158,7 @@ func main() {
 			Align(lipgloss.Center).
 			Width(halfWidth)
 		s := subdued.
-			Foreground(tones[charmtone.Squid])
+			Foreground(charmtone.Squid)
 
 		left := blendKeys(halfWidth, charmtone.Hazy, charmtone.Blush)
 		left += "\n" + block.Render(s.Render("Hazy")+rightArrowMark.String()+s.Render("Blush"))

@@ -7,9 +7,9 @@ import (
 )
 
 func TestValidateHexes(t *testing.T) {
-	for k, v := range Hexes() {
-		if _, err := colorful.Hex(v); err != nil {
-			t.Errorf("Key %s: %v", k, err)
+	for _, key := range Keys() {
+		if _, err := colorful.Hex(key.Hex()); err != nil {
+			t.Errorf("Key %s: %v", key, err)
 		}
 	}
 }
