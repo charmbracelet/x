@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/charmbracelet/lipgloss/v2"
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 // Key is a type for color keys.
@@ -289,4 +290,49 @@ func IsTertiary(k Key) bool {
 		Coral,
 		Uni,
 	}, k)
+}
+
+// BlendColors returns a slice of colors blended between the given keys.
+// Blending is done as Hcl to stay in gamut.
+func BlendColors(size int, keys ...Key) []color.Color {
+	if len(keys) < 2 {
+		return nil
+	}
+
+	hexes := Hexes()
+	stops := make([]colorful.Color, len(keys))
+	for i, k := range keys {
+		stops[i], _ = colorful.Hex(hexes[k])
+	}
+
+	numSegments := len(stops) - 1
+	blended := make([]color.Color, 0, size)
+
+	// Calculate how many colors each segment should have.
+	segmentSizes := make([]int, numSegments)
+	baseSize := size / numSegments
+	remainder := size % numSegments
+
+	// Distribute the remainder across segments.
+	for i := range numSegments {
+		segmentSizes[i] = baseSize
+		if i < remainder {
+			segmentSizes[i]++
+		}
+	}
+
+	// Generate colors for each segment.
+	for i := range numSegments {
+		c1 := stops[i]
+		c2 := stops[i+1]
+		segmentSize := segmentSizes[i]
+
+		for j := range segmentSize {
+			t := float64(j) / float64(segmentSize)
+			c := c1.BlendHcl(c2, t)
+			blended = append(blended, c)
+		}
+	}
+
+	return blended
 }

@@ -11,8 +11,9 @@ import (
 )
 
 const (
-	blackCircle = "\u25CF" // ●
-	whiteCircle = "\u25CB" // ○
+	blackCircle = "●"
+	whiteCircle = "○"
+	rightArrow  = "→"
 )
 
 func main() {
@@ -21,10 +22,10 @@ func main() {
 	hexes := charmtone.Hexes()
 
 	// Find the longest key name.
-	var width int
+	var widestKeyName int
 	for k := range tones {
-		if w := lipgloss.Width(k.String()); w > width {
-			width = w
+		if w := lipgloss.Width(k.String()); w > widestKeyName {
+			widestKeyName = w
 		}
 	}
 
@@ -42,7 +43,7 @@ func main() {
 		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Oyster]))
 	fg := lipgloss.NewStyle().
 		MarginLeft(2).
-		Width(width).
+		Width(widestKeyName).
 		Align(lipgloss.Right)
 	bg := lipgloss.NewStyle().
 		Width(8)
@@ -52,15 +53,20 @@ func main() {
 		BorderStyle(lipgloss.RoundedBorder()).
 		BorderForeground(tones[charmtone.Charcoal]).
 		Padding(0, 2).
-		MarginLeft(2).
-		MarginTop(1)
+		MarginLeft(2)
 	primaryMark := lipgloss.NewStyle().
 		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Smoke])).
 		SetString(blackCircle)
 	secondaryMark := primaryMark.
 		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Oyster])).
 		SetString(blackCircle)
-	tertiaryMark := primaryMark.SetString(whiteCircle)
+	tertiaryMark := primaryMark.
+		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Oyster])).
+		SetString(whiteCircle)
+	rightArrowMark := lipgloss.NewStyle().
+		Foreground(lightDark(tones[charmtone.Squid], tones[charmtone.Oyster])).
+		Margin(0, 1).
+		SetString(rightArrow)
 
 	var b strings.Builder
 
@@ -104,9 +110,16 @@ func main() {
 		}
 	}
 
+	// Get total block width so far.
+	var totalWidth int
+	for l := range strings.SplitSeq(b.String(), "\n") {
+		if w := lipgloss.Width(l); w > totalWidth {
+			totalWidth = w
+		}
+	}
+
 	// Grayscale block.
 	var grays strings.Builder
-	grays.WriteRune('\n')
 	for i := charmtone.Pepper; i <= charmtone.Butter; i++ {
 		k := keys[i]
 		renderSwatch(&grays, k)
@@ -115,16 +128,80 @@ func main() {
 		}
 	}
 
+	// Get width of grayscale block.
+	var grayWidth int
+	for l := range strings.SplitSeq(grays.String(), "\n") {
+		if w := lipgloss.Width(l); w > grayWidth {
+			grayWidth = w
+		}
+	}
+
+	fmt.Fprint(&b, "\n")
+
 	// Build legend.
 	legendBlock := legend.Render(
-		primaryMark.String() + subdued.Render(" Primary") + "\n" +
-			secondaryMark.String() + subdued.Render(" Secondary") + "\n" +
+		strings.Join([]string{
+			primaryMark.String() + subdued.Render(" Primary"),
+			secondaryMark.String() + subdued.Render(" Secondary"),
 			tertiaryMark.String() + subdued.Render(" Tertiary"),
+		}, "  "),
 	)
 
+	// Build gradients.
+	var grads strings.Builder
+	gap := "  "
+	gapWidth := lipgloss.Width(gap)
+	{
+		fullWidth := (totalWidth - grayWidth) - lipgloss.Width(gap)
+		if fullWidth%2 != 0 {
+			fullWidth--
+		}
+		halfWidth := fullWidth / gapWidth
+
+		block := lipgloss.NewStyle().
+			Align(lipgloss.Center).
+			Width(halfWidth)
+		s := subdued.
+			Foreground(tones[charmtone.Squid])
+
+		left := blendKeys(halfWidth, charmtone.Hazy, charmtone.Blush)
+		left += "\n" + block.Render(s.Render("Hazy")+rightArrowMark.String()+s.Render("Blush"))
+		right := blendKeys(halfWidth, charmtone.Bok, charmtone.Zest)
+		right += "\n" + block.Render(s.Render("Bok")+rightArrowMark.String()+s.Render("Zest"))
+		fmt.Fprint(&grads, "\n", lipgloss.JoinHorizontal(lipgloss.Top, gap, left, right))
+
+		block = block.Width(fullWidth)
+		buf := strings.Builder{}
+		fmt.Fprint(&buf, blendKeys(fullWidth, charmtone.Uni,
+			charmtone.Coral, charmtone.Tuna, charmtone.Violet,
+			charmtone.Malibu, charmtone.Turtle,
+		))
+		fmt.Fprint(&buf, "\n",
+			block.Render(
+				s.Render("Uni")+rightArrowMark.String()+
+					s.Render("Coral")+rightArrowMark.String()+
+					s.Render("Tuna")+rightArrowMark.String()+
+					s.Render("Violet")+rightArrowMark.String()+
+					s.Render("Malibu")+rightArrowMark.String()+
+					s.Render("Turtle"),
+			),
+		)
+		fmt.Fprint(&grads, "\n\n", lipgloss.JoinHorizontal(lipgloss.Top, gap, buf.String()))
+	}
+
 	// Join Greys and legend.
-	fmt.Fprint(&b, lipgloss.JoinHorizontal(lipgloss.Top, grays.String(), " ", legendBlock))
+	fmt.Fprint(&b, lipgloss.JoinHorizontal(lipgloss.Top, grays.String(), " ", grads.String()))
+
+	fmt.Fprint(&b, "\n\n", legendBlock, "\n\n")
 
 	// Flush.
-	lipgloss.Print(b.String() + "\n\n")
+	lipgloss.Print(b.String())
+}
+
+func blendKeys(width int, keys ...charmtone.Key) string {
+	var w strings.Builder
+	for _, c := range charmtone.BlendColors(width, keys...) {
+		fmt.Fprint(&w, lipgloss.NewStyle().Background(c).Render(" "))
+	}
+	return w.String()
 }
