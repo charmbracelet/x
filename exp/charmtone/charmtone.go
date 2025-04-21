@@ -8,6 +8,8 @@ import (
 	"github.com/lucasb-eyer/go-colorful"
 )
 
+var _ color.Color = Key(0)
+
 // Key is a type for color keys.
 type Key int
 
@@ -68,6 +70,10 @@ const (
 	Ash
 	Butter
 )
+
+func (k Key) RGBA() (r, g, b, a uint32) {
+	return lipgloss.Color(k.Hex()).RGBA()
+}
 
 func (k Key) String() string {
 	return map[Key]string{
@@ -130,7 +136,7 @@ func (k Key) String() string {
 }
 
 // All Hexes in the palette.
-func Hexes() map[Key]string {
+func (k Key) Hex() string {
 	return map[Key]string{
 		Cumin:    "#BF976F",
 		Tang:     "#FF985A",
@@ -187,7 +193,7 @@ func Hexes() map[Key]string {
 		Smoke:    "#BFBCC8", // Gray 5
 		Ash:      "#DFDBDD", // Gray 6
 		Butter:   "#FFFAF1",
-	}
+	}[k]
 }
 
 func Keys() []Key {
@@ -250,18 +256,8 @@ func Keys() []Key {
 	}
 }
 
-// Tones is a map of colors from the CharmTone palette.
-func Tones() map[Key]color.Color {
-	h := Hexes()
-	t := make(map[Key]color.Color, len(h))
-	for name, hex := range h {
-		t[name] = lipgloss.Color(hex)
-	}
-	return t
-}
-
 // IsPrimary indicates which colors are part of the core palette.
-func IsPrimary(k Key) bool {
+func (k Key) IsPrimary() bool {
 	return slices.Contains([]Key{
 		Charple,
 		Dolly,
@@ -272,7 +268,7 @@ func IsPrimary(k Key) bool {
 }
 
 // IsSecondary indicates which colors are part of the secondary palette.
-func IsSecondary(k Key) bool {
+func (k Key) IsSecondary() bool {
 	return slices.Contains([]Key{
 		Hazy,
 		Blush,
@@ -281,7 +277,7 @@ func IsSecondary(k Key) bool {
 }
 
 // IsTertiary indicates which colors are part of the tertiary palette.
-func IsTertiary(k Key) bool {
+func (k Key) IsTertiary() bool {
 	return slices.Contains([]Key{
 		Turtle,
 		Malibu,
@@ -299,10 +295,9 @@ func BlendColors(size int, keys ...Key) []color.Color {
 		return nil
 	}
 
-	hexes := Hexes()
 	stops := make([]colorful.Color, len(keys))
 	for i, k := range keys {
-		stops[i], _ = colorful.Hex(hexes[k])
+		stops[i], _ = colorful.Hex(k.Hex())
 	}
 
 	numSegments := len(stops) - 1
