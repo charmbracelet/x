@@ -86,11 +86,11 @@ func TestWindowsInputEvents(t *testing.T) {
 				encodeMouseEvent(xwindows.MouseEventRecord{
 					MousePositon: windows.Coord{X: 10, Y: 20},
 					ButtonState:  xwindows.FROM_LEFT_1ST_BUTTON_PRESSED,
-					EventFlags:   xwindows.CLICK,
+					EventFlags:   0,
 				}),
 				encodeMouseEvent(xwindows.MouseEventRecord{
 					MousePositon: windows.Coord{X: 10, Y: 20},
-					EventFlags:   xwindows.CLICK,
+					EventFlags:   0,
 				}),
 			},
 			expected: []Event{
