@@ -1,6 +1,8 @@
 //go:build darwin || netbsd || freebsd || openbsd || linux || dragonfly || solaris
 // +build darwin netbsd freebsd openbsd linux dragonfly solaris
 
+// Package termios provides a unified interface for getting and setting Termios
+// settings for Unix and Unix-like systems.
 package termios
 
 import (
@@ -11,17 +13,17 @@ import (
 
 // SetWinsize sets window size for an fd from a Winsize.
 func SetWinsize(fd int, w *unix.Winsize) error {
-	return unix.IoctlSetWinsize(fd, ioctlSetWinSize, w)
+	return unix.IoctlSetWinsize(fd, ioctlSetWinSize, w) //nolint:wrapcheck
 }
 
 // GetWinsize gets window size for an fd.
 func GetWinsize(fd int) (*unix.Winsize, error) {
-	return unix.IoctlGetWinsize(fd, ioctlGetWinSize)
+	return unix.IoctlGetWinsize(fd, ioctlGetWinSize) //nolint:wrapcheck
 }
 
 // GetTermios gets the termios of the given fd.
 func GetTermios(fd int) (*unix.Termios, error) {
-	return unix.IoctlGetTermios(fd, ioctlGets)
+	return unix.IoctlGetTermios(fd, ioctlGets) //nolint:wrapcheck
 }
 
 // SetTermios sets the given termios over the given fd's current termios.
@@ -37,7 +39,7 @@ func SetTermios(
 ) error {
 	term, err := unix.IoctlGetTermios(fd, ioctlGets)
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck
 	}
 	setSpeed(term, ispeed, ospeed)
 
@@ -89,7 +91,7 @@ func SetTermios(
 			}
 		}
 	}
-	return unix.IoctlSetTermios(fd, ioctlSets, term)
+	return unix.IoctlSetTermios(fd, ioctlSets, term) //nolint:wrapcheck
 }
 
 // CC is the termios cc field.
@@ -140,7 +142,7 @@ var allCcOpts = map[CC]int{
 	// FLUSH:  syscall.VFLUSH,
 }
 
-// Input Controls
+// I stands for Input Controls.
 type I uint8
 
 // Input possible values.
@@ -173,7 +175,7 @@ var allInputOpts = map[I]uint32{
 	IMAXBEL: syscall.IMAXBEL,
 }
 
-// Output Controls
+// O stands for Output Controls.
 type O uint8
 
 // Output possible values.
@@ -194,7 +196,7 @@ var allOutputOpts = map[O]uint32{
 	ONLRET: syscall.ONLRET,
 }
 
-// Control
+// C stands for Control.
 type C uint8
 
 // Control possible values.
@@ -212,7 +214,7 @@ var allControlOpts = map[C]uint32{
 	PARODD: syscall.PARODD,
 }
 
-// Line Controls.
+// L stands for Line Controls.
 type L uint8
 
 // Line possible values.
