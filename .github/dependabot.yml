@@ -108,6 +108,19 @@ updates:
       include: "scope"
 
   - package-ecosystem: "gomod"
+    directory: "/exp/charmtone"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "America/New_York"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "gomod"
     directory: "/exp/golden"
     schedule:
       interval: "weekly"
@@ -239,6 +252,19 @@ updates:
 
   - package-ecosystem: "gomod"
     directory: "/json"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "America/New_York"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+
+  - package-ecosystem: "gomod"
+    directory: "/mosaic"
     schedule:
       interval: "weekly"
       day: "monday"
