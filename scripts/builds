@@ -59,5 +59,10 @@ jobs:
           gh pr merge --squash --auto \"\$PR_URL\"
         env:
           PR_URL: \${{github.event.pull_request.html_url}}
-          GITHUB_TOKEN: \${{secrets.GITHUB_TOKEN}}" >"./.github/workflows/${name}.yml"
+          GITHUB_TOKEN: \${{secrets.GITHUB_TOKEN}}
+  lint:
+    uses: charmbracelet/meta/.github/workflows/lint.yml@main
+    with:
+      directory: $(dirname "$mod")/...
+" >"./.github/workflows/${name}.yml"
 done
