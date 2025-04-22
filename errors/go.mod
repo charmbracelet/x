@@ -1,3 +1,3 @@
 module github.com/charmbracelet/x/errors
 
-go 1.17
+go 1.23.0

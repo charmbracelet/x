@@ -1,6 +1,6 @@
 module github.com/charmbracelet/x/vt
 
-go 1.19
+go 1.23.0
 
 require (
 	github.com/charmbracelet/x/ansi v0.8.0
