@@ -1,8 +1,11 @@
+// Package xpty provides a platform-independent interfaces to interact with
+// pseudo-terminals (PTY). It supports traditional Unix PTY and Windows ConPty.
 package xpty
 
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"os/exec"
@@ -75,7 +78,10 @@ func NewPty(width, height int, opts ...PtyOption) (Pty, error) {
 // When the OS is not windows, it'll simply fall back to cmd.Wait().
 func WaitProcess(ctx context.Context, cmd *exec.Cmd) (err error) {
 	if runtime.GOOS != "windows" {
-		return cmd.Wait()
+		if err := cmd.Wait(); err != nil {
+			return fmt.Errorf("error waiting for command: %w", err)
+		}
+		return nil
 	}
 
 	if cmd.Process == nil {
@@ -101,5 +107,5 @@ func WaitProcess(ctx context.Context, cmd *exec.Cmd) (err error) {
 		err = r.error
 	}
 
-	return
+	return err
 }
