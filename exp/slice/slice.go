@@ -36,7 +36,7 @@ func Uniq[T comparable](list []T) []T {
 	return uniqList
 }
 
-// Intersperce puts an item between each element of a slice, returning a new
+// Intersperse puts an item between each element of a slice, returning a new
 // slice.
 func Intersperse[T any](slice []T, insert T) []T {
 	if len(slice) <= 1 {
