@@ -1,6 +1,6 @@
 module github.com/charmbracelet/x/xpty
 
-go 1.18
+go 1.23.0
 
 require (
 	github.com/charmbracelet/x/conpty v0.1.0

@@ -1,6 +1,6 @@
 module github.com/charmbracelet/x/mosaic
 
-go 1.21
+go 1.23.0
 
 require (
 	github.com/charmbracelet/x/ansi v0.8.0

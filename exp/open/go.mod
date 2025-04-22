@@ -1,3 +1,3 @@
 module github.com/charmbracelet/x/exp/open
 
-go 1.18
+go 1.23.0

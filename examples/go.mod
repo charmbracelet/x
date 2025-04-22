@@ -1,12 +1,12 @@
 module github.com/charmbracelet/x/examples
 
-go 1.18
+go 1.23.0
 
 require (
 	github.com/charmbracelet/colorprofile v0.2.3-0.20250311203215-f60798e515dc
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2.0.20250125233033-58a153eb00e6
-	github.com/charmbracelet/x/ansi v0.8.0
+	github.com/charmbracelet/x/ansi v0.8.1-0.20250422131335-be368f9723e4
 	github.com/charmbracelet/x/cellbuf v0.0.13
 	github.com/charmbracelet/x/input v0.3.4
 	github.com/charmbracelet/x/mosaic v0.0.0-20250313150240-c09addb0e197
