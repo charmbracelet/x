@@ -22,7 +22,7 @@ func NewConPty(width, height int, opts ...PtyOption) (*ConPty, error) {
 
 	c, err := conpty.New(width, height, opt.Flags)
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
 	return &ConPty{c}, nil

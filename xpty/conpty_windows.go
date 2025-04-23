@@ -19,7 +19,7 @@ func (c *ConPty) start(cmd *exec.Cmd) error {
 		Sys: cmd.SysProcAttr,
 	})
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck
 	}
 
 	cmd.Process, err = os.FindProcess(pid)

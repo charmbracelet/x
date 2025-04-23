@@ -18,7 +18,7 @@ var _ Pty = &UnixPty{}
 func NewUnixPty(width, height int, _ ...PtyOption) (*UnixPty, error) {
 	ptm, pts, err := pty.Open()
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
 	p := &UnixPty{
@@ -44,7 +44,7 @@ func (p *UnixPty) Close() (err error) {
 		}
 	}()
 	if err := p.master.Close(); err != nil {
-		return err
+		return err //nolint:wrapcheck
 	}
 	return
 }
@@ -68,7 +68,7 @@ func (p *UnixPty) SlaveName() string {
 
 // Read implements XPTY.
 func (p *UnixPty) Read(b []byte) (n int, err error) {
-	return p.master.Read(b)
+	return p.master.Read(b) //nolint:wrapcheck
 }
 
 // Resize implements XPTY.
@@ -98,14 +98,14 @@ func (p *UnixPty) Start(c *exec.Cmd) error {
 		c.Stdin = p.slave
 	}
 	if err := c.Start(); err != nil {
-		return err
+		return err //nolint:wrapcheck
 	}
 	return nil
 }
 
 // Write implements XPTY.
 func (p *UnixPty) Write(b []byte) (n int, err error) {
-	return p.master.Write(b)
+	return p.master.Write(b) //nolint:wrapcheck
 }
 
 // Master returns the master end of the PTY.
@@ -122,8 +122,8 @@ func (p *UnixPty) Slave() *os.File {
 func (p *UnixPty) Control(fn func(fd uintptr)) error {
 	conn, err := p.master.SyscallConn()
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck
 	}
 
-	return conn.Control(fn)
+	return conn.Control(fn) //nolint:wrapcheck
 }

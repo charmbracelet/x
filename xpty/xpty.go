@@ -1,3 +1,6 @@
+// Package xpty provides platform-independent interfaces to interact with
+// pseudo-terminals (PTYs) in Go. It abstracts the differences between Unix and
+// Windows systems and supports both ConPTY and classic Unix PTYs.
 package xpty
 
 import (
@@ -75,7 +78,7 @@ func NewPty(width, height int, opts ...PtyOption) (Pty, error) {
 // When the OS is not windows, it'll simply fall back to cmd.Wait().
 func WaitProcess(ctx context.Context, cmd *exec.Cmd) (err error) {
 	if runtime.GOOS != "windows" {
-		return cmd.Wait()
+		return cmd.Wait() //nolint:wrapcheck
 	}
 
 	if cmd.Process == nil {
