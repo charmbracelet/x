@@ -1,7 +1,6 @@
 package xpty
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -19,7 +18,7 @@ var _ Pty = &UnixPty{}
 func NewUnixPty(width, height int, _ ...PtyOption) (*UnixPty, error) {
 	ptm, pts, err := pty.Open()
 	if err != nil {
-		return nil, fmt.Errorf("error creating a unix pty: %w", err)
+		return nil, err
 	}
 
 	p := &UnixPty{
@@ -45,7 +44,7 @@ func (p *UnixPty) Close() (err error) {
 		}
 	}()
 	if err := p.master.Close(); err != nil {
-		return fmt.Errorf("error closing master end of pty: %w", err)
+		return err
 	}
 	return
 }
@@ -69,11 +68,7 @@ func (p *UnixPty) SlaveName() string {
 
 // Read implements XPTY.
 func (p *UnixPty) Read(b []byte) (n int, err error) {
-	n, err = p.master.Read(b)
-	if err != nil {
-		return n, fmt.Errorf("error reading from master end of pty: %w", err)
-	}
-	return
+	return p.master.Read(b)
 }
 
 // Resize implements XPTY.
@@ -103,18 +98,14 @@ func (p *UnixPty) Start(c *exec.Cmd) error {
 		c.Stdin = p.slave
 	}
 	if err := c.Start(); err != nil {
-		return fmt.Errorf("error starting command: %w", err)
+		return err
 	}
 	return nil
 }
 
 // Write implements XPTY.
 func (p *UnixPty) Write(b []byte) (n int, err error) {
-	n, err = p.master.Write(b)
-	if err != nil {
-		return n, fmt.Errorf("error writing to master end of pty: %w", err)
-	}
-	return
+	return p.master.Write(b)
 }
 
 // Master returns the master end of the PTY.
@@ -131,11 +122,8 @@ func (p *UnixPty) Slave() *os.File {
 func (p *UnixPty) Control(fn func(fd uintptr)) error {
 	conn, err := p.master.SyscallConn()
 	if err != nil {
-		return fmt.Errorf("error gaining control of master end of pty: %w", err)
+		return err
 	}
 
-	if err := conn.Control(fn); err != nil {
-		return fmt.Errorf("error controlling master end of pty: %w", err)
-	}
-	return nil
+	return conn.Control(fn)
 }

@@ -1,7 +1,6 @@
 package xpty
 
 import (
-	"fmt"
 	"os/exec"
 
 	"github.com/charmbracelet/x/conpty"
@@ -23,7 +22,7 @@ func NewConPty(width, height int, opts ...PtyOption) (*ConPty, error) {
 
 	c, err := conpty.New(width, height, opt.Flags)
 	if err != nil {
-		return nil, fmt.Errorf("error creating a new conpty: %w", err)
+		return nil, err
 	}
 
 	return &ConPty{c}, nil
