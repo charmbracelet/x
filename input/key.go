@@ -311,10 +311,22 @@ type Key struct {
 	IsRepeat bool
 }
 
-// String implements [fmt.Stringer] and is used to convert a key to a string.
-// While less type safe than looking at the individual fields, it will usually
-// be more convenient and readable to use this method when matching against
-// keys.
+// String implements [fmt.Stringer] and is quite useful for matching key
+// events. It will return the textual representation of the [Key] if there is
+// one, otherwise, it will fallback to [Key.Keystroke].
+//
+// For example, you'll always get "?" and instead of "shift+/" on a US ANSI
+// keyboard.
+func (k Key) String() string {
+	if len(k.Text) > 0 {
+		return k.Text
+	}
+	return k.Keystroke()
+}
+
+// Keystroke returns the keystroke representation of the [Key]. While less type
+// safe than looking at the individual fields, it will usually be more
+// convenient and readable to use this method when matching against keys.
 //
 // Note that modifier keys are always printed in the following order:
 //   - ctrl
@@ -326,7 +338,7 @@ type Key struct {
 //
 // For example, you'll always see "ctrl+shift+alt+a" and never
 // "shift+ctrl+alt+a".
-func (k Key) String() string {
+func (k Key) Keystroke() string {
 	var sb strings.Builder
 	if k.Mod.Contains(ModCtrl) && k.Code != KeyLeftCtrl && k.Code != KeyRightCtrl {
 		sb.WriteString("ctrl+")
