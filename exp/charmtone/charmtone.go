@@ -70,6 +70,7 @@ const (
 	Squid
 	Smoke
 	Ash
+	Salt
 	Butter
 )
 
@@ -136,6 +137,7 @@ func (k Key) String() string {
 		Oyster:   "Oyster",
 		Squid:    "Squid",
 		Smoke:    "Smoke",
+		Salt:     "Salt",
 		Ash:      "Ash",
 		Butter:   "Butter",
 	}[k]
@@ -198,6 +200,7 @@ func (k Key) Hex() string {
 		Squid:    "#858392", // Gray 4
 		Smoke:    "#BFBCC8", // Gray 5
 		Ash:      "#DFDBDD", // Gray 6
+		Salt:     "#F1EFEF", // Gray 7
 		Butter:   "#FFFAF1",
 	}[k]
 }
@@ -259,6 +262,7 @@ func Keys() []Key {
 		Squid,
 		Smoke,
 		Ash,
+		Salt,
 		Butter,
 	}
 }
