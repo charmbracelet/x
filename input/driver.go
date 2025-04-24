@@ -19,7 +19,7 @@ type Logger interface {
 // the last mouse button state and window size changes to determine which mouse
 // buttons were released and to prevent multiple size events from firing.
 //
-//nolint
+//nolint:all
 type win32InputState struct {
 	ansiBuf                    [256]byte
 	ansiIdx                    int
@@ -47,7 +47,7 @@ type Reader struct {
 
 	// keyState keeps track of the current Windows Console API key events state.
 	// It is used to decode ANSI escape sequences and utf16 sequences.
-	keyState win32InputState //nolint
+	keyState win32InputState //nolint:all
 
 	parser Parser
 	logger Logger
