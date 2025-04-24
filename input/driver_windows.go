@@ -96,7 +96,9 @@ func (p *Parser) parseConInputEvent(event xwindows.InputRecord, keyState *win32I
 	return nil
 }
 
-func mouseEventButton(p, s uint32) (button MouseButton, isRelease bool) {
+func mouseEventButton(p, s uint32) (MouseButton, bool) {
+	var isRelease bool
+	button := MouseNone
 	btn := p ^ s
 	if btn&s == 0 {
 		isRelease = true
@@ -115,7 +117,7 @@ func mouseEventButton(p, s uint32) (button MouseButton, isRelease bool) {
 		case s&xwindows.FROM_LEFT_4TH_BUTTON_PRESSED > 0:
 			button = MouseForward
 		}
-		return
+		return button, isRelease
 	}
 
 	switch btn {
@@ -131,7 +133,7 @@ func mouseEventButton(p, s uint32) (button MouseButton, isRelease bool) {
 		button = MouseForward
 	}
 
-	return
+	return button, isRelease
 }
 
 func mouseEvent(p uint32, e xwindows.MouseEventRecord) (ev Event) {
@@ -196,7 +198,7 @@ func readConsoleInput(console windows.Handle, inputRecords []xwindows.InputRecor
 
 	err := xwindows.ReadConsoleInput(console, &inputRecords[0], uint32(len(inputRecords)), &read) //nolint:gosec
 
-	return read, err
+	return read, err //nolint:wrapcheck
 }
 
 //nolint:unused
@@ -209,7 +211,7 @@ func peekConsoleInput(console windows.Handle, inputRecords []xwindows.InputRecor
 
 	err := xwindows.PeekConsoleInput(console, &inputRecords[0], uint32(len(inputRecords)), &read) //nolint:gosec
 
-	return read, err
+	return read, err //nolint:wrapcheck
 }
 
 // parseWin32InputKeyEvent parses a single key event from either the Windows
@@ -292,6 +294,7 @@ func (p *Parser) parseWin32InputKeyEvent(state *win32InputState, vkc uint16, _ u
 	case vkc == xwindows.VK_RETURN:
 		baseCode = KeyEnter
 	case vkc == xwindows.VK_SHIFT:
+		//nolint:nestif
 		if cks&xwindows.SHIFT_PRESSED != 0 {
 			if cks&xwindows.ENHANCED_KEY != 0 {
 				baseCode = KeyRightShift
