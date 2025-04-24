@@ -33,7 +33,7 @@ const (
 	Dolly
 	Blush
 	Urchin
-	Crystal
+	Mochi
 	Lilac
 	Prince
 	Violet
