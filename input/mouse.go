@@ -283,7 +283,7 @@ func parseMouseButton(b int) (mod KeyMod, btn MouseButton, isRelease bool, isMot
 		isMotion = true
 	}
 
-	return
+	return //nolint:nakedret
 }
 
 // isWheel returns true if the mouse event is a wheel event.

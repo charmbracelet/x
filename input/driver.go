@@ -86,7 +86,7 @@ func (d *Reader) SetLogger(l Logger) {
 
 // Read implements [io.Reader].
 func (d *Reader) Read(p []byte) (int, error) {
-	return d.rd.Read(p)
+	return d.rd.Read(p) //nolint:wrapcheck
 }
 
 // Cancel cancels the underlying reader.
@@ -96,15 +96,16 @@ func (d *Reader) Cancel() bool {
 
 // Close closes the underlying reader.
 func (d *Reader) Close() error {
-	return d.rd.Close()
+	return d.rd.Close() //nolint:wrapcheck
 }
 
-func (d *Reader) readEvents() (events []Event, err error) {
+func (d *Reader) readEvents() ([]Event, error) {
 	nb, err := d.rd.Read(d.buf[:])
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
+	var events []Event
 	buf := d.buf[:nb]
 
 	// Lookup table first
@@ -114,7 +115,7 @@ func (d *Reader) readEvents() (events []Event, err error) {
 				d.logger.Printf("input: %q", buf)
 			}
 			events = append(events, KeyPressEvent(k))
-			return
+			return events, nil
 		}
 	}
 
@@ -167,5 +168,5 @@ func (d *Reader) readEvents() (events []Event, err error) {
 		i += nb
 	}
 
-	return
+	return events, nil
 }

@@ -17,7 +17,7 @@ const (
 // Special key symbols.
 const (
 
-	// Special keys
+	// Special keys.
 
 	KeyUp rune = KeyExtended + iota + 1
 	KeyDown
@@ -33,7 +33,7 @@ const (
 	KeyHome
 	KeyEnd
 
-	// Keypad keys
+	// Keypad keys.
 
 	KeyKpEnter
 	KeyKpEqual
@@ -54,8 +54,10 @@ const (
 	KeyKp8
 	KeyKp9
 
+	//nolint:godox
 	// The following are keys defined in the Kitty keyboard protocol.
-	// TODO: Investigate the names of these keys
+	// TODO: Investigate the names of these keys.
+
 	KeyKpSep
 	KeyKpUp
 	KeyKpDown
@@ -69,7 +71,7 @@ const (
 	KeyKpDelete
 	KeyKpBegin
 
-	// Function keys
+	// Function keys.
 
 	KeyF1
 	KeyF2
@@ -135,8 +137,9 @@ const (
 	KeyF62
 	KeyF63
 
+	//nolint:godox
 	// The following are keys defined in the Kitty keyboard protocol.
-	// TODO: Investigate the names of these keys
+	// TODO: Investigate the names of these keys.
 
 	KeyCapsLock
 	KeyScrollLock
@@ -175,7 +178,7 @@ const (
 	KeyIsoLevel3Shift
 	KeyIsoLevel5Shift
 
-	// Special names in C0
+	// Special names in C0.
 
 	KeyBackspace = rune(ansi.DEL)
 	KeyTab       = rune(ansi.HT)
@@ -184,7 +187,7 @@ const (
 	KeyEscape    = rune(ansi.ESC)
 	KeyEsc       = KeyEscape
 
-	// Special names in G0
+	// Special names in G0.
 
 	KeySpace = rune(ansi.SP)
 )

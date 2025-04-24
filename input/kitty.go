@@ -34,7 +34,7 @@ func (e KittyEnhancementsEvent) Contains(enhancements KittyEnhancementsEvent) bo
 	return e&enhancements == enhancements
 }
 
-// Kitty Clipboard Control Sequences
+// Kitty Clipboard Control Sequences.
 var kittyKeyMap = map[int]Key{
 	ansi.BS:  {Code: KeyBackspace},
 	ansi.HT:  {Code: KeyTab},
@@ -309,6 +309,7 @@ func parseKittyKeyboard(params ansi.Params) (Event Event) {
 		}
 	}
 
+	//nolint:nestif
 	if len(key.Text) == 0 && unicode.IsPrint(key.Code) &&
 		(key.Mod <= ModShift || key.Mod == ModCapsLock || key.Mod == ModShift|ModCapsLock) {
 		if key.Mod == 0 {

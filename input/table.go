@@ -8,7 +8,6 @@ import (
 
 // buildKeysTable builds a table of key sequences and their corresponding key
 // events based on the VT100/VT200, XTerm, and Urxvt terminal specs.
-// TODO: Use flags?
 func buildKeysTable(flags int, term string) map[string]Key {
 	nul := Key{Code: KeySpace, Mod: ModCtrl} // ctrl+@ or ctrl+space
 	if flags&FlagCtrlAt != 0 {
@@ -205,6 +204,7 @@ func buildKeysTable(flags int, term string) map[string]Key {
 	table["\x1bOb"] = Key{Code: KeyDown, Mod: ModCtrl}
 	table["\x1bOc"] = Key{Code: KeyRight, Mod: ModCtrl}
 	table["\x1bOd"] = Key{Code: KeyLeft, Mod: ModCtrl}
+	//nolint:godox
 	// TODO: invistigate if shift-ctrl arrow keys collide with DECCKM keys i.e.
 	// "\x1bOA", "\x1bOB", "\x1bOC", "\x1bOD"
 

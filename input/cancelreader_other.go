@@ -10,5 +10,5 @@ import (
 )
 
 func newCancelreader(r io.Reader, _ int) (cancelreader.CancelReader, error) {
-	return cancelreader.NewReader(r)
+	return cancelreader.NewReader(r) //nolint:wrapcheck
 }

@@ -34,7 +34,7 @@ const (
 	// the same key sequence.
 	//
 	// Historically, the ANSI specs generate CR (0x0D) on both the Enter key
-	// and Ctrl+M. This flag allows the driver to treat both as the same key
+	// and Ctrl+M. This flag allows the driver to treat both as the same key.
 	FlagCtrlM
 
 	// When this flag is set, the driver will treat Escape and Ctrl+[ as
@@ -116,8 +116,6 @@ func NewParser(flags int) *Parser {
 //
 // It will return zero and nil no sequence is recognized or when the buffer is
 // empty. If a sequence is not supported, an UnknownEvent is returned.
-//
-// TODO: Use [ansi.DecodeSequence] instead of this parser.
 func (p *Parser) parseSequence(buf []byte) (n int, Event Event) {
 	if len(buf) == 0 {
 		return 0, nil
@@ -705,7 +703,7 @@ func (p *Parser) parseStTerminated(intro8, intro7 byte, fn func([]byte) Event) f
 		// Most common control sequence is terminated by a ST character
 		// ST is a 7-bit string terminator character is (ESC \)
 		start := i
-		for ; i < len(b) && b[i] != ansi.ST && b[i] != ansi.ESC; i++ { // nolint:revive
+		for ; i < len(b) && b[i] != ansi.ST && b[i] != ansi.ESC; i++ { //nolint:revive
 		}
 
 		if i >= len(b) {
@@ -861,7 +859,7 @@ func (p *Parser) parseApc(b []byte) (int, Event) {
 		case 'G': // Kitty Graphics Protocol
 			var g KittyGraphicsEvent
 			parts := bytes.Split(b[1:], []byte{';'})
-			g.Options.UnmarshalText(parts[0]) //nolint:errcheck
+			g.Options.UnmarshalText(parts[0]) //nolint:errcheck,gosec
 			if len(parts) > 1 {
 				g.Payload = parts[1]
 			}

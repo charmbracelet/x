@@ -70,21 +70,20 @@ func colorToHex(c color.Color) string {
 	return fmt.Sprintf("#%02x%02x%02x", shift(r), shift(g), shift(b))
 }
 
-func getMaxMin(a, b, c float64) (max, min float64) { //nolint:predeclared
-	// TODO: use go1.21 min/max functions
+func getMaxMin(a, b, c float64) (ma, mi float64) {
 	if a > b {
-		max = a
-		min = b
+		ma = a
+		mi = b
 	} else {
-		max = b
-		min = a
+		ma = b
+		mi = a
 	}
-	if c > max {
-		max = c
-	} else if c < min {
-		min = c
+	if c > ma {
+		ma = c
+	} else if c < mi {
+		mi = c
 	}
-	return max, min
+	return ma, mi
 }
 
 func round(x float64) float64 {
