@@ -25,9 +25,9 @@ var sequences = buildKeysTable(FlagTerminfo, "dumb")
 
 func TestKeyString(t *testing.T) {
 	t.Run("alt+space", func(t *testing.T) {
-		k := KeyPressEvent{Code: KeySpace, Text: " ", Mod: ModAlt}
+		k := KeyPressEvent{Code: KeySpace, Mod: ModAlt}
 		if got := k.String(); got != "alt+space" {
-			t.Fatalf(`expected a "alt+space ", got %q`, got)
+			t.Fatalf(`expected a "alt+space", got %q`, got)
 		}
 	})
 
