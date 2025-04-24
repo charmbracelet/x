@@ -1,3 +1,4 @@
+// Package CharmTone contains an API for the CharmTone color palette.
 package charmtone
 
 import (
@@ -13,6 +14,7 @@ var _ color.Color = Key(0)
 // Key is a type for color keys.
 type Key int
 
+// Available colors.
 const (
 	Cumin Key = iota
 	Tang
@@ -71,10 +73,14 @@ const (
 	Butter
 )
 
+// RGBA returns the red, green, blue, and alpha values of the color. It
+// satisfies the color.Color interface.
 func (k Key) RGBA() (r, g, b, a uint32) {
 	return lipgloss.Color(k.Hex()).RGBA()
 }
 
+// String returns the official CharmTone name of the color. It satisfies the
+// fmt.Stringer interface.
 func (k Key) String() string {
 	return map[Key]string{
 		Cumin:    "Cumin",
@@ -96,7 +102,7 @@ func (k Key) String() string {
 		Dolly:    "Dolly",
 		Blush:    "Blush",
 		Urchin:   "Urchin",
-		Crystal:  "Crystal",
+		Mochi:    "Crystal",
 		Lilac:    "Lilac",
 		Prince:   "Prince",
 		Violet:   "Violet",
@@ -135,7 +141,7 @@ func (k Key) String() string {
 	}[k]
 }
 
-// All Hexes in the palette.
+// Hex returns the hex value of the color.
 func (k Key) Hex() string {
 	return map[Key]string{
 		Cumin:    "#BF976F",
@@ -157,7 +163,7 @@ func (k Key) Hex() string {
 		Dolly:    "#FF60FF",
 		Blush:    "#FF84FF",
 		Urchin:   "#C337E0",
-		Crystal:  "#EB5DFF",
+		Mochi:    "#EB5DFF",
 		Lilac:    "#F379FF",
 		Prince:   "#9C35E1",
 		Violet:   "#C259FF",
@@ -196,6 +202,7 @@ func (k Key) Hex() string {
 	}[k]
 }
 
+// Keys returns a slice of all CharmTone color keys.
 func Keys() []Key {
 	return []Key{
 		Cumin,
@@ -217,7 +224,7 @@ func Keys() []Key {
 		Dolly,
 		Blush,
 		Urchin,
-		Crystal,
+		Mochi,
 		Lilac,
 		Prince,
 		Violet,
