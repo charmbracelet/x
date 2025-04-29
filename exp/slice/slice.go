@@ -21,6 +21,16 @@ func Take[A any](slice []A, n int) []A {
 	return slice[:n]
 }
 
+// Last returns the last element of a slice. If the slice is empty, it
+// returns the zero value.
+func Last[T any](list []T) T {
+	if len(list) == 0 {
+		var zero T
+		return zero
+	}
+	return list[len(list)-1]
+}
+
 // Uniq returns a new slice with all duplicates removed.
 func Uniq[T comparable](list []T) []T {
 	seen := make(map[T]struct{}, len(list))
