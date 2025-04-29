@@ -1,3 +1,4 @@
+// Package slice provides utility functions for working with slices in Go.
 package slice
 
 // GroupBy groups a slice of items by a key function.
