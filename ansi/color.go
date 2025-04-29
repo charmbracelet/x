@@ -183,6 +183,11 @@ func to6Cube[T int | float64](v T) int {
 // (95), 0x87 (135), 0xaf (175), 0xd7 (215) and 0xff (255). Greys are more
 // evenly spread (8, 18, 28 ... 238).
 func Convert256(c color.Color) IndexedColor {
+	// If the color is already an IndexedColor, return it.
+	if i, ok := c.(IndexedColor); ok {
+		return i
+	}
+
 	// Note: this is mostly ported from tmux/colour.c.
 	col, ok := colorful.MakeColor(c)
 	if !ok {
@@ -245,6 +250,11 @@ func Convert256(c color.Color) IndexedColor {
 // try to find a match in the 256 xterm(1) color palette, and then map that to
 // the 16-color ANSI palette.
 func Convert16(c color.Color) BasicColor {
+	// If the color is already a BasicColor, return it.
+	if i, ok := c.(BasicColor); ok {
+		return i
+	}
+
 	c256 := Convert256(c)
 	return ansi256To16[c256]
 }
