@@ -250,13 +250,18 @@ func Convert256(c color.Color) IndexedColor {
 // try to find a match in the 256 xterm(1) color palette, and then map that to
 // the 16-color ANSI palette.
 func Convert16(c color.Color) BasicColor {
-	// If the color is already a BasicColor, return it.
-	if i, ok := c.(BasicColor); ok {
-		return i
+	switch c := c.(type) {
+	case BasicColor:
+		// If the color is already a BasicColor, return it.
+		return c
+	case IndexedColor:
+		// If the color is already an IndexedColor, return the corresponding
+		// BasicColor.
+		return ansi256To16[c]
+	default:
+		c256 := Convert256(c)
+		return ansi256To16[c256]
 	}
-
-	c256 := Convert256(c)
-	return ansi256To16[c256]
 }
 
 // RGB values of ANSI colors (0-255).
