@@ -1,3 +1,4 @@
+// Package slice provides utility functions for working with slices in Go.
 package slice
 
 // GroupBy groups a slice of items by a key function.
@@ -19,6 +20,16 @@ func Take[A any](slice []A, n int) []A {
 		return slice
 	}
 	return slice[:n]
+}
+
+// Last returns the last element of a slice and true. If the slice is empty, it
+// returns the zero value and false.
+func Last[T any](list []T) (T, bool) {
+	if len(list) == 0 {
+		var zero T
+		return zero, false
+	}
+	return list[len(list)-1], true
 }
 
 // Uniq returns a new slice with all duplicates removed.

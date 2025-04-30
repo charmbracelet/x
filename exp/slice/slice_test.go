@@ -66,6 +66,43 @@ func TestTake(t *testing.T) {
 	}
 }
 
+func TestLast(t *testing.T) {
+	for i, tc := range []struct {
+		input    []int
+		ok       bool
+		expected int
+	}{
+		{
+			input:    []int{1, 2, 3, 4, 5},
+			ok:       true,
+			expected: 5,
+		},
+		{
+			input:    []int{1, 2, 3},
+			ok:       true,
+			expected: 3,
+		},
+		{
+			input:    []int{1},
+			ok:       true,
+			expected: 1,
+		},
+		{
+			input:    []int{},
+			ok:       false,
+			expected: 0,
+		},
+	} {
+		actual, ok := Last(tc.input)
+		if ok != tc.ok {
+			t.Errorf("Test %d: Expected ok %v, got %v", i, tc.ok, ok)
+		}
+		if actual != tc.expected {
+			t.Errorf("Test %d: Expected %v, got %v", i, tc.expected, actual)
+		}
+	}
+}
+
 func TestUniq(t *testing.T) {
 	for i, tc := range []struct {
 		input    []int
