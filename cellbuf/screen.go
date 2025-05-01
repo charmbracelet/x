@@ -41,7 +41,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBa
 	width, height := s.newbuf.Width(), s.newbuf.Height()
 	if ty != fy {
 		var yseq string
-		if s.xtermLike && !s.opts.RelativeCursor {
+		if s.caps.Contains(capVPA) && !s.opts.RelativeCursor {
 			yseq = ansi.VerticalPositionAbsolute(ty + 1)
 		}
 
@@ -74,7 +74,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBa
 
 	if tx != fx {
 		var xseq string
-		if s.xtermLike && !s.opts.RelativeCursor {
+		if s.caps.Contains(capHPA) && !s.opts.RelativeCursor {
 			xseq = ansi.HorizontalPositionAbsolute(tx + 1)
 		}
 
@@ -93,7 +93,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBa
 				if tabs > 0 {
 					cht := ansi.CursorHorizontalForwardTab(tabs)
 					tab := strings.Repeat("\t", tabs)
-					if false && s.xtermLike && len(cht) < len(tab) {
+					if false && s.caps.Contains(capCHT) && len(cht) < len(tab) {
 						// TODO: The linux console and some terminals such as
 						// Alacritty don't support [ansi.CHT]. Enable this when
 						// we have a way to detect this, or after 5 years when
@@ -144,7 +144,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBa
 			}
 		} else if tx < fx {
 			n := fx - tx
-			if useTabs && s.xtermLike {
+			if useTabs && s.caps.Contains(capCBT) {
 				// VT100 does not support backward tabs [ansi.CBT].
 
 				col := fx
@@ -365,13 +365,13 @@ type Screen struct {
 	opts             ScreenOptions
 	mu               sync.Mutex
 	method           ansi.Method
-	scrollHeight     int  // keeps track of how many lines we've scrolled down (inline mode)
-	altScreenMode    bool // whether alternate screen mode is enabled
-	cursorHidden     bool // whether text cursor mode is enabled
-	clear            bool // whether to force clear the screen
-	xtermLike        bool // whether to use xterm-like optimizations, otherwise, it uses vt100 only
-	queuedText       bool // whether we have queued non-zero width text queued up
-	atPhantom        bool // whether the cursor is out of bounds and at a phantom cell
+	scrollHeight     int          // keeps track of how many lines we've scrolled down (inline mode)
+	altScreenMode    bool         // whether alternate screen mode is enabled
+	cursorHidden     bool         // whether text cursor mode is enabled
+	clear            bool         // whether to force clear the screen
+	caps             capabilities // terminal control sequence capabilities
+	queuedText       bool         // whether we have queued non-zero width text queued up
+	atPhantom        bool         // whether the cursor is out of bounds and at a phantom cell
 }
 
 // SetMethod sets the method used to calculate the width of cells.
@@ -491,13 +491,47 @@ func (s *Screen) FillRect(cell *Cell, r Rectangle) bool {
 	return true
 }
 
-// isXtermLike returns whether the terminal is xterm-like. This means that the
+// capabilities represents a mask of supported ANSI escape sequences.
+type capabilities uint
+
+const (
+	// Vertical Position Absolute [ansi.VPA].
+	capVPA capabilities = 1 << iota
+	// Horizontal Position Absolute [ansi.HPA].
+	capHPA
+	// Cursor Horizontal Tab [ansi.CHT].
+	capCHT
+	// Cursor Backward Tab [ansi.CBT].
+	capCBT
+	// Repeat Previous Character [ansi.REP].
+	capREP
+	// Erase Character [ansi.ECH].
+	capECH
+	// Insert Character [ansi.ICH].
+	capICH
+	// Scroll Down [ansi.SD].
+	capSD
+	// Scroll Up [ansi.SU].
+	capSU
+
+	noCaps  capabilities = 0
+	allCaps              = capVPA | capHPA | capCHT | capCBT | capREP | capECH | capICH |
+		capSD | capSU
+)
+
+// Contains returns whether the capabilities contains the given capability.
+func (v capabilities) Contains(c capabilities) bool {
+	return v&c == c
+}
+
+// xtermCaps returns whether the terminal is xterm-like. This means that the
 // terminal supports ECMA-48 and ANSI X3.64 escape sequences.
-// TODO: Should this be a lookup table into each $TERM terminfo database? Like
-// we could keep a map of ANSI escape sequence to terminfo capability name and
-// check if the database supports the escape sequence. Instead of keeping a
-// list of terminal names here.
-func isXtermLike(termtype string) (v bool) {
+// xtermCaps returns a list of control sequence capabilities for the given
+// terminal type. This only supports a subset of sequences that can
+// be different among terminals.
+// NOTE: A hybrid approach would be to support Terminfo databases for a full
+// set of capabilities.
+func xtermCaps(termtype string) (v capabilities) {
 	parts := strings.Split(termtype, "-")
 	if len(parts) == 0 {
 		return
@@ -505,19 +539,26 @@ func isXtermLike(termtype string) (v bool) {
 
 	switch parts[0] {
 	case
-		"alacritty",
 		"contour",
 		"foot",
 		"ghostty",
 		"kitty",
-		"linux",
 		"rio",
-		"screen",
 		"st",
 		"tmux",
 		"wezterm",
 		"xterm":
-		v = true
+		v = allCaps
+	case "alacritty":
+		v = allCaps
+		v &^= capCHT // NOTE: alacritty added support for [ansi.CHT] in 2024-12-28 #62d5b13.
+	case "screen":
+		// See https://www.gnu.org/software/screen/manual/screen.html#Control-Sequences-1
+		v = allCaps
+		v &^= capREP
+	case "linux":
+		// See https://man7.org/linux/man-pages/man4/console_codes.4.html
+		v = capVPA | capHPA | capECH | capICH
 	}
 
 	return
@@ -548,7 +589,7 @@ func NewScreen(w io.Writer, width, height int, opts *ScreenOptions) (s *Screen) 
 	}
 
 	s.buf = new(bytes.Buffer)
-	s.xtermLike = isXtermLike(s.opts.Term)
+	s.caps = xtermCaps(s.opts.Term)
 	s.curbuf = NewBuffer(width, height)
 	s.newbuf = NewBuffer(width, height)
 	s.cur = Cursor{Position: Pos(-1, -1)} // start at -1 to force a move
@@ -712,7 +753,7 @@ func (s *Screen) emitRange(line Line, n int) (eoi bool) {
 		ech := ansi.EraseCharacter(count)
 		cup := ansi.CursorPosition(s.cur.X+count, s.cur.Y)
 		rep := ansi.RepeatPreviousCharacter(count)
-		if s.xtermLike && count > len(ech)+len(cup) && cell0 != nil && cell0.Clear() {
+		if s.caps.Contains(capECH) && count > len(ech)+len(cup) && cell0 != nil && cell0.Clear() {
 			s.updatePen(cell0)
 			s.buf.WriteString(ech) //nolint:errcheck
 
@@ -722,7 +763,7 @@ func (s *Screen) emitRange(line Line, n int) (eoi bool) {
 			} else {
 				return true // cursor in the middle
 			}
-		} else if s.xtermLike && count > len(rep) &&
+		} else if s.caps.Contains(capREP) && count > len(rep) &&
 			(cell0 == nil || (len(cell0.Comb) == 0 && cell0.Rune < 256)) {
 			// We only support ASCII characters. Most terminals will handle
 			// non-ASCII characters correctly, but some might not, ahem xterm.
@@ -839,7 +880,8 @@ func (s *Screen) clearBlank() *Cell {
 // insertCells inserts the count cells pointed by the given line at the current
 // cursor position.
 func (s *Screen) insertCells(line Line, count int) {
-	if s.xtermLike {
+	supportsICH := s.caps.Contains(capICH)
+	if supportsICH {
 		// Use [ansi.ICH] as an optimization.
 		s.buf.WriteString(ansi.InsertCharacter(count)) //nolint:errcheck
 	} else {
@@ -852,7 +894,7 @@ func (s *Screen) insertCells(line Line, count int) {
 		count--
 	}
 
-	if !s.xtermLike {
+	if !supportsICH {
 		s.buf.WriteString(ansi.ResetInsertReplaceMode) //nolint:errcheck
 	}
 }
@@ -862,7 +904,7 @@ func (s *Screen) insertCells(line Line, count int) {
 // [ansi.EL] 0 i.e. [ansi.EraseLineRight] to clear
 // trailing spaces.
 func (s *Screen) el0Cost() int {
-	if s.xtermLike {
+	if s.caps != noCaps {
 		return 0
 	}
 	return len(ansi.EraseLineRight)
@@ -1045,7 +1087,7 @@ func (s *Screen) transformLine(y int) {
 
 				s.move(n+1, y)
 				ichCost := 3 + nLastCell - oLastCell
-				if s.xtermLike && (nLastCell < nLastNonBlank || ichCost > (m-n)) {
+				if s.caps.Contains(capICH) && (nLastCell < nLastNonBlank || ichCost > (m-n)) {
 					s.putRange(oldLine, newLine, y, n+1, m)
 				} else {
 					s.insertCells(newLine[n+1:], nLastCell-oLastCell)

@@ -202,13 +202,14 @@ func (s *Screen) scrollUp(n, top, bot, minY, maxY int, blank *Cell) bool {
 		s.updatePen(blank)
 		s.buf.WriteString(ansi.DeleteLine(1))
 	} else if top == minY && bot == maxY {
-		if s.xtermLike {
+		supportsSU := s.caps.Contains(capSU)
+		if supportsSU {
 			s.move(0, bot)
 		} else {
 			s.move(0, top)
 		}
 		s.updatePen(blank)
-		if s.xtermLike {
+		if supportsSU {
 			s.buf.WriteString(ansi.ScrollUp(n))
 		} else {
 			s.buf.WriteString(strings.Repeat("\n", n))
@@ -236,7 +237,7 @@ func (s *Screen) scrollDown(n, top, bot, minY, maxY int, blank *Cell) bool {
 	} else if top == minY && bot == maxY {
 		s.move(0, top)
 		s.updatePen(blank)
-		if s.xtermLike {
+		if s.caps.Contains(capSD) {
 			s.buf.WriteString(ansi.ScrollDown(n))
 		} else {
 			s.buf.WriteString(strings.Repeat(ansi.ReverseIndex, n))
