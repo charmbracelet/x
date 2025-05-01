@@ -1,4 +1,7 @@
+// Package main implements the charmtone command.
 package main
+
+// Command charmtone displays the CharmTone color palette.
 
 import (
 	"fmt"
@@ -108,7 +111,7 @@ func main() {
 
 	// Get total block width so far.
 	var totalWidth int
-	for l := range strings.SplitSeq(b.String(), "\n") {
+	for _, l := range strings.Split(b.String(), "\n") {
 		if w := lipgloss.Width(l); w > totalWidth {
 			totalWidth = w
 		}
@@ -126,7 +129,7 @@ func main() {
 
 	// Get width of grayscale block.
 	var grayWidth int
-	for l := range strings.SplitSeq(grays.String(), "\n") {
+	for _, l := range strings.Split(grays.String(), "\n") {
 		if w := lipgloss.Width(l); w > grayWidth {
 			grayWidth = w
 		}
@@ -191,7 +194,7 @@ func main() {
 	fmt.Fprint(&b, "\n\n", legendBlock, "\n\n")
 
 	// Flush.
-	lipgloss.Print(b.String())
+	_, _ = lipgloss.Print(b.String())
 }
 
 func blendKeys(width int, keys ...charmtone.Key) string {

@@ -1,4 +1,4 @@
-// Package CharmTone contains an API for the CharmTone color palette.
+// Package charmtone contains an API for the CharmTone color palette.
 package charmtone
 
 import (
