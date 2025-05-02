@@ -1462,9 +1462,9 @@ func (s *Screen) Resize(width, height int) bool {
 	}
 
 	if height > oldh {
-		s.ClearRect(Rect(0, max(oldh-1, 0), width, height-oldh))
+		s.ClearRect(Rect(0, max(oldh, 0), width, height-oldh))
 	} else if height < oldh {
-		s.ClearRect(Rect(0, max(height-1, 0), width, oldh-height))
+		s.ClearRect(Rect(0, max(height, 0), width, oldh-height))
 	}
 
 	s.mu.Lock()
