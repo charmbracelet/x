@@ -20,6 +20,15 @@ const nbsp = '\u00a0'
 //
 // Note: breakpoints must be a string of 1-cell wide rune characters.
 func Wrap(s string, limit int, breakpoints string) string {
+	// TODO: Use [PenWriter] once we get
+	// https://github.com/charmbracelet/lipgloss/pull/489 out the door and
+	// released.
+	// The problem is that [ansi.Wrap] doesn't keep track of style and link
+	// state, so combining both breaks styled space cells. To fix this, we use
+	// non-breaking space cells for padding and styled blank cells. And since
+	// both wrapping methods respect non-breaking spaces, we can use them to
+	// preserve styled spaces in the output.
+
 	if len(s) == 0 {
 		return ""
 	}
