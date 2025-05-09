@@ -44,6 +44,27 @@ func TestKeyString(t *testing.T) {
 			t.Fatalf(`expected a "unknown", got %q`, got)
 		}
 	})
+
+	t.Run("space", func(t *testing.T) {
+		k := KeyPressEvent{Code: KeySpace, Text: " "}
+		if got := k.String(); got != "space" {
+			t.Fatalf(`expected a "space", got %q`, got)
+		}
+	})
+
+	t.Run("shift+space", func(t *testing.T) {
+		k := KeyPressEvent{Code: KeySpace, Mod: ModShift}
+		if got := k.String(); got != "shift+space" {
+			t.Fatalf(`expected a "shift+space", got %q`, got)
+		}
+	})
+
+	t.Run("?", func(t *testing.T) {
+		k := KeyPressEvent{Code: '/', Mod: ModShift, Text: "?"}
+		if got := k.String(); got != "?" {
+			t.Fatalf(`expected a "?", got %q`, got)
+		}
+	})
 }
 
 type seqTest struct {
