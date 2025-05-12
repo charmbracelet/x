@@ -11,7 +11,7 @@ import (
 func TestRender(t *testing.T) {
 	raw, err := loadImage("./fixtures/charm-wish.png")
 	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
+		t.Errorf("unexpected error: %v", err)
 		os.Exit(1)
 	}
 
@@ -46,11 +46,11 @@ func TestRender(t *testing.T) {
 	if !reflect.DeepEqual(result, expected) {
 		a := os.WriteFile("/tmp/dat1", []byte(result), 0644)
 		t.Log(a)
-		t.Fatalf("Result and expected does not match = %v, want %v", result, expected)
+		t.Errorf("Result and expected does not match = %v, want %v", result, expected)
 	}
 
 	// used for quick testing
-	t.Log(result)
+	// t.Log(result)
 }
 
 func loadImage(path string) (image.Image, error) {
