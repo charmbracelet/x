@@ -44,7 +44,7 @@ func main() {
 
 func loadImage(path string) (image.Image, error) {
 	f, err := os.Open(path)
-	defer f.Close() //nolint:errcheck
+	defer f.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -60,6 +60,7 @@ We'd love to hear your thoughts on this project. Feel free to drop us a note!
 
 - [Twitter](https://twitter.com/charmcli)
 - [The Fediverse](https://mastodon.social/@charmcli)
+- [Bluesky](https://bsky.app/profile/charm.sh)
 - [Discord](https://charm.sh/chat)
 
 ## License
