@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	github.com/charmbracelet/x/ansi v0.8.0
-	golang.org/x/image v0.25.0
+	golang.org/x/image v0.27.0
 )
 
 require (
