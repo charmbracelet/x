@@ -90,6 +90,12 @@ func SetForegroundColor(c color.Color) string {
 	return "\x1b]10;" + s + "\x07"
 }
 
+// OSC 10 sequences also support X11 color names, passed as ordinary strings.
+// Values not resolvable to a known name are ignored.
+func SetForegroundX11Color(s string) string {
+	return "\x1b]10;" + s + "\x07"
+}
+
 // RequestForegroundColor is a sequence that requests the current default
 // terminal foreground color.
 //
@@ -124,6 +130,12 @@ func SetBackgroundColor(c color.Color) string {
 	return "\x1b]11;" + s + "\x07"
 }
 
+// OSC 11 sequences also support X11 color names, passed as ordinary strings.
+// Values not resolvable to a known name are ignored.
+func SetBackgroundX11Color(s string) string {
+	return "\x1b]10;" + s + "\x07"
+}
+
 // RequestBackgroundColor is a sequence that requests the current default
 // terminal background color.
 //
@@ -155,6 +167,12 @@ func SetCursorColor(c color.Color) string {
 		s = HexColorizer{c}.String()
 	}
 	return "\x1b]12;" + s + "\x07"
+}
+
+// OSC 12 sequences also support X11 color names, passed as ordinary strings.
+// Values not resolvable to a known name are ignored.
+func SetCursorX11Color(s string) string {
+	return "\x1b]10;" + s + "\x07"
 }
 
 // RequestCursorColor is a sequence that requests the current terminal cursor
