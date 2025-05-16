@@ -165,3 +165,37 @@ func TestIntersperse(t *testing.T) {
 		}
 	}
 }
+
+func TestContainsAny(t *testing.T) {
+	for i, tc := range []struct {
+		input    []string
+		values   []string
+		expected bool
+	}{
+		{
+			input:    []string{"a", "b", "c"},
+			values:   []string{"a", "b"},
+			expected: true,
+		},
+		{
+			input:    []string{"a", "b", "c"},
+			values:   []string{"d", "e"},
+			expected: false,
+		},
+		{
+			input:    []string{"a", "b", "c"},
+			values:   []string{"c", "d"},
+			expected: true,
+		},
+		{
+			input:    []string{},
+			values:   []string{"d", "e"},
+			expected: false,
+		},
+	} {
+		actual := ContainsAny(tc.input, tc.values...)
+		if actual != tc.expected {
+			t.Errorf("Test %d: Expected %v, got %v", i, tc.expected, actual)
+		}
+	}
+}

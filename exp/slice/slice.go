@@ -1,6 +1,10 @@
 // Package slice provides utility functions for working with slices in Go.
 package slice
 
+import (
+	"slices"
+)
+
 // GroupBy groups a slice of items by a key function.
 func GroupBy[T any, K comparable](list []T, key func(T) K) map[K][]T {
 	groups := make(map[K][]T)
@@ -68,4 +72,11 @@ func Intersperse[T any](slice []T, insert T) []T {
 	}
 
 	return result
+}
+
+// ContainsAny checks if any of the given values present in the list.
+func ContainsAny[T comparable](list []T, values ...T) bool {
+	return slices.ContainsFunc(list, func(v T) bool {
+		return slices.Contains(values, v)
+	})
 }
