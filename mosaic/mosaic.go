@@ -1,3 +1,4 @@
+// Package mosaic provides a unicode image renderer.
 package mosaic
 
 import (
@@ -113,7 +114,7 @@ type pixelBlock struct {
 	BestBgColor color.Color       // Best background color.
 }
 
-// represents 255
+// Represents 255.
 const u8MaxValue = 0xff
 
 type shiftable interface {
@@ -146,7 +147,7 @@ func (m Mosaic) Dither(dither bool) Mosaic {
 }
 
 // Threshold sets the threshold level on [Mosaic].
-// It expectes a value between 0-255, anything else will be ignored.
+// It expects a value between 0-255, anything else will be ignored.
 func (m Mosaic) Threshold(threshold int) Mosaic {
 	if threshold >= 0 && threshold <= u8MaxValue {
 		m.thresholdLevel = uint8(threshold)
