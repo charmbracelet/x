@@ -4,7 +4,7 @@ Mosaic is a tool that allows you to display images in your terminal programs. It
 will break down your image to contain a certain number of pixels per cell, then
 render those cells. This works best with monospaced fonts.
 
-> ![NOTE] 
+> [!NOTE]
 > We will be providing a more full-fledged implementation of image
 > support for Bubble Tea, but this package is one step in that direction.
 
