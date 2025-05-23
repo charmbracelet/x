@@ -1,8 +1,8 @@
 package vt
 
 import (
+	"github.com/charmbracelet/uv"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/cellbuf"
 )
 
 // DcsHandler is a function that handles a DCS escape sequence.
@@ -489,13 +489,12 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		x, y := t.scr.CursorPosition()
 		switch n {
 		case 0: // Erase screen below (from after cursor position)
-			rect1 := cellbuf.Rect(x, y, width, 1)            // cursor to end of line
-			rect2 := cellbuf.Rect(0, y+1, width, height-y-1) // next line onwards
-			for _, rect := range []Rectangle{rect1, rect2} {
-				t.scr.Fill(t.scr.blankCell(), rect)
-			}
+			rect1 := uv.Rect(x, y, width, 1)            // cursor to end of line
+			rect2 := uv.Rect(0, y+1, width, height-y-1) // next line onwards
+			t.scr.Fill(t.scr.blankCell(), rect1)
+			t.scr.Fill(t.scr.blankCell(), rect2)
 		case 1: // Erase screen above (including cursor)
-			rect := cellbuf.Rect(0, 0, width, y+1)
+			rect := uv.Rect(0, 0, width, y+1)
 			t.scr.Fill(t.scr.blankCell(), rect)
 		case 2: // erase screen
 			fallthrough
@@ -520,10 +519,10 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		case 0: // Erase from cursor to end of line
 			t.eraseCharacter(w - x)
 		case 1: // Erase from start of line to cursor
-			rect := cellbuf.Rect(0, y, x+1, 1)
+			rect := uv.Rect(0, y, x+1, 1)
 			t.scr.Fill(t.scr.blankCell(), rect)
 		case 2: // Erase entire line
-			rect := cellbuf.Rect(0, y, w, 1)
+			rect := uv.Rect(0, y, w, 1)
 			t.scr.Fill(t.scr.blankCell(), rect)
 		default:
 			return false

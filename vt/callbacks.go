@@ -1,6 +1,6 @@
 package vt
 
-import "github.com/charmbracelet/x/cellbuf"
+import "github.com/charmbracelet/uv"
 
 // Callbacks represents a set of callbacks for a terminal.
 type Callbacks struct {
@@ -26,7 +26,7 @@ type Callbacks struct {
 
 	// CursorPosition callback. When set, this function is called when the cursor
 	// position changes.
-	CursorPosition func(old, new cellbuf.Position) //nolint:predeclared,revive
+	CursorPosition func(old, new uv.Position) //nolint:predeclared,revive
 
 	// CursorVisibility callback. When set, this function is called when the
 	// cursor visibility changes.

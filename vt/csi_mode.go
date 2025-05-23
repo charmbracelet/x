@@ -34,6 +34,10 @@ func (t *Terminal) handleMode(params ansi.Params, set, isAnsi bool) {
 
 // setAltScreenMode sets the alternate screen mode.
 func (t *Terminal) setAltScreenMode(on bool) {
+	if (on && t.scr == &t.scrs[1]) || (!on && t.scr == &t.scrs[0]) {
+		// Already in alternate screen mode, or normal screen, do nothing.
+		return
+	}
 	if on {
 		t.scr = &t.scrs[1]
 		t.scrs[1].cur = t.scrs[0].cur
@@ -44,6 +48,13 @@ func (t *Terminal) setAltScreenMode(on bool) {
 	}
 	if t.Callbacks.AltScreen != nil {
 		t.Callbacks.AltScreen(on)
+	}
+	if t.Callbacks.Damage != nil {
+		area := t.scr.Bounds()
+		t.Callbacks.Damage(ScreenDamage{
+			Width:  area.Dx(),
+			Height: area.Dy(),
+		})
 	}
 }
 

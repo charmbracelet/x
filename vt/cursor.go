@@ -1,5 +1,7 @@
 package vt
 
+import "github.com/charmbracelet/uv"
+
 // CursorStyle represents a cursor style.
 type CursorStyle int
 
@@ -12,10 +14,10 @@ const (
 
 // Cursor represents a cursor in a terminal.
 type Cursor struct {
-	Pen  Style
-	Link Link
+	Pen  uv.Style
+	Link uv.Link
 
-	Position
+	uv.Position
 
 	Style  CursorStyle
 	Steady bool // Not blinking

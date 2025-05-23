@@ -3,8 +3,8 @@ package vt
 import (
 	"unicode/utf8"
 
+	"github.com/charmbracelet/uv"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/cellbuf"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -15,23 +15,16 @@ func (t *Terminal) handlePrint(r rune) {
 
 // handleGrapheme handles UTF-8 graphemes.
 func (t *Terminal) handleGrapheme(content string, width int) {
-	var cell *Cell
-	if t.isModeSet(ansi.GraphemeClusteringMode) {
-		cell = &Cell{}
-		cell.Width = width
-		for i, r := range content {
-			if i == 0 {
-				cell.Rune = r
-			} else {
-				cell.Comb = append(cell.Comb, r)
-			}
-		}
-	} else {
-		cell = cellbuf.NewCellString(content)
+	if !t.isModeSet(ansi.GraphemeClusteringMode) {
+		width = runewidth.StringWidth(content)
 	}
 
+	cell := uv.Cell{
+		Content: content,
+		Width:   width,
+	}
 	x, y := t.scr.CursorPosition()
-	if t.atPhantom || x+width > t.scr.Width() {
+	if t.atPhantom || x+cell.Width > t.scr.Width() {
 		// moves cursor down similar to [Terminal.linefeed] except it doesn't
 		// respects [ansi.LNM] mode.
 		// This will rest the phantom state i.e. pending wrap state.
@@ -55,10 +48,8 @@ func (t *Terminal) handleGrapheme(content string, width int) {
 
 		if charset != nil {
 			if r, ok := charset[c]; ok {
-				cell.Rune = firstRune(r)
-				cell.Comb = nil
+				cell.Content = string(r)
 				cell.Width = 1
-				width = 1
 			}
 		}
 	}
@@ -66,19 +57,18 @@ func (t *Terminal) handleGrapheme(content string, width int) {
 	cell.Style = t.scr.cursorPen()
 	cell.Link = t.scr.cursorLink()
 
-	if t.scr.SetCell(x, y, cell) {
-		if width == 1 && len(content) == 1 {
-			t.lastChar, _ = utf8.DecodeRuneInString(content)
-		}
+	t.scr.SetCell(x, y, &cell)
+	if cell.Width == 1 && len(content) == 1 {
+		t.lastChar, _ = utf8.DecodeRuneInString(content)
 	}
 
 	// Handle phantom state at the end of the line
-	if x+width >= t.scr.Width() {
+	if x+cell.Width >= t.scr.Width() {
 		if t.isModeSet(ansi.AutoWrapMode) {
 			t.atPhantom = true
 		}
 	} else {
-		x += width
+		x += cell.Width
 	}
 
 	// NOTE: We don't reset the phantom state here, we handle it up above.

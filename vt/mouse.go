@@ -1,12 +1,12 @@
 package vt
 
 import (
+	"github.com/charmbracelet/uv"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/input"
 )
 
 // MouseButton represents the button that was pressed during a mouse message.
-type MouseButton = input.MouseButton
+type MouseButton = uv.MouseButton
 
 // Mouse event buttons
 //
@@ -26,34 +26,34 @@ type MouseButton = input.MouseButton
 //
 // Other buttons are not supported.
 const (
-	MouseNone       = input.MouseNone
-	MouseLeft       = input.MouseLeft
-	MouseMiddle     = input.MouseMiddle
-	MouseRight      = input.MouseRight
-	MouseWheelUp    = input.MouseWheelUp
-	MouseWheelDown  = input.MouseWheelDown
-	MouseWheelLeft  = input.MouseWheelLeft
-	MouseWheelRight = input.MouseWheelRight
-	MouseBackward   = input.MouseBackward
-	MouseForward    = input.MouseForward
-	MouseButton10   = input.MouseButton10
-	MouseButton11   = input.MouseButton11
+	MouseNone       = uv.MouseNone
+	MouseLeft       = uv.MouseLeft
+	MouseMiddle     = uv.MouseMiddle
+	MouseRight      = uv.MouseRight
+	MouseWheelUp    = uv.MouseWheelUp
+	MouseWheelDown  = uv.MouseWheelDown
+	MouseWheelLeft  = uv.MouseWheelLeft
+	MouseWheelRight = uv.MouseWheelRight
+	MouseBackward   = uv.MouseBackward
+	MouseForward    = uv.MouseForward
+	MouseButton10   = uv.MouseButton10
+	MouseButton11   = uv.MouseButton11
 )
 
 // Mouse represents a mouse event.
-type Mouse = input.MouseEvent
+type Mouse = uv.MouseEvent
 
 // MouseClick represents a mouse click event.
-type MouseClick = input.MouseClickEvent
+type MouseClick = uv.MouseClickEvent
 
 // MouseRelease represents a mouse release event.
-type MouseRelease = input.MouseReleaseEvent
+type MouseRelease = uv.MouseReleaseEvent
 
 // MouseWheel represents a mouse wheel event.
-type MouseWheel = input.MouseWheelEvent
+type MouseWheel = uv.MouseWheelEvent
 
 // MouseMotion represents a mouse motion event.
-type MouseMotion = input.MouseMotionEvent
+type MouseMotion = uv.MouseMotionEvent
 
 // SendMouse sends a mouse event to the terminal. This can be any kind of mouse
 // events such as [MouseClick], [MouseRelease], [MouseWheel], or [MouseMotion].

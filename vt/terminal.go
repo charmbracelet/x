@@ -4,12 +4,11 @@ import (
 	"bytes"
 	"image/color"
 	"io"
-	"sync"
 	"time"
 
+	"github.com/charmbracelet/uv"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
-	"github.com/charmbracelet/x/cellbuf"
 	"github.com/rivo/uniseg"
 )
 
@@ -50,12 +49,10 @@ type Terminal struct {
 	iconName, title string
 
 	// tabstop is the list of tab stops.
-	tabstops *cellbuf.TabStops
+	tabstops *uv.TabStops
 
 	// The input buffer of the terminal.
 	buf bytes.Buffer
-
-	mu sync.Mutex
 
 	// The GL and GR character set identifiers.
 	gl, gr  int
@@ -98,7 +95,7 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.parser.SetParamsSize(parser.MaxParamsSize)
 	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
 	t.resetModes()
-	t.tabstops = cellbuf.DefaultTabStops(w)
+	t.tabstops = uv.DefaultTabStops(w)
 	t.fg = defaultFg
 	t.bg = defaultBg
 	t.cur = defaultCur
@@ -116,10 +113,10 @@ func (t *Terminal) Screen() *Screen {
 	return t.scr
 }
 
-// Cell returns the current focused screen cell at the given x, y position. It returns nil if the cell
-// is out of bounds.
-func (t *Terminal) Cell(x, y int) *Cell {
-	return t.scr.Cell(x, y)
+// CellAt returns the current focused screen cell at the given x, y position.
+// It returns nil if the cell is out of bounds.
+func (t *Terminal) CellAt(x, y int) *uv.Cell {
+	return t.scr.CellAt(x, y)
 }
 
 // Height returns the height of the terminal.
@@ -133,9 +130,9 @@ func (t *Terminal) Width() int {
 }
 
 // CursorPosition returns the terminal's cursor position.
-func (t *Terminal) CursorPosition() Position {
+func (t *Terminal) CursorPosition() uv.Position {
 	x, y := t.scr.CursorPosition()
-	return cellbuf.Pos(x, y)
+	return uv.Pos(x, y)
 }
 
 // Resize resizes the terminal.
@@ -163,16 +160,13 @@ func (t *Terminal) Resize(width int, height int) {
 
 	t.scrs[0].Resize(width, height)
 	t.scrs[1].Resize(width, height)
-	t.tabstops = cellbuf.DefaultTabStops(width)
+	t.tabstops = uv.DefaultTabStops(width)
 
 	t.setCursor(x, y)
 }
 
 // Read reads data from the terminal input buffer.
 func (t *Terminal) Read(p []byte) (n int, err error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
 	if t.closed {
 		return 0, io.EOF
 	}
@@ -187,9 +181,6 @@ func (t *Terminal) Read(p []byte) (n int, err error) {
 
 // Close closes the terminal.
 func (t *Terminal) Close() error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
 	if t.closed {
 		return nil
 	}
@@ -200,8 +191,8 @@ func (t *Terminal) Close() error {
 
 // Write writes data to the terminal output buffer.
 func (t *Terminal) Write(p []byte) (n int, err error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
+	// t.mu.Lock()
+	// defer t.mu.Unlock()
 
 	for len(p) > 0 {
 		action := t.parser.Advance(p[0])
@@ -209,11 +200,12 @@ func (t *Terminal) Write(p []byte) (n int, err error) {
 			// Use uniseg to handle UTF-8 sequences.
 			var gr []byte
 			var width int
-			gr, p, width, _ = uniseg.FirstGraphemeCluster(p, -1)
+			gr, _, width, _ = uniseg.FirstGraphemeCluster(p, -1)
 			t.handleGrapheme(string(gr), width)
 			// Reset the parser back to ground state.
 			t.parser.Reset()
 			n += len(gr)
+			p = p[len(gr):]
 		} else {
 			p = p[1:]
 			n++
@@ -311,5 +303,5 @@ func (t *Terminal) SetIndexedColor(i int, c color.Color) {
 
 // resetTabStops resets the terminal tab stops to the default set.
 func (t *Terminal) resetTabStops() {
-	t.tabstops = cellbuf.DefaultTabStops(t.Width())
+	t.tabstops = uv.DefaultTabStops(t.Width())
 }
