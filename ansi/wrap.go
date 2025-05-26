@@ -314,7 +314,7 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 	)
 
 	addSpace := func() {
-		curWidth += space.Len()
+		curWidth += StringWidth(space.String())
 		buf.Write(space.Bytes())
 		space.Reset()
 	}
@@ -372,7 +372,7 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 				word.Write(cluster)
 				wordLen += width
 
-				if curWidth+wordLen+space.Len() > limit {
+				if curWidth+wordLen+StringWidth(space.String()) > limit {
 					addNewline()
 				}
 			}
@@ -386,7 +386,7 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 			switch r := rune(b[i]); {
 			case r == '\n':
 				if wordLen == 0 {
-					if curWidth+space.Len() > limit {
+					if curWidth+StringWidth(space.String()) > limit {
 						curWidth = 0
 					} else {
 						// preserve whitespaces
@@ -426,7 +426,7 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 					addWord()
 				}
 
-				if curWidth+wordLen+space.Len() > limit {
+				if curWidth+wordLen+StringWidth(space.String()) > limit {
 					addNewline()
 				}
 			}
@@ -443,7 +443,7 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 	}
 
 	if wordLen == 0 {
-		if curWidth+space.Len() > limit {
+		if curWidth+StringWidth(space.String()) > limit {
 			curWidth = 0
 		} else {
 			// preserve whitespaces
