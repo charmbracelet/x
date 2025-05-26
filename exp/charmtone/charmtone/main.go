@@ -1,8 +1,11 @@
+// Package main is a simple command line tool for rendering the CharmTone color
+// palette.
 package main
 
 import (
 	"fmt"
 	"io"
+	"iter"
 	"os"
 	"strings"
 
@@ -108,7 +111,7 @@ func main() {
 
 	// Get total block width so far.
 	var totalWidth int
-	for l := range strings.SplitSeq(b.String(), "\n") {
+	for l := range SplitSeq(b.String(), "\n") {
 		if w := lipgloss.Width(l); w > totalWidth {
 			totalWidth = w
 		}
@@ -126,7 +129,7 @@ func main() {
 
 	// Get width of grayscale block.
 	var grayWidth int
-	for l := range strings.SplitSeq(grays.String(), "\n") {
+	for l := range SplitSeq(grays.String(), "\n") {
 		if w := lipgloss.Width(l); w > grayWidth {
 			grayWidth = w
 		}
@@ -191,7 +194,11 @@ func main() {
 	fmt.Fprint(&b, "\n\n", legendBlock, "\n\n")
 
 	// Flush.
-	lipgloss.Print(b.String())
+	_, err := lipgloss.Print(b.String())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error printing: %v\n", err)
+		os.Exit(1)
+	}
 }
 
 func blendKeys(width int, keys ...charmtone.Key) string {
@@ -200,4 +207,37 @@ func blendKeys(width int, keys ...charmtone.Key) string {
 		fmt.Fprint(&w, lipgloss.NewStyle().Background(c).Render(" "))
 	}
 	return w.String()
+}
+
+// SplitSeq returns an iterator over the substrings of string separated by a seprator.
+//
+// This is a Go 1.23 compatible version of strings.Split. Once we're
+// supporting Go 1.24 this can be removed in favaor of the strings.SplitSeq in
+// the standard library.
+func SplitSeq(s, sep string) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		if sep == "" {
+			for _, r := range s {
+				if !yield(string(r)) {
+					return
+				}
+			}
+			return
+		}
+
+		start := 0
+		for {
+			i := strings.Index(s[start:], sep)
+			if i == -1 {
+				if !yield(s[start:]) {
+					return
+				}
+				break
+			}
+			if !yield(s[start : start+i]) {
+				return
+			}
+			start += i + len(sep)
+		}
+	}
 }
