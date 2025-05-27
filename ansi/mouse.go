@@ -94,6 +94,8 @@ func (b MouseButton) String() string {
 //
 // If button is [MouseNone], and motion is false, this returns a release event.
 // If button is undefined, this function returns 0xff.
+//
+//nolint:nakedret
 func EncodeMouseButton(b MouseButton, motion, shift, alt, ctrl bool) (m byte) {
 	// mouse bit shifts
 	const (

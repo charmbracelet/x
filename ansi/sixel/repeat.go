@@ -6,13 +6,13 @@ import (
 	"strings"
 )
 
-// ErrInvalidRepeat is returned when a Repeat is invalid
+// ErrInvalidRepeat is returned when a Repeat is invalid.
 var ErrInvalidRepeat = fmt.Errorf("invalid repeat")
 
 // WriteRepeat writes a Repeat to a writer. A repeat character is in the range
 // of '?' (0x3F) to '~' (0x7E).
 func WriteRepeat(w io.Writer, count int, char byte) (int, error) {
-	return fmt.Fprintf(w, "%c%d%c", RepeatIntroducer, count, char)
+	return fmt.Fprintf(w, "%c%d%c", RepeatIntroducer, count, char) //nolint:wrapcheck
 }
 
 // Repeat represents a Sixel repeat introducer.
@@ -30,7 +30,7 @@ func (r Repeat) WriteTo(w io.Writer) (int64, error) {
 // String returns the Repeat as a string.
 func (r Repeat) String() string {
 	var b strings.Builder
-	r.WriteTo(&b) //nolint:errcheck
+	r.WriteTo(&b) //nolint:errcheck,gosec
 	return b.String()
 }
 

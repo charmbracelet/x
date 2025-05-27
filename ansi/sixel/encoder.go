@@ -1,3 +1,5 @@
+// Package sixel provides encoding and decoding for Sixel images, which are a
+// way to represent images in terminal emulators using ANSI escape codes.
 package sixel
 
 import (
@@ -57,18 +59,19 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 
 	scratch := newSixelBuilder(imageBounds.Dx(), imageBounds.Dy(), palette)
 
-	for y := 0; y < imageBounds.Dy(); y++ {
-		for x := 0; x < imageBounds.Dx(); x++ {
+	for y := range imageBounds.Dy() {
+		for x := range imageBounds.Dx() {
 			scratch.SetColor(x, y, img.At(x, y))
 		}
 	}
 
 	pixels := scratch.GeneratePixels()
-	io.WriteString(w, pixels) //nolint:errcheck
+	io.WriteString(w, pixels) //nolint:errcheck,gosec
 
 	return nil
 }
 
+//nolint:errcheck,gosec
 func (e *Encoder) encodePaletteColor(w io.Writer, paletteIndex int, c sixelColor) {
 	// Initializing palette entries
 	// #<a>;<b>;<c>;<d>;<e>
@@ -78,14 +81,14 @@ func (e *Encoder) encodePaletteColor(w io.Writer, paletteIndex int, c sixelColor
 	// d = G
 	// e = B
 
-	w.Write([]byte{ColorIntroducer})              //nolint:errcheck
-	io.WriteString(w, strconv.Itoa(paletteIndex)) //nolint:errcheck
-	io.WriteString(w, ";2;")                      //nolint:errcheck
-	io.WriteString(w, strconv.Itoa(int(c.Red)))   //nolint:errcheck
-	w.Write([]byte{';'})                          //nolint:errcheck
-	io.WriteString(w, strconv.Itoa(int(c.Green))) //nolint:errcheck
-	w.Write([]byte{';'})                          //nolint:errcheck
-	io.WriteString(w, strconv.Itoa(int(c.Blue)))  //nolint:errcheck
+	w.Write([]byte{ColorIntroducer})
+	io.WriteString(w, strconv.Itoa(paletteIndex))
+	io.WriteString(w, ";2;")
+	io.WriteString(w, strconv.Itoa(int(c.Red)))
+	w.Write([]byte{';'})
+	io.WriteString(w, strconv.Itoa(int(c.Green)))
+	w.Write([]byte{';'})
+	io.WriteString(w, strconv.Itoa(int(c.Blue)))
 }
 
 // sixelBuilder is a temporary structure used to create a SixelImage. It handles
@@ -108,7 +111,7 @@ type sixelBuilder struct {
 	repeatCount int
 }
 
-// newSixelBuilder creates a sixelBuilder and prepares it for writing
+// newSixelBuilder creates a sixelBuilder and prepares it for writing.
 func newSixelBuilder(width, height int, palette sixelPalette) sixelBuilder {
 	scratch := sixelBuilder{
 		imageWidth:   width,
@@ -119,7 +122,7 @@ func newSixelBuilder(width, height int, palette sixelPalette) sixelBuilder {
 	return scratch
 }
 
-// BandHeight returns the number of six-pixel bands this image consists of
+// BandHeight returns the number of six-pixel bands this image consists of.
 func (s *sixelBuilder) BandHeight() int {
 	bandHeight := s.imageHeight / 6
 	if s.imageHeight%6 != 0 {
@@ -130,7 +133,7 @@ func (s *sixelBuilder) BandHeight() int {
 }
 
 // SetColor will write a single pixel to sixelBuilder's internal bitset data to be used by
-// GeneratePixels
+// GeneratePixels.
 func (s *sixelBuilder) SetColor(x int, y int, color color.Color) {
 	bandY := y / 6
 	paletteIndex := s.SixelPalette.ColorIndex(sixelConvertColor(color))
@@ -153,14 +156,14 @@ func (s *sixelBuilder) GeneratePixels() string {
 	s.imageData = strings.Builder{}
 	bandHeight := s.BandHeight()
 
-	for bandY := 0; bandY < bandHeight; bandY++ {
+	for bandY := range bandHeight {
 		if bandY > 0 {
 			s.writeControlRune(LineBreak)
 		}
 
 		hasWrittenAColor := false
 
-		for paletteIndex := 0; paletteIndex < len(s.SixelPalette.PaletteColors); paletteIndex++ {
+		for paletteIndex := range s.SixelPalette.PaletteColors {
 			if s.SixelPalette.PaletteColors[paletteIndex].Alpha < 1 {
 				// Don't draw anything for purely transparent pixels
 				continue
@@ -216,7 +219,7 @@ func (s *sixelBuilder) GeneratePixels() string {
 }
 
 // writeImageRune will write a single line of six pixels to pixel data.  The data
-// doesn't get written to the imageData, it gets buffered for the purposes of RLE
+// doesn't get written to the imageData, it gets buffered for the purposes of RLE.
 func (s *sixelBuilder) writeImageRune(r byte) {
 	if r == s.repeatByte {
 		s.repeatCount++
@@ -241,7 +244,7 @@ func (s *sixelBuilder) writeControlRune(r byte) {
 }
 
 // flushRepeats is used to actually write the current repeatByte to the imageData when
-// it is about to change. This buffering is used to manage RLE in the sixelBuilder
+// it is about to change. This buffering is used to manage RLE in the sixelBuilder.
 func (s *sixelBuilder) flushRepeats() {
 	if s.repeatCount == 0 {
 		return
@@ -249,11 +252,11 @@ func (s *sixelBuilder) flushRepeats() {
 
 	// Only write using the RLE form if it's actually providing space savings
 	if s.repeatCount > 3 {
-		WriteRepeat(&s.imageData, s.repeatCount, s.repeatByte) //nolint:errcheck
+		WriteRepeat(&s.imageData, s.repeatCount, s.repeatByte) //nolint:errcheck,gosec
 		return
 	}
 
-	for i := 0; i < s.repeatCount; i++ {
+	for range s.repeatCount {
 		s.imageData.WriteByte(s.repeatByte)
 	}
 }

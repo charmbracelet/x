@@ -1,3 +1,5 @@
+// Package ordered provides utility functions for working with ordered types in
+// Go.
 package ordered
 
 import "cmp"

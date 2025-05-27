@@ -271,7 +271,7 @@ func (t *Terminal) SendKey(k Key) {
 		seq = "\x1b" + seq
 	}
 
-	t.buf.WriteString(seq) //nolint:errcheck
+	t.buf.WriteString(seq)
 }
 
 // Key codes.

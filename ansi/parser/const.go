@@ -19,7 +19,7 @@ const (
 	IgnoreAction = NoneAction
 )
 
-// nolint: unused
+// ActionNames are the names of the actions of the parser.
 var ActionNames = []string{
 	"NoneAction",
 	"ClearAction",
@@ -58,7 +58,7 @@ const (
 	Utf8State
 )
 
-// nolint: unused
+// StateNames are the names of the states of the parser.
 var StateNames = []string{
 	"GroundState",
 	"CsiEntryState",

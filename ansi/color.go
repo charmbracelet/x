@@ -156,11 +156,6 @@ func toRGBA(r, g, b uint32) (uint32, uint32, uint32, uint32) {
 	return r, g, b, 0xffff
 }
 
-//nolint:unused
-func distSq(r1, g1, b1, r2, g2, b2 int) int {
-	return ((r1-r2)*(r1-r2) + (g1-g2)*(g1-g2) + (b1-b2)*(b1-b2))
-}
-
 func to6Cube[T int | float64](v T) int {
 	if v < 48 {
 		return 0

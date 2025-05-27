@@ -141,6 +141,8 @@ type Options struct {
 }
 
 // Options returns the options as a slice of a key-value pairs.
+//
+//nolint:nakedret
 func (o *Options) Options() (opts []string) {
 	opts = []string{}
 	if o.Format == 0 {

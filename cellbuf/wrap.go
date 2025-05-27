@@ -99,7 +99,7 @@ func Wrap(s string, limit int, breakpoints string) string {
 		seq, width, n, newState := ansi.DecodeSequence(s, state, p)
 		switch width {
 		case 0:
-			if ansi.Equal(seq, "\t") {
+			if ansi.Equal(seq, "\t") { //nolint:nestif
 				addWord()
 				space.WriteString(seq)
 				break

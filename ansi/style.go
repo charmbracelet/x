@@ -526,6 +526,8 @@ func underlineColorString(c Color) string {
 //  2. Support ignoring and omitting the color space id (second parameter) with respect to RGB colors
 //  3. Support ignoring and omitting the 6th parameter with respect to RGB and CMY colors
 //  4. Support reading RGBA colors
+//
+//nolint:nakedret
 func ReadStyleColor(params Params, co *color.Color) (n int) {
 	if len(params) < 2 { // Need at least SGR type and color type
 		return 0

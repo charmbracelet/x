@@ -1,3 +1,5 @@
+// Package colors provides a set of adaptive colors for use in terminal
+// applications.
 package colors
 
 import "github.com/charmbracelet/lipgloss"

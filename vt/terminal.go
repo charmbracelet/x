@@ -182,7 +182,7 @@ func (t *Terminal) Read(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
-	return t.buf.Read(p)
+	return t.buf.Read(p) //nolint:wrapcheck
 }
 
 // Close closes the terminal.
