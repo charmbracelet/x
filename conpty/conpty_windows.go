@@ -51,7 +51,7 @@ func New(w int, h int, flags int) (c *ConPty, err error) {
 	c = &ConPty{
 		hpc: new(windows.Handle),
 		size: windows.Coord{
-			X: int16(w), Y: int16(h),
+			X: int16(w), Y: int16(h), //nolint:gosec
 		},
 	}
 
@@ -64,7 +64,7 @@ func New(w int, h int, flags int) (c *ConPty, err error) {
 		return nil, fmt.Errorf("failed to create pipes for pseudo console: %w", err)
 	}
 
-	if err := windows.CreatePseudoConsole(c.size, ptyIn, ptyOut, uint32(flags), c.hpc); err != nil {
+	if err := windows.CreatePseudoConsole(c.size, ptyIn, ptyOut, uint32(flags), c.hpc); err != nil { //nolint:gosec
 		return nil, fmt.Errorf("failed to create pseudo console: %w", err)
 	}
 
@@ -84,7 +84,7 @@ func New(w int, h int, flags int) (c *ConPty, err error) {
 	// 1. Pseudo console setup
 	c.attrList, err = windows.NewProcThreadAttributeList(1)
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
 	if err := c.attrList.Update(
@@ -99,41 +99,41 @@ func New(w int, h int, flags int) (c *ConPty, err error) {
 }
 
 // Fd returns the ConPty handle.
-func (p *ConPty) Fd() uintptr {
-	return uintptr(*p.hpc)
+func (c *ConPty) Fd() uintptr {
+	return uintptr(*c.hpc)
 }
 
 // Close closes the ConPty device.
-func (p *ConPty) Close() error {
+func (c *ConPty) Close() error {
 	var err error
-	p.closeOnce.Do(func() {
-		if p.attrList != nil {
-			p.attrList.Delete()
+	c.closeOnce.Do(func() {
+		if c.attrList != nil {
+			c.attrList.Delete()
 		}
-		windows.ClosePseudoConsole(*p.hpc)
-		err = errors.Join(p.inPipe.Close(), p.outPipe.Close())
+		windows.ClosePseudoConsole(*c.hpc)
+		err = errors.Join(c.inPipe.Close(), c.outPipe.Close())
 	})
 	return err
 }
 
 // InPipe returns the ConPty input pipe.
-func (p *ConPty) InPipe() *os.File {
-	return p.inPipe
+func (c *ConPty) InPipe() *os.File {
+	return c.inPipe
 }
 
 // InPipeFd returns the ConPty input pipe file descriptor handle.
-func (p *ConPty) InPipeFd() uintptr {
-	return uintptr(p.inPipeFd)
+func (c *ConPty) InPipeFd() uintptr {
+	return uintptr(c.inPipeFd)
 }
 
 // OutPipe returns the ConPty output pipe.
-func (p *ConPty) OutPipe() *os.File {
-	return p.outPipe
+func (c *ConPty) OutPipe() *os.File {
+	return c.outPipe
 }
 
 // OutPipeFd returns the ConPty output pipe file descriptor handle.
-func (p *ConPty) OutPipeFd() uintptr {
-	return uintptr(p.outPipeFd)
+func (c *ConPty) OutPipeFd() uintptr {
+	return uintptr(c.outPipeFd)
 }
 
 // Write safely writes bytes to the ConPty.
@@ -152,7 +152,7 @@ func (c *ConPty) Read(p []byte) (n int, err error) {
 
 // Resize resizes the pseudo-console.
 func (c *ConPty) Resize(w int, h int) error {
-	size := windows.Coord{X: int16(w), Y: int16(h)}
+	size := windows.Coord{X: int16(w), Y: int16(h)} //nolint:gosec
 	if err := windows.ResizePseudoConsole(*c.hpc, size); err != nil {
 		return fmt.Errorf("failed to resize pseudo console: %w", err)
 	}
@@ -193,7 +193,7 @@ func (c *ConPty) Spawn(name string, args []string, attr *syscall.ProcAttr) (pid 
 
 	argv0p, err := windows.UTF16PtrFromString(argv0)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, err //nolint:wrapcheck
 	}
 
 	var cmdline string
@@ -204,14 +204,14 @@ func (c *ConPty) Spawn(name string, args []string, attr *syscall.ProcAttr) (pid 
 	}
 	argvp, err := windows.UTF16PtrFromString(cmdline)
 	if err != nil {
-		return 0, 0, err
+		return 0, 0, err //nolint:wrapcheck
 	}
 
 	var dirp *uint16
 	if len(attr.Dir) != 0 {
 		dirp, err = windows.UTF16PtrFromString(attr.Dir)
 		if err != nil {
-			return 0, 0, err
+			return 0, 0, err //nolint:wrapcheck
 		}
 	}
 
@@ -283,7 +283,7 @@ func (c *ConPty) Spawn(name string, args []string, attr *syscall.ProcAttr) (pid 
 		return 0, 0, fmt.Errorf("failed to create process: %w", err)
 	}
 
-	defer windows.CloseHandle(pi.Thread)
+	defer windows.CloseHandle(pi.Thread) //nolint:errcheck
 
 	return int(pi.ProcessId), uintptr(pi.Process), nil
 }

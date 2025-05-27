@@ -25,7 +25,7 @@ func lookExtensions(path, dir string) (string, error) {
 	}
 
 	if dir == "" {
-		return exec.LookPath(path)
+		return exec.LookPath(path) //nolint:wrapcheck
 	}
 
 	if filepath.VolumeName(path) != "" {
@@ -33,7 +33,7 @@ func lookExtensions(path, dir string) (string, error) {
 	}
 
 	if len(path) > 1 && os.IsPathSeparator(path[0]) {
-		return exec.LookPath(path)
+		return exec.LookPath(path) //nolint:wrapcheck
 	}
 
 	dirandpath := filepath.Join(dir, path)
@@ -41,7 +41,7 @@ func lookExtensions(path, dir string) (string, error) {
 	// We assume that LookPath will only add file extension.
 	lp, err := exec.LookPath(dirandpath)
 	if err != nil {
-		return "", err
+		return "", err //nolint:wrapcheck
 	}
 
 	ext := strings.TrimPrefix(lp, dirandpath)
@@ -49,7 +49,7 @@ func lookExtensions(path, dir string) (string, error) {
 	return path + ext, nil
 }
 
-func execEnvDefault(sys *syscall.SysProcAttr) (env []string, err error) {
+func execEnvDefault(sys *syscall.SysProcAttr) (env []string, err error) { //nolint:nakedret
 	if sys == nil || sys.Token == 0 {
 		return syscall.Environ(), nil
 	}
@@ -57,10 +57,10 @@ func execEnvDefault(sys *syscall.SysProcAttr) (env []string, err error) {
 	var block *uint16
 	err = windows.CreateEnvironmentBlock(&block, windows.Token(sys.Token), false)
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
-	defer windows.DestroyEnvironmentBlock(block)
+	defer windows.DestroyEnvironmentBlock(block) //nolint:errcheck
 	blockp := uintptr(unsafe.Pointer(block))
 
 	for {
@@ -90,7 +90,7 @@ func isSlash(c uint8) bool {
 func normalizeDir(dir string) (name string, err error) {
 	ndir, err := syscall.FullPath(dir)
 	if err != nil {
-		return "", err
+		return "", err //nolint:wrapcheck
 	}
 	if len(ndir) > 2 && isSlash(ndir[0]) && isSlash(ndir[1]) {
 		// dir cannot have \\server\share\path form
@@ -121,29 +121,25 @@ func joinExeDirAndFName(dir, p string) (name string, err error) {
 		}
 		if isSlash(p[2]) {
 			return p, nil
-		} else {
-			d, err := normalizeDir(dir)
-			if err != nil {
-				return "", err
-			}
-			if volToUpper(int(p[0])) == volToUpper(int(d[0])) {
-				return syscall.FullPath(d + "\\" + p[2:])
-			} else {
-				return syscall.FullPath(p)
-			}
 		}
-	} else {
-		// no drive letter
 		d, err := normalizeDir(dir)
 		if err != nil {
 			return "", err
 		}
-		if isSlash(p[0]) {
-			return windows.FullPath(d[:2] + p)
-		} else {
-			return windows.FullPath(d + "\\" + p)
+		if volToUpper(int(p[0])) == volToUpper(int(d[0])) {
+			return syscall.FullPath(d + "\\" + p[2:]) //nolint:wrapcheck
 		}
+		return syscall.FullPath(p) //nolint:wrapcheck
 	}
+	// no drive letter
+	d, err := normalizeDir(dir)
+	if err != nil {
+		return "", err
+	}
+	if isSlash(p[0]) {
+		return windows.FullPath(d[:2] + p) //nolint:wrapcheck
+	}
+	return windows.FullPath(d + "\\" + p) //nolint:wrapcheck
 }
 
 // createEnvBlock converts an array of environment strings into
