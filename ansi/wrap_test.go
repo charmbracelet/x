@@ -190,6 +190,18 @@ var wrapCases = []struct {
 		expected: "Lorem ipsum dolor \x1b[1msit\x1b[m amet,\nconsectetur adipiscing elit,\nsed do eiusmod tempor\nincididunt ut labore et dolore\nmagna aliqua. \x1b[31mUt enim\x1b[m ad minim\nveniam, quis nostrud\nexercitation ullamco laboris\nnisi ut aliquip ex ea \x1b[38;5;200mcommodo\nconsequat\x1b[m. Duis aute irure\ndolor in reprehenderit in\nvoluptate velit esse cillum\ndolore eu fugiat nulla\npariatur. \x1b[1;2;33mExcepteur sint\noccaecat cupidatat non\nproident, sunt in culpa qui\nofficia deserunt mollit anim\nid est laborum.\x1b[m",
 		width:    30,
 	},
+	{
+		// \u202f and \u205f - Single width spaces
+		// \u3000 - Double width space
+		name:  "Multi Byte spaces",
+		input: "A\u202fB\u202fC\u202fDA\u205f\u205fB\u205fC\u205fDA\u3000B\u3000C\u3000D",
+		expected: "" +
+			"A\u202fB\u202fC\n" +
+			"DA\u205f\u205fB\u205fC\n" +
+			"DA\u3000B\n" +
+			"C\u3000D",
+		width: 7,
+	},
 	{"hyphen break", "foo-bar", "foo-\nbar", 5},
 	{"double space", "f  bar foobaz", "f  bar\nfoobaz", 6},
 	{"passthrough", "foobar\n ", "foobar\n ", 0},
@@ -211,6 +223,12 @@ var wrapCases = []struct {
 	{"style_code_dont_get_wrapped", "\x1B[38;2;249;38;114m(\x1B[0m\x1B[38;2;248;248;242mjust another test\x1B[38;2;249;38;114m)\x1B[0m", "\x1b[38;2;249;38;114m(\x1b[0m\x1b[38;2;248;248;242mjust\nanother\ntest\x1b[38;2;249;38;114m)\x1b[0m", 7},
 	{"osc8_wrap", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\ สวัสดีสวัสดี\x1b]8;;\x1b\\", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\\nสวัสดีสวัสดี\x1b]8;;\x1b\\", 8},
 	{"tab", "foo\tbar", "foo\nbar", 3},
+	{"Narrow NBSP", "0\u202f1\u202f2\u202f3\u202f4", "0\u202f1\u202f2\u202f3\n4", 7},
+	// Paragraph Separator usually takes one character width
+	// while printing it on terminal, but ansi considers this zero width.
+	{"Paragraph Separator", "0\u20291\u20292\u20293\u20294", "0\u20291\u20292\u20293\u20294", 7},
+	{"Medium Mathematical Space", "0\u205f1\u205f2\u205f3\u205f4", "0\u205f1\u205f2\u205f3\n4", 7},
+	{"Ideagraphic space", "0\u30001\u30002\u30003\u3000", "0\u30001\u30002\n3\u3000", 7},
 }
 
 func TestWrap(t *testing.T) {
