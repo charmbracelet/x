@@ -241,3 +241,11 @@ func TestWrap(t *testing.T) {
 		})
 	}
 }
+
+func BenchmarkWrap(b *testing.B) {
+	input := "the quick brown foxxxxxxxxxxxxxxxx jumped over the lazy dog."
+	limit := 16
+	for i := 0; i < b.N; i++ {
+		_ = ansi.Wrap(input, limit, "")
+	}
+}
