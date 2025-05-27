@@ -50,5 +50,5 @@ jobs:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
       directory: ./examples/...
-      golangci_path: ${{ github.workspace }}/.golangci.yml
+      golangci_path: .golangci.yml
 
