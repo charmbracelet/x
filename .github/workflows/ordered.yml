@@ -50,4 +50,5 @@ jobs:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
       directory: ./exp/ordered/...
+      golangci_path: ${{ github.workspace }}/.golangci.yml
 

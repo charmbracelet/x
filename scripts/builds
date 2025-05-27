@@ -64,5 +64,6 @@ jobs:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
       directory: $(dirname "$mod")/...
+      golangci_path: \${{ github.workspace }}/.golangci.yml
 " >"./.github/workflows/${name}.yml"
 done
