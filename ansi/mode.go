@@ -735,12 +735,27 @@ const (
 	RequestSyncdOutput = "\x1b[?2026$p"
 )
 
+// UnicodeCoreMode is a mode that determines whether the terminal should
+// use Unicode grapheme clusters mono widths.
+//
+// See: https://github.com/contour-terminal/terminal-unicode-core
+const (
+	UnicodeCoreMode = DECMode(2027)
+
+	SetUnicodeCoreMode     = "\x1b[?2027h"
+	ResetUnicodeCoreMode   = "\x1b[?2027l"
+	RequestUnicodeCoreMode = "\x1b[?2027$p"
+)
+
 // Grapheme Clustering Mode is a mode that determines whether the terminal
 // should look for grapheme clusters instead of single runes in the rendered
 // text. This makes the terminal properly render combining characters such as
 // emojis.
 //
 // See: https://github.com/contour-terminal/terminal-unicode-core
+//
+// Deprecated: use [UnicodeCoreMode], [SetUnicodeCoreMode],
+// [ResetUnicodeCoreMode], and [RequestUnicodeCoreMode] instead.
 const (
 	GraphemeClusteringMode = DECMode(2027)
 
