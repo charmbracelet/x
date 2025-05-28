@@ -2,6 +2,7 @@ package ansi
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/charmbracelet/x/ansi/parser"
 	"github.com/mattn/go-runewidth"
@@ -80,6 +81,10 @@ func StringWidthWc(s string) int {
 func stringWidth(m Method, s string) int {
 	if s == "" {
 		return 0
+	}
+
+	if m == NoZWJWidth {
+		s = strings.ReplaceAll(s, zwj, "")
 	}
 
 	var (

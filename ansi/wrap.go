@@ -2,6 +2,7 @@ package ansi
 
 import (
 	"bytes"
+	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -36,6 +37,10 @@ func HardwrapWc(s string, limit int, preserveSpace bool) string {
 func hardwrap(m Method, s string, limit int, preserveSpace bool) string {
 	if limit < 1 {
 		return s
+	}
+
+	if m == NoZWJWidth {
+		s = strings.ReplaceAll(s, zwj, "")
 	}
 
 	var (
@@ -150,6 +155,10 @@ func WordwrapWc(s string, limit int, breakpoints string) string {
 func wordwrap(m Method, s string, limit int, breakpoints string) string {
 	if limit < 1 {
 		return s
+	}
+
+	if m == NoZWJWidth {
+		s = strings.ReplaceAll(s, zwj, "")
 	}
 
 	var (
@@ -300,6 +309,10 @@ func WrapWc(s string, limit int, breakpoints string) string {
 func wrap(m Method, s string, limit int, breakpoints string) string {
 	if limit < 1 {
 		return s
+	}
+
+	if m == NoZWJWidth {
+		s = strings.ReplaceAll(s, zwj, "")
 	}
 
 	var (

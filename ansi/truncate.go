@@ -2,6 +2,7 @@ package ansi
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/charmbracelet/x/ansi/parser"
 	"github.com/mattn/go-runewidth"
@@ -30,6 +31,10 @@ func CutWc(s string, left, right int) string {
 func cut(m Method, s string, left, right int) string {
 	if right <= left {
 		return ""
+	}
+
+	if m == NoZWJWidth {
+		s = strings.ReplaceAll(s, zwj, "")
 	}
 
 	truncate := Truncate
@@ -64,14 +69,18 @@ func TruncateWc(s string, length int, tail string) string {
 }
 
 func truncate(m Method, s string, length int, tail string) string {
-	if sw := StringWidth(s); sw <= length {
+	if sw := m.StringWidth(s); sw <= length {
 		return s
 	}
 
-	tw := StringWidth(tail)
+	tw := m.StringWidth(tail)
 	length -= tw
 	if length < 0 {
 		return ""
+	}
+
+	if m == NoZWJWidth {
+		s = strings.ReplaceAll(s, zwj, "")
 	}
 
 	var cluster []byte
@@ -191,6 +200,10 @@ func TruncateLeftWc(s string, n int, prefix string) string {
 func truncateLeft(m Method, s string, n int, prefix string) string {
 	if n <= 0 {
 		return s
+	}
+
+	if m == NoZWJWidth {
+		s = strings.ReplaceAll(s, zwj, "")
 	}
 
 	var cluster []byte

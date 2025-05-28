@@ -6,9 +6,15 @@ type Method uint8
 
 // Display width modes.
 const (
-	WcWidth Method = iota
-	GraphemeWidth
+	WcWidth    Method = iota
+	NoZWJWidth        //
+	UnicodeWidth
+
+	// Deprecated: use [UnicodeWidth] instead.
+	GraphemeWidth = UnicodeWidth
 )
+
+const zwj = "\u200d"
 
 // StringWidth returns the width of a string in cells. This is the number of
 // cells that the string will occupy when printed in a terminal. ANSI escape

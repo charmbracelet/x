@@ -1,6 +1,8 @@
 package ansi
 
 import (
+	"bytes"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi/parser"
@@ -123,6 +125,15 @@ func DecodeSequenceWc[T string | []byte](b T, state byte, p *Parser) (seq T, wid
 }
 
 func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (seq T, width int, n int, newState byte) {
+	if m == NoZWJWidth {
+		switch any(b).(type) {
+		case string:
+			b = T(strings.ReplaceAll(string(b), zwj, ""))
+		case []byte:
+			b = T(bytes.ReplaceAll([]byte(b), []byte(zwj), nil))
+		}
+	}
+
 	for i := 0; i < len(b); i++ {
 		c := b[i]
 
