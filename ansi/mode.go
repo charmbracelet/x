@@ -96,6 +96,7 @@ func RM(modes ...Mode) string {
 	return ResetMode(modes...)
 }
 
+//nolint:nakedret
 func setMode(reset bool, modes ...Mode) (s string) {
 	if len(modes) == 0 {
 		return
@@ -311,6 +312,8 @@ const (
 )
 
 // Deprecated: use [SetCursorKeysMode] and [ResetCursorKeysMode] instead.
+//
+//nolint:revive
 const (
 	EnableCursorKeys  = "\x1b[?1h"
 	DisableCursorKeys = "\x1b[?1l"
@@ -563,6 +566,8 @@ const (
 
 // Deprecated: use [SetFocusEventMode], [ResetFocusEventMode], and
 // [RequestFocusEventMode] instead.
+//
+//nolint:revive
 const (
 	ReportFocusMode = DECMode(1004)
 
@@ -591,6 +596,8 @@ const (
 
 // Deprecated: use [SgrExtMouseMode] [SetSgrExtMouseMode],
 // [ResetSgrExtMouseMode], and [RequestSgrExtMouseMode] instead.
+//
+//nolint:revive
 const (
 	MouseSgrExtMode    = DECMode(1006)
 	EnableMouseSgrExt  = "\x1b[?1006h"
@@ -707,6 +714,8 @@ const (
 
 // Deprecated: use [SetBracketedPasteMode], [ResetBracketedPasteMode], and
 // [RequestBracketedPasteMode] instead.
+//
+//nolint:revive
 const (
 	EnableBracketedPaste  = "\x1b[?2004h"
 	DisableBracketedPaste = "\x1b[?2004l"
@@ -727,6 +736,8 @@ const (
 
 // Deprecated: use [SynchronizedOutputMode], [SetSynchronizedOutputMode], and
 // [ResetSynchronizedOutputMode], and [RequestSynchronizedOutputMode] instead.
+//
+//nolint:revive
 const (
 	SyncdOutputMode = DECMode(2026)
 
@@ -751,6 +762,8 @@ const (
 
 // Deprecated: use [SetGraphemeClusteringMode], [ResetGraphemeClusteringMode], and
 // [RequestGraphemeClusteringMode] instead.
+//
+//nolint:revive
 const (
 	EnableGraphemeClustering  = "\x1b[?2027h"
 	DisableGraphemeClustering = "\x1b[?2027l"
@@ -771,6 +784,8 @@ const (
 
 // Deprecated: use [SetWin32InputMode], [ResetWin32InputMode], and
 // [RequestWin32InputMode] instead.
+//
+//nolint:revive
 const (
 	EnableWin32Input  = "\x1b[?9001h"
 	DisableWin32Input = "\x1b[?9001l"

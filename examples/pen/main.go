@@ -1,3 +1,4 @@
+// Package main is a pen example.
 package main
 
 import (
@@ -11,12 +12,12 @@ import (
 
 func main() {
 	pw := cellbuf.NewPenWriter(os.Stdout)
-	defer pw.Close()
+	defer pw.Close() //nolint:errcheck
 
 	data, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	io.WriteString(pw, ansi.Wrap(string(data), 10, ""))
+	io.WriteString(pw, ansi.Wrap(string(data), 10, "")) //nolint:errcheck,gosec
 }

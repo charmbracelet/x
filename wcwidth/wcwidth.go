@@ -1,8 +1,7 @@
+// Package wcwidth implements fixed-width width of runes and strings.
 package wcwidth
 
-import (
-	"github.com/mattn/go-runewidth"
-)
+import "github.com/mattn/go-runewidth"
 
 // RuneWidth returns fixed-width width of rune.
 //

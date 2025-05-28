@@ -189,7 +189,7 @@ func (s Style) Sequence() string {
 
 	var b ansi.Style
 
-	if s.Attrs != 0 {
+	if s.Attrs != 0 { //nolint:nestif
 		if s.Attrs&BoldAttr != 0 {
 			b = b.Bold()
 		}
@@ -268,7 +268,7 @@ func (s Style) DiffSequence(o Style) string {
 		isNormal bool
 	)
 
-	if s.Attrs != o.Attrs {
+	if s.Attrs != o.Attrs { //nolint:nestif
 		if s.Attrs&BoldAttr != o.Attrs&BoldAttr {
 			if s.Attrs&BoldAttr != 0 {
 				b = b.Bold()

@@ -1,3 +1,4 @@
+// Package main is a parser example.
 package main
 
 import (

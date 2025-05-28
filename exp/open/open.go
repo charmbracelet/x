@@ -1,3 +1,5 @@
+// Package open allows you to open files or URLs using the default application
+// on your system.
 package open
 
 import (

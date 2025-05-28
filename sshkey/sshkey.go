@@ -1,3 +1,4 @@
+// Package sshkey provides utilities to read and parse SSH keys.
 package sshkey
 
 import (
@@ -30,7 +31,7 @@ func Parse(identifier string, pemBytes []byte) (ssh.Signer, error) {
 // If the key is encrypted, it will ask for the passphrase.
 // The 'identifier' is used to identify the key to the user when asking for the
 // passphrase.
-func ParseRaw(identifier string, pemBytes []byte) (interface{}, error) {
+func ParseRaw(identifier string, pemBytes []byte) (any, error) {
 	return doParse(identifier, pemBytes, ssh.ParseRawPrivateKey, ssh.ParseRawPrivateKeyWithPassphrase)
 }
 

@@ -6,6 +6,8 @@ import "io"
 // to the provided output writter.
 //
 // This is a syntactic sugar over [io.WriteString].
+//
+//nolint:wrapcheck
 func Execute(w io.Writer, s string) (int, error) {
 	return io.WriteString(w, s)
 }

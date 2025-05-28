@@ -13,6 +13,8 @@ var ErrInvalidColor = fmt.Errorf("invalid color")
 
 // WriteColor writes a Sixel color to a writer. If pu is 0, the rest of the
 // parameters are ignored.
+//
+//nolint:wrapcheck
 func WriteColor(w io.Writer, pc, pu, px, py, pz int) (int, error) {
 	if pu <= 0 || pu > 2 {
 		return fmt.Fprintf(w, "#%d", pc)
@@ -47,6 +49,8 @@ func FromColor(c color.Color) Color {
 
 // DecodeColor decodes a Sixel color from a byte slice. It returns the Color and
 // the number of bytes read.
+//
+//nolint:nakedret
 func DecodeColor(data []byte) (c Color, n int) {
 	if len(data) == 0 || data[0] != ColorIntroducer {
 		return
@@ -76,7 +80,7 @@ func DecodeColor(data []byte) (c Color, n int) {
 	// Parse the color components.
 	ptr := &c.Px
 	for ; n < len(data); n++ {
-		if data[n] == ';' {
+		if data[n] == ';' { //nolint:nestif
 			if ptr == &c.Px {
 				ptr = &c.Py
 			} else if ptr == &c.Py {

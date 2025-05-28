@@ -182,7 +182,7 @@ func (t *Terminal) Read(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
-	return t.buf.Read(p)
+	return t.buf.Read(p) //nolint:wrapcheck
 }
 
 // Close closes the terminal.
@@ -293,7 +293,7 @@ func (t *Terminal) IndexedColor(i int) color.Color {
 	c := t.colors[i]
 	if c == nil {
 		// Return the default color.
-		return ansi.ExtendedColor(i) //nolint:gosec,staticcheck
+		return ansi.IndexedColor(i) //nolint:gosec
 	}
 
 	return c

@@ -1,3 +1,4 @@
+// Package editor provides a simple way to open files in a text editor.
 package editor
 
 import (
@@ -6,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -30,10 +32,8 @@ func LineNumber(number int) Option {
 	}
 	plusLineEditors := []string{"vi", "vim", "nvim", "nano", "emacs", "kak", "gedit"}
 	return func(editor, filename string) ([]string, bool) {
-		for _, e := range plusLineEditors {
-			if editor == e {
-				return []string{fmt.Sprintf("+%d", number)}, false
-			}
+		if slices.Contains(plusLineEditors, editor) {
+			return []string{fmt.Sprintf("+%d", number)}, false
 		}
 		if editor == "code" {
 			return []string{
@@ -69,10 +69,11 @@ func Command(app, path string, options ...Option) (*exec.Cmd, error) {
 	return CommandContext(context.Background(), app, path, options...)
 }
 
-// CmdContext returns a *exec.Cmd editing the given path with $EDITOR or nano
+// CommandContext returns a *exec.Cmd editing the given path with $EDITOR or nano
 // if no $EDITOR is set.
 func CommandContext(ctx context.Context, app, path string, options ...Option) (*exec.Cmd, error) {
 	if os.Getenv("SNAP_REVISION") != "" {
+		//nolint:staticcheck
 		return nil, fmt.Errorf("Did you install with Snap? %[1]s is sandboxed and unable to open an editor. Please install %[1]s with Go or another package manager to enable editing.", app) //nolint:revive
 	}
 

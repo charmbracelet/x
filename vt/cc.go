@@ -7,7 +7,7 @@ import (
 
 // handleControl handles a control character.
 func (t *Terminal) handleControl(r byte) {
-	if !t.handlers.handleCc(r) {
+	if !t.handleCc(r) {
 		t.logf("unhandled sequence: ControlCode %q", r)
 	}
 }

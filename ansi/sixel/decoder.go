@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"io"
+	"slices"
 )
 
 // Decoder is a Sixel image decoder. It reads Sixel image data from an
@@ -20,6 +21,8 @@ type Decoder struct{}
 // the end, this method simply accepts a byte slice instead of a reader. Callers
 // should read the entire escape sequence and pass the Ps..Ps portion of the sequence
 // to this method.
+//
+//nolint:wrapcheck
 func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 	rd := bufio.NewReader(r)
 	peeked, err := rd.Peek(1)
@@ -48,7 +51,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 				continue
 			}
 
-			rd.Discard(read) //nolint:errcheck
+			rd.Discard(read) //nolint:errcheck,gosec
 			break
 		}
 
@@ -105,7 +108,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 				// Read bytes until we hit a non-color byte i.e. non-numeric
 				// and non-;
 				if (b < '0' || b > '9') && b != ';' {
-					rd.UnreadByte() //nolint:errcheck
+					rd.UnreadByte() //nolint:errcheck,gosec
 					break
 				}
 
@@ -133,7 +136,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 				}
 				// Read bytes until we hit a non-numeric and non-repeat byte.
 				if (b < '0' || b > '9') && (b < '?' || b > '~') {
-					rd.UnreadByte() //nolint:errcheck
+					rd.UnreadByte() //nolint:errcheck,gosec
 					break
 				}
 
@@ -151,7 +154,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 			fallthrough
 		case b >= '?' && b <= '~':
 			color := palette[currentPaletteIndex]
-			for i := 0; i < count; i++ {
+			for range count {
 				d.writePixel(currentX, currentBandY, b, color, img)
 				currentX++
 			}
@@ -160,7 +163,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 }
 
 // writePixel will accept a sixel byte (from ? to ~) that defines 6 vertical pixels
-// and write any filled pixels to the image
+// and write any filled pixels to the image.
 func (d *Decoder) writePixel(x int, bandY int, sixel byte, color color.Color, img *image.RGBA) {
 	maskedSixel := (sixel - '?') & 63
 	yOffset := 0
@@ -519,6 +522,6 @@ var colorPalette = [256]color.Color{
 func DefaultPalette() color.Palette {
 	// Undefined colors in sixel images use a set of default colors: 0-15
 	// are sixel-specific, 16-255 are the same as the xterm 256-color values
-	palette := append(color.Palette(nil), colorPalette[:]...)
+	palette := slices.Clone(colorPalette[:])
 	return palette[:]
 }

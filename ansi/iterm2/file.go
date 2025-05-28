@@ -1,3 +1,5 @@
+// Package iterm2 provides types and functions for working with the iTerm2
+// Inline Image Protocol.
 package iterm2
 
 import (

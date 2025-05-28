@@ -1,3 +1,4 @@
+// Package main is a layout example.
 package main
 
 // This example demonstrates various Lip Gloss style and layout features.
@@ -389,7 +390,7 @@ func main() {
 		ansi.SgrExtMouseMode,
 	}
 
-	os.Stdout.WriteString(ansi.SetMode(modes...))         //nolint:errcheck
+	os.Stdout.WriteString(ansi.SetMode(modes...))         //nolint:errcheck,gosec
 	defer os.Stdout.WriteString(ansi.ResetMode(modes...)) //nolint:errcheck
 
 	state, err := term.MakeRaw(os.Stdin.Fd())
@@ -414,7 +415,7 @@ func main() {
 		box := cellbuf.Rect(dialogX, dialogY, dialogWidth, dialogHeight)
 		scrw.SetContentRect(dialogBoxStyle.Render(dialogUI), box)
 		scr.Render()
-		scr.Flush() //nolint:errcheck
+		scr.Flush() //nolint:errcheck,gosec
 	}
 
 	// First render
@@ -469,22 +470,15 @@ func colorGrid(xSteps, ySteps int) [][]string {
 	}
 
 	grid := make([][]string, ySteps)
-	for x := 0; x < ySteps; x++ {
+	for x := range ySteps {
 		y0 := x0[x]
 		grid[x] = make([]string, xSteps)
-		for y := 0; y < xSteps; y++ {
+		for y := range xSteps {
 			grid[x][y] = y0.BlendLuv(x1[x], float64(y)/float64(xSteps)).Hex()
 		}
 	}
 
 	return grid
-}
-
-func max(a, b int) int { //nolint:predeclared
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // applyGradient applies a gradient to the given string string.
@@ -507,7 +501,7 @@ func applyGradient(base lipgloss.Style, input string, from, to color.Color) stri
 	b, _ := colorful.MakeColor(from)
 	var output strings.Builder
 	var hex string
-	for i := 0; i < len(chars); i++ {
+	for i := range chars {
 		hex = a.BlendLuv(b, float64(i)/float64(len(chars)-1)).Hex()
 		output.WriteString(base.Foreground(lipgloss.Color(hex)).Render(chars[i]))
 	}
@@ -516,7 +510,7 @@ func applyGradient(base lipgloss.Style, input string, from, to color.Color) stri
 }
 
 func init() {
-	f, err := os.OpenFile("layout.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
+	f, err := os.OpenFile("layout.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666) //nolint:gosec
 	if err != nil {
 		log.Fatal(err)
 	}

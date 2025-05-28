@@ -72,8 +72,8 @@ func TestWriteKittyGraphics(t *testing.T) {
 
 	// Create large test image (larger than [kitty.MaxChunkSize] 4096 bytes)
 	imgLarge := image.NewRGBA(image.Rect(0, 0, 100, 100))
-	for y := 0; y < 100; y++ {
-		for x := 0; x < 100; x++ {
+	for y := range 100 {
+		for x := range 100 {
 			imgLarge.Set(x, y, color.RGBA{R: 255, G: 0, B: 0, A: 255})
 		}
 	}

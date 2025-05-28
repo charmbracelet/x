@@ -1,3 +1,5 @@
+// Package errors provides a function to join multiple errors into a single
+// error for older Go versions.
 package errors
 
 import "strings"
@@ -14,7 +16,7 @@ import "strings"
 // This is copied from Go 1.20 errors.Unwrap, with some tuning to avoid using unsafe.
 // The main goal is to have this available in older Go versions.
 func Join(errs ...error) error {
-	var nonNil []error
+	var nonNil []error //nolint:prealloc
 	for _, err := range errs {
 		if err == nil {
 			continue

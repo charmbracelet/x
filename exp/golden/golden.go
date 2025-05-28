@@ -1,3 +1,4 @@
+// Package golden verify golden file equality.
 package golden
 
 import (
@@ -28,7 +29,7 @@ func RequireEqual(tb testing.TB, out []byte) {
 
 	golden := filepath.Join("testdata", tb.Name()+".golden")
 	if *update {
-		if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil { //nolint: gomnd
+		if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil { //nolint: gomnd,gosec
 			tb.Fatal(err)
 		}
 		if err := os.WriteFile(golden, out, 0o600); err != nil { //nolint: gomnd

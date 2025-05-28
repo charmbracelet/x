@@ -169,13 +169,15 @@ func EncodeKittyGraphics(w io.Writer, m image.Image, o *kitty.Options) error {
 		return fmt.Errorf("failed to write base64 encoded image to payload: %w", err)
 	}
 	if err := b64.Close(); err != nil {
-		return err
+		return fmt.Errorf("failed to encode: %w", err)
 	}
 
 	// If not chunking, write all at once
 	if !o.Chunk {
-		_, err := io.WriteString(w, KittyGraphics(payload.Bytes(), o.Options()...))
-		return err
+		if _, err := io.WriteString(w, KittyGraphics(payload.Bytes(), o.Options()...)); err != nil {
+			return fmt.Errorf("failed to write: %w", err)
+		}
+		return nil
 	}
 
 	// Write in chunks
@@ -198,7 +200,7 @@ func EncodeKittyGraphics(w io.Writer, m image.Image, o *kitty.Options) error {
 
 		opts := buildChunkOptions(o, isFirstChunk, false)
 		if _, err := io.WriteString(w, KittyGraphics(chunk[:n], opts...)); err != nil {
-			return err
+			return fmt.Errorf("failed to write chunk: %w", err)
 		}
 
 		isFirstChunk = false
@@ -206,11 +208,13 @@ func EncodeKittyGraphics(w io.Writer, m image.Image, o *kitty.Options) error {
 
 	// Write the last chunk
 	opts := buildChunkOptions(o, isFirstChunk, true)
-	_, err = io.WriteString(w, KittyGraphics(chunk[:n], opts...))
-	return err
+	if _, err = io.WriteString(w, KittyGraphics(chunk[:n], opts...)); err != nil {
+		return fmt.Errorf("failed to write last chunk: %w", err)
+	}
+	return nil
 }
 
-// buildChunkOptions creates the options slice for a chunk
+// buildChunkOptions creates the options slice for a chunk.
 func buildChunkOptions(o *kitty.Options, isFirstChunk, isLastChunk bool) []string {
 	var opts []string
 	if isFirstChunk {

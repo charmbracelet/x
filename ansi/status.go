@@ -11,10 +11,10 @@ type StatusReport interface {
 	StatusReport() int
 }
 
-// ANSIReport represents an ANSI terminal status report.
+// ANSIStatusReport represents an ANSI terminal status report.
 type ANSIStatusReport int //nolint:revive
 
-// Report returns the status report identifier.
+// StatusReport returns the status report identifier.
 func (s ANSIStatusReport) StatusReport() int {
 	return int(s)
 }
@@ -22,7 +22,7 @@ func (s ANSIStatusReport) StatusReport() int {
 // DECStatusReport represents a DEC terminal status report.
 type DECStatusReport int
 
-// Status returns the status report identifier.
+// StatusReport returns the status report identifier.
 func (s DECStatusReport) StatusReport() int {
 	return int(s)
 }

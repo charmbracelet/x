@@ -43,9 +43,9 @@ func From[T any](r io.Reader, t T) (T, error) {
 func Write(w http.ResponseWriter, data any) error {
 	bts, err := json.Marshal(data)
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck
 	}
 	w.Header().Add("Content-Type", "application/json")
 	_, err = w.Write(bts)
-	return err
+	return err //nolint:wrapcheck
 }

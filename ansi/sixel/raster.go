@@ -11,6 +11,8 @@ var ErrInvalidRaster = fmt.Errorf("invalid raster attributes")
 
 // WriteRaster writes Raster attributes to a writer. If ph and pv are 0, they
 // are omitted.
+//
+//nolint:wrapcheck
 func WriteRaster(w io.Writer, pan, pad, ph, pv int) (n int, err error) {
 	if pad == 0 {
 		return WriteRaster(w, 1, 1, ph, pv)
@@ -37,7 +39,7 @@ func (r Raster) WriteTo(w io.Writer) (int64, error) {
 // String returns the Raster as a string.
 func (r Raster) String() string {
 	var b strings.Builder
-	r.WriteTo(&b) //nolint:errcheck
+	r.WriteTo(&b) //nolint:errcheck,gosec
 	return b.String()
 }
 
@@ -50,7 +52,7 @@ func DecodeRaster(data []byte) (r Raster, n int) {
 
 	ptr := &r.Pan
 	for n = 1; n < len(data); n++ {
-		if data[n] == ';' {
+		if data[n] == ';' { //nolint:nestif
 			if ptr == &r.Pan {
 				ptr = &r.Pad
 			} else if ptr == &r.Pad {

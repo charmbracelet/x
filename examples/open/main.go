@@ -1,3 +1,4 @@
+// Package main is a open example.
 package main
 
 import (

@@ -13,7 +13,7 @@ import (
 )
 
 func (c *ConPty) start(cmd *exec.Cmd) error {
-	pid, proc, err := c.ConPty.Spawn(cmd.Path, cmd.Args, &syscall.ProcAttr{
+	pid, proc, err := c.Spawn(cmd.Path, cmd.Args, &syscall.ProcAttr{
 		Dir: cmd.Dir,
 		Env: cmd.Env,
 		Sys: cmd.SysProcAttr,

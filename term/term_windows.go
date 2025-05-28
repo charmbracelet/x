@@ -22,12 +22,12 @@ func isTerminal(fd uintptr) bool {
 func makeRaw(fd uintptr) (*State, error) {
 	var st uint32
 	if err := windows.GetConsoleMode(windows.Handle(fd), &st); err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 	raw := st &^ (windows.ENABLE_ECHO_INPUT | windows.ENABLE_PROCESSED_INPUT | windows.ENABLE_LINE_INPUT)
 	raw |= windows.ENABLE_VIRTUAL_TERMINAL_INPUT
 	if err := windows.SetConsoleMode(windows.Handle(fd), raw); err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 	return &State{state{st}}, nil
 }
@@ -37,25 +37,25 @@ func setState(fd uintptr, state *State) error {
 	if state != nil {
 		mode = state.Mode
 	}
-	return windows.SetConsoleMode(windows.Handle(fd), mode)
+	return windows.SetConsoleMode(windows.Handle(fd), mode) //nolint:wrapcheck
 }
 
 func getState(fd uintptr) (*State, error) {
 	var st uint32
 	if err := windows.GetConsoleMode(windows.Handle(fd), &st); err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 	return &State{state{st}}, nil
 }
 
 func restore(fd uintptr, state *State) error {
-	return windows.SetConsoleMode(windows.Handle(fd), state.Mode)
+	return windows.SetConsoleMode(windows.Handle(fd), state.Mode) //nolint:wrapcheck
 }
 
 func getSize(fd uintptr) (width, height int, err error) {
 	var info windows.ConsoleScreenBufferInfo
 	if err := windows.GetConsoleScreenBufferInfo(windows.Handle(fd), &info); err != nil {
-		return 0, 0, err
+		return 0, 0, err //nolint:wrapcheck
 	}
 	return int(info.Window.Right - info.Window.Left + 1), int(info.Window.Bottom - info.Window.Top + 1), nil
 }
@@ -63,25 +63,25 @@ func getSize(fd uintptr) (width, height int, err error) {
 func readPassword(fd uintptr) ([]byte, error) {
 	var st uint32
 	if err := windows.GetConsoleMode(windows.Handle(fd), &st); err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 	old := st
 
 	st &^= (windows.ENABLE_ECHO_INPUT | windows.ENABLE_LINE_INPUT)
 	st |= (windows.ENABLE_PROCESSED_OUTPUT | windows.ENABLE_PROCESSED_INPUT)
 	if err := windows.SetConsoleMode(windows.Handle(fd), st); err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
-	defer windows.SetConsoleMode(windows.Handle(fd), old)
+	defer windows.SetConsoleMode(windows.Handle(fd), old) //nolint:errcheck
 
 	var h windows.Handle
-	p, _ := windows.GetCurrentProcess()
+	p := windows.CurrentProcess()
 	if err := windows.DuplicateHandle(p, windows.Handle(fd), p, &h, 0, false, windows.DUPLICATE_SAME_ACCESS); err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
 	f := os.NewFile(uintptr(h), "stdin")
-	defer f.Close()
+	defer f.Close() //nolint:errcheck
 	return readPasswordLine(f)
 }
