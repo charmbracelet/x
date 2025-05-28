@@ -66,6 +66,7 @@ const (
 	Zest
 	Pepper
 	Charcoal
+	Iron
 	Oyster
 	Squid
 	Smoke
@@ -134,6 +135,7 @@ func (k Key) String() string {
 		Zest:     "Zest",
 		Pepper:   "Pepper",
 		Charcoal: "Charcoal",
+		Iron:     "Iron",
 		Oyster:   "Oyster",
 		Squid:    "Squid",
 		Smoke:    "Smoke",
@@ -194,13 +196,14 @@ func (k Key) Hex() string {
 		Mustard:  "#F5EF34",
 		Citron:   "#E8FF27",
 		Zest:     "#E8FE96",
-		Pepper:   "#201F26", // Gray 1
-		Charcoal: "#3A3943", // Gray 2
-		Oyster:   "#605F6B", // Gray 3
-		Squid:    "#858392", // Gray 4
-		Smoke:    "#BFBCC8", // Gray 5
-		Ash:      "#DFDBDD", // Gray 6
-		Salt:     "#F1EFEF", // Gray 7
+		Pepper:   "#201F26",
+		Charcoal: "#3A3943",
+		Iron:     "#4D4C57",
+		Oyster:   "#605F6B",
+		Squid:    "#858392",
+		Smoke:    "#BFBCC8",
+		Ash:      "#DFDBDD",
+		Salt:     "#F1EFEF",
 		Butter:   "#FFFAF1",
 	}[k]
 }
@@ -258,6 +261,7 @@ func Keys() []Key {
 		Zest,
 		Pepper,
 		Charcoal,
+		Iron,
 		Oyster,
 		Squid,
 		Smoke,
