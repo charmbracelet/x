@@ -38,6 +38,12 @@ tasks:
       - for: { var: PACKAGES }
         cmd: cd {{.ITEM}} && gofmt -s -w .
 
+  modernize:
+    desc: Run gofumpt for all packages
+    cmds:
+      - for: { var: PACKAGES }
+        cmd: cd {{.ITEM}} && modernize -fix ./...
+
   lint:all:
     desc: Run all linters for all packages
     cmds:

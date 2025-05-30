@@ -12,7 +12,7 @@ type testLogger struct {
 }
 
 // Printf implements the Logger interface.
-func (l *testLogger) Printf(format string, v ...interface{}) {
+func (l *testLogger) Printf(format string, v ...any) {
 	l.t.Logf(format, v...)
 }
 
@@ -1810,7 +1810,7 @@ func TestTerminal(t *testing.T) {
 
 func termText(term *Terminal) []string {
 	var lines []string
-	for y := 0; y < term.Height(); y++ {
+	for y := range term.Height() {
 		var line string
 		for x := 0; x < term.Width(); x++ {
 			cell := term.Cell(x, y)

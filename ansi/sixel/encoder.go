@@ -57,8 +57,8 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 
 	scratch := newSixelBuilder(imageBounds.Dx(), imageBounds.Dy(), palette)
 
-	for y := 0; y < imageBounds.Dy(); y++ {
-		for x := 0; x < imageBounds.Dx(); x++ {
+	for y := range imageBounds.Dy() {
+		for x := range imageBounds.Dx() {
 			scratch.SetColor(x, y, img.At(x, y))
 		}
 	}
@@ -153,14 +153,14 @@ func (s *sixelBuilder) GeneratePixels() string {
 	s.imageData = strings.Builder{}
 	bandHeight := s.BandHeight()
 
-	for bandY := 0; bandY < bandHeight; bandY++ {
+	for bandY := range bandHeight {
 		if bandY > 0 {
 			s.writeControlRune(LineBreak)
 		}
 
 		hasWrittenAColor := false
 
-		for paletteIndex := 0; paletteIndex < len(s.SixelPalette.PaletteColors); paletteIndex++ {
+		for paletteIndex := range s.SixelPalette.PaletteColors {
 			if s.SixelPalette.PaletteColors[paletteIndex].Alpha < 1 {
 				// Don't draw anything for purely transparent pixels
 				continue
@@ -253,7 +253,7 @@ func (s *sixelBuilder) flushRepeats() {
 		return
 	}
 
-	for i := 0; i < s.repeatCount; i++ {
+	for range s.repeatCount {
 		s.imageData.WriteByte(s.repeatByte)
 	}
 }

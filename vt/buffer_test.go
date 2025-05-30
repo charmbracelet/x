@@ -105,8 +105,8 @@ func TestBuffer_resize(t *testing.T) {
 func TestBuffer_fill(t *testing.T) {
 	b := cellbuf.NewBuffer(10, 5)
 	b.Fill(cellbuf.NewCell('a'))
-	for y := 0; y < b.Height(); y++ {
-		for x := 0; x < b.Width(); x++ {
+	for y := range b.Height() {
+		for x := range b.Width() {
 			if cell := b.Cell(x, y); cell == nil || cell.String() != "a" || cell.Width != 1 {
 				t.Errorf("expected cell at %d,%d to be 'a', got %v", x, y, cell)
 			}
@@ -118,8 +118,8 @@ func TestBuffer_clear(t *testing.T) {
 	b := cellbuf.NewBuffer(10, 5)
 	b.Fill(cellbuf.NewCell('a'))
 	b.Clear()
-	for y := 0; y < b.Height(); y++ {
-		for x := 0; x < b.Width(); x++ {
+	for y := range b.Height() {
+		for x := range b.Width() {
 			if cell := b.Cell(x, y); cell == nil || cell.String() != " " || cell.Width != 1 {
 				t.Errorf("expected cell at %d,%d to be blank, got %v", x, y, cell)
 			}
@@ -132,8 +132,8 @@ func TestBuffer_fillClearRect(t *testing.T) {
 	b.Fill(cellbuf.NewCell('a'))
 	r := cellbuf.Rect(1, 1, 3, 3)
 	b.ClearRect(r)
-	for y := 0; y < b.Height(); y++ {
-		for x := 0; x < b.Width(); x++ {
+	for y := range b.Height() {
+		for x := range b.Width() {
 			pt := cellbuf.Pos(x, y)
 			if pt.In(r) {
 				if cell := b.Cell(x, y); cell == nil || cell.String() != " " || cell.Width != 1 {
@@ -152,8 +152,8 @@ func TestBuffer_insertLine(t *testing.T) {
 	b := cellbuf.NewBuffer(10, 5)
 	b.Fill(cellbuf.NewCell('a'))
 	b.InsertLine(1, 1, nil)
-	for y := 0; y < b.Height(); y++ {
-		for x := 0; x < b.Width(); x++ {
+	for y := range b.Height() {
+		for x := range b.Width() {
 			if y == 1 {
 				if cell := b.Cell(x, y); cell == nil || cell.String() != " " || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be blank, got %v", x, y, cell)
@@ -175,8 +175,8 @@ func TestBuffer_insertLineInRect(t *testing.T) {
 	r := cellbuf.Rect(1, 1, 3, 3)
 	n := 2                         // The number of lines to insert
 	b.InsertLineRect(1, n, nil, r) // Insert n lines at y=1 within the rectangle r
-	for y := 0; y < b.Height(); y++ {
-		for x := 0; x < b.Width(); x++ {
+	for y := range b.Height() {
+		for x := range b.Width() {
 			pt := cellbuf.Pos(x, y)
 			if pt.In(r) && y >= 1 && y < 1+n {
 				if cell := b.Cell(x, y); cell == nil || cell.String() != " " || cell.Width != 1 {
@@ -203,8 +203,8 @@ func TestBuffer_deleteLine(t *testing.T) {
 	if b.Height() != 5 {
 		t.Error("expected height to be less than 5")
 	}
-	for y := 0; y < b.Height(); y++ {
-		for x := 0; x < b.Width(); x++ {
+	for y := range b.Height() {
+		for x := range b.Width() {
 			if y == b.Height()-1 {
 				if cell := b.Cell(x, y); cell == nil || cell.String() != " " || cell.Width != 1 {
 					t.Errorf("expected cell at %d,%d to be blank, got %v", x, y, cell)
@@ -229,7 +229,7 @@ func TestBuffer_deleteLineInRect(t *testing.T) {
 	b.DeleteLineRect(1, n, nil, r) // Delete n lines at y=1 within the rectangle r
 	t.Log("\n" + renderBuffer(b))
 	for y := r.Max.Y - 1; y < r.Dy(); y++ {
-		for x := 0; x < b.Width(); x++ {
+		for x := range b.Width() {
 			pt := cellbuf.Pos(x, y)
 			if pt.In(r) && y >= 1 && y < 1+n {
 				if cell := b.Cell(x, y); cell == nil || cell.String() != " " || cell.Width != 1 {
@@ -246,9 +246,9 @@ func TestBuffer_deleteLineInRect(t *testing.T) {
 
 func renderBuffer(b *Buffer) string {
 	var out strings.Builder
-	for y := 0; y < b.Height(); y++ {
+	for y := range b.Height() {
 		var line string
-		for x := 0; x < b.Width(); x++ {
+		for x := range b.Width() {
 			cell := b.Cell(x, y)
 			if cell == nil {
 				cell = cellbuf.NewCell(' ')

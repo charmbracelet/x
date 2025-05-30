@@ -2,7 +2,7 @@ package vt
 
 // Logger represents a logger interface.
 type Logger interface {
-	Printf(format string, v ...interface{})
+	Printf(format string, v ...any)
 }
 
 // Option is a terminal option.
@@ -22,7 +22,7 @@ func WithLogger(logger Logger) Option {
 }
 
 // logf logs a formatted message if the terminal has a logger.
-func (t *Terminal) logf(format string, v ...interface{}) {
+func (t *Terminal) logf(format string, v ...any) {
 	if t.logger != nil {
 		t.logger.Printf(format, v...)
 	}

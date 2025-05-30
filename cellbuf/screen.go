@@ -794,7 +794,7 @@ func (s *Screen) emitRange(line Line, n int) (eoi bool) {
 				s.putCell(cell0)
 			}
 		} else {
-			for i := 0; i < count; i++ {
+			for i := range count {
 				s.putCell(line.At(i))
 			}
 		}
@@ -867,7 +867,7 @@ func (s *Screen) clearToEnd(blank *Cell, force bool) { //nolint:unparam
 		if s.el0Cost() <= count {
 			s.buf.WriteString(ansi.EraseLineRight) //nolint:errcheck
 		} else {
-			for i := 0; i < count; i++ {
+			for range count {
 				s.putCell(blank)
 			}
 		}
@@ -927,7 +927,7 @@ func (s *Screen) transformLine(y int) {
 
 	// Find the first changed cell in the line
 	var lineChanged bool
-	for i := 0; i < s.newbuf.Width(); i++ {
+	for i := range s.newbuf.Width() {
 		if !cellEqual(newLine.At(i), oldLine.At(i)) {
 			lineChanged = true
 			break
@@ -946,12 +946,12 @@ func (s *Screen) transformLine(y int) {
 		// [ansi.EraseLineLeft].
 		if blank == nil || blank.Clear() {
 			var oFirstCell, nFirstCell int
-			for oFirstCell = 0; oFirstCell < s.curbuf.Width(); oFirstCell++ {
+			for oFirstCell = range s.curbuf.Width() {
 				if !cellEqual(oldLine.At(oFirstCell), blank) {
 					break
 				}
 			}
-			for nFirstCell = 0; nFirstCell < s.newbuf.Width(); nFirstCell++ {
+			for nFirstCell = range s.newbuf.Width() {
 				if !cellEqual(newLine.At(nFirstCell), blank) {
 					break
 				}
@@ -1228,7 +1228,7 @@ func (s *Screen) clearUpdate() {
 		s.clearBelow(blank, 0)
 	}
 	nonEmpty = s.clearBottom(nonEmpty)
-	for i := 0; i < nonEmpty; i++ {
+	for i := range nonEmpty {
 		s.transformLine(i)
 	}
 }
@@ -1360,7 +1360,7 @@ func (s *Screen) render() {
 		}
 
 		nonEmpty = s.clearBottom(nonEmpty)
-		for i = 0; i < nonEmpty; i++ {
+		for i = range nonEmpty {
 			_, ok := s.touch[i]
 			if ok {
 				s.transformLine(i)

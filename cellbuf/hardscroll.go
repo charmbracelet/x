@@ -99,7 +99,7 @@ func (s *Screen) scrolln(n, top, bot, maxY int) (v bool) { //nolint:unparam
 				s.move(0, bot-n+1)
 				s.clearToBottom(nil)
 			} else {
-				for i := 0; i < n; i++ {
+				for i := range n {
 					s.move(0, bot-i)
 					s.clearToEnd(nil, false)
 				}
@@ -124,7 +124,7 @@ func (s *Screen) scrolln(n, top, bot, maxY int) (v bool) { //nolint:unparam
 			// Clear newly shifted-in lines.
 			if v &&
 				(nonDestScrollRegion || (memoryBelow && top == 0)) {
-				for i := 0; i < -n; i++ {
+				for i := range -n {
 					s.move(0, top+i)
 					s.clearToEnd(nil, false)
 				}

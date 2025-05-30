@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/charmbracelet/x/ansi"
+	"maps"
 )
 
 // buildKeysTable builds a table of key sequences and their corresponding key
@@ -283,9 +284,7 @@ func buildKeysTable(flags int, term string) map[string]Key {
 		key.Text = "" // Clear runes
 		tmap["\x1b"+seq] = key
 	}
-	for seq, key := range tmap {
-		table[seq] = key
-	}
+	maps.Copy(table, tmap)
 
 	// XTerm modifiers
 	// These are offset by 1 to be compatible with our Mod type.
@@ -383,9 +382,7 @@ func buildKeysTable(flags int, term string) map[string]Key {
 	// XXX: this might override keys already registered in table
 	if flags&FlagTerminfo != 0 {
 		titable := buildTerminfoKeys(flags, term)
-		for seq, key := range titable {
-			table[seq] = key
-		}
+		maps.Copy(table, titable)
 	}
 
 	return table

@@ -10,7 +10,7 @@ import (
 func (t *Terminal) nextTab(n int) {
 	x, y := t.scr.CursorPosition()
 	scroll := t.scr.ScrollRegion()
-	for i := 0; i < n; i++ {
+	for range n {
 		ts := t.tabstops.Next(x)
 		if ts < x {
 			break
@@ -39,7 +39,7 @@ func (t *Terminal) prevTab(n int) {
 		leftmargin = scroll.Min.X
 	}
 
-	for i := 0; i < n; i++ {
+	for range n {
 		ts := t.tabstops.Prev(x)
 		if ts > x {
 			break
@@ -104,7 +104,7 @@ func (t *Terminal) repeatPreviousCharacter(n int) {
 	if t.lastChar == 0 {
 		return
 	}
-	for i := 0; i < n; i++ {
+	for range n {
 		t.handlePrint(t.lastChar)
 	}
 }

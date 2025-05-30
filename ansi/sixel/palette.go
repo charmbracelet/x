@@ -298,8 +298,8 @@ func newSixelPalette(image image.Image, maxColors int) sixelPalette {
 	width := image.Bounds().Dx()
 
 	// Record pixel counts for every color while also getting a set of all unique colors in the image
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
+	for y := range height {
+		for x := range width {
 			c := sixelConvertColor(image.At(x, y))
 			count := pixelCounts[c]
 			count++

@@ -269,7 +269,7 @@ func partialInsertionSortCmpFunc[E any](data []E, a, b int, cmp func(a, b E) int
 		shortestShifting = 50 // don't shift any elements on short arrays
 	)
 	i := a + 1
-	for j := 0; j < maxSteps; j++ {
+	for range maxSteps {
 		for i < b && !(cmp(data[i], data[i-1]) < 0) {
 			i++
 		}

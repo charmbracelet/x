@@ -70,7 +70,7 @@ func TestOscSequence(t *testing.T) {
 			name:  "exceed_max_buffer_size",
 			input: fmt.Sprintf("\x1b]52;s%s\x07", strings.Repeat("a", maxBufferSize)),
 			expected: []any{
-				[]byte(fmt.Sprintf("52;s%s", strings.Repeat("a", maxBufferSize-4))), // 4 is the len of "52;s"
+				fmt.Appendf(nil, "52;s%s", strings.Repeat("a", maxBufferSize-4)), // 4 is the len of "52;s"
 			},
 		},
 		{

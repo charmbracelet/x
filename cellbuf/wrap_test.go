@@ -1,8 +1,8 @@
 package cellbuf
 
 import (
-	"testing"
 	"fmt"
+	"testing"
 )
 
 var wrapCases = []struct {

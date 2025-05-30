@@ -2,6 +2,7 @@ package kitty
 
 import (
 	"reflect"
+	"slices"
 	"sort"
 	"testing"
 )
@@ -376,10 +377,5 @@ func sortStrings(s []string) {
 }
 
 func containsOption(opts []string, target string) bool {
-	for _, opt := range opts {
-		if opt == target {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(opts, target)
 }

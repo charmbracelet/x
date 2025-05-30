@@ -3,6 +3,7 @@ package ansi
 import (
 	"os"
 	"reflect"
+	"slices"
 	"testing"
 )
 
@@ -40,23 +41,23 @@ func (d *testDispatcher) dispatchEsc(cmd Cmd) {
 }
 
 func (d *testDispatcher) dispatchCsi(cmd Cmd, params Params) {
-	params = append(Params{}, params...)
+	params = slices.Clone(params)
 	d.dispatched = append(d.dispatched, csiSequence{Cmd: cmd, Params: params})
 }
 
 func (d *testDispatcher) dispatchDcs(cmd Cmd, params Params, data []byte) {
-	params = append(Params{}, params...)
-	data = append([]byte{}, data...)
+	params = slices.Clone(params)
+	data = slices.Clone(data)
 	d.dispatched = append(d.dispatched, dcsSequence{Cmd: cmd, Params: params, Data: data})
 }
 
 func (d *testDispatcher) dispatchOsc(cmd int, data []byte) {
-	data = append([]byte{}, data...)
+	data = slices.Clone(data)
 	d.dispatched = append(d.dispatched, data)
 }
 
 func (d *testDispatcher) dispatchApc(data []byte) {
-	data = append([]byte{}, data...)
+	data = slices.Clone(data)
 	d.dispatched = append(d.dispatched, data)
 }
 

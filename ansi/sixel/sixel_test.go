@@ -148,8 +148,8 @@ func TestFullImage(t *testing.T) {
 			img := image.NewRGBA(image.Rect(0, 0, testCase.imageWidth, testCase.imageHeight))
 
 			currentColor := color.RGBA{0, 0, 0, 0}
-			for y := 0; y < testCase.imageHeight; y++ {
-				for x := 0; x < testCase.imageWidth; x++ {
+			for y := range testCase.imageHeight {
+				for x := range testCase.imageWidth {
 					index := y*testCase.imageWidth + x
 					newColor, changingColor := testCase.colors[index]
 					if changingColor {
@@ -190,8 +190,8 @@ func TestFullImage(t *testing.T) {
 				return
 			}
 
-			for y := 0; y < expectedHeight; y++ {
-				for x := 0; x < expectedWidth; x++ {
+			for y := range expectedHeight {
+				for x := range expectedWidth {
 					r, g, b, a := compareImg.At(x, y).RGBA()
 					expectedR, expectedG, expectedB, expectedA := img.At(x, y).RGBA()
 

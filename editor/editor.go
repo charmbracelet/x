@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -30,10 +31,8 @@ func LineNumber(number int) Option {
 	}
 	plusLineEditors := []string{"vi", "vim", "nvim", "nano", "emacs", "kak", "gedit"}
 	return func(editor, filename string) ([]string, bool) {
-		for _, e := range plusLineEditors {
-			if editor == e {
-				return []string{fmt.Sprintf("+%d", number)}, false
-			}
+		if slices.Contains(plusLineEditors, editor) {
+			return []string{fmt.Sprintf("+%d", number)}, false
 		}
 		if editor == "code" {
 			return []string{

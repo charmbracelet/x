@@ -400,7 +400,7 @@ func TestParseSequence(t *testing.T) {
 
 func TestReadLongInput(t *testing.T) {
 	expect := make([]Event, 1000)
-	for i := 0; i < 1000; i++ {
+	for i := range 1000 {
 		expect[i] = KeyPressEvent{Code: 'a', Text: "a"}
 	}
 	input := strings.Repeat("a", 1000)

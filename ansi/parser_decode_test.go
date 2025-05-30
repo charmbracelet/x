@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/charmbracelet/x/ansi/parser"
+	"slices"
 )
 
 func TestDecodeSequence(t *testing.T) {
@@ -315,8 +316,8 @@ func TestDecodeSequence(t *testing.T) {
 			results := make([]expectedSequence, 0)
 			for len(input) > 0 {
 				seq, width, n, newState := DecodeSequence(input, state, p)
-				params := append([]int(nil), p.params[:p.paramsLen]...)
-				data := append([]byte(nil), p.data[:p.dataLen]...)
+				params := slices.Clone(p.params[:p.paramsLen])
+				data := slices.Clone(p.data[:p.dataLen])
 				results = append(results, expectedSequence{seq: seq, width: width, n: n, params: params, data: data, cmd: p.cmd})
 				state = newState
 				input = input[n:]

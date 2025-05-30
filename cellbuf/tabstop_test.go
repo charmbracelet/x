@@ -136,7 +136,7 @@ func TestTabStopsClear(t *testing.T) {
 	ts.Clear()
 
 	// Verify all stops are cleared
-	for i := 0; i < 24; i++ {
+	for i := range 24 {
 		if ts.IsStop(i) {
 			t.Errorf("Tab stop at column %d still set after Clear()", i)
 		}

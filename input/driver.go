@@ -10,7 +10,7 @@ import (
 
 // Logger is a simple logger interface.
 type Logger interface {
-	Printf(format string, v ...interface{})
+	Printf(format string, v ...any)
 }
 
 // win32InputState is a state machine for parsing key events from the Windows

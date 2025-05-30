@@ -50,7 +50,7 @@ func (w *PenWriter) Link() Link {
 
 // Write writes to the buffer.
 func (w *PenWriter) Write(p []byte) (int, error) {
-	for i := 0; i < len(p); i++ {
+	for i := range p {
 		b := p[i]
 		w.p.Advance(b)
 		if b == '\n' {

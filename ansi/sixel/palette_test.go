@@ -3,6 +3,7 @@ package sixel
 import (
 	"image"
 	"image/color"
+	"slices"
 	"testing"
 )
 
@@ -88,11 +89,8 @@ func runTests(t *testing.T, img image.Image, testCases map[string]testCase) {
 
 			for _, c := range test.expectedPalette {
 				var foundColor bool
-				for _, paletteColor := range palette.PaletteColors {
-					if paletteColor == c {
-						foundColor = true
-						break
-					}
+				if slices.Contains(palette.PaletteColors, c) {
+					foundColor = true
 				}
 
 				if !foundColor {

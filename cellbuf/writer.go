@@ -68,7 +68,7 @@ func SetContent(s CellBuffer, str string) {
 func Render(d CellBuffer) string {
 	var buf bytes.Buffer
 	height := d.Bounds().Dy()
-	for y := 0; y < height; y++ {
+	for y := range height {
 		_, line := RenderLine(d, y)
 		buf.WriteString(line)
 		if y < height-1 {
@@ -98,7 +98,7 @@ func RenderLine(d CellBuffer, n int) (w int, line string) {
 		pendingLine = ""
 	}
 
-	for x := 0; x < d.Bounds().Dx(); x++ {
+	for x := range d.Bounds().Dx() {
 		if cell := d.Cell(x, n); cell != nil && cell.Width > 0 {
 			// Convert the cell's style and link to the given color profile.
 			cellStyle := cell.Style
@@ -201,7 +201,7 @@ func (s *ScreenWriter) SetContentRect(str string, rect Rectangle) {
 // string to the width of the screen if it exceeds the width of the screen.
 // This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
 // sequences.
-func (s *ScreenWriter) Print(str string, v ...interface{}) {
+func (s *ScreenWriter) Print(str string, v ...any) {
 	if len(v) > 0 {
 		str = fmt.Sprintf(str, v...)
 	}
@@ -214,7 +214,7 @@ func (s *ScreenWriter) Print(str string, v ...interface{}) {
 // the width of the screen if it exceeds the width of the screen.
 // This will recognize ANSI [ansi.SGR] style and [ansi.SetHyperlink] escape
 // sequences.
-func (s *ScreenWriter) PrintAt(x, y int, str string, v ...interface{}) {
+func (s *ScreenWriter) PrintAt(x, y int, str string, v ...any) {
 	if len(v) > 0 {
 		str = fmt.Sprintf(str, v...)
 	}

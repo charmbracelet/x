@@ -6,7 +6,7 @@ import (
 )
 
 // Event represents a terminal event.
-type Event interface{}
+type Event any
 
 // UnknownEvent represents an unknown event.
 type UnknownEvent string

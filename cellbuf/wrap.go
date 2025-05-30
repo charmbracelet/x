@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
+	"slices"
 )
 
 const nbsp = '\u00a0'
@@ -185,10 +186,5 @@ func Wrap(s string, limit int, breakpoints string) string {
 }
 
 func runeContainsAny[T string | []rune](r rune, s T) bool {
-	for _, c := range []rune(s) {
-		if c == r {
-			return true
-		}
-	}
-	return false
+	return slices.Contains([]rune(s), r)
 }

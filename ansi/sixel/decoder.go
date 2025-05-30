@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"io"
+	"slices"
 )
 
 // Decoder is a Sixel image decoder. It reads Sixel image data from an
@@ -151,7 +152,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 			fallthrough
 		case b >= '?' && b <= '~':
 			color := palette[currentPaletteIndex]
-			for i := 0; i < count; i++ {
+			for range count {
 				d.writePixel(currentX, currentBandY, b, color, img)
 				currentX++
 			}
@@ -519,6 +520,6 @@ var colorPalette = [256]color.Color{
 func DefaultPalette() color.Palette {
 	// Undefined colors in sixel images use a set of default colors: 0-15
 	// are sixel-specific, 16-255 are the same as the xterm 256-color values
-	palette := append(color.Palette(nil), colorPalette[:]...)
+	palette := slices.Clone(colorPalette[:])
 	return palette[:]
 }
