@@ -2,10 +2,10 @@
 package charmtone
 
 import (
+	"fmt"
 	"image/color"
 	"slices"
 
-	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/lucasb-eyer/go-colorful"
 )
 
