@@ -8,6 +8,8 @@ require (
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2.0.20250125233033-58a153eb00e6
 	github.com/charmbracelet/x/ansi v0.9.2
 	github.com/charmbracelet/x/cellbuf v0.0.13
+	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250602192518-9e722df69bbb
+	github.com/charmbracelet/x/exp/toner v0.0.0-20250602202920-5fecc56e9a94
 	github.com/charmbracelet/x/input v0.3.4
 	github.com/charmbracelet/x/mosaic v0.0.0-20250313150240-c09addb0e197
 	github.com/creack/pty v1.1.24
