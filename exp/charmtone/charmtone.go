@@ -78,7 +78,11 @@ const (
 // RGBA returns the red, green, blue, and alpha values of the color. It
 // satisfies the color.Color interface.
 func (k Key) RGBA() (r, g, b, a uint32) {
-	return lipgloss.Color(k.Hex()).RGBA()
+	c, err := colorful.Hex(k.Hex())
+	if err != nil {
+		panic(fmt.Sprintf("invalid color key %d: %s: %v", k, k.String(), err))
+	}
+	return c.RGBA()
 }
 
 // String returns the official CharmTone name of the color. It satisfies the
