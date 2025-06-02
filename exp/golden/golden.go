@@ -23,7 +23,7 @@ var update = flag.Bool("update", false, "update .golden files")
 // before comparing the output with the golden files.
 //
 // You can update the golden files by running your tests with the -update flag.
-func RequireEqual(tb testing.TB, out []byte) {
+func RequireEqual[T []byte | string](tb testing.TB, out T) {
 	tb.Helper()
 
 	golden := filepath.Join("testdata", tb.Name()+".golden")
@@ -31,7 +31,7 @@ func RequireEqual(tb testing.TB, out []byte) {
 		if err := os.MkdirAll(filepath.Dir(golden), 0o755); err != nil { //nolint: gomnd
 			tb.Fatal(err)
 		}
-		if err := os.WriteFile(golden, out, 0o600); err != nil { //nolint: gomnd
+		if err := os.WriteFile(golden, []byte(out), 0o600); err != nil { //nolint: gomnd
 			tb.Fatal(err)
 		}
 	}

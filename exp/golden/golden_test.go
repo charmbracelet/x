@@ -16,3 +16,14 @@ func TestRequireWithLineBreaks(t *testing.T) {
 	*update = false
 	RequireEqual(t, []byte("foo\nbar\nbaz\n"))
 }
+
+func TestTypes(t *testing.T) {
+	*update = false
+
+	t.Run("SliceOfBytes", func(t *testing.T) {
+		RequireEqual(t, []byte("test"))
+	})
+	t.Run("String", func(t *testing.T) {
+		RequireEqual(t, "test")
+	})
+}
