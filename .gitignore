@@ -16,7 +16,6 @@
 
 !go.work
 
-testdata
 *.png
 
 # MacOS invisible file
