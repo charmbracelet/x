@@ -316,6 +316,9 @@ func BlendColors(size int, keys ...Key) []color.Color {
 	}
 
 	numSegments := len(stops) - 1
+	if numSegments == 0 {
+		return nil
+	}
 	blended := make([]color.Color, 0, size)
 
 	// Calculate how many colors each segment should have.
@@ -338,6 +341,9 @@ func BlendColors(size int, keys ...Key) []color.Color {
 		segmentSize := segmentSizes[i]
 
 		for j := range segmentSize {
+			if segmentSize == 0 {
+				continue
+			}
 			t := float64(j) / float64(segmentSize)
 			c := c1.BlendHcl(c2, t)
 			blended = append(blended, c)
