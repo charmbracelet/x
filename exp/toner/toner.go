@@ -3,6 +3,7 @@ package toner
 import (
 	"bytes"
 	"io"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -48,10 +49,30 @@ func (w Writer) WriteString(s string) (n int, err error) {
 	return writeColorize(w, s)
 }
 
-const (
-	startTone = charmtone.Cumin
-	endTone   = charmtone.Zest
-)
+var colors = func() []charmtone.Key {
+	cols := charmtone.Keys()
+	// Filter out these colors.
+	filterOut := []charmtone.Key{
+		charmtone.Cumin,
+		charmtone.Tang,
+		charmtone.Paprika,
+		charmtone.Pepper,
+		charmtone.Charcoal,
+		charmtone.Iron,
+		charmtone.Oyster,
+		charmtone.Squid,
+		charmtone.Smoke,
+		charmtone.Ash,
+		charmtone.Salt,
+		charmtone.Butter,
+	}
+	for _, k := range filterOut {
+		cols = slices.DeleteFunc(cols, func(c charmtone.Key) bool {
+			return c == k
+		})
+	}
+	return cols
+}()
 
 func writeColorize[T []byte | string](w io.Writer, p T) (n int, err error) {
 	pa := ansi.NewParser()
@@ -66,7 +87,7 @@ func writeColorize[T []byte | string](w io.Writer, p T) (n int, err error) {
 		if cmd == 0 && width > 0 {
 			s = string(seq)
 		} else {
-			st = st.ForegroundColor(charmtone.Key(cmd % int(endTone)))
+			st = st.ForegroundColor(colors[cmd%len(colors)])
 			s = string(seq)
 		}
 
