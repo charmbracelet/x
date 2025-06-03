@@ -13,12 +13,16 @@ import (
 // Strings returns a colorized string representation of the input byte slice or
 // string.
 func Strings(s string) string {
-	return colorize(s)
+	var buf bytes.Buffer
+	_, _ = writeColorize(&buf, s)
+	return buf.String()
 }
 
 // Bytes returns a colorized byte slice representation of the input byte slice.
 func Bytes(b []byte) []byte {
-	return colorize(b)
+	var buf bytes.Buffer
+	_, _ = writeColorize(&buf, b)
+	return buf.Bytes()
 }
 
 // Writer encapsulates a [io.Writer] that colorizes the output using charm tones.
@@ -32,9 +36,7 @@ func (w Writer) Write(p []byte) (n int, err error) {
 		return 0, nil
 	}
 
-	colored := colorize(p)
-	n, err = w.Writer.Write(colored)
-	return n, err
+	return writeColorize(w, p)
 }
 
 // WriteString writes the colorized output of the input string to the underlying writer.
@@ -43,9 +45,7 @@ func (w Writer) WriteString(s string) (n int, err error) {
 		return 0, nil
 	}
 
-	colored := colorize(s)
-	n, err = io.WriteString(w.Writer, colored)
-	return n, err
+	return writeColorize(w, s)
 }
 
 const (
@@ -53,19 +53,17 @@ const (
 	endTone   = charmtone.Zest
 )
 
-func colorize[T []byte | string](b T) T {
-	var buf bytes.Buffer
-
-	p := ansi.NewParser()
+func writeColorize[T []byte | string](w io.Writer, p T) (n int, err error) {
+	pa := ansi.NewParser()
 
 	var state byte
-	for len(b) > 0 {
-		seq, w, n, newState := ansi.DecodeSequence(b, state, p)
-		cmd := p.Command()
+	for len(p) > 0 {
+		seq, width, nr, newState := ansi.DecodeSequence(p, state, pa)
+		cmd := pa.Command()
 
 		var st ansi.Style
 		var s string
-		if cmd == 0 && w > 0 {
+		if cmd == 0 && width > 0 {
 			s = string(seq)
 		} else {
 			st = st.ForegroundColor(charmtone.Key(cmd % int(endTone)))
@@ -78,16 +76,17 @@ func colorize[T []byte | string](b T) T {
 		if len(st) > 0 {
 			s = st.Styled(s)
 		}
-		buf.WriteString(s)
 
-		b = b[n:]
+		m, err := io.WriteString(w, s)
+		if err != nil {
+			return n, err
+		}
+
+		n += m
+
+		p = p[nr:]
 		state = newState
 	}
 
-	switch any(b).(type) {
-	case []byte:
-		return T(buf.Bytes())
-	default:
-		return T(buf.String())
-	}
+	return n, nil
 }
