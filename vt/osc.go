@@ -62,7 +62,7 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 			return
 		}
 
-		var enc func(color.Color) string
+		var enc func(string) string
 		if s := string(parts[1]); s == "?" {
 			switch cmd {
 			case 10:
@@ -77,7 +77,8 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 			}
 
 			if enc != nil && col != nil {
-				t.buf.WriteString(enc(ansi.XRGBColorizer{Color: col}))
+				xrgb := ansi.XRGBColor{Color: col}
+				t.buf.WriteString(enc(xrgb.String()))
 			}
 		} else {
 			col := ansi.XParseColor(string(parts[1]))
