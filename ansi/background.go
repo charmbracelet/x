@@ -48,17 +48,25 @@ func (h HexColor) color() *colorful.Color {
 // rgb: string.
 //
 // See: https://linux.die.net/man/3/xparsecolor
-type XRGBColor RGBColor
+type XRGBColor struct {
+	color.Color
+}
 
 // RGBA returns the RGBA values of the color.
 func (x XRGBColor) RGBA() (r, g, b, a uint32) {
-	return RGBColor(x).RGBA()
+	if x.Color == nil {
+		return 0, 0, 0, 0
+	}
+	return x.Color.RGBA()
 }
 
 // String returns the color as an XParseColor rgb: string. If the color is nil,
 // an empty string is returned.
 func (x XRGBColor) String() string {
-	r, g, b, _ := RGBColor(x).RGBA()
+	if x.Color == nil {
+		return ""
+	}
+	r, g, b, _ := x.Color.RGBA()
 	// Get the lower 8 bits
 	return fmt.Sprintf("rgb:%04x/%04x/%04x", r, g, b)
 }
@@ -67,16 +75,24 @@ func (x XRGBColor) String() string {
 // rgba: string.
 //
 // See: https://linux.die.net/man/3/xparsecolor
-type XRGBAColor color.RGBA
+type XRGBAColor struct {
+	color.Color
+}
 
 // RGBA returns the RGBA values of the color.
 func (x XRGBAColor) RGBA() (r, g, b, a uint32) {
-	return color.RGBA(x).RGBA()
+	if x.Color == nil {
+		return 0, 0, 0, 0
+	}
+	return x.Color.RGBA()
 }
 
 // String returns the color as an XParseColor rgba: string. If the color is nil,
 // an empty string is returned.
 func (x XRGBAColor) String() string {
+	if x.Color == nil {
+		return ""
+	}
 	r, g, b, a := x.RGBA()
 	// Get the lower 8 bits
 	return fmt.Sprintf("rgba:%04x/%04x/%04x/%04x", r, g, b, a)
