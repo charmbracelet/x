@@ -784,11 +784,16 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 
 	t.RegisterCsiHandler(ansi.Command(0, ' ', 'q'), func(params ansi.Params) bool {
 		// Set Cursor Style [ansi.DECSCUSR]
-		style := 1
-		if param, _, ok := params.Param(0, 0); ok && param > style {
-			style = param
+		n := 1
+		if param, _, ok := params.Param(0, 0); ok && param > n {
+			n = param
 		}
-		t.scr.setCursorStyle(CursorStyle((style/2)+1), style%2 == 1)
+		blink := n == 0 || n%2 == 1
+		style := n / 2
+		if !blink {
+			style--
+		}
+		t.scr.setCursorStyle(CursorStyle(style), blink)
 		return true
 	})
 
