@@ -51,8 +51,9 @@ type Terminal struct {
 	// tabstop is the list of tab stops.
 	tabstops *uv.TabStops
 
-	// The input buffer of the terminal.
-	buf bytes.Buffer
+	// I/O pipes.
+	pr *io.PipeReader
+	pw *io.PipeWriter
 
 	// The GL and GR character set identifiers.
 	gl, gr  int
@@ -92,13 +93,12 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 		// Pm:      t.handlePm,
 		// Sos:     t.handleSos,
 	})
-	t.parser.SetParamsSize(parser.MaxParamsSize)
-	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
+	t.pr, t.pw = io.Pipe()
 	t.resetModes()
 	t.tabstops = uv.DefaultTabStops(w)
-	t.fg = defaultFg
-	t.bg = defaultBg
-	t.cur = defaultCur
+	t.fgColor = defaultFg
+	t.bgColor = defaultBg
+	t.curColor = defaultCur
 	t.registerDefaultHandlers()
 
 	for _, opt := range opts {
@@ -173,12 +173,7 @@ func (t *Terminal) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
-	if t.buf.Len() == 0 {
-		time.Sleep(10 * time.Millisecond)
-		return 0, nil
-	}
-
-	return t.buf.Read(p)
+	return t.pr.Read(p)
 }
 
 // Close closes the terminal.
@@ -192,35 +187,15 @@ func (t *Terminal) Close() error {
 }
 
 // Write writes data to the terminal output buffer.
-func (t *Terminal) Write(p []byte) (n int, err error) {
-	// t.mu.Lock()
-	// defer t.mu.Unlock()
-
-	for len(p) > 0 {
-		action := t.parser.Advance(p[0])
-		if action == parser.CollectAction && t.parser.State() == parser.Utf8State {
-			// Use uniseg to handle UTF-8 sequences.
-			var gr []byte
-			var width int
-			gr, _, width, _ = uniseg.FirstGraphemeCluster(p, -1)
-			t.handleGrapheme(string(gr), width)
-			// Reset the parser back to ground state.
-			t.parser.Reset()
-			n += len(gr)
-			p = p[len(gr):]
-		} else {
-			p = p[1:]
-			n++
-		}
-	}
-
-	return
+func (t *Terminal) Write(p []byte) (int, error) {
+	t.parser.Parse(p)
+	return len(p), nil
 }
 
 // InputPipe returns the terminal's input pipe.
 // This can be used to send input to the terminal.
 func (t *Terminal) InputPipe() io.Writer {
-	return &t.buf
+	return t.pw
 }
 
 // Paste pastes text into the terminal.
@@ -228,16 +203,16 @@ func (t *Terminal) InputPipe() io.Writer {
 // appropriate escape sequences.
 func (t *Terminal) Paste(text string) {
 	if t.isModeSet(ansi.BracketedPasteMode) {
-		t.buf.WriteString(ansi.BracketedPasteStart)
-		defer t.buf.WriteString(ansi.BracketedPasteEnd)
+		io.WriteString(t.pw, ansi.BracketedPasteStart)     //nolint:errcheck
+		defer io.WriteString(t.pw, ansi.BracketedPasteEnd) //nolint:errcheck
 	}
 
-	t.buf.WriteString(text)
+	io.WriteString(t.pw, text) //nolint:errcheck
 }
 
 // SendText sends text to the terminal.
 func (t *Terminal) SendText(text string) {
-	t.buf.WriteString(text)
+	io.WriteString(t.pw, text) //nolint:errcheck
 }
 
 // SendKeys sends multiple keys to the terminal.

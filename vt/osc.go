@@ -3,6 +3,7 @@ package vt
 import (
 	"bytes"
 	"image/color"
+	"io"
 
 	"github.com/charmbracelet/x/ansi"
 )
@@ -78,7 +79,7 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 
 			if enc != nil && col != nil {
 				xrgb := ansi.XRGBColor{Color: col}
-				t.buf.WriteString(enc(xrgb.String()))
+				io.WriteString(t.pw, enc(xrgb.String())) //nolint:errcheck
 			}
 		} else {
 			col := ansi.XParseColor(string(parts[1]))

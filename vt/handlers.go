@@ -1,6 +1,8 @@
 package vt
 
 import (
+	"io"
+
 	"github.com/charmbracelet/uv"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -629,12 +631,12 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		}
 
 		// Do we fully support VT220?
-		t.buf.WriteString(ansi.PrimaryDeviceAttributes(
+		io.WriteString(t.pw, ansi.PrimaryDeviceAttributes(
 			62, // VT220
 			1,  // 132 columns
 			6,  // Selective Erase
 			22, // ANSI color
-		))
+		)) //nolint:errcheck
 		return true
 	})
 
@@ -646,11 +648,11 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		}
 
 		// Do we fully support VT220?
-		t.buf.WriteString(ansi.SecondaryDeviceAttributes(
+		io.WriteString(t.pw, ansi.SecondaryDeviceAttributes(
 			1,  // VT220
 			10, // Version 1.0
 			0,  // ROM Cartridge is always zero
-		))
+		)) //nolint:errcheck
 		return true
 	})
 
@@ -740,10 +742,10 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		case 5: // Operating Status
 			// We're always ready ;)
 			// See: https://vt100.net/docs/vt510-rm/DSR-OS.html
-			t.buf.WriteString(ansi.DeviceStatusReport(ansi.DECStatusReport(0)))
+			io.WriteString(t.pw, ansi.DeviceStatusReport(ansi.DECStatusReport(0))) //nolint:errcheck
 		case 6: // Cursor Position Report [ansi.CPR]
 			x, y := t.scr.CursorPosition()
-			t.buf.WriteString(ansi.CursorPositionReport(x+1, y+1))
+			io.WriteString(t.pw, ansi.CursorPositionReport(x+1, y+1)) //nolint:errcheck
 		default:
 			return false
 		}
@@ -760,7 +762,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		switch n {
 		case 6: // Extended Cursor Position Report [ansi.DECXCPR]
 			x, y := t.scr.CursorPosition()
-			t.buf.WriteString(ansi.ExtendedCursorPositionReport(x+1, y+1, 0)) // We don't support page numbers
+			io.WriteString(t.pw, ansi.ExtendedCursorPositionReport(x+1, y+1, 0)) // We don't support page numbers //nolint:errcheck
 		default:
 			return false
 		}

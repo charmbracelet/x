@@ -2,6 +2,7 @@ package vt
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
@@ -25,7 +26,7 @@ func (t *Terminal) handleRequestMode(params ansi.Params, isAnsi bool) {
 	}
 
 	setting := t.modes[mode]
-	t.buf.WriteString(ansi.ReportMode(mode, setting))
+	io.WriteString(t.pw, ansi.ReportMode(mode, setting)) //nolint:errcheck
 }
 
 func paramsString(cmd ansi.Cmd, params ansi.Params) string {

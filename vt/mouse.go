@@ -1,6 +1,8 @@
 package vt
 
 import (
+	"io"
+
 	"github.com/charmbracelet/uv"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -106,8 +108,8 @@ func (t *Terminal) SendMouse(m Mouse) {
 	// TODO: Support [ansi.Utf8ExtMouseMode], [ansi.UrxvtExtMouseMode], and
 	// [ansi.SgrPixelExtMouseMode].
 	case nil: // X10 mouse encoding
-		t.buf.WriteString(ansi.MouseX10(b, mouse.X, mouse.Y))
+		io.WriteString(t.pw, ansi.MouseX10(b, mouse.X, mouse.Y)) //nolint:errcheck
 	case ansi.SgrExtMouseMode: // SGR mouse encoding
-		t.buf.WriteString(ansi.MouseSgr(b, mouse.X, mouse.Y, isRelease))
+		io.WriteString(t.pw, ansi.MouseSgr(b, mouse.X, mouse.Y, isRelease)) //nolint:errcheck
 	}
 }

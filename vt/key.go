@@ -1,6 +1,8 @@
 package vt
 
 import (
+	"io"
+
 	"github.com/charmbracelet/uv"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -271,7 +273,7 @@ func (t *Terminal) SendKey(k Key) {
 		seq = "\x1b" + seq
 	}
 
-	t.buf.WriteString(seq) //nolint:errcheck
+	io.WriteString(t.pw, seq) //nolint:errcheck
 }
 
 // Key codes.
