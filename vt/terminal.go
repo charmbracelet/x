@@ -290,3 +290,9 @@ func (t *Terminal) SetIndexedColor(i int, c color.Color) {
 func (t *Terminal) resetTabStops() {
 	t.tabstops = uv.DefaultTabStops(t.Width())
 }
+
+func (t *Terminal) logf(format string, v ...any) {
+	if t.logger != nil {
+		t.logger.Printf(format, v...)
+	}
+}

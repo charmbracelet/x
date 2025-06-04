@@ -18,7 +18,9 @@ func (l *testLogger) Printf(format string, v ...any) {
 
 // newTestTerminal creates a new test terminal.
 func newTestTerminal(t testing.TB, width, height int) *Terminal {
-	return NewTerminal(width, height, WithLogger(&testLogger{t}))
+	term := NewTerminal(width, height)
+	term.SetLogger(&testLogger{t})
+	return term
 }
 
 var cases = []struct {
