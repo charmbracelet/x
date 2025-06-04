@@ -1,15 +1,12 @@
 package vt
 
 import (
-	"bytes"
 	"image/color"
 	"io"
-	"time"
 
 	"github.com/charmbracelet/uv"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
-	"github.com/rivo/uniseg"
 )
 
 // Terminal represents a virtual terminal.
@@ -19,8 +16,9 @@ type Terminal struct {
 	// The terminal's indexed 256 colors.
 	colors [256]color.Color
 
-	// Both main and alt screens.
+	// Both main and alt screens and a pointer to the currently active screen.
 	scrs [2]Screen
+	scr  *Screen
 
 	// Character sets
 	charsets [4]CharSet
@@ -29,13 +27,10 @@ type Terminal struct {
 	logger Logger
 
 	// terminal default colors.
-	fg, bg, cur color.Color
+	fgColor, bgColor, curColor color.Color
 
 	// Terminal modes.
-	modes map[ansi.Mode]ansi.ModeSetting
-
-	// The current focused screen.
-	scr *Screen
+	modes ansi.Modes
 
 	// The last written character.
 	lastChar rune // either ansi.Rune or ansi.Grapheme
@@ -78,10 +73,12 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t := new(Terminal)
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
-	t.scrs[0].cb = &t.Callbacks
-	t.scrs[1].cb = &t.Callbacks
 	t.scr = &t.scrs[0]
-	t.parser = ansi.NewParser() // 4MB data buffer
+	t.scrs[0].cb = &t.cb
+	t.scrs[1].cb = &t.cb
+	t.parser = ansi.NewParser()
+	t.parser.SetParamsSize(parser.MaxParamsSize)
+	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
 	t.parser.SetHandler(ansi.Handler{
 		Print:     t.handlePrint,
 		Execute:   t.handleControl,
@@ -113,6 +110,11 @@ func (t *Terminal) SetCallbacks(cb Callbacks) {
 	t.cb = cb
 	t.scrs[0].cb = &t.cb
 	t.scrs[1].cb = &t.cb
+}
+
+// Touched returns the touched lines in the current screen buffer.
+func (t *Terminal) Touched() []*uv.LineData {
+	return t.scr.Touched()
 }
 
 // CellAt returns the current focused screen cell at the given x, y position.
@@ -224,32 +226,32 @@ func (t *Terminal) SendKeys(keys ...Key) {
 
 // ForegroundColor returns the terminal's foreground color.
 func (t *Terminal) ForegroundColor() color.Color {
-	return t.fg
+	return t.fgColor
 }
 
 // SetForegroundColor sets the terminal's foreground color.
 func (t *Terminal) SetForegroundColor(c color.Color) {
-	t.fg = c
+	t.fgColor = c
 }
 
 // BackgroundColor returns the terminal's background color.
 func (t *Terminal) BackgroundColor() color.Color {
-	return t.bg
+	return t.bgColor
 }
 
 // SetBackgroundColor sets the terminal's background color.
 func (t *Terminal) SetBackgroundColor(c color.Color) {
-	t.bg = c
+	t.bgColor = c
 }
 
 // CursorColor returns the terminal's cursor color.
 func (t *Terminal) CursorColor() color.Color {
-	return t.cur
+	return t.curColor
 }
 
 // SetCursorColor sets the terminal's cursor color.
 func (t *Terminal) SetCursorColor(c color.Color) {
-	t.cur = c
+	t.curColor = c
 }
 
 // IndexedColor returns a terminal's indexed color. An indexed color is a color
