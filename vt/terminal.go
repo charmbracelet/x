@@ -9,6 +9,11 @@ import (
 	"github.com/charmbracelet/x/ansi/parser"
 )
 
+// Logger represents a logger interface.
+type Logger interface {
+	Printf(format string, v ...any)
+}
+
 // Terminal represents a virtual terminal.
 type Terminal struct {
 	handlers
@@ -69,7 +74,7 @@ var (
 )
 
 // NewTerminal creates a new terminal.
-func NewTerminal(w, h int, opts ...Option) *Terminal {
+func NewTerminal(w, h int) *Terminal {
 	t := new(Terminal)
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
@@ -98,11 +103,12 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	t.curColor = defaultCur
 	t.registerDefaultHandlers()
 
-	for _, opt := range opts {
-		opt(t)
-	}
-
 	return t
+}
+
+// SetLogger sets the terminal's logger.
+func (t *Terminal) SetLogger(l Logger) {
+	t.logger = l
 }
 
 // SetCallbacks sets the terminal's callbacks.
