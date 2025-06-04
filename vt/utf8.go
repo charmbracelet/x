@@ -48,7 +48,7 @@ func (t *Terminal) handleGrapheme(content string, width int) {
 
 		if charset != nil {
 			if r, ok := charset[c]; ok {
-				cell.Content = string(r)
+				cell.Content = r
 				cell.Width = 1
 			}
 		}
