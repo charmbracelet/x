@@ -24,23 +24,23 @@ func (t *Terminal) handleTitle(cmd int, data []byte) {
 	case 0: // Set window title and icon name
 		name := string(parts[1])
 		t.iconName, t.title = name, name
-		if t.Callbacks.Title != nil {
-			t.Callbacks.Title(name)
+		if t.cb.Title != nil {
+			t.cb.Title(name)
 		}
-		if t.Callbacks.IconName != nil {
-			t.Callbacks.IconName(name)
+		if t.cb.IconName != nil {
+			t.cb.IconName(name)
 		}
 	case 1: // Set icon name
 		name := string(parts[1])
 		t.iconName = name
-		if t.Callbacks.IconName != nil {
-			t.Callbacks.IconName(name)
+		if t.cb.IconName != nil {
+			t.cb.IconName(name)
 		}
 	case 2: // Set window title
 		name := string(parts[1])
 		t.title = name
-		if t.Callbacks.Title != nil {
-			t.Callbacks.Title(name)
+		if t.cb.Title != nil {
+			t.cb.Title(name)
 		}
 	}
 }

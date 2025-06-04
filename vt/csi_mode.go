@@ -46,15 +46,11 @@ func (t *Terminal) setAltScreenMode(on bool) {
 	} else {
 		t.scr = &t.scrs[0]
 	}
-	if t.Callbacks.AltScreen != nil {
-		t.Callbacks.AltScreen(on)
+	if t.cb.AltScreen != nil {
+		t.cb.AltScreen(on)
 	}
-	if t.Callbacks.Damage != nil {
-		area := t.scr.Bounds()
-		t.Callbacks.Damage(ScreenDamage{
-			Width:  area.Dx(),
-			Height: area.Dy(),
-		})
+	if t.cb.CursorVisibility != nil {
+		t.cb.CursorVisibility(!t.scr.cur.Hidden)
 	}
 }
 

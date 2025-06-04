@@ -2,7 +2,6 @@ package vt
 
 import (
 	"github.com/charmbracelet/uv"
-	"github.com/charmbracelet/x/cellbuf"
 )
 
 // Screen represents a virtual terminal screen.
@@ -44,19 +43,9 @@ func (s *Screen) CellAt(x int, y int) *uv.Cell {
 	return s.buf.CellAt(x, y)
 }
 
-// Buffer returns the buffer of the screen.
-func (s *Screen) Buffer() *Buffer {
-	return &s.buf
-}
-
 // SetCell sets the cell at the given x, y position.
 func (s *Screen) SetCell(x, y int, c *uv.Cell) {
 	s.buf.SetCell(x, y, c)
-
-	if s.cb.Damage != nil {
-		width := c.Width
-		s.cb.Damage(CellDamage{x, y, width})
-	}
 }
 
 // Height returns the height of the screen.
@@ -68,10 +57,6 @@ func (s *Screen) Height() int {
 func (s *Screen) Resize(width int, height int) {
 	s.buf.Resize(width, height)
 	s.scroll = s.buf.Bounds()
-
-	if s.cb != nil && s.cb.Damage != nil {
-		s.cb.Damage(ScreenDamage{width, height})
-	}
 }
 
 // Width returns the width of the screen.
@@ -88,12 +73,6 @@ func (s *Screen) Clear(rects ...uv.Rectangle) {
 			s.buf.ClearArea(r)
 		}
 	}
-
-	if s.cb.Damage != nil {
-		for _, r := range rects {
-			s.cb.Damage(RectDamage(r))
-		}
-	}
 }
 
 // Fill fills the screen or part of it.
@@ -103,12 +82,6 @@ func (s *Screen) Fill(c *uv.Cell, rects ...uv.Rectangle) {
 	} else {
 		for _, r := range rects {
 			s.buf.FillArea(c, r)
-		}
-	}
-
-	if s.cb.Damage != nil {
-		for _, r := range rects {
-			s.cb.Damage(RectDamage(r))
 		}
 	}
 }
@@ -265,11 +238,7 @@ func (s *Screen) InsertCell(n int) {
 	}
 
 	x, y := s.cur.X, s.cur.Y
-	s.buf.InsertCellRect(x, y, n, s.blankCell(), s.scroll)
-
-	if s.cb.Damage != nil {
-		s.cb.Damage(RectDamage(cellbuf.Rect(x, y, s.scroll.Dx()-x, 1)))
-	}
+	s.buf.InsertCellArea(x, y, n, s.blankCell(), s.scroll)
 }
 
 // DeleteCell deletes n cells at the cursor position moving cells to the left.
@@ -280,11 +249,7 @@ func (s *Screen) DeleteCell(n int) {
 	}
 
 	x, y := s.cur.X, s.cur.Y
-	s.buf.DeleteCellRect(x, y, n, s.blankCell(), s.scroll)
-
-	if s.cb.Damage != nil {
-		s.cb.Damage(RectDamage(cellbuf.Rect(x, y, s.scroll.Dx()-x, 1)))
-	}
+	s.buf.DeleteCellArea(x, y, n, s.blankCell(), s.scroll)
 }
 
 // ScrollUp scrolls the content up n lines within the given region. Lines
@@ -324,14 +289,7 @@ func (s *Screen) InsertLine(n int) bool {
 		return false
 	}
 
-	s.buf.InsertLineRect(y, n, s.blankCell(), s.scroll)
-
-	if s.cb.Damage != nil {
-		rect := s.scroll
-		rect.Min.Y = y
-		rect.Max.Y += n
-		s.cb.Damage(RectDamage(rect))
-	}
+	s.buf.InsertLineArea(y, n, s.blankCell(), s.scroll)
 
 	return true
 }
@@ -354,14 +312,7 @@ func (s *Screen) DeleteLine(n int) bool {
 		return false
 	}
 
-	s.buf.DeleteLineRect(y, n, s.blankCell(), scroll)
-
-	if s.cb.Damage != nil {
-		rect := scroll
-		rect.Min.Y = y
-		rect.Max.Y += n
-		s.cb.Damage(RectDamage(rect))
-	}
+	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
 
 	return true
 }

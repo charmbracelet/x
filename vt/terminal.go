@@ -43,7 +43,7 @@ type Terminal struct {
 	// The ANSI parser to use.
 	parser *ansi.Parser
 
-	Callbacks Callbacks
+	cb Callbacks
 
 	// The terminal's icon name and title.
 	iconName, title string
@@ -108,9 +108,11 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 	return t
 }
 
-// Screen returns the currently active terminal screen.
-func (t *Terminal) Screen() *Screen {
-	return t.scr
+// SetCallbacks sets the terminal's callbacks.
+func (t *Terminal) SetCallbacks(cb Callbacks) {
+	t.cb = cb
+	t.scrs[0].cb = &t.cb
+	t.scrs[1].cb = &t.cb
 }
 
 // CellAt returns the current focused screen cell at the given x, y position.

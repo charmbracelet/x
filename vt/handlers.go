@@ -183,8 +183,8 @@ func (t *Terminal) registerDefaultCcHandlers() {
 			})
 		case ansi.BEL: // Bell [ansi.BEL]
 			t.registerCcHandler(i, func() bool {
-				if t.Callbacks.Bell != nil {
-					t.Callbacks.Bell()
+				if t.cb.Bell != nil {
+					t.cb.Bell()
 				}
 				return true
 			})

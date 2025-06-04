@@ -8,10 +8,6 @@ type Callbacks struct {
 	// received.
 	Bell func()
 
-	// Damage callback. When set, this function is called when a cell is damaged
-	// or changed.
-	Damage func(Damage)
-
 	// Title callback. When set, this function is called when the terminal title
 	// changes.
 	Title func(string)
