@@ -9,7 +9,7 @@ type Screen struct {
 	// cb is the callbacks struct to use.
 	cb *Callbacks
 	// The buffer of the screen.
-	buf Buffer
+	buf uv.Buffer
 	// The cur of the screen.
 	cur, saved Cursor
 	// scroll is the scroll region.
@@ -18,9 +18,9 @@ type Screen struct {
 
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
-	s := new(Screen)
+	s := Screen{}
 	s.Resize(w, h)
-	return s
+	return &s
 }
 
 // Reset resets the screen.
@@ -36,6 +36,11 @@ func (s *Screen) Reset() {
 // Bounds returns the bounds of the screen.
 func (s *Screen) Bounds() uv.Rectangle {
 	return s.buf.Bounds()
+}
+
+// Touched returns touched lines in the screen buffer.
+func (s *Screen) Touched() []*uv.LineData {
+	return s.buf.Touched
 }
 
 // CellAt returns the cell at the given x, y position.
@@ -193,19 +198,19 @@ func (s *Screen) RestoreCursor() {
 
 // setCursorHidden sets the cursor hidden.
 func (s *Screen) setCursorHidden(hidden bool) {
+	changed := s.cur.Hidden != hidden
 	s.cur.Hidden = hidden
-
-	if s.cb.CursorVisibility != nil {
+	if changed && s.cb.CursorVisibility != nil {
 		s.cb.CursorVisibility(!hidden)
 	}
 }
 
 // setCursorStyle sets the cursor style.
 func (s *Screen) setCursorStyle(style CursorStyle, blink bool) {
+	changed := s.cur.Style != style || s.cur.Steady != !blink
 	s.cur.Style = style
 	s.cur.Steady = !blink
-
-	if s.cb.CursorStyle != nil {
+	if changed && s.cb.CursorStyle != nil {
 		s.cb.CursorStyle(style, !blink)
 	}
 }
