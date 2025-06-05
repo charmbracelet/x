@@ -218,13 +218,13 @@ func (t *Terminal) Paste(text string) {
 	io.WriteString(t.pw, text) //nolint:errcheck
 }
 
-// SendText sends text to the terminal.
+// SendText sends arbitrary text to the terminal.
 func (t *Terminal) SendText(text string) {
 	io.WriteString(t.pw, text) //nolint:errcheck
 }
 
 // SendKeys sends multiple keys to the terminal.
-func (t *Terminal) SendKeys(keys ...Key) {
+func (t *Terminal) SendKeys(keys ...uv.KeyEvent) {
 	for _, k := range keys {
 		t.SendKey(k)
 	}

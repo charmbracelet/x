@@ -18,262 +18,274 @@ const (
 	ModMeta  = uv.ModMeta
 )
 
-// Key represents a key press event.
-type Key = uv.Key
+// KeyPressEvent represents a key press event.
+type KeyPressEvent = uv.KeyPressEvent
 
 // SendKey returns the default key map.
-func (t *Terminal) SendKey(k Key) {
+func (t *Terminal) SendKey(k uv.KeyEvent) {
 	var seq string
 
 	ack := t.isModeSet(ansi.CursorKeysMode)    // Application cursor keys mode
 	akk := t.isModeSet(ansi.NumericKeypadMode) // Application keypad keys mode
 
-	switch k {
-	// Control keys
-	case Key{Code: KeySpace, Mod: ModCtrl}:
-		seq = "\x00"
-	case Key{Code: 'a', Mod: ModCtrl}:
-		seq = "\x01"
-	case Key{Code: 'b', Mod: ModCtrl}:
-		seq = "\x02"
-	case Key{Code: 'c', Mod: ModCtrl}:
-		seq = "\x03"
-	case Key{Code: 'd', Mod: ModCtrl}:
-		seq = "\x04"
-	case Key{Code: 'e', Mod: ModCtrl}:
-		seq = "\x05"
-	case Key{Code: 'f', Mod: ModCtrl}:
-		seq = "\x06"
-	case Key{Code: 'g', Mod: ModCtrl}:
-		seq = "\x07"
-	case Key{Code: 'h', Mod: ModCtrl}:
-		seq = "\x08"
-	case Key{Code: 'j', Mod: ModCtrl}:
-		seq = "\x0a"
-	case Key{Code: 'k', Mod: ModCtrl}:
-		seq = "\x0b"
-	case Key{Code: 'l', Mod: ModCtrl}:
-		seq = "\x0c"
-	case Key{Code: 'n', Mod: ModCtrl}:
-		seq = "\x0e"
-	case Key{Code: 'o', Mod: ModCtrl}:
-		seq = "\x0f"
-	case Key{Code: 'p', Mod: ModCtrl}:
-		seq = "\x10"
-	case Key{Code: 'q', Mod: ModCtrl}:
-		seq = "\x11"
-	case Key{Code: 'r', Mod: ModCtrl}:
-		seq = "\x12"
-	case Key{Code: 's', Mod: ModCtrl}:
-		seq = "\x13"
-	case Key{Code: 't', Mod: ModCtrl}:
-		seq = "\x14"
-	case Key{Code: 'u', Mod: ModCtrl}:
-		seq = "\x15"
-	case Key{Code: 'v', Mod: ModCtrl}:
-		seq = "\x16"
-	case Key{Code: 'w', Mod: ModCtrl}:
-		seq = "\x17"
-	case Key{Code: 'x', Mod: ModCtrl}:
-		seq = "\x18"
-	case Key{Code: 'y', Mod: ModCtrl}:
-		seq = "\x19"
-	case Key{Code: 'z', Mod: ModCtrl}:
-		seq = "\x1a"
-	case Key{Code: '\\', Mod: ModCtrl}:
-		seq = "\x1c"
-	case Key{Code: ']', Mod: ModCtrl}:
-		seq = "\x1d"
-	case Key{Code: '^', Mod: ModCtrl}:
-		seq = "\x1e"
-	case Key{Code: '_', Mod: ModCtrl}:
-		seq = "\x1f"
-
-	case Key{Code: KeyEnter}:
-		seq = "\r"
-	case Key{Code: KeyTab}:
-		seq = "\t"
-	case Key{Code: KeyBackspace}:
-		seq = "\x7f"
-	case Key{Code: KeyEscape}:
-		seq = "\x1b"
-
-	case Key{Code: KeyUp}:
-		if ack {
-			seq = "\x1bOA"
-		} else {
-			seq = "\x1b[A"
-		}
-	case Key{Code: KeyDown}:
-		if ack {
-			seq = "\x1bOB"
-		} else {
-			seq = "\x1b[B"
-		}
-	case Key{Code: KeyRight}:
-		if ack {
-			seq = "\x1bOC"
-		} else {
-			seq = "\x1b[C"
-		}
-	case Key{Code: KeyLeft}:
-		if ack {
-			seq = "\x1bOD"
-		} else {
-			seq = "\x1b[D"
+	// TODO: Support Kitty, CSI u, and XTerm modifyOtherKeys.
+	switch key := k.(type) {
+	case KeyPressEvent:
+		if key.Mod&ModAlt != 0 {
+			// Handle alt-modified keys
+			seq = "\x1b" + seq
+			key.Mod &^= ModAlt // Remove the Alt modifier for easier matching
 		}
 
-	case Key{Code: KeyInsert}:
-		seq = "\x1b[2~"
-	case Key{Code: KeyDelete}:
-		seq = "\x1b[3~"
-	case Key{Code: KeyHome}:
-		seq = "\x1b[H"
-	case Key{Code: KeyEnd}:
-		seq = "\x1b[F"
-	case Key{Code: KeyPgUp}:
-		seq = "\x1b[5~"
-	case Key{Code: KeyPgDown}:
-		seq = "\x1b[6~"
+		switch key {
+		// Control keys
+		case KeyPressEvent{Code: KeySpace, Mod: ModCtrl}:
+			seq = "\x00"
+		case KeyPressEvent{Code: 'a', Mod: ModCtrl}:
+			seq = "\x01"
+		case KeyPressEvent{Code: 'b', Mod: ModCtrl}:
+			seq = "\x02"
+		case KeyPressEvent{Code: 'c', Mod: ModCtrl}:
+			seq = "\x03"
+		case KeyPressEvent{Code: 'd', Mod: ModCtrl}:
+			seq = "\x04"
+		case KeyPressEvent{Code: 'e', Mod: ModCtrl}:
+			seq = "\x05"
+		case KeyPressEvent{Code: 'f', Mod: ModCtrl}:
+			seq = "\x06"
+		case KeyPressEvent{Code: 'g', Mod: ModCtrl}:
+			seq = "\x07"
+		case KeyPressEvent{Code: 'h', Mod: ModCtrl}:
+			seq = "\x08"
+		case KeyPressEvent{Code: 'j', Mod: ModCtrl}:
+			seq = "\x0a"
+		case KeyPressEvent{Code: 'k', Mod: ModCtrl}:
+			seq = "\x0b"
+		case KeyPressEvent{Code: 'l', Mod: ModCtrl}:
+			seq = "\x0c"
+		case KeyPressEvent{Code: 'n', Mod: ModCtrl}:
+			seq = "\x0e"
+		case KeyPressEvent{Code: 'o', Mod: ModCtrl}:
+			seq = "\x0f"
+		case KeyPressEvent{Code: 'p', Mod: ModCtrl}:
+			seq = "\x10"
+		case KeyPressEvent{Code: 'q', Mod: ModCtrl}:
+			seq = "\x11"
+		case KeyPressEvent{Code: 'r', Mod: ModCtrl}:
+			seq = "\x12"
+		case KeyPressEvent{Code: 's', Mod: ModCtrl}:
+			seq = "\x13"
+		case KeyPressEvent{Code: 't', Mod: ModCtrl}:
+			seq = "\x14"
+		case KeyPressEvent{Code: 'u', Mod: ModCtrl}:
+			seq = "\x15"
+		case KeyPressEvent{Code: 'v', Mod: ModCtrl}:
+			seq = "\x16"
+		case KeyPressEvent{Code: 'w', Mod: ModCtrl}:
+			seq = "\x17"
+		case KeyPressEvent{Code: 'x', Mod: ModCtrl}:
+			seq = "\x18"
+		case KeyPressEvent{Code: 'y', Mod: ModCtrl}:
+			seq = "\x19"
+		case KeyPressEvent{Code: 'z', Mod: ModCtrl}:
+			seq = "\x1a"
+		case KeyPressEvent{Code: '\\', Mod: ModCtrl}:
+			seq = "\x1c"
+		case KeyPressEvent{Code: ']', Mod: ModCtrl}:
+			seq = "\x1d"
+		case KeyPressEvent{Code: '^', Mod: ModCtrl}:
+			seq = "\x1e"
+		case KeyPressEvent{Code: '_', Mod: ModCtrl}:
+			seq = "\x1f"
 
-	case Key{Code: KeyF1}:
-		seq = "\x1bOP"
-	case Key{Code: KeyF2}:
-		seq = "\x1bOQ"
-	case Key{Code: KeyF3}:
-		seq = "\x1bOR"
-	case Key{Code: KeyF4}:
-		seq = "\x1bOS"
-	case Key{Code: KeyF5}:
-		seq = "\x1b[15~"
-	case Key{Code: KeyF6}:
-		seq = "\x1b[17~"
-	case Key{Code: KeyF7}:
-		seq = "\x1b[18~"
-	case Key{Code: KeyF8}:
-		seq = "\x1b[19~"
-	case Key{Code: KeyF9}:
-		seq = "\x1b[20~"
-	case Key{Code: KeyF10}:
-		seq = "\x1b[21~"
-	case Key{Code: KeyF11}:
-		seq = "\x1b[23~"
-	case Key{Code: KeyF12}:
-		seq = "\x1b[24~"
-
-	case Key{Code: KeyKp0}:
-		if akk {
-			seq = "\x1bOp"
-		} else {
-			seq = "0"
-		}
-	case Key{Code: KeyKp1}:
-		if akk {
-			seq = "\x1bOq"
-		} else {
-			seq = "1"
-		}
-	case Key{Code: KeyKp2}:
-		if akk {
-			seq = "\x1bOr"
-		} else {
-			seq = "2"
-		}
-	case Key{Code: KeyKp3}:
-		if akk {
-			seq = "\x1bOs"
-		} else {
-			seq = "3"
-		}
-	case Key{Code: KeyKp4}:
-		if akk {
-			seq = "\x1bOt"
-		} else {
-			seq = "4"
-		}
-	case Key{Code: KeyKp5}:
-		if akk {
-			seq = "\x1bOu"
-		} else {
-			seq = "5"
-		}
-	case Key{Code: KeyKp6}:
-		if akk {
-			seq = "\x1bOv"
-		} else {
-			seq = "6"
-		}
-	case Key{Code: KeyKp7}:
-		if akk {
-			seq = "\x1bOw"
-		} else {
-			seq = "7"
-		}
-	case Key{Code: KeyKp8}:
-		if akk {
-			seq = "\x1bOx"
-		} else {
-			seq = "8"
-		}
-	case Key{Code: KeyKp9}:
-		if akk {
-			seq = "\x1bOy"
-		} else {
-			seq = "9"
-		}
-	case Key{Code: KeyKpEnter}:
-		if akk {
-			seq = "\x1bOM"
-		} else {
+		case KeyPressEvent{Code: KeyEnter}:
 			seq = "\r"
-		}
-	case Key{Code: KeyKpEqual}:
-		if akk {
-			seq = "\x1bOX"
-		} else {
-			seq = "="
-		}
-	case Key{Code: KeyKpMultiply}:
-		if akk {
-			seq = "\x1bOj"
-		} else {
-			seq = "*"
-		}
-	case Key{Code: KeyKpPlus}:
-		if akk {
-			seq = "\x1bOk"
-		} else {
-			seq = "+"
-		}
-	case Key{Code: KeyKpComma}:
-		if akk {
-			seq = "\x1bOl"
-		} else {
-			seq = ","
-		}
-	case Key{Code: KeyKpMinus}:
-		if akk {
-			seq = "\x1bOm"
-		} else {
-			seq = "-"
-		}
-	case Key{Code: KeyKpDecimal}:
-		if akk {
-			seq = "\x1bOn"
-		} else {
-			seq = "."
+		case KeyPressEvent{Code: KeyTab}:
+			seq = "\t"
+		case KeyPressEvent{Code: KeyBackspace}:
+			seq = "\x7f"
+		case KeyPressEvent{Code: KeyEscape}:
+			seq = "\x1b"
+
+		case KeyPressEvent{Code: KeyUp}:
+			if ack {
+				seq = "\x1bOA"
+			} else {
+				seq = "\x1b[A"
+			}
+		case KeyPressEvent{Code: KeyDown}:
+			if ack {
+				seq = "\x1bOB"
+			} else {
+				seq = "\x1b[B"
+			}
+		case KeyPressEvent{Code: KeyRight}:
+			if ack {
+				seq = "\x1bOC"
+			} else {
+				seq = "\x1b[C"
+			}
+		case KeyPressEvent{Code: KeyLeft}:
+			if ack {
+				seq = "\x1bOD"
+			} else {
+				seq = "\x1b[D"
+			}
+
+		case KeyPressEvent{Code: KeyInsert}:
+			seq = "\x1b[2~"
+		case KeyPressEvent{Code: KeyDelete}:
+			seq = "\x1b[3~"
+		case KeyPressEvent{Code: KeyHome}:
+			seq = "\x1b[H"
+		case KeyPressEvent{Code: KeyEnd}:
+			seq = "\x1b[F"
+		case KeyPressEvent{Code: KeyPgUp}:
+			seq = "\x1b[5~"
+		case KeyPressEvent{Code: KeyPgDown}:
+			seq = "\x1b[6~"
+
+		case KeyPressEvent{Code: KeyF1}:
+			seq = "\x1bOP"
+		case KeyPressEvent{Code: KeyF2}:
+			seq = "\x1bOQ"
+		case KeyPressEvent{Code: KeyF3}:
+			seq = "\x1bOR"
+		case KeyPressEvent{Code: KeyF4}:
+			seq = "\x1bOS"
+		case KeyPressEvent{Code: KeyF5}:
+			seq = "\x1b[15~"
+		case KeyPressEvent{Code: KeyF6}:
+			seq = "\x1b[17~"
+		case KeyPressEvent{Code: KeyF7}:
+			seq = "\x1b[18~"
+		case KeyPressEvent{Code: KeyF8}:
+			seq = "\x1b[19~"
+		case KeyPressEvent{Code: KeyF9}:
+			seq = "\x1b[20~"
+		case KeyPressEvent{Code: KeyF10}:
+			seq = "\x1b[21~"
+		case KeyPressEvent{Code: KeyF11}:
+			seq = "\x1b[23~"
+		case KeyPressEvent{Code: KeyF12}:
+			seq = "\x1b[24~"
+
+		case KeyPressEvent{Code: KeyKp0}:
+			if akk {
+				seq = "\x1bOp"
+			} else {
+				seq = "0"
+			}
+		case KeyPressEvent{Code: KeyKp1}:
+			if akk {
+				seq = "\x1bOq"
+			} else {
+				seq = "1"
+			}
+		case KeyPressEvent{Code: KeyKp2}:
+			if akk {
+				seq = "\x1bOr"
+			} else {
+				seq = "2"
+			}
+		case KeyPressEvent{Code: KeyKp3}:
+			if akk {
+				seq = "\x1bOs"
+			} else {
+				seq = "3"
+			}
+		case KeyPressEvent{Code: KeyKp4}:
+			if akk {
+				seq = "\x1bOt"
+			} else {
+				seq = "4"
+			}
+		case KeyPressEvent{Code: KeyKp5}:
+			if akk {
+				seq = "\x1bOu"
+			} else {
+				seq = "5"
+			}
+		case KeyPressEvent{Code: KeyKp6}:
+			if akk {
+				seq = "\x1bOv"
+			} else {
+				seq = "6"
+			}
+		case KeyPressEvent{Code: KeyKp7}:
+			if akk {
+				seq = "\x1bOw"
+			} else {
+				seq = "7"
+			}
+		case KeyPressEvent{Code: KeyKp8}:
+			if akk {
+				seq = "\x1bOx"
+			} else {
+				seq = "8"
+			}
+		case KeyPressEvent{Code: KeyKp9}:
+			if akk {
+				seq = "\x1bOy"
+			} else {
+				seq = "9"
+			}
+		case KeyPressEvent{Code: KeyKpEnter}:
+			if akk {
+				seq = "\x1bOM"
+			} else {
+				seq = "\r"
+			}
+		case KeyPressEvent{Code: KeyKpEqual}:
+			if akk {
+				seq = "\x1bOX"
+			} else {
+				seq = "="
+			}
+		case KeyPressEvent{Code: KeyKpMultiply}:
+			if akk {
+				seq = "\x1bOj"
+			} else {
+				seq = "*"
+			}
+		case KeyPressEvent{Code: KeyKpPlus}:
+			if akk {
+				seq = "\x1bOk"
+			} else {
+				seq = "+"
+			}
+		case KeyPressEvent{Code: KeyKpComma}:
+			if akk {
+				seq = "\x1bOl"
+			} else {
+				seq = ","
+			}
+		case KeyPressEvent{Code: KeyKpMinus}:
+			if akk {
+				seq = "\x1bOm"
+			} else {
+				seq = "-"
+			}
+		case KeyPressEvent{Code: KeyKpDecimal}:
+			if akk {
+				seq = "\x1bOn"
+			} else {
+				seq = "."
+			}
+
+		case KeyPressEvent{Code: KeyTab, Mod: ModShift}:
+			seq = "\x1b[Z"
+
+		default:
+			// Handle the rest of the keys.
+			if key.Mod == 0 {
+				seq += string(key.Code)
+			}
+
 		}
 
-	case Key{Code: KeyTab, Mod: ModShift}:
-		seq = "\x1b[Z"
+		io.WriteString(t.pw, seq) //nolint:errcheck,gosec
 	}
-
-	if k.Mod&ModAlt != 0 {
-		// Handle alt-modified keys
-		seq = "\x1b" + seq
-	}
-
-	io.WriteString(t.pw, seq) //nolint:errcheck
 }
 
 // Key codes.
