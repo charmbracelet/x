@@ -201,3 +201,150 @@ func TestContainsAny(t *testing.T) {
 		}
 	}
 }
+
+func TestShift(t *testing.T) {
+	for i, tc := range []struct {
+		input         []int
+		ok            bool
+		expectedVal   int
+		expectedSlice []int
+	}{
+		{
+			input:         []int{1, 2, 3, 4, 5},
+			ok:            true,
+			expectedVal:   1,
+			expectedSlice: []int{2, 3, 4, 5},
+		},
+		{
+			input:         []int{1, 2, 3},
+			ok:            true,
+			expectedVal:   1,
+			expectedSlice: []int{2, 3},
+		},
+		{
+			input:         []int{1},
+			ok:            true,
+			expectedVal:   1,
+			expectedSlice: []int{},
+		},
+		{
+			input:         []int{},
+			ok:            false,
+			expectedVal:   0,
+			expectedSlice: []int{},
+		},
+	} {
+		actual, newSlice, ok := slice.Shift(tc.input)
+		if ok != tc.ok {
+			t.Errorf("test %d: expected ok %v, got %v", i, tc.ok, ok)
+		}
+		if actual != tc.expectedVal {
+			t.Errorf("test %d: expected val %v, got %v", i, tc.expectedVal, actual)
+		}
+		if !reflect.DeepEqual(newSlice, tc.expectedSlice) {
+			t.Errorf("test %d: expected slice %v, got %v", i, tc.expectedSlice, newSlice)
+		}
+	}
+}
+
+func TestPop(t *testing.T) {
+	for i, tc := range []struct {
+		input         []int
+		ok            bool
+		expectedVal   int
+		expectedSlice []int
+	}{
+		{
+			input:         []int{1, 2, 3, 4, 5},
+			ok:            true,
+			expectedVal:   5,
+			expectedSlice: []int{1, 2, 3, 4},
+		},
+		{
+			input:         []int{1, 2, 3},
+			ok:            true,
+			expectedVal:   3,
+			expectedSlice: []int{1, 2},
+		},
+		{
+			input:         []int{1},
+			ok:            true,
+			expectedVal:   1,
+			expectedSlice: []int{},
+		},
+		{
+			input:         []int{},
+			ok:            false,
+			expectedVal:   0,
+			expectedSlice: []int{},
+		},
+	} {
+		actual, newSlice, ok := slice.Pop(tc.input)
+		if ok != tc.ok {
+			t.Errorf("test %d: expected ok %v, got %v", i, tc.ok, ok)
+		}
+		if actual != tc.expectedVal {
+			t.Errorf("test %d: expected val %v, got %v", i, tc.expectedVal, actual)
+		}
+		if !reflect.DeepEqual(newSlice, tc.expectedSlice) {
+			t.Errorf("test %d: expected slice %v, got %v", i, tc.expectedSlice, newSlice)
+		}
+	}
+}
+
+func TestDeleteAt(t *testing.T) {
+	for i, tc := range []struct {
+		input         []int
+		index         int
+		ok            bool
+		expectedVal   int
+		expectedSlice []int
+	}{
+		{
+			input:         []int{1, 2, 3, 4, 5},
+			index:         2,
+			ok:            true,
+			expectedVal:   3,
+			expectedSlice: []int{1, 2, 4, 5},
+		},
+		{
+			input:         []int{1, 2, 3},
+			index:         0,
+			ok:            true,
+			expectedVal:   1,
+			expectedSlice: []int{2, 3},
+		},
+		{
+			input:         []int{1, 2, 3},
+			index:         2,
+			ok:            true,
+			expectedVal:   3,
+			expectedSlice: []int{1, 2},
+		},
+		{
+			input:         []int{1},
+			index:         0,
+			ok:            true,
+			expectedVal:   1,
+			expectedSlice: []int{},
+		},
+		{
+			input:         []int{},
+			index:         0,
+			ok:            false,
+			expectedVal:   0,
+			expectedSlice: []int{},
+		},
+	} {
+		actual, newSlice, ok := slice.DeleteAt(tc.input, tc.index)
+		if ok != tc.ok {
+			t.Errorf("test %d: expected ok %v, got %v", i, tc.ok, ok)
+		}
+		if actual != tc.expectedVal {
+			t.Errorf("test %d: expected val %v, got %v", i, tc.expectedVal, actual)
+		}
+		if !reflect.DeepEqual(newSlice, tc.expectedSlice) {
+			t.Errorf("test %d: expected slice %v, got %v", i, tc.expectedSlice, newSlice)
+		}
+	}
+}
