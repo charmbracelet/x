@@ -1,8 +1,10 @@
-package slice
+package slice_test
 
 import (
 	"reflect"
 	"testing"
+
+	"github.com/charmbracelet/x/exp/slice"
 )
 
 func TestGroupBy(t *testing.T) {
@@ -20,7 +22,7 @@ func TestGroupBy(t *testing.T) {
 		"christian",
 		"raphael",
 	}
-	output := GroupBy(input, func(s string) string { return string(s[0]) })
+	output := slice.GroupBy(input, func(s string) string { return string(s[0]) })
 
 	if !reflect.DeepEqual(expected, output) {
 		t.Errorf("Expected %v, got %v", expected, output)
@@ -59,7 +61,7 @@ func TestTake(t *testing.T) {
 			expected: []int{},
 		},
 	} {
-		actual := Take(tc.input, tc.take)
+		actual := slice.Take(tc.input, tc.take)
 		if len(actual) != len(tc.expected) {
 			t.Errorf("Test %d: Expected %v, got %v", i, tc.expected, actual)
 		}
@@ -93,7 +95,7 @@ func TestLast(t *testing.T) {
 			expected: 0,
 		},
 	} {
-		actual, ok := Last(tc.input)
+		actual, ok := slice.Last(tc.input)
 		if ok != tc.ok {
 			t.Errorf("Test %d: Expected ok %v, got %v", i, tc.ok, ok)
 		}
@@ -125,7 +127,7 @@ func TestUniq(t *testing.T) {
 			expected: []int{},
 		},
 	} {
-		actual := Uniq(tc.input)
+		actual := slice.Uniq(tc.input)
 		if !reflect.DeepEqual(actual, tc.expected) {
 			t.Errorf("Test %d: Expected %v, got %v", i, tc.expected, actual)
 		}
@@ -159,7 +161,7 @@ func TestIntersperse(t *testing.T) {
 			expected: []string{"a", "-", "b", "-", "c"},
 		},
 	} {
-		actual := Intersperse(tc.input, tc.insert)
+		actual := slice.Intersperse(tc.input, tc.insert)
 		if !reflect.DeepEqual(actual, tc.expected) {
 			t.Errorf("Test %d: Expected %v, got %v", i, tc.expected, actual)
 		}
@@ -193,7 +195,7 @@ func TestContainsAny(t *testing.T) {
 			expected: false,
 		},
 	} {
-		actual := ContainsAny(tc.input, tc.values...)
+		actual := slice.ContainsAny(tc.input, tc.values...)
 		if actual != tc.expected {
 			t.Errorf("Test %d: Expected %v, got %v", i, tc.expected, actual)
 		}
