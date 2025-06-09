@@ -47,4 +47,8 @@ type Callbacks struct {
 	// ForegroundColor callback. When set, this function is called when the
 	// foreground color changes. Nil indicates the default terminal color.
 	ForegroundColor func(color color.Color)
+
+	// WorkingDirectory callback. When set, this function is called when the
+	// current working directory changes.
+	WorkingDirectory func(string)
 }

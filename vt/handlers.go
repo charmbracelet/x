@@ -270,6 +270,13 @@ func (t *Terminal) registerDefaultOscHandlers() {
 		})
 	}
 
+	t.RegisterOscHandler(7, func(data []byte) bool {
+		// Report the shell current working directory
+		// [ansi.NotifyWorkingDirectory].
+		t.handleWorkingDirectory(7, data)
+		return true
+	})
+
 	t.RegisterOscHandler(8, func(data []byte) bool {
 		// Set/Query Hyperlink [ansi.SetHyperlink]
 		t.handleHyperlink(8, data)

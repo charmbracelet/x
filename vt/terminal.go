@@ -51,6 +51,8 @@ type Terminal struct {
 
 	// The terminal's icon name and title.
 	iconName, title string
+	// The current reported working directory. This is not validated.
+	cwd string
 
 	// tabstop is the list of tab stops.
 	tabstops *uv.TabStops

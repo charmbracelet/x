@@ -121,6 +121,27 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 	setCol(col)
 }
 
+func (t *Terminal) handleWorkingDirectory(cmd int, data []byte) {
+	if cmd != 7 {
+		// Invalid, ignore
+		return
+	}
+
+	// The data is the working directory path.
+	parts := bytes.Split(data, []byte{';'})
+	if len(parts) != 2 {
+		// Invalid, ignore
+		return
+	}
+
+	path := string(parts[1])
+	t.cwd = path
+
+	if t.cb.WorkingDirectory != nil {
+		t.cb.WorkingDirectory(path)
+	}
+}
+
 func (t *Terminal) handleHyperlink(cmd int, data []byte) {
 	parts := bytes.Split(data, []byte{';'})
 	if len(parts) != 3 || cmd != 8 {
