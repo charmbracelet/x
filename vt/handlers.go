@@ -192,8 +192,7 @@ func (t *Terminal) registerDefaultCcHandlers() {
 			})
 		case ansi.BS: // Backspace [ansi.BS]
 			t.registerCcHandler(i, func() bool {
-				// This acts like [ansi.CUB]
-				t.moveCursor(-1, 0)
+				t.backspace()
 				return true
 			})
 		case ansi.HT: // Horizontal Tab [ansi.HT]

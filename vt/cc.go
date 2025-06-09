@@ -51,3 +51,9 @@ func (t *Terminal) reverseIndex() {
 		t.scr.moveCursor(0, -1)
 	}
 }
+
+// backspace moves the cursor back one cell, if possible.
+func (t *Terminal) backspace() {
+	// This acts like [ansi.CUB]
+	t.moveCursor(-1, 0)
+}
