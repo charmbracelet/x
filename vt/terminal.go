@@ -39,9 +39,13 @@ type Terminal struct {
 
 	// The last written character.
 	lastChar rune // either ansi.Rune or ansi.Grapheme
+	// A slice of runes to compose a grapheme.
+	grapheme []rune
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
+	// The last parser state.
+	lastState parser.State
 
 	cb Callbacks
 
@@ -195,8 +199,19 @@ func (t *Terminal) Close() error {
 }
 
 // Write writes data to the terminal output buffer.
-func (t *Terminal) Write(p []byte) (int, error) {
-	t.parser.Parse(p)
+func (t *Terminal) Write(p []byte) (n int, err error) {
+	for i := range p {
+		t.parser.Advance(p[i])
+		state := t.parser.State()
+		// flush grapheme if we transitioned to a non-utf8 state or we have
+		// written the whole byte slice.
+		if len(t.grapheme) > 0 {
+			if (t.lastState == parser.GroundState && state != parser.Utf8State) || i == len(p)-1 {
+				t.flushGrapheme()
+			}
+		}
+		t.lastState = state
+	}
 	return len(p), nil
 }
 
