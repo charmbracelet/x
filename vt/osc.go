@@ -82,7 +82,7 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 				io.WriteString(t.pw, enc(xrgb.String())) //nolint:errcheck
 			}
 		} else {
-			col := ansi.XParseColor(string(parts[1]))
+			col = ansi.XParseColor(string(parts[1]))
 			if col == nil {
 				return
 			}
