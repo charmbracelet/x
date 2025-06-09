@@ -252,6 +252,9 @@ func (t *Terminal) ForegroundColor() color.Color {
 
 // SetForegroundColor sets the terminal's foreground color.
 func (t *Terminal) SetForegroundColor(c color.Color) {
+	if c == nil {
+		c = defaultFg
+	}
 	t.fgColor = c
 }
 
@@ -262,6 +265,9 @@ func (t *Terminal) BackgroundColor() color.Color {
 
 // SetBackgroundColor sets the terminal's background color.
 func (t *Terminal) SetBackgroundColor(c color.Color) {
+	if c == nil {
+		c = defaultBg
+	}
 	t.bgColor = c
 }
 
@@ -272,6 +278,9 @@ func (t *Terminal) CursorColor() color.Color {
 
 // SetCursorColor sets the terminal's cursor color.
 func (t *Terminal) SetCursorColor(c color.Color) {
+	if c == nil {
+		c = defaultCur
+	}
 	t.curColor = c
 }
 

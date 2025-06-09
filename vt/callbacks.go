@@ -1,6 +1,10 @@
 package vt
 
-import "github.com/charmbracelet/uv"
+import (
+	"image/color"
+
+	"github.com/charmbracelet/uv"
+)
 
 // Callbacks represents a set of callbacks for a terminal.
 type Callbacks struct {
@@ -31,4 +35,16 @@ type Callbacks struct {
 	// CursorStyle callback. When set, this function is called when the cursor
 	// style changes.
 	CursorStyle func(style CursorStyle, blink bool)
+
+	// CursorColor callback. When set, this function is called when the cursor
+	// color changes. Nil indicates the default terminal color.
+	CursorColor func(color color.Color)
+
+	// BackgroundColor callback. When set, this function is called when the
+	// background color changes. Nil indicates the default terminal color.
+	BackgroundColor func(color color.Color)
+
+	// ForegroundColor callback. When set, this function is called when the
+	// foreground color changes. Nil indicates the default terminal color.
+	ForegroundColor func(color color.Color)
 }

@@ -69,12 +69,21 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 			case 10:
 				enc = ansi.SetForegroundColor
 				col = t.ForegroundColor()
+				if col == nil {
+					col = defaultFg
+				}
 			case 11:
 				enc = ansi.SetBackgroundColor
 				col = t.BackgroundColor()
+				if col == nil {
+					col = defaultBg
+				}
 			case 12:
 				enc = ansi.SetCursorColor
 				col = t.CursorColor()
+				if col == nil {
+					col = defaultCur
+				}
 			}
 
 			if enc != nil && col != nil {
@@ -87,21 +96,26 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 				return
 			}
 		}
-	case 110:
-		col = defaultFg
-	case 111:
-		col = defaultBg
-	case 112:
-		col = defaultCur
+	case 110, 111, 112:
+		col = nil
 	}
 
 	switch cmd {
 	case 10, 110: // Set/Reset foreground color
 		setCol = t.SetForegroundColor
+		if t.cb.ForegroundColor != nil && t.fgColor != col {
+			t.cb.ForegroundColor(col)
+		}
 	case 11, 111: // Set/Reset background color
 		setCol = t.SetBackgroundColor
+		if t.cb.BackgroundColor != nil && t.bgColor != col {
+			t.cb.BackgroundColor(col)
+		}
 	case 12, 112: // Set/Reset cursor color
 		setCol = t.SetCursorColor
+		if t.cb.CursorColor != nil && t.curColor != col {
+			t.cb.CursorColor(col)
+		}
 	}
 
 	setCol(col)
