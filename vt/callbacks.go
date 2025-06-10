@@ -4,6 +4,7 @@ import (
 	"image/color"
 
 	"github.com/charmbracelet/uv"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // Callbacks represents a set of callbacks for a terminal.
@@ -51,4 +52,12 @@ type Callbacks struct {
 	// WorkingDirectory callback. When set, this function is called when the
 	// current working directory changes.
 	WorkingDirectory func(string)
+
+	// EnableMode callback. When set, this function is called when a mode is
+	// enabled.
+	EnableMode func(mode ansi.Mode)
+
+	// DisableMode callback. When set, this function is called when a mode is
+	// disabled.
+	DisableMode func(mode ansi.Mode)
 }

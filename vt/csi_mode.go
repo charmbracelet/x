@@ -88,6 +88,15 @@ func (t *Terminal) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 		}
 		t.setAltScreenMode(setting.IsSet())
 	}
+	if setting.IsSet() {
+		if t.cb.EnableMode != nil {
+			t.cb.EnableMode(mode)
+		}
+	} else if setting.IsReset() {
+		if t.cb.DisableMode != nil {
+			t.cb.DisableMode(mode)
+		}
+	}
 }
 
 // isModeSet returns true if the mode is set.
