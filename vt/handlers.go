@@ -477,6 +477,12 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		width, height := t.Width(), t.Height()
 		row, _, _ := params.Param(0, 1)
 		col, _, _ := params.Param(1, 1)
+		if row < 1 {
+			row = 1
+		}
+		if col < 1 {
+			col = 1
+		}
 		y := min(height-1, row-1)
 		x := min(width-1, col-1)
 		t.setCursorPosition(x, y)
