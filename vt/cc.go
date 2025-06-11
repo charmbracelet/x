@@ -7,6 +7,7 @@ import (
 
 // handleControl handles a control character.
 func (t *Terminal) handleControl(r byte) {
+	t.flushGrapheme() // Flush any pending grapheme before handling control codes.
 	if !t.handlers.handleCc(r) {
 		t.logf("unhandled sequence: ControlCode %q", r)
 	}

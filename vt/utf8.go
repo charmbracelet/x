@@ -25,6 +25,10 @@ func (t *Terminal) handlePrint(r rune) {
 // flushGrapheme flushes the current grapheme buffer, if any, and handles the
 // grapheme as a single unit.
 func (t *Terminal) flushGrapheme() {
+	if len(t.grapheme) == 0 {
+		return
+	}
+
 	unicode := t.isModeSet(ansi.GraphemeClusteringMode)
 	gr := string(t.grapheme)
 

@@ -10,6 +10,7 @@ import (
 
 // handleOsc handles an OSC escape sequence.
 func (t *Terminal) handleOsc(cmd int, data []byte) {
+	t.flushGrapheme() // Flush any pending grapheme before handling OSC sequences.
 	if !t.handlers.handleOsc(cmd, data) {
 		t.logf("unhandled sequence: OSC %q", data)
 	}
