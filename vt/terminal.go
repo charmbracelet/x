@@ -98,8 +98,8 @@ func NewTerminal(w, h int) *Terminal {
 		HandleDcs: t.handleDcs,
 		HandleOsc: t.handleOsc,
 		HandleApc: t.handleApc,
-		// Pm:      t.handlePm,
-		// Sos:     t.handleSos,
+		HandlePm:  t.handlePm,
+		HandleSos: t.handleSos,
 	})
 	t.pr, t.pw = io.Pipe()
 	t.resetModes()

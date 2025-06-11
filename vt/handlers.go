@@ -19,6 +19,12 @@ type OscHandler func(data []byte) bool
 // ApcHandler is a function that handles an APC escape sequence.
 type ApcHandler func(data []byte) bool
 
+// SosHandler is a function that handles an SOS escape sequence.
+type SosHandler func(data []byte) bool
+
+// PmHandler is a function that handles a PM escape sequence.
+type PmHandler func(data []byte) bool
+
 // EscHandler is a function that handles an ESC escape sequence.
 type EscHandler func() bool
 
@@ -33,6 +39,8 @@ type handlers struct {
 	oscHandlers map[int][]OscHandler
 	escHandler  map[int][]EscHandler
 	apcHandlers []ApcHandler
+	sosHandlers []SosHandler
+	pmHandlers  []PmHandler
 }
 
 // RegisterDcsHandler registers a DCS escape sequence handler.
@@ -62,6 +70,16 @@ func (h *handlers) RegisterOscHandler(cmd int, handler OscHandler) {
 // RegisterApcHandler registers an APC escape sequence handler.
 func (h *handlers) RegisterApcHandler(handler ApcHandler) {
 	h.apcHandlers = append(h.apcHandlers, handler)
+}
+
+// RegisterSosHandler registers an SOS escape sequence handler.
+func (h *handlers) RegisterSosHandler(handler SosHandler) {
+	h.sosHandlers = append(h.sosHandlers, handler)
+}
+
+// RegisterPmHandler registers a PM escape sequence handler.
+func (h *handlers) RegisterPmHandler(handler PmHandler) {
+	h.pmHandlers = append(h.pmHandlers, handler)
 }
 
 // RegisterEscHandler registers an ESC escape sequence handler.
@@ -145,6 +163,32 @@ func (h *handlers) handleApc(data []byte) bool {
 	// is the first to be called.
 	for i := len(h.apcHandlers) - 1; i >= 0; i-- {
 		if h.apcHandlers[i](data) {
+			return true
+		}
+	}
+	return false
+}
+
+// handleSos handles an SOS escape sequence.
+// It returns true if the sequence was handled.
+func (h *handlers) handleSos(data []byte) bool {
+	// Reverse iterate over the handlers so that the last registered handler
+	// is the first to be called.
+	for i := len(h.sosHandlers) - 1; i >= 0; i-- {
+		if h.sosHandlers[i](data) {
+			return true
+		}
+	}
+	return false
+}
+
+// handlePm handles a PM escape sequence.
+// It returns true if the sequence was handled.
+func (h *handlers) handlePm(data []byte) bool {
+	// Reverse iterate over the handlers so that the last registered handler
+	// is the first to be called.
+	for i := len(h.pmHandlers) - 1; i >= 0; i-- {
+		if h.pmHandlers[i](data) {
 			return true
 		}
 	}
