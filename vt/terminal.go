@@ -104,9 +104,6 @@ func NewTerminal(w, h int) *Terminal {
 	t.pr, t.pw = io.Pipe()
 	t.resetModes()
 	t.tabstops = uv.DefaultTabStops(w)
-	t.fgColor = defaultFg
-	t.bgColor = defaultBg
-	t.curColor = defaultCur
 	t.registerDefaultHandlers()
 
 	return t
@@ -249,6 +246,9 @@ func (t *Terminal) SendKeys(keys ...uv.KeyEvent) {
 
 // ForegroundColor returns the terminal's foreground color.
 func (t *Terminal) ForegroundColor() color.Color {
+	if t.fgColor == nil {
+		return defaultFg
+	}
 	return t.fgColor
 }
 
@@ -262,6 +262,9 @@ func (t *Terminal) SetForegroundColor(c color.Color) {
 
 // BackgroundColor returns the terminal's background color.
 func (t *Terminal) BackgroundColor() color.Color {
+	if t.bgColor == nil {
+		return defaultBg
+	}
 	return t.bgColor
 }
 
@@ -275,6 +278,9 @@ func (t *Terminal) SetBackgroundColor(c color.Color) {
 
 // CursorColor returns the terminal's cursor color.
 func (t *Terminal) CursorColor() color.Color {
+	if t.curColor == nil {
+		return defaultCur
+	}
 	return t.curColor
 }
 
