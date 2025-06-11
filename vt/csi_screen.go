@@ -10,7 +10,7 @@ func (t *Terminal) eraseCharacter(n int) {
 	}
 	x, y := t.scr.CursorPosition()
 	rect := uv.Rect(x, y, n, 1)
-	t.scr.Fill(t.scr.blankCell(), rect)
+	t.scr.FillArea(t.scr.blankCell(), rect)
 	t.atPhantom = false
 	// ECH does not move the cursor.
 }

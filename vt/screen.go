@@ -69,26 +69,24 @@ func (s *Screen) Width() int {
 	return s.buf.Width()
 }
 
-// Clear clears the screen or part of it.
-func (s *Screen) Clear(rects ...uv.Rectangle) {
-	if len(rects) == 0 {
-		s.buf.Clear()
-	} else {
-		for _, r := range rects {
-			s.buf.ClearArea(r)
-		}
-	}
+// Clear clears the screen with blank cells.
+func (s *Screen) Clear() {
+	s.ClearArea(s.Bounds())
+}
+
+// ClearArea clears the given area.
+func (s *Screen) ClearArea(area uv.Rectangle) {
+	s.buf.ClearArea(area)
 }
 
 // Fill fills the screen or part of it.
-func (s *Screen) Fill(c *uv.Cell, rects ...uv.Rectangle) {
-	if len(rects) == 0 {
-		s.buf.Fill(c)
-	} else {
-		for _, r := range rects {
-			s.buf.FillArea(c, r)
-		}
-	}
+func (s *Screen) Fill(c *uv.Cell) {
+	s.FillArea(c, s.Bounds())
+}
+
+// FillArea fills the given area with the given cell.
+func (s *Screen) FillArea(c *uv.Cell, area uv.Rectangle) {
+	s.buf.FillArea(c, area)
 }
 
 // setHorizontalMargins sets the horizontal margins.
