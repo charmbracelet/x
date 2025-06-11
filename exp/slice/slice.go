@@ -80,3 +80,41 @@ func ContainsAny[T comparable](list []T, values ...T) bool {
 		return slices.Contains(values, v)
 	})
 }
+
+// Shift removes and returns the first element of a slice.
+// It returns the removed element and the modified slice.
+// The third return value (ok) indicates whether an element was removed.
+func Shift[T any](slice []T) (element T, newSlice []T, ok bool) {
+	if len(slice) == 0 {
+		var zero T
+		return zero, slice, false
+	}
+	return slice[0], slice[1:], true
+}
+
+// Pop removes and returns the last element of a slice.
+// It returns the removed element and the modified slice.
+// The third return value (ok) indicates whether an element was removed.
+func Pop[T any](slice []T) (element T, newSlice []T, ok bool) {
+	if len(slice) == 0 {
+		var zero T
+		return zero, slice, false
+	}
+	lastIdx := len(slice) - 1
+	return slice[lastIdx], slice[:lastIdx], true
+}
+
+// DeleteAt removes and returns the element at the specified index.
+// It returns the removed element and the modified slice.
+// The third return value (ok) indicates whether an element was removed.
+func DeleteAt[T any](slice []T, index int) (element T, newSlice []T, ok bool) {
+	if index < 0 || index >= len(slice) {
+		var zero T
+		return zero, slice, false
+	}
+
+	element = slice[index]
+	newSlice = slices.Delete(slices.Clone(slice), index, index+1)
+
+	return element, newSlice, true
+}
