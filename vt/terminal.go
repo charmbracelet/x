@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/charmbracelet/uv"
+	"github.com/charmbracelet/uv/screen"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
 )
@@ -156,14 +157,14 @@ func (t *Terminal) WidthMethod() uv.WidthMethod {
 func (t *Terminal) Draw(scr uv.Screen, area uv.Rectangle) {
 	bg := uv.EmptyCell
 	bg.Style.Bg = t.bgColor
-	uv.FillArea(scr, &bg, area)
+	screen.FillArea(scr, &bg, area)
 	for y := range t.Touched() {
-		if y < area.Min.Y || y >= area.Max.Y {
+		if y < 0 || y >= t.Height() {
 			continue
 		}
-		for x := area.Min.X; x < area.Max.X; {
+		for x := 0; x < t.Width(); {
 			w := 1
-			cell := t.CellAt(x, y+area.Min.Y)
+			cell := t.CellAt(x, y)
 			if cell != nil {
 				cell = cell.Clone()
 				if cell.Width > 1 {
@@ -175,7 +176,7 @@ func (t *Terminal) Draw(scr uv.Screen, area uv.Rectangle) {
 				if cell.Style.Fg == nil && t.fgColor != nil {
 					cell.Style.Fg = t.fgColor
 				}
-				scr.SetCell(x, y+area.Min.Y, cell)
+				scr.SetCell(x+area.Min.X, y+area.Min.Y, cell)
 			}
 			x += w
 		}
