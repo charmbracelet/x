@@ -126,10 +126,60 @@ func (t *Terminal) Touched() []*uv.LineData {
 	return t.scr.Touched()
 }
 
+var _ uv.Screen = (*Terminal)(nil)
+
+// Bounds returns the bounds of the terminal.
+func (t *Terminal) Bounds() uv.Rectangle {
+	return t.scr.Bounds()
+}
+
 // CellAt returns the current focused screen cell at the given x, y position.
 // It returns nil if the cell is out of bounds.
 func (t *Terminal) CellAt(x, y int) *uv.Cell {
 	return t.scr.CellAt(x, y)
+}
+
+// SetCell sets the current focused screen cell at the given x, y position.
+func (t *Terminal) SetCell(x, y int, c *uv.Cell) {
+	t.scr.SetCell(x, y, c)
+}
+
+// WidthMethod returns the width method used by the terminal.
+func (t *Terminal) WidthMethod() uv.WidthMethod {
+	if t.isModeSet(ansi.GraphemeClusteringMode) {
+		return ansi.GraphemeWidth
+	}
+	return ansi.WcWidth
+}
+
+// Draw implements the [uv.Drawable] interface.
+func (t *Terminal) Draw(scr uv.Screen, area uv.Rectangle) {
+	bg := uv.EmptyCell
+	bg.Style.Bg = t.bgColor
+	uv.FillArea(scr, &bg, area)
+	for y := range t.Touched() {
+		if y < area.Min.Y || y >= area.Max.Y {
+			continue
+		}
+		for x := area.Min.X; x < area.Max.X; {
+			w := 1
+			cell := t.CellAt(x, y+area.Min.Y)
+			if cell != nil {
+				cell = cell.Clone()
+				if cell.Width > 1 {
+					w = cell.Width
+				}
+				if cell.Style.Bg == nil && t.bgColor != nil {
+					cell.Style.Bg = t.bgColor
+				}
+				if cell.Style.Fg == nil && t.fgColor != nil {
+					cell.Style.Fg = t.fgColor
+				}
+				scr.SetCell(x, y+area.Min.Y, cell)
+			}
+			x += w
+		}
+	}
 }
 
 // Height returns the height of the terminal.
