@@ -37,6 +37,12 @@ func (t *Terminal) SendKey(k uv.KeyEvent) {
 			key.Mod &^= ModAlt // Remove the Alt modifier for easier matching
 		}
 
+		// FIXME: We remove any Base and Shifted codes to properly handle
+		// comparision. This is a workaround for the fact that we don't support
+		// extended keys yet.
+		key.BaseCode = 0
+		key.ShiftedCode = 0
+
 		switch key {
 		// Control keys
 		case KeyPressEvent{Code: KeySpace, Mod: ModCtrl}:
