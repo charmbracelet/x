@@ -33,7 +33,8 @@ type Terminal struct {
 	logger Logger
 
 	// terminal default colors.
-	fgColor, bgColor, curColor color.Color
+	defaultFg, defaultBg, defaultCur color.Color
+	fgColor, bgColor, curColor       color.Color
 
 	// Terminal modes.
 	modes ansi.Modes
@@ -73,12 +74,6 @@ type Terminal struct {
 	// When true, and a character is written, the cursor is moved to the next line.
 	atPhantom bool
 }
-
-var (
-	defaultFg  = color.White
-	defaultBg  = color.Black
-	defaultCur = color.White
-)
 
 // NewTerminal creates a new terminal.
 func NewTerminal(w, h int) *Terminal {
@@ -295,10 +290,12 @@ func (t *Terminal) SendKeys(keys ...uv.KeyEvent) {
 	}
 }
 
-// ForegroundColor returns the terminal's foreground color.
+// ForegroundColor returns the terminal's foreground color. This returns nil if
+// the foreground color is not set which means the outer terminal color is
+// used.
 func (t *Terminal) ForegroundColor() color.Color {
 	if t.fgColor == nil {
-		return defaultFg
+		return t.defaultFg
 	}
 	return t.fgColor
 }
@@ -306,15 +303,25 @@ func (t *Terminal) ForegroundColor() color.Color {
 // SetForegroundColor sets the terminal's foreground color.
 func (t *Terminal) SetForegroundColor(c color.Color) {
 	if c == nil {
-		c = defaultFg
+		c = t.defaultFg
 	}
 	t.fgColor = c
+	if t.cb.ForegroundColor != nil {
+		t.cb.ForegroundColor(c)
+	}
 }
 
-// BackgroundColor returns the terminal's background color.
+// SetDefaultForegroundColor sets the terminal's default foreground color.
+func (t *Terminal) SetDefaultForegroundColor(c color.Color) {
+	t.defaultFg = c
+}
+
+// BackgroundColor returns the terminal's background color. This returns nil if
+// the background color is not set which means the outer terminal color is
+// used.
 func (t *Terminal) BackgroundColor() color.Color {
 	if t.bgColor == nil {
-		return defaultBg
+		return t.defaultBg
 	}
 	return t.bgColor
 }
@@ -322,15 +329,24 @@ func (t *Terminal) BackgroundColor() color.Color {
 // SetBackgroundColor sets the terminal's background color.
 func (t *Terminal) SetBackgroundColor(c color.Color) {
 	if c == nil {
-		c = defaultBg
+		c = t.defaultBg
 	}
 	t.bgColor = c
+	if t.cb.BackgroundColor != nil {
+		t.cb.BackgroundColor(c)
+	}
 }
 
-// CursorColor returns the terminal's cursor color.
+// SetDefaultBackgroundColor sets the terminal's default background color.
+func (t *Terminal) SetDefaultBackgroundColor(c color.Color) {
+	t.defaultBg = c
+}
+
+// CursorColor returns the terminal's cursor color. This returns nil if the
+// cursor color is not set which means the outer terminal color is used.
 func (t *Terminal) CursorColor() color.Color {
 	if t.curColor == nil {
-		return defaultCur
+		return t.defaultCur
 	}
 	return t.curColor
 }
@@ -338,9 +354,17 @@ func (t *Terminal) CursorColor() color.Color {
 // SetCursorColor sets the terminal's cursor color.
 func (t *Terminal) SetCursorColor(c color.Color) {
 	if c == nil {
-		c = defaultCur
+		c = t.defaultCur
 	}
 	t.curColor = c
+	if t.cb.CursorColor != nil {
+		t.cb.CursorColor(c)
+	}
+}
+
+// SetDefaultCursorColor sets the terminal's default cursor color.
+func (t *Terminal) SetDefaultCursorColor(c color.Color) {
+	t.defaultCur = c
 }
 
 // IndexedColor returns a terminal's indexed color. An indexed color is a color

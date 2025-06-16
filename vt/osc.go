@@ -48,8 +48,11 @@ func (t *Terminal) handleTitle(cmd int, data []byte) {
 }
 
 func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
-	var setCol func(color.Color)
-	var col color.Color
+	if cmd != 10 && cmd != 11 && cmd != 12 &&
+		cmd != 110 && cmd != 111 && cmd != 112 {
+		// Invalid, ignore
+		return
+	}
 
 	parts := bytes.Split(data, []byte{';'})
 	if len(parts) == 0 {
@@ -57,69 +60,45 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 		return
 	}
 
-	switch cmd {
-	case 10, 11, 12:
-		if len(parts) != 2 {
-			// Invalid, ignore
-			return
+	cb := func(c color.Color) {
+		switch cmd {
+		case 10, 110: // Foreground color
+			t.SetForegroundColor(c)
+		case 11, 111: // Background color
+			t.SetBackgroundColor(c)
+		case 12, 112: // Cursor color
+			t.SetCursorColor(c)
 		}
+	}
 
-		var enc func(string) string
-		if s := string(parts[1]); s == "?" {
+	switch len(parts) {
+	case 1: // Reset color
+		cb(nil)
+	case 2: // Set/Query color
+		arg := string(parts[1])
+		if arg == "?" {
+			var xrgb ansi.XRGBColor
 			switch cmd {
-			case 10:
-				enc = ansi.SetForegroundColor
-				col = t.ForegroundColor()
-				if col == nil {
-					col = defaultFg
+			case 10: // Query foreground color
+				xrgb.Color = t.ForegroundColor()
+				if xrgb.Color != nil {
+					io.WriteString(t.pw, ansi.SetForegroundColor(xrgb.String())) //nolint:errcheck,gosec
 				}
-			case 11:
-				enc = ansi.SetBackgroundColor
-				col = t.BackgroundColor()
-				if col == nil {
-					col = defaultBg
+			case 11: // Query background color
+				xrgb.Color = t.BackgroundColor()
+				if xrgb.Color != nil {
+					io.WriteString(t.pw, ansi.SetBackgroundColor(xrgb.String())) //nolint:errcheck,gosec
 				}
-			case 12:
-				enc = ansi.SetCursorColor
-				col = t.CursorColor()
-				if col == nil {
-					col = defaultCur
+			case 12: // Query cursor color
+				xrgb.Color = t.CursorColor()
+				if xrgb.Color != nil {
+					io.WriteString(t.pw, ansi.SetCursorColor(xrgb.String())) //nolint:errcheck,gosec
 				}
 			}
-
-			if enc != nil && col != nil {
-				xrgb := ansi.XRGBColor{Color: col}
-				io.WriteString(t.pw, enc(xrgb.String())) //nolint:errcheck
-			}
-		} else {
-			col = ansi.XParseColor(string(parts[1]))
-			if col == nil {
-				return
-			}
-		}
-	case 110, 111, 112:
-		col = nil
-	}
-
-	switch cmd {
-	case 10, 110: // Set/Reset foreground color
-		setCol = t.SetForegroundColor
-		if t.cb.ForegroundColor != nil && t.fgColor != col {
-			t.cb.ForegroundColor(col)
-		}
-	case 11, 111: // Set/Reset background color
-		setCol = t.SetBackgroundColor
-		if t.cb.BackgroundColor != nil && t.bgColor != col {
-			t.cb.BackgroundColor(col)
-		}
-	case 12, 112: // Set/Reset cursor color
-		setCol = t.SetCursorColor
-		if t.cb.CursorColor != nil && t.curColor != col {
-			t.cb.CursorColor(col)
+		} else if c := ansi.XParseColor(arg); c != nil {
+			cb(c)
 		}
 	}
-
-	setCol(col)
 }
 
 func (t *Terminal) handleWorkingDirectory(cmd int, data []byte) {
