@@ -14,12 +14,6 @@ import (
 	"golang.org/x/sys/windows"
 )
 
-// Default size.
-const (
-	DefaultWidth  = 80
-	DefaultHeight = 25
-)
-
 // ConPty represents a Windows Console Pseudo-terminal.
 // https://learn.microsoft.com/en-us/windows/console/creating-a-pseudoconsole-session#preparing-the-communication-channels
 type ConPty struct {
