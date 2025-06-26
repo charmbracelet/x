@@ -65,6 +65,7 @@ const (
 	Citron
 	Zest
 	Pepper
+	Barbeque
 	Charcoal
 	Iron
 	Oyster
@@ -138,6 +139,7 @@ func (k Key) String() string {
 		Citron:   "Citron",
 		Zest:     "Zest",
 		Pepper:   "Pepper",
+		Barbeque: "Barbeque",
 		Charcoal: "Charcoal",
 		Iron:     "Iron",
 		Oyster:   "Oyster",
@@ -191,16 +193,17 @@ func (k Key) Hex() string {
 		Damson:   "#007AB8",
 		Malibu:   "#00A4FF",
 		Sardine:  "#4FBEFE",
-		Zinc:     "#10B1AE",
+		Zinc:     "#0e9996",
 		Turtle:   "#0ADCD9",
 		Lichen:   "#5CDFEA",
-		Guac:     "#12C78F",
+		Guac:     "#00b875",
 		Julep:    "#00FFB2",
 		Bok:      "#68FFD6",
 		Mustard:  "#F5EF34",
 		Citron:   "#E8FF27",
 		Zest:     "#E8FE96",
 		Pepper:   "#201F26",
+		Barbeque: "#2d2c35",
 		Charcoal: "#3A3943",
 		Iron:     "#4D4C57",
 		Oyster:   "#605F6B",
