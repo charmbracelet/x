@@ -267,6 +267,7 @@ func Keys() []Key {
 		Citron,
 		Zest,
 		Pepper,
+		Barbeque,
 		Charcoal,
 		Iron,
 		Oyster,
