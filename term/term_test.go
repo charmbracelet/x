@@ -22,10 +22,17 @@ func TestIsTerminalTempFile(t *testing.T) {
 }
 
 func TestIsTerminalTerm(t *testing.T) {
-	if runtime.GOOS != "linux" {
+	var name string
+	switch runtime.GOOS {
+	case "linux":
+		name = "/dev/ptmx"
+	case "plan9":
+		name = "/dev/cons"
+	default:
 		t.Skipf("unknown terminal path for GOOS %v", runtime.GOOS)
 	}
-	file, err := os.OpenFile("/dev/ptmx", os.O_RDWR, 0)
+
+	file, err := os.OpenFile(name, os.O_RDWR, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
