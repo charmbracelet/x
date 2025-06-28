@@ -48,7 +48,7 @@ type Mode interface {
 	Mode() int
 }
 
-// SetMode (SM) returns a sequence to set a mode.
+// SetMode (SM) or (DECSET) returns a sequence to set a mode.
 // The mode arguments are a list of modes to set.
 //
 // If one of the modes is a [DECMode], the function will returns two escape
@@ -72,7 +72,12 @@ func SM(modes ...Mode) string {
 	return SetMode(modes...)
 }
 
-// ResetMode (RM) returns a sequence to reset a mode.
+// DECSET is an alias for [SetMode].
+func DECSET(modes ...Mode) string {
+	return SetMode(modes...)
+}
+
+// ResetMode (RM) or (DECRST) returns a sequence to reset a mode.
 // The mode arguments are a list of modes to reset.
 //
 // If one of the modes is a [DECMode], the function will returns two escape
@@ -93,6 +98,11 @@ func ResetMode(modes ...Mode) string {
 
 // RM is an alias for [ResetMode].
 func RM(modes ...Mode) string {
+	return ResetMode(modes...)
+}
+
+// DECRST is an alias for [ResetMode].
+func DECRST(modes ...Mode) string {
 	return ResetMode(modes...)
 }
 
