@@ -735,6 +735,8 @@ const (
 	RequestSynchronizedOutputMode = "\x1b[?2026$p"
 )
 
+// Synchronized Output Mode. See [SynchronizedOutputMode].
+//
 // Deprecated: use [SynchronizedOutputMode], [SetSynchronizedOutputMode], and
 // [ResetSynchronizedOutputMode], and [RequestSynchronizedOutputMode] instead.
 const (
@@ -775,6 +777,8 @@ const (
 	RequestGraphemeClusteringMode = "\x1b[?2027$p"
 )
 
+// Grapheme Clustering Mode. See [GraphemeClusteringMode].
+//
 // Deprecated: use [SetUnicodeCoreMode], [ResetUnicodeCoreMode], and
 // [RequestUnicodeCoreMode] instead.
 const (
