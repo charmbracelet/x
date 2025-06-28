@@ -787,6 +787,27 @@ const (
 	RequestGraphemeClustering = "\x1b[?2027$p"
 )
 
+// LightDarkMode is a mode that enables reporting the operating system's color
+// scheme (light or dark) preference. It reports the color scheme as a [DSR]
+// and [LightDarkReport] escape sequences encoded as follows:
+//
+//	CSI ? 997 ; 1 n   for dark mode
+//	CSI ? 997 ; 2 n   for light mode
+//
+// The color preference can also be requested via the following [DSR] and
+// [RequestLightDarkReport] escape sequences:
+//
+//	CSI ? 996 n
+//
+// See: https://contour-terminal.org/vt-extensions/color-palette-update-notifications/
+const (
+	LightDarkMode = DECMode(2031)
+
+	SetLightDarkMode     = "\x1b[?2031h"
+	ResetLightDarkMode   = "\x1b[?2031l"
+	RequestLightDarkMode = "\x1b[?2031$p"
+)
+
 // InBandResizeMode is a mode that reports terminal resize events as escape
 // sequences. This is useful for systems that do not support [SIGWINCH] like
 // Windows.
