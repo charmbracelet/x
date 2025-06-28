@@ -773,6 +773,23 @@ const (
 	RequestGraphemeClustering = "\x1b[?2027$p"
 )
 
+// InBandResizeMode is a mode that reports terminal resize events as escape
+// sequences. This is useful for systems that do not support [SIGWINCH] like
+// Windows.
+//
+// The terminal then sends the following encoding:
+//
+//	CSI 48 ; cellsHeight ; cellsWidth ; pixelHeight ; pixelWidth t
+//
+// See: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+const (
+	InBandResizeMode = DECMode(2048)
+
+	SetInBandResizeMode     = "\x1b[?2048h"
+	ResetInBandResizeMode   = "\x1b[?2048l"
+	RequestInBandResizeMode = "\x1b[?2048$p"
+)
+
 // Win32Input is a mode that determines whether input is processed by the
 // Win32 console and Conpty.
 //
