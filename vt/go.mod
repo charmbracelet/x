@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/vt
 go 1.23.0
 
 require (
-	github.com/charmbracelet/x/ansi v0.9.2
+	github.com/charmbracelet/x/ansi v0.9.3
 	github.com/charmbracelet/x/cellbuf v0.0.11
 	github.com/charmbracelet/x/input v0.3.4
 	github.com/mattn/go-runewidth v0.0.16
