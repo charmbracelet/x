@@ -74,6 +74,10 @@ const (
 	Ash
 	Salt
 	Butter
+
+	// Provisional.
+	NeueGuac
+	NeueZinc
 )
 
 // RGBA returns the red, green, blue, and alpha values of the color. It
@@ -148,6 +152,10 @@ func (k Key) String() string {
 		Salt:     "Salt",
 		Ash:      "Ash",
 		Butter:   "Butter",
+
+		// Provisional.
+		NeueGuac: "Neue Guac",
+		NeueZinc: "Neue Zinc",
 	}[k]
 }
 
@@ -193,10 +201,10 @@ func (k Key) Hex() string {
 		Damson:   "#007AB8",
 		Malibu:   "#00A4FF",
 		Sardine:  "#4FBEFE",
-		Zinc:     "#0e9996",
+		Zinc:     "#10B1AE",
 		Turtle:   "#0ADCD9",
 		Lichen:   "#5CDFEA",
-		Guac:     "#00b875",
+		Guac:     "#12C78F",
 		Julep:    "#00FFB2",
 		Bok:      "#68FFD6",
 		Mustard:  "#F5EF34",
@@ -212,6 +220,10 @@ func (k Key) Hex() string {
 		Ash:      "#DFDBDD",
 		Salt:     "#F1EFEF",
 		Butter:   "#FFFAF1",
+
+		// Provisional.
+		NeueGuac: "#00b875",
+		NeueZinc: "#0e9996",
 	}[k]
 }
 
