@@ -163,12 +163,16 @@ func main() {
 		s := subdued.
 			Foreground(charmtone.Squid)
 
+		// Gradient:
+		// Hazy -> Blush, Bok -> Zest
 		left := blendKeys(halfWidth, charmtone.Hazy, charmtone.Blush)
 		left += "\n" + block.Render(s.Render("Hazy")+rightArrowMark.String()+s.Render("Blush"))
 		right := blendKeys(halfWidth, charmtone.Bok, charmtone.Zest)
 		right += "\n" + block.Render(s.Render("Bok")+rightArrowMark.String()+s.Render("Zest"))
 		fmt.Fprint(&grads, "\n", lipgloss.JoinHorizontal(lipgloss.Top, gap, left, right))
 
+		// Gradient:
+		// Uni -> Coral -> Tuna -> Violet -> Malibu -> Turtle
 		block = block.Width(fullWidth)
 		buf := strings.Builder{}
 		fmt.Fprint(&buf, blendKeys(fullWidth, charmtone.Uni,
