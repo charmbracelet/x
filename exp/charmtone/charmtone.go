@@ -65,6 +65,7 @@ const (
 	Citron
 	Zest
 	Pepper
+	Barbeque
 	Charcoal
 	Iron
 	Oyster
@@ -73,6 +74,10 @@ const (
 	Ash
 	Salt
 	Butter
+
+	// Provisional.
+	NeueGuac
+	NeueZinc
 )
 
 // RGBA returns the red, green, blue, and alpha values of the color. It
@@ -138,6 +143,7 @@ func (k Key) String() string {
 		Citron:   "Citron",
 		Zest:     "Zest",
 		Pepper:   "Pepper",
+		Barbeque: "Barbeque",
 		Charcoal: "Charcoal",
 		Iron:     "Iron",
 		Oyster:   "Oyster",
@@ -146,6 +152,10 @@ func (k Key) String() string {
 		Salt:     "Salt",
 		Ash:      "Ash",
 		Butter:   "Butter",
+
+		// Provisional.
+		NeueGuac: "Neue Guac",
+		NeueZinc: "Neue Zinc",
 	}[k]
 }
 
@@ -201,6 +211,7 @@ func (k Key) Hex() string {
 		Citron:   "#E8FF27",
 		Zest:     "#E8FE96",
 		Pepper:   "#201F26",
+		Barbeque: "#2d2c35",
 		Charcoal: "#3A3943",
 		Iron:     "#4D4C57",
 		Oyster:   "#605F6B",
@@ -209,6 +220,10 @@ func (k Key) Hex() string {
 		Ash:      "#DFDBDD",
 		Salt:     "#F1EFEF",
 		Butter:   "#FFFAF1",
+
+		// Provisional.
+		NeueGuac: "#00b875",
+		NeueZinc: "#0e9996",
 	}[k]
 }
 
@@ -264,6 +279,7 @@ func Keys() []Key {
 		Citron,
 		Zest,
 		Pepper,
+		Barbeque,
 		Charcoal,
 		Iron,
 		Oyster,

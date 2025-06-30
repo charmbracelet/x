@@ -27,7 +27,7 @@ jobs:
           cache: true
           cache-dependency-path: ./windows/go.sum
       - run: go generate ./...
-      - uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@v6
         with:
           commit_message: "ci: generate windows syscalls"
           branch: main

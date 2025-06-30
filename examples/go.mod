@@ -6,7 +6,7 @@ require (
 	github.com/charmbracelet/colorprofile v0.3.1
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-alpha.2.0.20250125233033-58a153eb00e6
-	github.com/charmbracelet/x/ansi v0.9.2
+	github.com/charmbracelet/x/ansi v0.9.3
 	github.com/charmbracelet/x/cellbuf v0.0.13
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250602192518-9e722df69bbb
 	github.com/charmbracelet/x/exp/toner v0.0.0-20250602202920-5fecc56e9a94
