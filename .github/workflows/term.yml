@@ -28,6 +28,19 @@ jobs:
           cache-dependency-path: ./term/go.sum
       - run: go build -v ./...
       - run: go test -race -v ./...
+  build-term9:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./term
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./term/go.mod
+          cache: true
+          cache-dependency-path: ./term/go.sum
+      - run: env GOOS=plan9 GOARCH=amd64 go build -v ./...
   dependabot:
     needs: [build]
     runs-on: ubuntu-latest
@@ -50,4 +63,3 @@ jobs:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
       directory: ./term/...
-
