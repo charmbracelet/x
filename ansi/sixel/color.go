@@ -1,3 +1,4 @@
+// Package sixel provides sixel graphics format functionality.
 package sixel
 
 import (
@@ -15,10 +16,10 @@ var ErrInvalidColor = fmt.Errorf("invalid color")
 // parameters are ignored.
 func WriteColor(w io.Writer, pc, pu, px, py, pz int) (int, error) {
 	if pu <= 0 || pu > 2 {
-		return fmt.Fprintf(w, "#%d", pc)
+		return fmt.Fprintf(w, "#%d", pc) //nolint:wrapcheck
 	}
 
-	return fmt.Fprintf(w, "#%d;%d;%d;%d;%d", pc, pu, px, py, pz)
+	return fmt.Fprintf(w, "#%d;%d;%d;%d;%d", pc, pu, px, py, pz) //nolint:wrapcheck
 }
 
 // ConvertChannel converts a color channel from color.Color 0xffff to 0-100
@@ -49,11 +50,11 @@ func FromColor(c color.Color) Color {
 // the number of bytes read.
 func DecodeColor(data []byte) (c Color, n int) {
 	if len(data) == 0 || data[0] != ColorIntroducer {
-		return
+		return //nolint:nakedret
 	}
 
 	if len(data) < 2 { // The minimum length is 2: the introducer and a digit.
-		return
+		return //nolint:nakedret
 	}
 
 	// Parse the color number and optional color system.
@@ -76,7 +77,7 @@ func DecodeColor(data []byte) (c Color, n int) {
 	// Parse the color components.
 	ptr := &c.Px
 	for ; n < len(data); n++ {
-		if data[n] == ';' {
+		if data[n] == ';' { //nolint:nestif
 			if ptr == &c.Px {
 				ptr = &c.Py
 			} else if ptr == &c.Py {
@@ -92,7 +93,7 @@ func DecodeColor(data []byte) (c Color, n int) {
 		}
 	}
 
-	return
+	return //nolint:nakedret
 }
 
 // Color represents a Sixel color.

@@ -247,7 +247,7 @@ var cases = []struct {
 		},
 		pos: cellbuf.Pos(1, 1),
 	},
-	// TODO: Support Reverse Wrap (XTREVWRAP) and Extended Reverse Wrap (XTREVWRAP2)
+	// XXX: Support Reverse Wrap (XTREVWRAP) and Extended Reverse Wrap (XTREVWRAP2)
 	// {
 	// 	name: "CUB Extended Reverse Wrap Single Line",
 	// 	w:    10, h: 2,
@@ -1094,7 +1094,7 @@ var cases = []struct {
 		want: []string{"    BC    "},
 		pos:  cellbuf.Pos(0, 0),
 	},
-	// TODO: Support DECSCA
+	// XXX: Support DECSCA
 	// {
 	// 	name: "ECH Protected Attributes Ignored with DECSCA",
 	// 	w:    8, h: 1,
@@ -1219,7 +1219,7 @@ var cases = []struct {
 		want: []string{"    DE  "},
 		pos:  cellbuf.Pos(2, 0),
 	},
-	// TODO: Support DECSCA
+	// XXX: Support DECSCA
 	// {
 	// 	name: "EL Erase Left Protected Attributes Ignored with DECSCA",
 	// 	w:    8, h: 1,

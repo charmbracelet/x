@@ -1,3 +1,4 @@
+// Package sshkey provides utilities for parsing SSH private keys with passphrase support.
 package sshkey
 
 import (

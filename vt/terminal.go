@@ -2,6 +2,7 @@ package vt
 
 import (
 	"bytes"
+	"fmt"
 	"image/color"
 	"io"
 	"sync"

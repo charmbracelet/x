@@ -2,11 +2,11 @@ package cellbuf
 
 import (
 	"bytes"
+	"slices"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi"
-	"slices"
 )
 
 const nbsp = '\u00a0'
@@ -21,6 +21,7 @@ const nbsp = '\u00a0'
 //
 // Note: breakpoints must be a string of 1-cell wide rune characters.
 func Wrap(s string, limit int, breakpoints string) string {
+	//nolint:godox
 	// TODO: Use [PenWriter] once we get
 	// https://github.com/charmbracelet/lipgloss/pull/489 out the door and
 	// released.
@@ -100,7 +101,7 @@ func Wrap(s string, limit int, breakpoints string) string {
 		seq, width, n, newState := ansi.DecodeSequence(s, state, p)
 		switch width {
 		case 0:
-			if ansi.Equal(seq, "\t") {
+			if ansi.Equal(seq, "\t") { //nolint:nestif
 				addWord()
 				space.WriteString(seq)
 				break

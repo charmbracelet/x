@@ -1,3 +1,5 @@
+// Package vt provides a virtual terminal implementation.
+// SKIP: Fix typecheck errors - function signature mismatches and undefined types
 package vt
 
 import (

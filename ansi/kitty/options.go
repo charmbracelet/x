@@ -272,7 +272,7 @@ func (o *Options) Options() (opts []string) {
 		opts = append(opts, fmt.Sprintf("a=%c", o.Action))
 	}
 
-	return
+	return //nolint:nakedret // complex function with multiple returns
 }
 
 // String returns the string representation of the options.

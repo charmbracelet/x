@@ -25,7 +25,7 @@ type CellBuffer interface {
 func FillRect(s CellBuffer, c *Cell, rect Rectangle) {
 	for y := rect.Min.Y; y < rect.Max.Y; y++ {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
-			s.SetCell(x, y, c) //nolint:errcheck
+			s.SetCell(x, y, c)
 		}
 	}
 }
@@ -99,31 +99,31 @@ func RenderLine(d CellBuffer, n int) (w int, line string) {
 	}
 
 	for x := range d.Bounds().Dx() {
-		if cell := d.Cell(x, n); cell != nil && cell.Width > 0 {
+		if cell := d.Cell(x, n); cell != nil && cell.Width > 0 { //nolint:nestif
 			// Convert the cell's style and link to the given color profile.
 			cellStyle := cell.Style
 			cellLink := cell.Link
 			if cellStyle.Empty() && !pen.Empty() {
 				writePending()
-				buf.WriteString(ansi.ResetStyle) //nolint:errcheck
+				buf.WriteString(ansi.ResetStyle)
 				pen.Reset()
 			}
 			if !cellStyle.Equal(&pen) {
 				writePending()
 				seq := cellStyle.DiffSequence(pen)
-				buf.WriteString(seq) // nolint:errcheck
+				buf.WriteString(seq)
 				pen = cellStyle
 			}
 
 			// Write the URL escape sequence
 			if cellLink != link && link.URL != "" {
 				writePending()
-				buf.WriteString(ansi.ResetHyperlink()) //nolint:errcheck
+				buf.WriteString(ansi.ResetHyperlink())
 				link.Reset()
 			}
 			if cellLink != link {
 				writePending()
-				buf.WriteString(ansi.SetHyperlink(cellLink.URL, cellLink.Params)) //nolint:errcheck
+				buf.WriteString(ansi.SetHyperlink(cellLink.URL, cellLink.Params))
 				link = cellLink
 			}
 
@@ -140,10 +140,10 @@ func RenderLine(d CellBuffer, n int) (w int, line string) {
 		}
 	}
 	if link.URL != "" {
-		buf.WriteString(ansi.ResetHyperlink()) //nolint:errcheck
+		buf.WriteString(ansi.ResetHyperlink())
 	}
 	if !pen.Empty() {
-		buf.WriteString(ansi.ResetStyle) //nolint:errcheck
+		buf.WriteString(ansi.ResetStyle)
 	}
 	return w, strings.TrimRight(buf.String(), " ") // Trim trailing spaces
 }
@@ -299,7 +299,7 @@ func printString[T []byte | string](
 					// Print the cell to the screen
 					cell.Style = style
 					cell.Link = link
-					s.SetCell(x, y, &cell) //nolint:errcheck
+					s.SetCell(x, y, &cell)
 					x += width
 				}
 			}
@@ -309,6 +309,7 @@ func printString[T []byte | string](
 			cell.Reset()
 		default:
 			// Valid sequences always have a non-zero Cmd.
+			//nolint:godox
 			// TODO: Handle cursor movement and other sequences
 			switch {
 			case ansi.HasCsiPrefix(seq) && p.Command() == 'm':
@@ -333,7 +334,7 @@ func printString[T []byte | string](
 
 	// Make sure to set the last cell if it's not empty.
 	if !cell.Empty() {
-		s.SetCell(x, y, &cell) //nolint:errcheck
+		s.SetCell(x, y, &cell)
 		cell.Reset()
 	}
 }

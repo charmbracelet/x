@@ -25,7 +25,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 	rd := bufio.NewReader(r)
 	peeked, err := rd.Peek(1)
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
 	var bounds image.Rectangle
@@ -36,7 +36,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 		for {
 			peeked, err = rd.Peek(n) // random number, just need to read a few bytes
 			if err != nil {
-				return nil, err
+				return nil, err //nolint:wrapcheck
 			}
 
 			raster, read = DecodeRaster(peeked)
@@ -49,7 +49,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 				continue
 			}
 
-			rd.Discard(read) //nolint:errcheck
+			rd.Discard(read) //nolint:errcheck,gosec,gosec
 			break
 		}
 
@@ -106,7 +106,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 				// Read bytes until we hit a non-color byte i.e. non-numeric
 				// and non-;
 				if (b < '0' || b > '9') && b != ';' {
-					rd.UnreadByte() //nolint:errcheck
+					rd.UnreadByte() //nolint:errcheck,gosec
 					break
 				}
 
@@ -134,7 +134,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 				}
 				// Read bytes until we hit a non-numeric and non-repeat byte.
 				if (b < '0' || b > '9') && (b < '?' || b > '~') {
-					rd.UnreadByte() //nolint:errcheck
+					rd.UnreadByte() //nolint:errcheck,gosec
 					break
 				}
 
@@ -161,7 +161,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 }
 
 // writePixel will accept a sixel byte (from ? to ~) that defines 6 vertical pixels
-// and write any filled pixels to the image
+// and write any filled pixels to the image.
 func (d *Decoder) writePixel(x int, bandY int, sixel byte, color color.Color, img *image.RGBA) {
 	maskedSixel := (sixel - '?') & 63
 	yOffset := 0

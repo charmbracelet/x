@@ -17,10 +17,10 @@ func WriteRaster(w io.Writer, pan, pad, ph, pv int) (n int, err error) {
 	}
 
 	if ph <= 0 && pv <= 0 {
-		return fmt.Fprintf(w, "%c%d;%d", RasterAttribute, pan, pad)
+		return fmt.Fprintf(w, "%c%d;%d", RasterAttribute, pan, pad) //nolint:wrapcheck
 	}
 
-	return fmt.Fprintf(w, "%c%d;%d;%d;%d", RasterAttribute, pan, pad, ph, pv)
+	return fmt.Fprintf(w, "%c%d;%d;%d;%d", RasterAttribute, pan, pad, ph, pv) //nolint:wrapcheck
 }
 
 // Raster represents Sixel raster attributes.
@@ -37,7 +37,7 @@ func (r Raster) WriteTo(w io.Writer) (int64, error) {
 // String returns the Raster as a string.
 func (r Raster) String() string {
 	var b strings.Builder
-	r.WriteTo(&b) //nolint:errcheck
+	r.WriteTo(&b) //nolint:errcheck,gosec
 	return b.String()
 }
 
@@ -50,7 +50,7 @@ func DecodeRaster(data []byte) (r Raster, n int) {
 
 	ptr := &r.Pan
 	for n = 1; n < len(data); n++ {
-		if data[n] == ';' {
+		if data[n] == ';' { //nolint:nestif
 			if ptr == &r.Pan {
 				ptr = &r.Pad
 			} else if ptr == &r.Pad {

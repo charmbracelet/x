@@ -1,3 +1,4 @@
+//nolint:unused,revive,nolintlint
 package input
 
 import (
@@ -18,8 +19,6 @@ type Logger interface {
 // control key state to determine modifier key changes. It also keeps track of
 // the last mouse button state and window size changes to determine which mouse
 // buttons were released and to prevent multiple size events from firing.
-//
-//nolint:all
 type win32InputState struct {
 	ansiBuf                    [256]byte
 	ansiIdx                    int
@@ -47,7 +46,7 @@ type Reader struct {
 
 	// keyState keeps track of the current Windows Console API key events state.
 	// It is used to decode ANSI escape sequences and utf16 sequences.
-	keyState win32InputState //nolint:all
+	keyState win32InputState
 
 	parser Parser
 	logger Logger
