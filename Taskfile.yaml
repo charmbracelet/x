@@ -45,23 +45,11 @@ tasks:
       - for: { var: PACKAGES }
         cmd: cd {{.ITEM}} && modernize -fix ./...
 
-  lint:all:
-    desc: Run all linters for all packages
-    cmds:
-      - task: lint
-      - task: lint:soft
-
   lint:
     desc: Run base linters for all packages
     cmds:
       - for: { var: PACKAGES }
         cmd: cd {{.ITEM}} && golangci-lint run
-
-  lint:soft:
-    desc: Run soft linters for all packages
-    cmds:
-      - for: { var: PACKAGES }
-        cmd: cd {{.ITEM}} && golangci-lint run --config=../.golangci-soft.yml
 
   test:
     desc: Run tests for all packages
