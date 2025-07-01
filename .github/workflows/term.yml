@@ -28,7 +28,7 @@ jobs:
           cache-dependency-path: ./term/go.sum
       - run: go build -v ./...
       - run: go test -race -v ./...
-  build-term9:
+  build-plan9:
     runs-on: ubuntu-latest
     defaults:
       run:
