@@ -42,6 +42,7 @@ func (t *Terminal) setAltScreenMode(on bool) {
 		t.scr = &t.scrs[1]
 		t.scrs[1].cur = t.scrs[0].cur
 		t.scr.Clear()
+		t.scr.buf.Touched = nil
 		t.setCursor(0, 0)
 	} else {
 		t.scr = &t.scrs[0]
