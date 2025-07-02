@@ -114,6 +114,7 @@ func EncodeKittyGraphics(w io.Writer, m image.Image, o *kitty.Options) error {
 		}
 
 	case kitty.SharedMemory:
+		//nolint:godox
 		// TODO: Implement shared memory
 		return fmt.Errorf("shared memory transmission is not yet implemented")
 
@@ -169,13 +170,13 @@ func EncodeKittyGraphics(w io.Writer, m image.Image, o *kitty.Options) error {
 		return fmt.Errorf("failed to write base64 encoded image to payload: %w", err)
 	}
 	if err := b64.Close(); err != nil {
-		return err
+		return err //nolint:wrapcheck
 	}
 
 	// If not chunking, write all at once
 	if !o.Chunk {
 		_, err := io.WriteString(w, KittyGraphics(payload.Bytes(), o.Options()...))
-		return err
+		return err //nolint:wrapcheck
 	}
 
 	// Write in chunks
@@ -198,7 +199,7 @@ func EncodeKittyGraphics(w io.Writer, m image.Image, o *kitty.Options) error {
 
 		opts := buildChunkOptions(o, isFirstChunk, false)
 		if _, err := io.WriteString(w, KittyGraphics(chunk[:n], opts...)); err != nil {
-			return err
+			return err //nolint:wrapcheck
 		}
 
 		isFirstChunk = false
@@ -207,10 +208,10 @@ func EncodeKittyGraphics(w io.Writer, m image.Image, o *kitty.Options) error {
 	// Write the last chunk
 	opts := buildChunkOptions(o, isFirstChunk, true)
 	_, err = io.WriteString(w, KittyGraphics(chunk[:n], opts...))
-	return err
+	return err //nolint:wrapcheck
 }
 
-// buildChunkOptions creates the options slice for a chunk
+// buildChunkOptions creates the options slice for a chunk.
 func buildChunkOptions(o *kitty.Options, isFirstChunk, isLastChunk bool) []string {
 	var opts []string
 	if isFirstChunk {

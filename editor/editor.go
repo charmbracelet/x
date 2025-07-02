@@ -1,3 +1,4 @@
+// Package editor provides functionality for opening files in external editors.
 package editor
 
 import (
@@ -68,11 +69,11 @@ func Command(app, path string, options ...Option) (*exec.Cmd, error) {
 	return CommandContext(context.Background(), app, path, options...)
 }
 
-// CmdContext returns a *exec.Cmd editing the given path with $EDITOR or nano
+// CommandContext returns a *exec.Cmd editing the given path with $EDITOR or nano
 // if no $EDITOR is set.
 func CommandContext(ctx context.Context, app, path string, options ...Option) (*exec.Cmd, error) {
 	if os.Getenv("SNAP_REVISION") != "" {
-		return nil, fmt.Errorf("Did you install with Snap? %[1]s is sandboxed and unable to open an editor. Please install %[1]s with Go or another package manager to enable editing.", app) //nolint:revive
+		return nil, fmt.Errorf("did you install with Snap? %[1]s is sandboxed and unable to open an editor. Please install %[1]s with Go or another package manager to enable editing", app)
 	}
 
 	editor, args := getEditor()

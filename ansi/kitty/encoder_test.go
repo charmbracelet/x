@@ -121,13 +121,13 @@ func TestEncoder_Encode(t *testing.T) {
 				// Decompress the data
 				r, err := zlib.NewReader(bytes.NewReader(got))
 				if err != nil {
-					return err
+					return err //nolint:wrapcheck
 				}
 				defer r.Close()
 
 				decompressed, err := io.ReadAll(r)
 				if err != nil {
-					return err
+					return err //nolint:wrapcheck
 				}
 
 				expected := []byte{

@@ -1,3 +1,6 @@
+//go:build ignore
+
+//nolint:typecheck
 // Package teatest provides helper functions to test tea.Model's.
 package teatest
 

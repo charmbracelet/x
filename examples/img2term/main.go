@@ -1,3 +1,4 @@
+// Package main demonstrates usage.
 package main
 
 import (
@@ -15,7 +16,7 @@ import (
 	"github.com/charmbracelet/x/ansi/sixel"
 )
 
-// $ go run . ./../../ansi/fixtures/graphics/JigokudaniMonkeyPark.png
+// $ go run . ./../../ansi/fixtures/graphics/JigokudaniMonkeyPark.png.
 func main() {
 	flag.Parse()
 	args := flag.Args()
@@ -44,8 +45,8 @@ func writeSixel(w io.Writer, img image.Image) (int, error) {
 	var buf bytes.Buffer
 	var e sixel.Encoder
 	if err := e.Encode(&buf, img); err != nil {
-		return 0, err
+		return 0, err //nolint:wrapcheck
 	}
 
-	return io.WriteString(w, ansi.SixelGraphics(0, 1, 0, buf.Bytes()))
+	return io.WriteString(w, ansi.SixelGraphics(0, 1, 0, buf.Bytes())) //nolint:wrapcheck
 }

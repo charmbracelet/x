@@ -1,3 +1,4 @@
+// Package wcwidth provides utilities for calculating character width.
 package wcwidth
 
 import (

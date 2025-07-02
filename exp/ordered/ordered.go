@@ -1,3 +1,4 @@
+// Package ordered provides utility functions for ordered types.
 package ordered
 
 import "cmp"

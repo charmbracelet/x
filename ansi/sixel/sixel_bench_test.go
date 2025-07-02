@@ -40,7 +40,7 @@ func writeSixelGraphics(w io.Writer, m image.Image) error {
 	}
 
 	_, err := io.WriteString(w, ansi.SixelGraphics(0, 1, 0, data.Bytes()))
-	return err
+	return err //nolint:wrapcheck
 }
 
 func BenchmarkEncodingXSixel(b *testing.B) {
@@ -63,7 +63,7 @@ func BenchmarkEncodingXSixel(b *testing.B) {
 func loadImage(path string) (image.Image, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
-	return png.Decode(f)
+	return png.Decode(f) //nolint:wrapcheck
 }

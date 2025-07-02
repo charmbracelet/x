@@ -1,3 +1,4 @@
+// Package main demonstrates usage.
 package main
 
 import (
@@ -24,9 +25,9 @@ func main() {
 
 func loadImage(path string) (image.Image, error) {
 	f, err := os.Open(path)
-	defer f.Close() //nolint:errcheck
+	defer f.Close() //nolint:errcheck,staticcheck
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
-	return jpeg.Decode(f)
+	return jpeg.Decode(f) //nolint:wrapcheck
 }

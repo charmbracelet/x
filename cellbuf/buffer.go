@@ -1,3 +1,4 @@
+// Package cellbuf provides terminal cell buffer functionality.
 package cellbuf
 
 import (
@@ -296,7 +297,7 @@ func (b *Buffer) FillRect(c *Cell, rect Rectangle) {
 	}
 	for y := rect.Min.Y; y < rect.Max.Y; y++ {
 		for x := rect.Min.X; x < rect.Max.X; x += cellWidth {
-			b.setCell(x, y, c, false) //nolint:errcheck
+			b.setCell(x, y, c, false)
 		}
 	}
 }

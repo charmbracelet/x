@@ -29,10 +29,10 @@ func RequireEqual[T []byte | string](tb testing.TB, out T) {
 
 	golden := filepath.Join("testdata", tb.Name()+".golden")
 	if *update {
-		if err := os.MkdirAll(filepath.Dir(golden), 0o750); err != nil { //nolint: gomnd
+		if err := os.MkdirAll(filepath.Dir(golden), 0o750); err != nil { //nolint: mnd
 			tb.Fatal(err)
 		}
-		if err := os.WriteFile(golden, []byte(out), 0o600); err != nil { //nolint: gomnd
+		if err := os.WriteFile(golden, []byte(out), 0o600); err != nil { //nolint: mnd
 			tb.Fatal(err)
 		}
 	}
