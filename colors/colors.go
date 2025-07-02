@@ -1,3 +1,4 @@
+// Package colors provides color definitions and utilities.
 package colors
 
 import "github.com/charmbracelet/lipgloss"

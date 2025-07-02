@@ -1,3 +1,4 @@
+// Package main demonstrates open package usage.
 package main
 
 import (

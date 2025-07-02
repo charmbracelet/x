@@ -1,3 +1,4 @@
+// Package open provides functionality for opening files and URLs.
 package open
 
 import (

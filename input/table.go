@@ -1,10 +1,10 @@
 package input
 
 import (
+	"maps"
 	"strconv"
 
 	"github.com/charmbracelet/x/ansi"
-	"maps"
 )
 
 // buildKeysTable builds a table of key sequences and their corresponding key

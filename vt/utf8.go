@@ -80,7 +80,7 @@ func (t *Terminal) handleGrapheme(content string, width int) {
 	}
 
 	// Handle character set mappings
-	if len(content) == 1 {
+	if len(content) == 1 { //nolint:nestif
 		var charset CharSet
 		c := content[0]
 		if t.gsingle > 1 && t.gsingle < 4 {

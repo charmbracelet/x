@@ -98,7 +98,7 @@ func siftDownCmpFunc[E any](data []E, lo, hi, first int, cmp func(a, b E) int) {
 		if child+1 < hi && (cmp(data[first+child], data[first+child+1]) < 0) {
 			child++
 		}
-		if !(cmp(data[first+root], data[first+child]) < 0) {
+		if !(cmp(data[first+root], data[first+child]) < 0) { //nolint:staticcheck
 			return
 		}
 		data[first+root], data[first+child] = data[first+child], data[first+root]
@@ -176,7 +176,7 @@ func pdqsortCmpFunc[E any](data []E, a, b, limit int, cmp func(a, b E) int) {
 
 		// Probably the slice contains many duplicate elements, partition the slice into
 		// elements equal to and elements greater than the pivot.
-		if a > 0 && !(cmp(data[a-1], data[pivot]) < 0) {
+		if a > 0 && !(cmp(data[a-1], data[pivot]) < 0) { //nolint:staticcheck
 			mid := partitionEqualCmpFunc(data, a, b, pivot, cmp)
 			a = mid
 			continue
@@ -202,7 +202,7 @@ func pdqsortCmpFunc[E any](data []E, a, b, limit int, cmp func(a, b E) int) {
 // partitionCmpFunc does one quicksort partition.
 // Let p = data[pivot]
 // Moves elements in data[a:b] around, so that data[i]<p and data[j]>=p for i<newpivot and j>newpivot.
-// On return, data[newpivot] = p
+// On return, data[newpivot] = p.
 func partitionCmpFunc[E any](data []E, a, b, pivot int, cmp func(a, b E) int) (newpivot int, alreadyPartitioned bool) {
 	data[a], data[pivot] = data[pivot], data[a]
 	i, j := a+1, b-1 // i and j are inclusive of the elements remaining to be partitioned
@@ -210,7 +210,7 @@ func partitionCmpFunc[E any](data []E, a, b, pivot int, cmp func(a, b E) int) (n
 	for i <= j && (cmp(data[i], data[a]) < 0) {
 		i++
 	}
-	for i <= j && !(cmp(data[j], data[a]) < 0) {
+	for i <= j && !(cmp(data[j], data[a]) < 0) { //nolint:staticcheck
 		j--
 	}
 	if i > j {
@@ -225,7 +225,7 @@ func partitionCmpFunc[E any](data []E, a, b, pivot int, cmp func(a, b E) int) (n
 		for i <= j && (cmp(data[i], data[a]) < 0) {
 			i++
 		}
-		for i <= j && !(cmp(data[j], data[a]) < 0) {
+		for i <= j && !(cmp(data[j], data[a]) < 0) { //nolint:staticcheck
 			j--
 		}
 		if i > j {
@@ -246,7 +246,7 @@ func partitionEqualCmpFunc[E any](data []E, a, b, pivot int, cmp func(a, b E) in
 	i, j := a+1, b-1 // i and j are inclusive of the elements remaining to be partitioned
 
 	for {
-		for i <= j && !(cmp(data[a], data[i]) < 0) {
+		for i <= j && !(cmp(data[a], data[i]) < 0) { //nolint:staticcheck
 			i++
 		}
 		for i <= j && (cmp(data[a], data[j]) < 0) {
@@ -270,7 +270,7 @@ func partialInsertionSortCmpFunc[E any](data []E, a, b int, cmp func(a, b E) int
 	)
 	i := a + 1
 	for range maxSteps {
-		for i < b && !(cmp(data[i], data[i-1]) < 0) {
+		for i < b && !(cmp(data[i], data[i-1]) < 0) { //nolint:staticcheck
 			i++
 		}
 
@@ -287,7 +287,7 @@ func partialInsertionSortCmpFunc[E any](data []E, a, b int, cmp func(a, b E) int
 		// Shift the smaller one to the left.
 		if i-a >= 2 {
 			for j := i - 1; j >= 1; j-- {
-				if !(cmp(data[j], data[j-1]) < 0) {
+				if !(cmp(data[j], data[j-1]) < 0) { //nolint:staticcheck
 					break
 				}
 				data[j], data[j-1] = data[j-1], data[j]
@@ -296,7 +296,7 @@ func partialInsertionSortCmpFunc[E any](data []E, a, b int, cmp func(a, b E) int
 		// Shift the greater one to the right.
 		if b-i >= 2 {
 			for j := i + 1; j < b; j++ {
-				if !(cmp(data[j], data[j-1]) < 0) {
+				if !(cmp(data[j], data[j-1]) < 0) { //nolint:staticcheck
 					break
 				}
 				data[j], data[j-1] = data[j-1], data[j]

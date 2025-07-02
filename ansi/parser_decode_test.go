@@ -1,10 +1,10 @@
 package ansi
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/charmbracelet/x/ansi/parser"
-	"slices"
 )
 
 func TestDecodeSequence(t *testing.T) {

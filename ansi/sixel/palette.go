@@ -36,11 +36,11 @@ type sixelPalette struct {
 }
 
 // quantizationChannel is an enum type which indicates an axis in the color cube. Used to indicate which
-// axis in a cube is the longest
+// axis in a cube is the longest.
 type quantizationChannel int
 
 const (
-	// MaxColors is the maximum number of colors a sixelPalette can contain
+	// MaxColors is the maximum number of colors a sixelPalette can contain.
 	MaxColors int = 256
 
 	quantizationRed quantizationChannel = iota
@@ -64,7 +64,7 @@ type quantizationCube struct {
 }
 
 // cubePriorityQueue is a heap used to sort quantizationCube objects in order to select the correct
-// one to cut next. Pop will remove the queue with the highest score
+// one to cut next. Pop will remove the queue with the highest score.
 type cubePriorityQueue []any
 
 func (p *cubePriorityQueue) Push(x any) {
@@ -93,7 +93,7 @@ func (p *cubePriorityQueue) Swap(i, j int) {
 	(*p)[i], (*p)[j] = (*p)[j], (*p)[i]
 }
 
-// createCube is used to initialize a new quantizationCube containing a region of the uniqueColors slice
+// createCube is used to initialize a new quantizationCube containing a region of the uniqueColors slice.
 func (p *sixelPalette) createCube(uniqueColors []sixelColor, pixelCounts map[sixelColor]uint64, startIndex, bucketLength int) quantizationCube {
 	minRed, minGreen, minBlue, minAlpha := uint32(0xffff), uint32(0xffff), uint32(0xffff), uint32(0xffff)
 	maxRed, maxGreen, maxBlue, maxAlpha := uint32(0), uint32(0), uint32(0), uint32(0)
@@ -162,7 +162,7 @@ func (p *sixelPalette) createCube(uniqueColors []sixelColor, pixelCounts map[six
 }
 
 // quantize is a method that will initialize the palette's colors and lookups, provided a set
-// of unique colors and a map containing pixel counts for those colors
+// of unique colors and a map containing pixel counts for those colors.
 func (p *sixelPalette) quantize(uniqueColors []sixelColor, pixelCounts map[sixelColor]uint64, maxColors int) {
 	p.colorConvert = make(map[sixelColor]sixelColor)
 	p.paletteIndexes = make(map[sixelColor]int)
@@ -184,11 +184,12 @@ func (p *sixelPalette) quantize(uniqueColors []sixelColor, pixelCounts map[sixel
 	for cubeHeap.Len() < maxColors {
 		cubeToSplit := heap.Pop(&cubeHeap).(quantizationCube)
 
+		//nolint:godox
 		// TODO: Use slices.SortFunc and cmp.Compare in the future (>=1.24)
 		// Then can delete palette_sort.go
 		sortFunc(uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length],
 			func(left sixelColor, right sixelColor) int {
-				switch cubeToSplit.sliceChannel {
+				switch cubeToSplit.sliceChannel { //nolint:exhaustive // alpha channel not used
 				case quantizationRed:
 					return compare(left.Red, right.Red)
 				case quantizationGreen:
@@ -230,7 +231,7 @@ func (p *sixelPalette) quantize(uniqueColors []sixelColor, pixelCounts map[sixel
 	}
 }
 
-// ColorIndex accepts a raw image color (NOT a palette color) and provides the palette index of that color
+// ColorIndex accepts a raw image color (NOT a palette color) and provides the palette index of that color.
 func (p *sixelPalette) ColorIndex(c sixelColor) int {
 	return p.paletteIndexes[c]
 }
@@ -260,7 +261,7 @@ func (p *sixelPalette) loadColor(uniqueColors []sixelColor, pixelCounts map[sixe
 }
 
 // sixelColor is a flat struct that contains a single color: all channels are 0-100
-// instead of anything sensible
+// instead of anything sensible.
 type sixelColor struct {
 	Red   uint32
 	Green uint32
@@ -269,7 +270,7 @@ type sixelColor struct {
 }
 
 // sixelConvertColor accepts an ordinary Go color and converts it to a sixelColor, which
-// has channels ranging from 0-100
+// has channels ranging from 0-100.
 func sixelConvertColor(c color.Color) sixelColor {
 	r, g, b, a := c.RGBA()
 	return sixelColor{
@@ -281,7 +282,7 @@ func sixelConvertColor(c color.Color) sixelColor {
 }
 
 // sixelConvertChannel converts a single color channel from go's standard 0-0xffff range to
-// sixel's 0-100 range
+// sixel's 0-100 range.
 func sixelConvertChannel(channel uint32) uint32 {
 	// We add 328 because that is about 0.5 in the sixel 0-100 color range, we're trying to
 	// round to the nearest value

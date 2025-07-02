@@ -25,7 +25,7 @@ func (t *Terminal) fullReset() {
 	t.scrs[1].Reset()
 	t.resetTabStops()
 
-	// TODO: Do we reset all modes here? Investigate.
+	// XXX: Do we reset all modes here? Investigate.
 	t.resetModes()
 
 	t.gl, t.gr = 0, 1

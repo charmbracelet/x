@@ -130,7 +130,7 @@ func (s *Screen) updateHashmap() {
 	s.growHunks()
 }
 
-// scrollOldhash
+// scrollOldhash.
 func (s *Screen) scrollOldhash(n, top, bot int) {
 	if len(s.oldhash) == 0 {
 		return

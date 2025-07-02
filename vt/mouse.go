@@ -60,7 +60,7 @@ type MouseMotion = uv.MouseMotionEvent
 // SendMouse sends a mouse event to the terminal. This can be any kind of mouse
 // events such as [MouseClick], [MouseRelease], [MouseWheel], or [MouseMotion].
 func (t *Terminal) SendMouse(m Mouse) {
-	// TODO: Support [Utf8ExtMouseMode], [UrxvtExtMouseMode], and
+	// XXX: Support [Utf8ExtMouseMode], [UrxvtExtMouseMode], and
 	// [SgrPixelExtMouseMode].
 	var (
 		enc  ansi.Mode
@@ -104,8 +104,8 @@ func (t *Terminal) SendMouse(m Mouse) {
 		mouse.Mod.Contains(ModCtrl))
 
 	switch enc {
-	// TODO: Support [ansi.HighlightMouseMode].
-	// TODO: Support [ansi.Utf8ExtMouseMode], [ansi.UrxvtExtMouseMode], and
+	// XXX: Support [ansi.HighlightMouseMode].
+	// XXX: Support [ansi.Utf8ExtMouseMode], [ansi.UrxvtExtMouseMode], and
 	// [ansi.SgrPixelExtMouseMode].
 	case nil: // X10 mouse encoding
 		io.WriteString(t.pw, ansi.MouseX10(b, mouse.X, mouse.Y)) //nolint:errcheck

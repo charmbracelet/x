@@ -1,3 +1,4 @@
+// Package higherorder provides higher-order functions for Go.
 package higherorder
 
 // Foldl applies a function to each element of a list, starting from the left.
@@ -27,7 +28,7 @@ func Map[A, B any](f func(A) B, list []A) []B {
 	return res
 }
 
-// Filter applies a function to each element of a list, if the function returns false those elements are removed, returning a new list
+// Filter applies a function to each element of a list, if the function returns false those elements are removed, returning a new list.
 func Filter[A any](f func(A) bool, list []A) []A {
 	res := make([]A, 0)
 	for _, v := range list {

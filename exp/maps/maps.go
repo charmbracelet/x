@@ -1,3 +1,4 @@
+// Package maps provides utility functions for working with maps.
 package maps
 
 import (

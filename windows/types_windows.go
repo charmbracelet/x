@@ -1,3 +1,4 @@
+//nolint:gosec
 package windows
 
 import (
@@ -8,6 +9,8 @@ import (
 
 // Virtual Key codes
 // https://docs.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+//
+//nolint:revive
 const (
 	VK_LBUTTON             = 0x01
 	VK_RBUTTON             = 0x02
@@ -174,6 +177,8 @@ const (
 
 // Mouse button constants.
 // https://docs.microsoft.com/en-us/windows/console/mouse-event-record-str
+//
+//nolint:revive
 const (
 	FROM_LEFT_1ST_BUTTON_PRESSED = 0x0001
 	RIGHTMOST_BUTTON_PRESSED     = 0x0002
@@ -182,9 +187,11 @@ const (
 	FROM_LEFT_4TH_BUTTON_PRESSED = 0x0010
 )
 
-// Control key state constaints.
+// Control key state constraints.
 // https://docs.microsoft.com/en-us/windows/console/key-event-record-str
 // https://docs.microsoft.com/en-us/windows/console/mouse-event-record-str
+//
+//nolint:revive
 const (
 	CAPSLOCK_ON        = 0x0080
 	ENHANCED_KEY       = 0x0100
@@ -199,6 +206,8 @@ const (
 
 // Mouse event record event flags.
 // https://docs.microsoft.com/en-us/windows/console/mouse-event-record-str
+//
+//nolint:revive
 const (
 	MOUSE_MOVED    = 0x0001
 	DOUBLE_CLICK   = 0x0002
@@ -208,6 +217,8 @@ const (
 
 // Input Record Event Types
 // https://learn.microsoft.com/en-us/windows/console/input-record-str
+//
+//nolint:revive
 const (
 	FOCUS_EVENT              = 0x0010
 	KEY_EVENT                = 0x0001

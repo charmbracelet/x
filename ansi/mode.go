@@ -108,7 +108,7 @@ func DECRST(modes ...Mode) string {
 
 func setMode(reset bool, modes ...Mode) (s string) {
 	if len(modes) == 0 {
-		return
+		return //nolint:nakedret
 	}
 
 	cmd := "h"
@@ -142,7 +142,7 @@ func setMode(reset bool, modes ...Mode) (s string) {
 	if len(dec) > 0 {
 		s += seq + "?" + strings.Join(dec, ";") + cmd
 	}
-	return
+	return //nolint:nakedret
 }
 
 // RequestMode (DECRQM) returns a sequence to request a mode from the terminal.
@@ -322,7 +322,7 @@ const (
 
 // Deprecated: use [SetCursorKeysMode] and [ResetCursorKeysMode] instead.
 const (
-	EnableCursorKeys  = "\x1b[?1h"
+	EnableCursorKeys  = "\x1b[?1h" //nolint:revive // grouped constants
 	DisableCursorKeys = "\x1b[?1l"
 )
 
@@ -573,8 +573,9 @@ const (
 
 // Deprecated: use [SetFocusEventMode], [ResetFocusEventMode], and
 // [RequestFocusEventMode] instead.
+// Focus reporting mode constants.
 const (
-	ReportFocusMode = DECMode(1004)
+	ReportFocusMode = DECMode(1004) //nolint:revive // grouped constants
 
 	EnableReportFocus  = "\x1b[?1004h"
 	DisableReportFocus = "\x1b[?1004l"
@@ -602,7 +603,7 @@ const (
 // Deprecated: use [SgrExtMouseMode] [SetSgrExtMouseMode],
 // [ResetSgrExtMouseMode], and [RequestSgrExtMouseMode] instead.
 const (
-	MouseSgrExtMode    = DECMode(1006)
+	MouseSgrExtMode    = DECMode(1006) //nolint:revive // grouped constants
 	EnableMouseSgrExt  = "\x1b[?1006h"
 	DisableMouseSgrExt = "\x1b[?1006l"
 	RequestMouseSgrExt = "\x1b[?1006$p"
@@ -718,7 +719,7 @@ const (
 // Deprecated: use [SetBracketedPasteMode], [ResetBracketedPasteMode], and
 // [RequestBracketedPasteMode] instead.
 const (
-	EnableBracketedPaste  = "\x1b[?2004h"
+	EnableBracketedPaste  = "\x1b[?2004h" //nolint:revive // grouped constants
 	DisableBracketedPaste = "\x1b[?2004l"
 	RequestBracketedPaste = "\x1b[?2004$p"
 )
@@ -840,7 +841,7 @@ const (
 // Deprecated: use [SetWin32InputMode], [ResetWin32InputMode], and
 // [RequestWin32InputMode] instead.
 const (
-	EnableWin32Input  = "\x1b[?9001h"
+	EnableWin32Input  = "\x1b[?9001h" //nolint:revive // grouped constants
 	DisableWin32Input = "\x1b[?9001l"
 	RequestWin32Input = "\x1b[?9001$p"
 )

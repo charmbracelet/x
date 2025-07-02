@@ -1,3 +1,4 @@
+// Package iterm2 provides iTerm2-specific functionality.
 package iterm2
 
 import (

@@ -39,7 +39,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBa
 	var seq strings.Builder
 
 	width, height := s.newbuf.Width(), s.newbuf.Height()
-	if ty != fy {
+	if ty != fy { //nolint:nestif
 		var yseq string
 		if s.caps.Contains(capVPA) && !s.opts.RelativeCursor {
 			yseq = ansi.VerticalPositionAbsolute(ty + 1)
@@ -54,6 +54,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBa
 			}
 			shouldScroll := !s.opts.AltScreen && fy+n >= s.scrollHeight
 			if lf := strings.Repeat("\n", n); shouldScroll || (fy+n < height && len(lf) < len(yseq)) {
+				//nolint:godox
 				// TODO: Ensure we're not unintentionally scrolling the screen down.
 				yseq = lf
 				s.scrollHeight = max(s.scrollHeight, fy+n)
@@ -67,6 +68,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBa
 				yseq = cuu
 			}
 			if n == 1 && fy-1 > 0 {
+				//nolint:godox
 				// TODO: Ensure we're not unintentionally scrolling the screen up.
 				yseq = ansi.ReverseIndex
 			}
@@ -75,7 +77,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBa
 		seq.WriteString(yseq)
 	}
 
-	if tx != fx {
+	if tx != fx { //nolint:nestif
 		var xseq string
 		if s.caps.Contains(capHPA) && !s.opts.RelativeCursor {
 			xseq = ansi.HorizontalPositionAbsolute(tx + 1)
@@ -97,6 +99,7 @@ func relativeCursorMove(s *Screen, fx, fy, tx, ty int, overwrite, useTabs, useBa
 					cht := ansi.CursorHorizontalForwardTab(tabs)
 					tab := strings.Repeat("\t", tabs)
 					if false && s.caps.Contains(capCHT) && len(cht) < len(tab) {
+						//nolint:godox
 						// TODO: The linux console and some terminals such as
 						// Alacritty don't support [ansi.CHT]. Enable this when
 						// we have a way to detect this, or after 5 years when
@@ -193,7 +196,7 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 		// Method #0: Use [ansi.CUP] if the distance is long.
 		seq = ansi.CursorPosition(x+1, y+1)
 		if fx == -1 || fy == -1 || notLocal(s.newbuf.Width(), fx, fy, x, y) {
-			return
+			return //nolint:nakedret
 		}
 	}
 
@@ -237,7 +240,7 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 		}
 	}
 
-	return
+	return //nolint:nakedret
 }
 
 // moveCursor moves the cursor to the specified position.
@@ -245,10 +248,10 @@ func (s *Screen) moveCursor(x, y int, overwrite bool) {
 	if !s.opts.AltScreen && s.cur.X == -1 && s.cur.Y == -1 {
 		// First cursor movement in inline mode, move the cursor to the first
 		// column before moving to the target position.
-		s.buf.WriteByte('\r') //nolint:errcheck
+		s.buf.WriteByte('\r')
 		s.cur.X, s.cur.Y = 0, 0
 	}
-	s.buf.WriteString(moveCursor(s, x, y, overwrite)) //nolint:errcheck
+	s.buf.WriteString(moveCursor(s, x, y, overwrite))
 	s.cur.X, s.cur.Y = x, y
 }
 
@@ -277,10 +280,11 @@ func (s *Screen) move(x, y int) {
 	// Reset wrap around (phantom cursor) state
 	if s.atPhantom {
 		s.cur.X = 0
-		s.buf.WriteByte('\r') //nolint:errcheck
-		s.atPhantom = false   // reset phantom cell state
+		s.buf.WriteByte('\r')
+		s.atPhantom = false // reset phantom cell state
 	}
 
+	//nolint:godox
 	// TODO: Investigate if we need to handle this case and/or if we need the
 	// following code.
 	//
@@ -294,7 +298,7 @@ func (s *Screen) move(x, y int) {
 	//
 	// 	if l > 0 {
 	// 		s.cur.X = 0
-	// 		s.buf.WriteString("\r" + strings.Repeat("\n", l)) //nolint:errcheck
+	// 		s.buf.WriteString("\r" + strings.Repeat("\n", l))
 	// 	}
 	// }
 
@@ -541,7 +545,7 @@ func (v capabilities) Contains(c capabilities) bool {
 func xtermCaps(termtype string) (v capabilities) {
 	parts := strings.Split(termtype, "-")
 	if len(parts) == 0 {
-		return
+		return //nolint:nakedret
 	}
 
 	switch parts[0] {
@@ -568,7 +572,7 @@ func xtermCaps(termtype string) (v capabilities) {
 		v = capVPA | capHPA | capECH | capICH
 	}
 
-	return
+	return //nolint:nakedret
 }
 
 // NewScreen creates a new Screen.
@@ -603,7 +607,7 @@ func NewScreen(w io.Writer, width, height int, opts *ScreenOptions) (s *Screen) 
 	s.saved = s.cur
 	s.reset()
 
-	return
+	return //nolint:nakedret
 }
 
 // Width returns the width of the screen.
@@ -643,7 +647,7 @@ func (s *Screen) putCell(cell *Cell) {
 
 // wrapCursor wraps the cursor to the next line.
 //
-//nolint:unused
+
 func (s *Screen) wrapCursor() {
 	const autoRightMargin = true
 	if autoRightMargin {
@@ -676,9 +680,9 @@ func (s *Screen) putAttrCell(cell *Cell) {
 	}
 
 	s.updatePen(cell)
-	s.buf.WriteRune(cell.Rune) //nolint:errcheck
+	s.buf.WriteRune(cell.Rune)
 	for _, c := range cell.Comb {
-		s.buf.WriteRune(c) //nolint:errcheck
+		s.buf.WriteRune(c)
 	}
 
 	s.cur.X += cell.Width
@@ -697,12 +701,12 @@ func (s *Screen) putCellLR(cell *Cell) {
 	// Optimize for the lower right corner cell.
 	curX := s.cur.X
 	if cell == nil || !cell.Empty() {
-		s.buf.WriteString(ansi.ResetAutoWrapMode) //nolint:errcheck
+		s.buf.WriteString(ansi.ResetAutoWrapMode)
 		s.putAttrCell(cell)
 		// Writing to lower-right corner cell should not wrap.
 		s.atPhantom = false
 		s.cur.X = curX
-		s.buf.WriteString(ansi.SetAutoWrapMode) //nolint:errcheck
+		s.buf.WriteString(ansi.SetAutoWrapMode)
 	}
 }
 
@@ -723,11 +727,11 @@ func (s *Screen) updatePen(cell *Cell) {
 		if cell.Style.Empty() && len(seq) > len(ansi.ResetStyle) {
 			seq = ansi.ResetStyle
 		}
-		s.buf.WriteString(seq) //nolint:errcheck
+		s.buf.WriteString(seq)
 		s.cur.Style = cell.Style
 	}
 	if !cell.Link.Equal(&s.cur.Link) {
-		s.buf.WriteString(ansi.SetHyperlink(cell.Link.URL, cell.Link.Params)) //nolint:errcheck
+		s.buf.WriteString(ansi.SetHyperlink(cell.Link.URL, cell.Link.Params))
 		s.cur.Link = cell.Link
 	}
 }
@@ -760,9 +764,9 @@ func (s *Screen) emitRange(line Line, n int) (eoi bool) {
 		ech := ansi.EraseCharacter(count)
 		cup := ansi.CursorPosition(s.cur.X+count, s.cur.Y)
 		rep := ansi.RepeatPreviousCharacter(count)
-		if s.caps.Contains(capECH) && count > len(ech)+len(cup) && cell0 != nil && cell0.Clear() {
+		if s.caps.Contains(capECH) && count > len(ech)+len(cup) && cell0 != nil && cell0.Clear() { //nolint:nestif
 			s.updatePen(cell0)
-			s.buf.WriteString(ech) //nolint:errcheck
+			s.buf.WriteString(ech)
 
 			// If this is the last cell, we don't need to move the cursor.
 			if count < n {
@@ -788,7 +792,7 @@ func (s *Screen) emitRange(line Line, n int) (eoi bool) {
 			s.putCell(cell0)
 			repCount-- // cell0 is a single width cell ASCII character
 
-			s.buf.WriteString(ansi.RepeatPreviousCharacter(repCount)) //nolint:errcheck
+			s.buf.WriteString(ansi.RepeatPreviousCharacter(repCount))
 			s.cur.X += repCount
 			if wrapPossible {
 				s.putCell(cell0)
@@ -803,7 +807,7 @@ func (s *Screen) emitRange(line Line, n int) (eoi bool) {
 		n -= count
 	}
 
-	return
+	return //nolint:nakedret
 }
 
 // putRange puts a range of cells from the old line to the new line.
@@ -813,7 +817,7 @@ func (s *Screen) putRange(oldLine, newLine Line, y, start, end int) (eoi bool) {
 	inline := min(len(ansi.CursorPosition(start+1, y+1)),
 		min(len(ansi.HorizontalPositionAbsolute(start+1)),
 			len(ansi.CursorForward(start+1))))
-	if (end - start + 1) > inline {
+	if (end - start + 1) > inline { //nolint:nestif
 		var j, same int
 		for j, same = start, 0; j <= end; j++ {
 			oldCell, newCell := oldLine.At(j), newLine.At(j)
@@ -865,7 +869,7 @@ func (s *Screen) clearToEnd(blank *Cell, force bool) { //nolint:unparam
 		s.updatePen(blank)
 		count := s.newbuf.Width() - s.cur.X
 		if s.el0Cost() <= count {
-			s.buf.WriteString(ansi.EraseLineRight) //nolint:errcheck
+			s.buf.WriteString(ansi.EraseLineRight)
 		} else {
 			for range count {
 				s.putCell(blank)
@@ -890,10 +894,10 @@ func (s *Screen) insertCells(line Line, count int) {
 	supportsICH := s.caps.Contains(capICH)
 	if supportsICH {
 		// Use [ansi.ICH] as an optimization.
-		s.buf.WriteString(ansi.InsertCharacter(count)) //nolint:errcheck
+		s.buf.WriteString(ansi.InsertCharacter(count))
 	} else {
 		// Otherwise, use [ansi.IRM] mode.
-		s.buf.WriteString(ansi.SetInsertReplaceMode) //nolint:errcheck
+		s.buf.WriteString(ansi.SetInsertReplaceMode)
 	}
 
 	for i := 0; count > 0; i++ {
@@ -902,7 +906,7 @@ func (s *Screen) insertCells(line Line, count int) {
 	}
 
 	if !supportsICH {
-		s.buf.WriteString(ansi.ResetInsertReplaceMode) //nolint:errcheck
+		s.buf.WriteString(ansi.ResetInsertReplaceMode)
 	}
 }
 
@@ -935,7 +939,7 @@ func (s *Screen) transformLine(y int) {
 	}
 
 	const ceolStandoutGlitch = false
-	if ceolStandoutGlitch && lineChanged {
+	if ceolStandoutGlitch && lineChanged { //nolint:nestif
 		s.move(0, y)
 		s.clearToEnd(nil, false)
 		s.putRange(oldLine, newLine, y, 0, s.newbuf.Width()-1)
@@ -974,11 +978,11 @@ func (s *Screen) transformLine(y int) {
 					if nFirstCell >= s.newbuf.Width() {
 						s.move(0, y)
 						s.updatePen(blank)
-						s.buf.WriteString(ansi.EraseLineRight) //nolint:errcheck
+						s.buf.WriteString(ansi.EraseLineRight)
 					} else {
 						s.move(nFirstCell-1, y)
 						s.updatePen(blank)
-						s.buf.WriteString(ansi.EraseLineLeft) //nolint:errcheck
+						s.buf.WriteString(ansi.EraseLineLeft)
 					}
 
 					for firstCell < nFirstCell {
@@ -1128,7 +1132,7 @@ func (s *Screen) transformLine(y int) {
 func (s *Screen) deleteCells(count int) {
 	// [ansi.DCH] will shift in cells from the right margin so we need to
 	// ensure that they are the right style.
-	s.buf.WriteString(ansi.DeleteCharacter(count)) //nolint:errcheck
+	s.buf.WriteString(ansi.DeleteCharacter(count))
 }
 
 // clearToBottom clears the screen from the current cursor position to the end
@@ -1140,7 +1144,7 @@ func (s *Screen) clearToBottom(blank *Cell) {
 	}
 
 	s.updatePen(blank)
-	s.buf.WriteString(ansi.EraseScreenBelow) //nolint:errcheck
+	s.buf.WriteString(ansi.EraseScreenBelow)
 	// Clear the rest of the current line
 	s.curbuf.ClearRect(Rect(col, row, s.curbuf.Width()-col, 1))
 	// Clear everything below the current line
@@ -1153,7 +1157,7 @@ func (s *Screen) clearToBottom(blank *Cell) {
 // It returns the top line.
 func (s *Screen) clearBottom(total int) (top int) {
 	if total <= 0 {
-		return
+		return //nolint:nakedret
 	}
 
 	top = total
@@ -1161,7 +1165,7 @@ func (s *Screen) clearBottom(total int) (top int) {
 	blank := s.clearBlank()
 	canClearWithBlank := blank == nil || blank.Clear()
 
-	if canClearWithBlank {
+	if canClearWithBlank { //nolint:nestif
 		var row int
 		for row = total - 1; row >= 0; row-- {
 			oldLine := s.curbuf.Line(row)
@@ -1196,14 +1200,14 @@ func (s *Screen) clearBottom(total int) (top int) {
 		}
 	}
 
-	return
+	return //nolint:nakedret
 }
 
 // clearScreen clears the screen and put cursor at home.
 func (s *Screen) clearScreen(blank *Cell) {
 	s.updatePen(blank)
-	s.buf.WriteString(ansi.CursorHomePosition) //nolint:errcheck
-	s.buf.WriteString(ansi.EraseEntireScreen)  //nolint:errcheck
+	s.buf.WriteString(ansi.CursorHomePosition)
+	s.buf.WriteString(ansi.EraseEntireScreen)
 	s.cur.X, s.cur.Y = 0, 0
 	s.curbuf.Fill(blank)
 }
@@ -1243,7 +1247,7 @@ func (s *Screen) Flush() (err error) {
 func (s *Screen) flush() (err error) {
 	// Write the buffer
 	if s.buf.Len() > 0 {
-		_, err = s.w.Write(s.buf.Bytes()) //nolint:errcheck
+		_, err = s.w.Write(s.buf.Bytes())
 		if err == nil {
 			s.buf.Reset()
 		}
@@ -1270,6 +1274,7 @@ func (s *Screen) render() {
 		return
 	}
 
+	//nolint:godox
 	// TODO: Investigate whether this is necessary. Theoretically, terminals
 	// can add/remove tab stops and we should be able to handle that. We could
 	// use [ansi.DECTABSR] to read the tab stops, but that's not implemented in
@@ -1301,7 +1306,9 @@ func (s *Screen) render() {
 
 	// Do we have queued strings to write above the screen?
 	if len(s.queueAbove) > 0 {
+		//nolint:godox
 		// TODO: Use scrolling region if available.
+		//nolint:godox
 		// TODO: Use [Screen.Write] [io.Writer] interface.
 
 		// We need to scroll the screen up by the number of lines in the queue.
@@ -1339,12 +1346,13 @@ func (s *Screen) render() {
 		s.clearBelow(nil, s.newbuf.Height()-1)
 	}
 
-	if s.clear {
+	if s.clear { //nolint:nestif
 		s.clearUpdate()
 		s.clear = false
 	} else if len(s.touch) > 0 {
 		if s.opts.AltScreen {
 			// Optimize scrolling for the alternate screen buffer.
+			//nolint:godox
 			// TODO: Should we optimize for inline mode as well? If so, we need
 			// to know the actual cursor position to use [ansi.DECSTBM].
 			s.scrollOptimize()

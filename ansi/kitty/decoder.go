@@ -1,3 +1,4 @@
+// Package kitty provides Kitty terminal graphics protocol functionality.
 package kitty
 
 import (
@@ -50,7 +51,7 @@ func (d *Decoder) Decode(r io.Reader) (image.Image, error) {
 		return d.decodeRGBA(r, d.Format == RGBA)
 
 	case PNG:
-		return png.Decode(r)
+		return png.Decode(r) //nolint:wrapcheck
 
 	default:
 		return nil, fmt.Errorf("unsupported format: %d", d.Format)

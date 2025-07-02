@@ -1,3 +1,4 @@
+// Package main demonstrates cellbuf usage.
 package main
 
 import (
@@ -48,7 +49,7 @@ func main() {
 		ansi.SgrExtMouseMode,
 	}
 
-	os.Stdout.WriteString(ansi.SetMode(modes...))         //nolint:errcheck
+	os.Stdout.WriteString(ansi.SetMode(modes...))         //nolint:errcheck,gosec
 	defer os.Stdout.WriteString(ansi.ResetMode(modes...)) //nolint:errcheck
 
 	x, y := (w/2)-10, h/2
@@ -61,7 +62,7 @@ func main() {
 		scr.Fill(cellbuf.NewCell('你'))
 		scrw.PrintCropAt(x, y, text, "")
 		scr.Render()
-		scr.Flush() //nolint:errcheck
+		scr.Flush() //nolint:errcheck,gosec
 	}
 
 	resize := func(nw, nh int) {
@@ -117,7 +118,7 @@ func main() {
 }
 
 func init() {
-	f, err := os.OpenFile("cellbuf.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666)
+	f, err := os.OpenFile("cellbuf.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o666) //nolint:gosec
 	if err != nil {
 		log.Fatal(err)
 	}

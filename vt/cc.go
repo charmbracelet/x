@@ -26,7 +26,7 @@ func (t *Terminal) linefeed() {
 func (t *Terminal) index() {
 	x, y := t.scr.CursorPosition()
 	scroll := t.scr.ScrollRegion()
-	// TODO: Handle scrollback whenever we add it.
+	// XXX: Handle scrollback whenever we add it.
 	if y == scroll.Max.Y-1 && x >= scroll.Min.X && x < scroll.Max.X {
 		t.scr.ScrollUp(1)
 	} else if y < scroll.Max.Y-1 || !uv.Pos(x, y).In(scroll) {

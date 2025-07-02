@@ -64,7 +64,7 @@ func (e *Encoder) Encode(w io.Writer, img image.Image) error {
 	}
 
 	pixels := scratch.GeneratePixels()
-	io.WriteString(w, pixels) //nolint:errcheck
+	io.WriteString(w, pixels) //nolint:errcheck,gosec
 
 	return nil
 }
@@ -78,14 +78,14 @@ func (e *Encoder) encodePaletteColor(w io.Writer, paletteIndex int, c sixelColor
 	// d = G
 	// e = B
 
-	w.Write([]byte{ColorIntroducer})              //nolint:errcheck
-	io.WriteString(w, strconv.Itoa(paletteIndex)) //nolint:errcheck
-	io.WriteString(w, ";2;")                      //nolint:errcheck
-	io.WriteString(w, strconv.Itoa(int(c.Red)))   //nolint:errcheck
-	w.Write([]byte{';'})                          //nolint:errcheck
-	io.WriteString(w, strconv.Itoa(int(c.Green))) //nolint:errcheck
-	w.Write([]byte{';'})                          //nolint:errcheck
-	io.WriteString(w, strconv.Itoa(int(c.Blue)))  //nolint:errcheck
+	w.Write([]byte{ColorIntroducer})              //nolint:errcheck,gosec
+	io.WriteString(w, strconv.Itoa(paletteIndex)) //nolint:errcheck,gosec
+	io.WriteString(w, ";2;")                      //nolint:errcheck,gosec
+	io.WriteString(w, strconv.Itoa(int(c.Red)))   //nolint:errcheck,gosec
+	w.Write([]byte{';'})                          //nolint:errcheck,gosec
+	io.WriteString(w, strconv.Itoa(int(c.Green))) //nolint:errcheck,gosec
+	w.Write([]byte{';'})                          //nolint:errcheck,gosec
+	io.WriteString(w, strconv.Itoa(int(c.Blue)))  //nolint:errcheck,gosec
 }
 
 // sixelBuilder is a temporary structure used to create a SixelImage. It handles
@@ -108,7 +108,7 @@ type sixelBuilder struct {
 	repeatCount int
 }
 
-// newSixelBuilder creates a sixelBuilder and prepares it for writing
+// newSixelBuilder creates a sixelBuilder and prepares it for writing.
 func newSixelBuilder(width, height int, palette sixelPalette) sixelBuilder {
 	scratch := sixelBuilder{
 		imageWidth:   width,
@@ -119,7 +119,7 @@ func newSixelBuilder(width, height int, palette sixelPalette) sixelBuilder {
 	return scratch
 }
 
-// BandHeight returns the number of six-pixel bands this image consists of
+// BandHeight returns the number of six-pixel bands this image consists of.
 func (s *sixelBuilder) BandHeight() int {
 	bandHeight := s.imageHeight / 6
 	if s.imageHeight%6 != 0 {
@@ -130,7 +130,7 @@ func (s *sixelBuilder) BandHeight() int {
 }
 
 // SetColor will write a single pixel to sixelBuilder's internal bitset data to be used by
-// GeneratePixels
+// GeneratePixels.
 func (s *sixelBuilder) SetColor(x int, y int, color color.Color) {
 	bandY := y / 6
 	paletteIndex := s.SixelPalette.ColorIndex(sixelConvertColor(color))
@@ -216,7 +216,7 @@ func (s *sixelBuilder) GeneratePixels() string {
 }
 
 // writeImageRune will write a single line of six pixels to pixel data.  The data
-// doesn't get written to the imageData, it gets buffered for the purposes of RLE
+// doesn't get written to the imageData, it gets buffered for the purposes of RLE.
 func (s *sixelBuilder) writeImageRune(r byte) {
 	if r == s.repeatByte {
 		s.repeatCount++
@@ -241,7 +241,7 @@ func (s *sixelBuilder) writeControlRune(r byte) {
 }
 
 // flushRepeats is used to actually write the current repeatByte to the imageData when
-// it is about to change. This buffering is used to manage RLE in the sixelBuilder
+// it is about to change. This buffering is used to manage RLE in the sixelBuilder.
 func (s *sixelBuilder) flushRepeats() {
 	if s.repeatCount == 0 {
 		return
@@ -249,7 +249,7 @@ func (s *sixelBuilder) flushRepeats() {
 
 	// Only write using the RLE form if it's actually providing space savings
 	if s.repeatCount > 3 {
-		WriteRepeat(&s.imageData, s.repeatCount, s.repeatByte) //nolint:errcheck
+		WriteRepeat(&s.imageData, s.repeatCount, s.repeatByte) //nolint:errcheck,gosec
 		return
 	}
 

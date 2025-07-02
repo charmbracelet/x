@@ -1,3 +1,4 @@
+// Package strings provides string manipulation utilities.
 package strings
 
 // The so-called spoken language join here works well for some Western
@@ -40,7 +41,7 @@ func (l Language) String() string {
 	}[l]
 }
 
-func (l Language) conjuction() string {
+func (l Language) conjunction() string {
 	switch l {
 	case DE:
 		return "und"
@@ -85,7 +86,7 @@ func EnglishJoin(words []string, oxfordComma bool) string {
 	return spokenLangJoin(words, EN, oxfordComma)
 }
 
-// SpokenLangaugeJoin joins a slice of strings with commas and a conjuction
+// SpokenLanguageJoin joins a slice of strings with commas and a conjunction
 // before the final item. You may specify the language with [Language].
 //
 // If you are using English and need the Oxford Comma, use [EnglishJoin].
@@ -99,7 +100,7 @@ func SpokenLanguageJoin(words []string, language Language) string {
 }
 
 func spokenLangJoin(words []string, language Language, oxfordComma bool) string {
-	conjuction := language.conjuction() + " "
+	conjunction := language.conjunction() + " "
 	separator := language.separator()
 
 	b := strings.Builder{}
@@ -123,7 +124,7 @@ func spokenLangJoin(words []string, language Language, oxfordComma bool) string 
 				b.WriteRune(' ')
 			}
 
-			b.WriteString(conjuction + word)
+			b.WriteString(conjunction + word)
 			continue
 		}
 
