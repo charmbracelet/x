@@ -7,6 +7,7 @@ import (
 	"image/color"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/lucasb-eyer/go-colorful"
 )
 
 // handleOsc handles an OSC escape sequence.
@@ -64,7 +65,7 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 			return
 		}
 
-		var enc func(color.Color) string
+		var enc func(string) string
 		if s := string(parts[1]); s == "?" {
 			switch cmd {
 			case 10:
@@ -79,7 +80,10 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 			}
 
 			if enc != nil && col != nil {
-				t.buf.WriteString(enc(ansi.XRGBColorizer{Color: col}))
+				c, ok := colorful.MakeColor(col)
+				if ok {
+					t.buf.WriteString(enc(c.Hex()))
+				}
 			}
 		} else {
 			col := ansi.XParseColor(string(parts[1]))
