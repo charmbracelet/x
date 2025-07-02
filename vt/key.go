@@ -3,7 +3,7 @@ package vt
 import (
 	"io"
 
-	"github.com/charmbracelet/uv"
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 )
 

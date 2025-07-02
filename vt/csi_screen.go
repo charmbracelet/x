@@ -1,6 +1,8 @@
 package vt
 
-import "github.com/charmbracelet/uv"
+import (
+	uv "github.com/charmbracelet/ultraviolet"
+)
 
 // eraseCharacter erases n characters starting from the cursor position. It
 // does not move the cursor. This is equivalent to [ansi.ECH].

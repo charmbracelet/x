@@ -3,7 +3,7 @@ package vt
 import (
 	"testing"
 
-	"github.com/charmbracelet/uv"
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 // testLogger wraps a testing.TB to implement the Logger interface.

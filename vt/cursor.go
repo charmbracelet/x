@@ -1,6 +1,6 @@
 package vt
 
-import "github.com/charmbracelet/uv"
+import uv "github.com/charmbracelet/ultraviolet"
 
 // CursorStyle represents a cursor style.
 type CursorStyle int

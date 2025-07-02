@@ -1,6 +1,6 @@
 package vt
 
-import "github.com/charmbracelet/uv"
+import uv "github.com/charmbracelet/ultraviolet"
 
 // Buffer is a terminal cell buffer.
 type Buffer struct {

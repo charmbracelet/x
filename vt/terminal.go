@@ -4,8 +4,8 @@ import (
 	"image/color"
 	"io"
 
-	"github.com/charmbracelet/uv"
-	"github.com/charmbracelet/uv/screen"
+	uv "github.com/charmbracelet/ultraviolet"
+	"github.com/charmbracelet/ultraviolet/screen"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
 )

@@ -3,7 +3,7 @@ package vt
 import (
 	"unicode/utf8"
 
-	"github.com/charmbracelet/uv"
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/mattn/go-runewidth"
 	"github.com/rivo/uniseg"

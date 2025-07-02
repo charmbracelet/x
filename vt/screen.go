@@ -1,7 +1,7 @@
 package vt
 
 import (
-	"github.com/charmbracelet/uv"
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 // Screen represents a virtual terminal screen.
@@ -323,13 +323,12 @@ func (s *Screen) DeleteLine(n int) bool {
 // blankCell returns the cursor blank cell with the background color set to the
 // current pen background color. If the pen background color is nil, the return
 // value is nil.
-func (s *Screen) blankCell() (c *uv.Cell) {
+func (s *Screen) blankCell() *uv.Cell {
 	if s.cur.Pen.Bg == nil {
-		return
+		return nil
 	}
 
-	c = new(uv.Cell)
-	*c = uv.EmptyCell
+	c := uv.EmptyCell
 	c.Style.Bg = s.cur.Pen.Bg
-	return
+	return &c
 }

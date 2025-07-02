@@ -1,8 +1,6 @@
 package vt
 
-import (
-	"github.com/charmbracelet/uv"
-)
+import uv "github.com/charmbracelet/ultraviolet"
 
 // Damage represents a damaged area.
 type Damage interface {
