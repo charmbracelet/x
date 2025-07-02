@@ -16,7 +16,7 @@ func (t *Terminal) handlePrint(r rune) {
 // handleGrapheme handles UTF-8 graphemes.
 func (t *Terminal) handleGrapheme(content string, width int) {
 	var cell *Cell
-	if t.isModeSet(ansi.GraphemeClusteringMode) {
+	if t.isModeSet(ansi.UnicodeCoreMode) {
 		cell = &Cell{}
 		cell.Width = width
 		for i, r := range content {

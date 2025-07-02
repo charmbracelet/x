@@ -66,7 +66,7 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 		}
 
 		var enc func(string) string
-		if s := string(parts[1]); s == "?" {
+		if s := string(parts[1]); s == "?" { //nolint:nestif
 			switch cmd {
 			case 10:
 				enc = ansi.SetForegroundColor
