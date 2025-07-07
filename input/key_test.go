@@ -6,6 +6,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"image/color"
 	"io"
 	"math/rand"
 	"reflect"
@@ -121,6 +122,26 @@ func buildBaseSeqTests() []seqTest {
 func TestParseSequence(t *testing.T) {
 	td := buildBaseSeqTests()
 	td = append(td,
+		// Background color.
+		seqTest{
+			[]byte("\x1b]11;rgb:1234/1234/1234\x07"),
+			[]Event{BackgroundColorEvent{
+				Color: color.RGBA{R: 0x12, G: 0x12, B: 0x12, A: 0xff},
+			}},
+		},
+		seqTest{
+			[]byte("\x1b]11;rgb:1234/1234/1234\x1b\\"),
+			[]Event{BackgroundColorEvent{
+				Color: color.RGBA{R: 0x12, G: 0x12, B: 0x12, A: 0xff},
+			}},
+		},
+		seqTest{
+			[]byte("\x1b]11;rgb:1234/1234/1234\x1b"), // Incomplete sequences are ignored.
+			[]Event{
+				UnknownEvent("\x1b]11;rgb:1234/1234/1234\x1b"),
+			},
+		},
+
 		// Kitty Graphics response.
 		seqTest{
 			[]byte("\x1b_Ga=t;OK\x1b\\"),

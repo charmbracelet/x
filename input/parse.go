@@ -3,6 +3,7 @@ package input
 import (
 	"bytes"
 	"encoding/base64"
+	"slices"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -603,9 +604,10 @@ func (p *Parser) parseSs3(b []byte) (int, Event) {
 }
 
 func (p *Parser) parseOsc(b []byte) (int, Event) {
+	defaultKey := KeyPressEvent{Code: rune(b[1]), Mod: ModAlt}
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+] key
-		return 2, KeyPressEvent{Code: rune(b[1]), Mod: ModAlt}
+		return 2, defaultKey
 	}
 
 	var i int
@@ -637,7 +639,7 @@ func (p *Parser) parseOsc(b []byte) (int, Event) {
 
 	for ; i < len(b); i++ {
 		// advance to the end of the sequence
-		if b[i] == ansi.BEL || b[i] == ansi.ESC || b[i] == ansi.ST {
+		if slices.Contains([]byte{ansi.BEL, ansi.ESC, ansi.ST, ansi.CAN, ansi.SUB}, b[i]) {
 			break
 		}
 	}
@@ -650,7 +652,20 @@ func (p *Parser) parseOsc(b []byte) (int, Event) {
 	i++
 
 	// Check 7-bit ST (string terminator) character
-	if i < len(b) && b[i-1] == ansi.ESC && b[i] == '\\' {
+	switch b[i-1] {
+	case ansi.CAN, ansi.SUB:
+		return i, UnknownEvent(b[:i])
+	case ansi.ESC:
+		if i >= len(b) || b[i] != '\\' {
+			if cmd == -1 || (start == 0 && end == 2) {
+				return 2, defaultKey
+			}
+
+			// If we don't have a valid ST terminator, then this is a
+			// cancelled sequence and should be ignored.
+			return i, UnknownEvent(b[:i])
+		}
+
 		i++
 	}
 
@@ -690,7 +705,20 @@ func (p *Parser) parseOsc(b []byte) (int, Event) {
 
 // parseStTerminated parses a control sequence that gets terminated by a ST character.
 func (p *Parser) parseStTerminated(intro8, intro7 byte, fn func([]byte) Event) func([]byte) (int, Event) {
+	defaultKey := func(b []byte) (int, Event) {
+		switch intro8 {
+		case ansi.SOS:
+			return 2, KeyPressEvent{Code: 'x', Mod: ModShift | ModAlt}
+		case ansi.PM, ansi.APC:
+			return 2, KeyPressEvent{Code: rune(b[1]), Mod: ModAlt}
+		}
+		return 0, nil
+	}
 	return func(b []byte) (int, Event) {
+		if len(b) == 2 && b[0] == ansi.ESC {
+			return defaultKey(b)
+		}
+
 		var i int
 		if b[i] == intro8 || b[i] == ansi.ESC {
 			i++
@@ -703,7 +731,10 @@ func (p *Parser) parseStTerminated(intro8, intro7 byte, fn func([]byte) Event) f
 		// Most common control sequence is terminated by a ST character
 		// ST is a 7-bit string terminator character is (ESC \)
 		start := i
-		for ; i < len(b) && b[i] != ansi.ST && b[i] != ansi.ESC; i++ { //nolint:revive
+		for ; i < len(b); i++ {
+			if slices.Contains([]byte{ansi.ESC, ansi.ST, ansi.CAN, ansi.SUB}, b[i]) {
+				break
+			}
 		}
 
 		if i >= len(b) {
@@ -714,7 +745,20 @@ func (p *Parser) parseStTerminated(intro8, intro7 byte, fn func([]byte) Event) f
 		i++
 
 		// Check 7-bit ST (string terminator) character
-		if i < len(b) && b[i-1] == ansi.ESC && b[i] == '\\' {
+		switch b[i-1] {
+		case ansi.CAN, ansi.SUB:
+			return i, UnknownEvent(b[:i])
+		case ansi.ESC:
+			if i >= len(b) || b[i] != '\\' {
+				if start == end {
+					return defaultKey(b)
+				}
+
+				// If we don't have a valid ST terminator, then this is a
+				// cancelled sequence and should be ignored.
+				return i, UnknownEvent(b[:i])
+			}
+
 			i++
 		}
 
@@ -732,7 +776,7 @@ func (p *Parser) parseStTerminated(intro8, intro7 byte, fn func([]byte) Event) f
 func (p *Parser) parseDcs(b []byte) (int, Event) {
 	if len(b) == 2 && b[0] == ansi.ESC {
 		// short cut if this is an alt+P key
-		return 2, KeyPressEvent{Code: rune(b[1]), Mod: ModAlt}
+		return 2, KeyPressEvent{Code: 'p', Mod: ModShift | ModAlt}
 	}
 
 	var params [16]ansi.Param
