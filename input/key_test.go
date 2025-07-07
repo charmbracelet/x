@@ -867,6 +867,153 @@ func FuzzParseSequence(f *testing.F) {
 	})
 }
 
+// TestSplitSequences tests that string-terminated sequences work correctly
+// when split across multiple read() calls.
+func TestSplitSequences(t *testing.T) {
+	tests := []struct {
+		name   string
+		chunks [][]byte
+		want   []Event
+	}{
+		{
+			name: "OSC 11 background color with ST terminator",
+			chunks: [][]byte{
+				[]byte("\x1b]11;rgb:1a1a/1b1b/2c2c"),
+				[]byte("\x1b\\"),
+			},
+			want: []Event{
+				BackgroundColorEvent{Color: ansi.XParseColor("rgb:1a1a/1b1b/2c2c")},
+			},
+		},
+		{
+			name: "OSC 11 background color with BEL terminator",
+			chunks: [][]byte{
+				[]byte("\x1b]11;rgb:1a1a/1b1b/2c2c"),
+				[]byte("\x07"),
+			},
+			want: []Event{
+				BackgroundColorEvent{Color: ansi.XParseColor("rgb:1a1a/1b1b/2c2c")},
+			},
+		},
+		{
+			name: "OSC 10 foreground color split",
+			chunks: [][]byte{
+				[]byte("\x1b]10;rgb:ffff/0000/"),
+				[]byte("0000\x1b\\"),
+			},
+			want: []Event{
+				ForegroundColorEvent{Color: ansi.XParseColor("rgb:ffff/0000/0000")},
+			},
+		},
+		{
+			name: "OSC 12 cursor color split",
+			chunks: [][]byte{
+				[]byte("\x1b]12;rgb:"),
+				[]byte("8080/8080/8080\x07"),
+			},
+			want: []Event{
+				CursorColorEvent{Color: ansi.XParseColor("rgb:8080/8080/8080")},
+			},
+		},
+		{
+			name: "DCS sequence split",
+			chunks: [][]byte{
+				[]byte("\x1bP1$r"),
+				[]byte("test\x1b\\"),
+			},
+			want: []Event{
+				UnknownEvent("\x1bP1$rtest\x1b\\"),
+			},
+		},
+		{
+			name: "APC sequence split",
+			chunks: [][]byte{
+				[]byte("\x1b_T"),
+				[]byte("test\x1b\\"),
+			},
+			want: []Event{
+				UnknownEvent("\x1b_Ttest\x1b\\"),
+			},
+		},
+		{
+			name: "Multiple chunks OSC",
+			chunks: [][]byte{
+				[]byte("\x1b]11;"),
+				[]byte("rgb:1234/"),
+				[]byte("5678/9abc\x07"),
+			},
+			want: []Event{
+				BackgroundColorEvent{Color: ansi.XParseColor("rgb:1234/5678/9abc")},
+			},
+		},
+		{
+			name: "OSC followed by regular key",
+			chunks: [][]byte{
+				[]byte("\x1b]11;rgb:1111/2222/3333"),
+				[]byte("\x07a"),
+			},
+			want: []Event{
+				BackgroundColorEvent{Color: ansi.XParseColor("rgb:1111/2222/3333")},
+				KeyPressEvent{Code: 'a', Text: "a"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &chunkedReader{chunks: tt.chunks}
+			ir, err := NewReader(r, "xterm-256color", 0)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var got []Event
+			for {
+				events, err := ir.ReadEvents()
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					t.Fatal(err)
+				}
+				got = append(got, events...)
+				if len(events) == 0 {
+					// No more events, but not EOF yet - continue reading
+					continue
+				}
+			}
+
+			if len(got) != len(tt.want) {
+				t.Fatalf("got %d events, want %d: %#v", len(got), len(tt.want), got)
+			}
+
+			for i, want := range tt.want {
+				if !reflect.DeepEqual(got[i], want) {
+					t.Errorf("event %d: got %#v, want %#v", i, got[i], want)
+				}
+			}
+		})
+	}
+}
+
+// chunkedReader simulates a reader that returns data in separate chunks
+type chunkedReader struct {
+	chunks [][]byte
+	index  int
+}
+
+func (r *chunkedReader) Read(p []byte) (n int, err error) {
+	if r.index >= len(r.chunks) {
+		return 0, io.EOF
+	}
+
+	chunk := r.chunks[r.index]
+	r.index++
+
+	n = copy(p, chunk)
+	return n, nil
+}
+
 // BenchmarkDetectSequenceMap benchmarks the map-based sequence
 // detector.
 func BenchmarkDetectSequenceMap(b *testing.B) {
