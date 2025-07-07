@@ -274,18 +274,21 @@ func (p *Parser) parseWin32InputKeyEvent(state *win32InputState, vkc uint16, _ u
 				// ANSI escape code.
 				return nil
 			}
-
-			n, Event := p.parseSequence(state.ansiBuf[:state.ansiIdx])
-			if n == 0 {
+			if r == ansi.ESC {
+				// We're expecting a closing String Terminator [ansi.ST].
 				return nil
 			}
 
-			if _, ok := Event.(UnknownEvent); ok {
+			n, event := p.parseSequence(state.ansiBuf[:state.ansiIdx])
+			if n == 0 {
+				return nil
+			}
+			if _, ok := event.(UnknownEvent); ok {
 				return nil
 			}
 
 			state.ansiIdx = 0
-			return Event
+			return event
 		}
 	case vkc == xwindows.VK_BACK:
 		baseCode = KeyBackspace
@@ -465,10 +468,10 @@ func (p *Parser) parseWin32InputKeyEvent(state *win32InputState, vkc uint16, _ u
 	if !unicode.IsControl(r) {
 		rw := utf8.EncodeRune(utf8Buf[:], r)
 		keyCode, _ = utf8.DecodeRune(utf8Buf[:rw])
-		if cks == 0 ||
+		if unicode.IsPrint(keyCode) && (cks == 0 ||
 			cks == xwindows.SHIFT_PRESSED ||
 			cks == xwindows.CAPSLOCK_ON ||
-			altGr {
+			altGr) {
 			// If the control key state is 0, shift is pressed, or caps lock
 			// then the key event is a printable event i.e. [text] is not empty.
 			text = string(keyCode)
