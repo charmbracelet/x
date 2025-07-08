@@ -75,6 +75,18 @@ const (
 	Salt
 	Butter
 
+	// Diffs: additions. The brightest color in this set is Julep, defined
+	// above.
+	Pickle
+	Gator
+	Spinach
+
+	// Diffs: deletions. The brightest color in this set is Cherry, defined
+	// above.
+	Pom
+	Steak
+	Toast
+
 	// Provisional.
 	NeueGuac
 	NeueZinc
@@ -153,6 +165,16 @@ func (k Key) String() string {
 		Ash:      "Ash",
 		Butter:   "Butter",
 
+		// Diffs: additions.
+		Pickle:  "Pickle",
+		Gator:   "Gator",
+		Spinach: "Spinach",
+
+		// Diffs: deletions.
+		Pom:   "Pom",
+		Steak: "Steak",
+		Toast: "Toast",
+
 		// Provisional.
 		NeueGuac: "Neue Guac",
 		NeueZinc: "Neue Zinc",
@@ -221,6 +243,16 @@ func (k Key) Hex() string {
 		Salt:     "#F1EFEF",
 		Butter:   "#FFFAF1",
 
+		// Diffs: additions.
+		Pickle:  "#00A475",
+		Gator:   "#18463D",
+		Spinach: "#1C3634",
+
+		// Diffs: deletions.
+		Pom:   "#AB2454",
+		Steak: "#582238",
+		Toast: "#412130",
+
 		// Provisional.
 		NeueGuac: "#00b875",
 		NeueZinc: "#0e9996",
@@ -288,6 +320,8 @@ func Keys() []Key {
 		Ash,
 		Salt,
 		Butter,
+
+		// XXX: additions and deletions are not included, yet.
 	}
 }
 
