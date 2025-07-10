@@ -24,19 +24,19 @@ import (
 //
 //	lipgloss.Println(b.String())
 func Blend(size int, points ...color.Color) []color.Color {
-	if len(points) < 2 {
+	if size <= 0 || len(points) < 2 {
 		return nil
+	}
+	if size == 1 {
+		return []color.Color{points[0]}
 	}
 
 	stops := make([]colorful.Color, len(points))
-	for i, k := range points {
-		stops[i], _ = colorful.MakeColor(k)
+	for i, c := range points {
+		stops[i], _ = colorful.MakeColor(c)
 	}
 
 	numSegments := len(stops) - 1
-	if numSegments == 0 {
-		return nil
-	}
 	blended := make([]color.Color, 0, size)
 
 	// Calculate how many colors each segment should have.
@@ -59,9 +59,6 @@ func Blend(size int, points ...color.Color) []color.Color {
 		segmentSize := segmentSizes[i]
 
 		for j := range segmentSize {
-			if segmentSize == 0 {
-				continue
-			}
 			t := float64(j) / float64(segmentSize)
 			c := c1.BlendHcl(c2, t)
 			blended = append(blended, c)
