@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"slices"
 
+	expcolor "github.com/charmbracelet/x/exp/color"
 	"github.com/lucasb-eyer/go-colorful"
 )
 
@@ -357,52 +358,12 @@ func (k Key) IsTertiary() bool {
 	}, k)
 }
 
-// BlendColors returns a slice of colors blended between the given keys.
-// Blending is done as Hcl to stay in gamut.
-func BlendColors(size int, keys ...Key) []color.Color {
-	if len(keys) < 2 {
-		return nil
-	}
-
-	stops := make([]colorful.Color, len(keys))
+// Blend returns a slice of colors blended between the given Keys. Blending is
+// done as Hcl to stay in gamut.
+func Blend(size int, keys ...Key) []color.Color {
+	colors := make([]color.Color, len(keys))
 	for i, k := range keys {
-		stops[i], _ = colorful.Hex(k.Hex())
+		colors[i] = color.Color(k)
 	}
-
-	numSegments := len(stops) - 1
-	if numSegments == 0 {
-		return nil
-	}
-	blended := make([]color.Color, 0, size)
-
-	// Calculate how many colors each segment should have.
-	segmentSizes := make([]int, numSegments)
-	baseSize := size / numSegments
-	remainder := size % numSegments
-
-	// Distribute the remainder across segments.
-	for i := range numSegments {
-		segmentSizes[i] = baseSize
-		if i < remainder {
-			segmentSizes[i]++
-		}
-	}
-
-	// Generate colors for each segment.
-	for i := range numSegments {
-		c1 := stops[i]
-		c2 := stops[i+1]
-		segmentSize := segmentSizes[i]
-
-		for j := range segmentSize {
-			if segmentSize == 0 {
-				continue
-			}
-			t := float64(j) / float64(segmentSize)
-			c := c1.BlendHcl(c2, t)
-			blended = append(blended, c)
-		}
-	}
-
-	return blended
+	return expcolor.Blend(size, colors...)
 }
