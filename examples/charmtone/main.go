@@ -205,9 +205,9 @@ func main() {
 	}
 }
 
-func blendKeys(width int, keys ...charmtone.Key) string {
+func blendKeys(size int, keys ...charmtone.Key) string {
 	var w strings.Builder
-	for _, c := range charmtone.BlendColors(width, keys...) {
+	for _, c := range charmtone.Blend(size, keys...) {
 		fmt.Fprint(&w, lipgloss.NewStyle().Background(c).Render(" "))
 	}
 	return w.String()
