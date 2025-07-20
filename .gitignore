@@ -1,9 +1,15 @@
+!go.work
+*.png
+**/.crush/**
+.DS_Store
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+/examples/charmtone/charmtone
 
 # Test binary, built with `go test -c`
 *.test
@@ -11,16 +17,6 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Dependency directories (remove the comment below to include it)
-# vendor/
-
-!go.work
-
-*.png
-
-# MacOS invisible file
-.DS_Store
-
-# Allow graphics used for bench test
+# Allow graphics used for benchmarks
 !ansi/fixtures/graphics/*.png
 !mosaic/fixtures/*.png
