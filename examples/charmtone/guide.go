@@ -205,7 +205,7 @@ func blendKeys(size int, keys ...charmtone.Key) string {
 	return w.String()
 }
 
-// SplitSeq returns an iterator over the substrings of string separated by a seprator.
+// SplitSeq returns an iterator over the substrings of string separated by a separator.
 //
 // This is a Go 1.23 compatible version of strings.Split. Once we're
 // supporting Go 1.24 this can be removed in favor of the strings.SplitSeq in
