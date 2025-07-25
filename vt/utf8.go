@@ -29,7 +29,7 @@ func (t *Terminal) flushGrapheme() {
 		return
 	}
 
-	unicode := t.isModeSet(ansi.GraphemeClusteringMode)
+	unicode := t.isModeSet(ansi.UnicodeCoreMode)
 	gr := string(t.grapheme)
 
 	var cl string
@@ -38,6 +38,7 @@ func (t *Terminal) flushGrapheme() {
 	for len(gr) > 0 {
 		cl, gr, w, state = uniseg.FirstGraphemeClusterInString(gr, state)
 		if !unicode {
+			//nolint:godox
 			// TODO: Investigate this further, runewidth.StringWidth doesn't
 			// report the correct width for some edge cases such as variation
 			// selectors.

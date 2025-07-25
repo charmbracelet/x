@@ -27,7 +27,7 @@ func (t *Terminal) handleRequestMode(params ansi.Params, isAnsi bool) {
 	}
 
 	setting := t.modes[mode]
-	io.WriteString(t.pw, ansi.ReportMode(mode, setting)) //nolint:errcheck
+	_, _ = io.WriteString(t.pw, ansi.ReportMode(mode, setting))
 }
 
 func paramsString(cmd ansi.Cmd, params ansi.Params) string {

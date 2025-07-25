@@ -108,8 +108,8 @@ func (t *Terminal) SendMouse(m Mouse) {
 	// XXX: Support [ansi.Utf8ExtMouseMode], [ansi.UrxvtExtMouseMode], and
 	// [ansi.SgrPixelExtMouseMode].
 	case nil: // X10 mouse encoding
-		io.WriteString(t.pw, ansi.MouseX10(b, mouse.X, mouse.Y)) //nolint:errcheck
+		_, _ = io.WriteString(t.pw, ansi.MouseX10(b, mouse.X, mouse.Y))
 	case ansi.SgrExtMouseMode: // SGR mouse encoding
-		io.WriteString(t.pw, ansi.MouseSgr(b, mouse.X, mouse.Y, isRelease)) //nolint:errcheck
+		_, _ = io.WriteString(t.pw, ansi.MouseSgr(b, mouse.X, mouse.Y, isRelease))
 	}
 }

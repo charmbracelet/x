@@ -28,6 +28,7 @@ func (t *Terminal) SendKey(k uv.KeyEvent) {
 	ack := t.isModeSet(ansi.CursorKeysMode)    // Application cursor keys mode
 	akk := t.isModeSet(ansi.NumericKeypadMode) // Application keypad keys mode
 
+	//nolint:godox
 	// TODO: Support Kitty, CSI u, and XTerm modifyOtherKeys.
 	switch key := k.(type) {
 	case KeyPressEvent:
@@ -37,8 +38,9 @@ func (t *Terminal) SendKey(k uv.KeyEvent) {
 			key.Mod &^= ModAlt // Remove the Alt modifier for easier matching
 		}
 
+		//nolint:godox
 		// FIXME: We remove any Base and Shifted codes to properly handle
-		// comparision. This is a workaround for the fact that we don't support
+		// comparison. This is a workaround for the fact that we don't support
 		// extended keys yet.
 		key.BaseCode = 0
 		key.ShiftedCode = 0

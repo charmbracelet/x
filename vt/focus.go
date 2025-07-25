@@ -21,9 +21,9 @@ func (t *Terminal) Blur() {
 func (t *Terminal) focus(focus bool) {
 	if mode, ok := t.modes[ansi.FocusEventMode]; ok && mode.IsSet() {
 		if focus {
-			io.WriteString(t.pw, ansi.Focus) //nolint:errcheck
+			_, _ = io.WriteString(t.pw, ansi.Focus)
 		} else {
-			io.WriteString(t.pw, ansi.Blur) //nolint:errcheck
+			_, _ = io.WriteString(t.pw, ansi.Blur)
 		}
 	}
 }

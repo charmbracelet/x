@@ -142,7 +142,7 @@ func (t *Terminal) SetCell(x, y int, c *uv.Cell) {
 
 // WidthMethod returns the width method used by the terminal.
 func (t *Terminal) WidthMethod() uv.WidthMethod {
-	if t.isModeSet(ansi.GraphemeClusteringMode) {
+	if t.isModeSet(ansi.UnicodeCoreMode) {
 		return ansi.GraphemeWidth
 	}
 	return ansi.WcWidth
@@ -230,7 +230,7 @@ func (t *Terminal) Read(p []byte) (n int, err error) {
 		return 0, io.EOF
 	}
 
-	return t.pr.Read(p)
+	return t.pr.Read(p) //nolint:wrapcheck
 }
 
 // Close closes the terminal.
@@ -271,16 +271,16 @@ func (t *Terminal) InputPipe() io.Writer {
 // appropriate escape sequences.
 func (t *Terminal) Paste(text string) {
 	if t.isModeSet(ansi.BracketedPasteMode) {
-		io.WriteString(t.pw, ansi.BracketedPasteStart)     //nolint:errcheck
+		_, _ = io.WriteString(t.pw, ansi.BracketedPasteStart)
 		defer io.WriteString(t.pw, ansi.BracketedPasteEnd) //nolint:errcheck
 	}
 
-	io.WriteString(t.pw, text) //nolint:errcheck
+	_, _ = io.WriteString(t.pw, text)
 }
 
 // SendText sends arbitrary text to the terminal.
 func (t *Terminal) SendText(text string) {
-	io.WriteString(t.pw, text) //nolint:errcheck
+	_, _ = io.WriteString(t.pw, text)
 }
 
 // SendKeys sends multiple keys to the terminal.
@@ -377,7 +377,7 @@ func (t *Terminal) IndexedColor(i int) color.Color {
 	c := t.colors[i]
 	if c == nil {
 		// Return the default color.
-		return ansi.ExtendedColor(i) //nolint:gosec,staticcheck
+		return ansi.IndexedColor(i) //nolint:gosec
 	}
 
 	return c
