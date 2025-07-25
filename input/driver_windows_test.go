@@ -81,6 +81,12 @@ func TestWindowsInputEvents(t *testing.T) {
 			sequence: true,
 		},
 		{
+			name:     "st terminated background color response",
+			events:   encodeSequence("\x1b]11;rgb:ffff/ffff/ffff\x1b\\"),
+			expected: []Event{BackgroundColorEvent{Color: color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}}},
+			sequence: true,
+		},
+		{
 			name: "simple mouse event",
 			events: []xwindows.InputRecord{
 				encodeMouseEvent(xwindows.MouseEventRecord{

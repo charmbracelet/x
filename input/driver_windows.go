@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
@@ -21,7 +22,7 @@ import (
 //
 // It reads the events available in the input buffer and returns them.
 func (d *Reader) ReadEvents() ([]Event, error) {
-	events, err := d.handleConInput(readConsoleInput)
+	events, err := d.handleConInput()
 	if errors.Is(err, errNotConInputReader) {
 		return d.readEvents()
 	}
@@ -30,22 +31,39 @@ func (d *Reader) ReadEvents() ([]Event, error) {
 
 var errNotConInputReader = fmt.Errorf("handleConInput: not a conInputReader")
 
-func (d *Reader) handleConInput(
-	finput func(windows.Handle, []xwindows.InputRecord) (uint32, error),
-) ([]Event, error) {
+func (d *Reader) handleConInput() ([]Event, error) {
 	cc, ok := d.rd.(*conInputReader)
 	if !ok {
 		return nil, errNotConInputReader
 	}
 
-	// read up to 256 events, this is to allow for sequences events reported as
-	// key events.
-	var events [256]xwindows.InputRecord
-	_, err := finput(cc.conin, events[:])
-	if err != nil {
+	var (
+		events []xwindows.InputRecord
+		err    error
+	)
+	for {
+		// Peek up to 256 events, this is to allow for sequences events reported as
+		// key events.
+		events, err = peekNConsoleInputs(cc.conin, 256)
 		if cc.isCanceled() {
 			return nil, cancelreader.ErrCanceled
 		}
+		if err != nil {
+			return nil, fmt.Errorf("peek coninput events: %w", err)
+		}
+		if len(events) > 0 {
+			break
+		}
+
+		// Sleep for a bit to avoid busy waiting.
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	events, err = readNConsoleInputs(cc.conin, uint32(len(events)))
+	if cc.isCanceled() {
+		return nil, cancelreader.ErrCanceled
+	}
+	if err != nil {
 		return nil, fmt.Errorf("read coninput events: %w", err)
 	}
 
@@ -189,6 +207,16 @@ func highWord(data uint32) uint16 {
 	return uint16((data & 0xFFFF0000) >> 16) //nolint:gosec
 }
 
+func readNConsoleInputs(console windows.Handle, maxEvents uint32) ([]xwindows.InputRecord, error) {
+	if maxEvents == 0 {
+		return nil, fmt.Errorf("maxEvents cannot be zero")
+	}
+
+	records := make([]xwindows.InputRecord, maxEvents)
+	n, err := readConsoleInput(console, records)
+	return records[:n], err
+}
+
 func readConsoleInput(console windows.Handle, inputRecords []xwindows.InputRecord) (uint32, error) {
 	if len(inputRecords) == 0 {
 		return 0, fmt.Errorf("size of input record buffer cannot be zero")
@@ -201,7 +229,6 @@ func readConsoleInput(console windows.Handle, inputRecords []xwindows.InputRecor
 	return read, err //nolint:wrapcheck
 }
 
-//nolint:unused
 func peekConsoleInput(console windows.Handle, inputRecords []xwindows.InputRecord) (uint32, error) {
 	if len(inputRecords) == 0 {
 		return 0, fmt.Errorf("size of input record buffer cannot be zero")
@@ -212,6 +239,16 @@ func peekConsoleInput(console windows.Handle, inputRecords []xwindows.InputRecor
 	err := xwindows.PeekConsoleInput(console, &inputRecords[0], uint32(len(inputRecords)), &read) //nolint:gosec
 
 	return read, err //nolint:wrapcheck
+}
+
+func peekNConsoleInputs(console windows.Handle, maxEvents uint32) ([]xwindows.InputRecord, error) {
+	if maxEvents == 0 {
+		return nil, fmt.Errorf("maxEvents cannot be zero")
+	}
+
+	records := make([]xwindows.InputRecord, maxEvents)
+	n, err := peekConsoleInput(console, records)
+	return records[:n], err
 }
 
 // parseWin32InputKeyEvent parses a single key event from either the Windows
@@ -274,18 +311,21 @@ func (p *Parser) parseWin32InputKeyEvent(state *win32InputState, vkc uint16, _ u
 				// ANSI escape code.
 				return nil
 			}
-
-			n, Event := p.parseSequence(state.ansiBuf[:state.ansiIdx])
-			if n == 0 {
+			if r == ansi.ESC {
+				// We're expecting a closing String Terminator [ansi.ST].
 				return nil
 			}
 
-			if _, ok := Event.(UnknownEvent); ok {
+			n, event := p.parseSequence(state.ansiBuf[:state.ansiIdx])
+			if n == 0 {
+				return nil
+			}
+			if _, ok := event.(UnknownEvent); ok {
 				return nil
 			}
 
 			state.ansiIdx = 0
-			return Event
+			return event
 		}
 	case vkc == xwindows.VK_BACK:
 		baseCode = KeyBackspace
@@ -465,10 +505,10 @@ func (p *Parser) parseWin32InputKeyEvent(state *win32InputState, vkc uint16, _ u
 	if !unicode.IsControl(r) {
 		rw := utf8.EncodeRune(utf8Buf[:], r)
 		keyCode, _ = utf8.DecodeRune(utf8Buf[:rw])
-		if cks == 0 ||
+		if unicode.IsPrint(keyCode) && (cks == 0 ||
 			cks == xwindows.SHIFT_PRESSED ||
 			cks == xwindows.CAPSLOCK_ON ||
-			altGr {
+			altGr) {
 			// If the control key state is 0, shift is pressed, or caps lock
 			// then the key event is a printable event i.e. [text] is not empty.
 			text = string(keyCode)
