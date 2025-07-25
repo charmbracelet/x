@@ -1,8 +1,10 @@
 package vt
 
 import (
+	"io"
+
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/cellbuf"
 )
 
 // DcsHandler is a function that handles a DCS escape sequence.
@@ -16,6 +18,12 @@ type OscHandler func(data []byte) bool
 
 // ApcHandler is a function that handles an APC escape sequence.
 type ApcHandler func(data []byte) bool
+
+// SosHandler is a function that handles an SOS escape sequence.
+type SosHandler func(data []byte) bool
+
+// PmHandler is a function that handles a PM escape sequence.
+type PmHandler func(data []byte) bool
 
 // EscHandler is a function that handles an ESC escape sequence.
 type EscHandler func() bool
@@ -31,6 +39,8 @@ type handlers struct {
 	oscHandlers map[int][]OscHandler
 	escHandler  map[int][]EscHandler
 	apcHandlers []ApcHandler
+	sosHandlers []SosHandler
+	pmHandlers  []PmHandler
 }
 
 // RegisterDcsHandler registers a DCS escape sequence handler.
@@ -60,6 +70,16 @@ func (h *handlers) RegisterOscHandler(cmd int, handler OscHandler) {
 // RegisterApcHandler registers an APC escape sequence handler.
 func (h *handlers) RegisterApcHandler(handler ApcHandler) {
 	h.apcHandlers = append(h.apcHandlers, handler)
+}
+
+// RegisterSosHandler registers an SOS escape sequence handler.
+func (h *handlers) RegisterSosHandler(handler SosHandler) {
+	h.sosHandlers = append(h.sosHandlers, handler)
+}
+
+// RegisterPmHandler registers a PM escape sequence handler.
+func (h *handlers) RegisterPmHandler(handler PmHandler) {
+	h.pmHandlers = append(h.pmHandlers, handler)
 }
 
 // RegisterEscHandler registers an ESC escape sequence handler.
@@ -149,6 +169,32 @@ func (h *handlers) handleApc(data []byte) bool {
 	return false
 }
 
+// handleSos handles an SOS escape sequence.
+// It returns true if the sequence was handled.
+func (h *handlers) handleSos(data []byte) bool {
+	// Reverse iterate over the handlers so that the last registered handler
+	// is the first to be called.
+	for i := len(h.sosHandlers) - 1; i >= 0; i-- {
+		if h.sosHandlers[i](data) {
+			return true
+		}
+	}
+	return false
+}
+
+// handlePm handles a PM escape sequence.
+// It returns true if the sequence was handled.
+func (h *handlers) handlePm(data []byte) bool {
+	// Reverse iterate over the handlers so that the last registered handler
+	// is the first to be called.
+	for i := len(h.pmHandlers) - 1; i >= 0; i-- {
+		if h.pmHandlers[i](data) {
+			return true
+		}
+	}
+	return false
+}
+
 // handleEsc handles an ESC escape sequence.
 // It returns true if the sequence was handled.
 func (h *handlers) handleEsc(cmd int) bool {
@@ -183,15 +229,14 @@ func (t *Terminal) registerDefaultCcHandlers() {
 			})
 		case ansi.BEL: // Bell [ansi.BEL]
 			t.registerCcHandler(i, func() bool {
-				if t.Callbacks.Bell != nil {
-					t.Callbacks.Bell()
+				if t.cb.Bell != nil {
+					t.cb.Bell()
 				}
 				return true
 			})
 		case ansi.BS: // Backspace [ansi.BS]
 			t.registerCcHandler(i, func() bool {
-				// This acts like [ansi.CUB]
-				t.moveCursor(-1, 0)
+				t.backspace()
 				return true
 			})
 		case ansi.HT: // Horizontal Tab [ansi.HT]
@@ -268,6 +313,13 @@ func (t *Terminal) registerDefaultOscHandlers() {
 			return true
 		})
 	}
+
+	t.RegisterOscHandler(7, func(data []byte) bool {
+		// Report the shell current working directory
+		// [ansi.NotifyWorkingDirectory].
+		t.handleWorkingDirectory(7, data)
+		return true
+	})
 
 	t.RegisterOscHandler(8, func(data []byte) bool {
 		// Set/Query Hyperlink [ansi.SetHyperlink]
@@ -469,6 +521,12 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		width, height := t.Width(), t.Height()
 		row, _, _ := params.Param(0, 1)
 		col, _, _ := params.Param(1, 1)
+		if row < 1 {
+			row = 1
+		}
+		if col < 1 {
+			col = 1
+		}
 		y := min(height-1, row-1)
 		x := min(width-1, col-1)
 		t.setCursorPosition(x, y)
@@ -489,17 +547,17 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		x, y := t.scr.CursorPosition()
 		switch n {
 		case 0: // Erase screen below (from after cursor position)
-			rect1 := cellbuf.Rect(x, y, width, 1)            // cursor to end of line
-			rect2 := cellbuf.Rect(0, y+1, width, height-y-1) // next line onwards
-			for _, rect := range []Rectangle{rect1, rect2} {
-				t.scr.Fill(t.scr.blankCell(), rect)
-			}
+			rect1 := uv.Rect(x, y, width, 1)            // cursor to end of line
+			rect2 := uv.Rect(0, y+1, width, height-y-1) // next line onwards
+			t.scr.FillArea(t.scr.blankCell(), rect1)
+			t.scr.FillArea(t.scr.blankCell(), rect2)
 		case 1: // Erase screen above (including cursor)
-			rect := cellbuf.Rect(0, 0, width, y+1)
-			t.scr.Fill(t.scr.blankCell(), rect)
+			rect := uv.Rect(0, 0, width, y+1)
+			t.scr.FillArea(t.scr.blankCell(), rect)
 		case 2: // erase screen
 			fallthrough
 		case 3: // erase display
+			//nolint:godox
 			// TODO: Scrollback buffer support?
 			t.scr.Clear()
 		default:
@@ -520,11 +578,11 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		case 0: // Erase from cursor to end of line
 			t.eraseCharacter(w - x)
 		case 1: // Erase from start of line to cursor
-			rect := cellbuf.Rect(0, y, x+1, 1)
-			t.scr.Fill(t.scr.blankCell(), rect)
+			rect := uv.Rect(0, y, x+1, 1)
+			t.scr.FillArea(t.scr.blankCell(), rect)
 		case 2: // Erase entire line
-			rect := cellbuf.Rect(0, y, w, 1)
-			t.scr.Fill(t.scr.blankCell(), rect)
+			rect := uv.Rect(0, y, w, 1)
+			t.scr.FillArea(t.scr.blankCell(), rect)
 		default:
 			return false
 		}
@@ -630,7 +688,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		}
 
 		// Do we fully support VT220?
-		t.buf.WriteString(ansi.PrimaryDeviceAttributes(
+		_, _ = io.WriteString(t.pw, ansi.PrimaryDeviceAttributes(
 			62, // VT220
 			1,  // 132 columns
 			6,  // Selective Erase
@@ -647,7 +705,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		}
 
 		// Do we fully support VT220?
-		t.buf.WriteString(ansi.SecondaryDeviceAttributes(
+		_, _ = io.WriteString(t.pw, ansi.SecondaryDeviceAttributes(
 			1,  // VT220
 			10, // Version 1.0
 			0,  // ROM Cartridge is always zero
@@ -741,10 +799,10 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		case 5: // Operating Status
 			// We're always ready ;)
 			// See: https://vt100.net/docs/vt510-rm/DSR-OS.html
-			t.buf.WriteString(ansi.DeviceStatusReport(ansi.DECStatusReport(0)))
+			_, _ = io.WriteString(t.pw, ansi.DeviceStatusReport(ansi.DECStatusReport(0)))
 		case 6: // Cursor Position Report [ansi.CPR]
 			x, y := t.scr.CursorPosition()
-			t.buf.WriteString(ansi.CursorPositionReport(x+1, y+1))
+			_, _ = io.WriteString(t.pw, ansi.CursorPositionReport(x+1, y+1))
 		default:
 			return false
 		}
@@ -761,7 +819,7 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 		switch n {
 		case 6: // Extended Cursor Position Report [ansi.DECXCPR]
 			x, y := t.scr.CursorPosition()
-			t.buf.WriteString(ansi.ExtendedCursorPositionReport(x+1, y+1, 0)) // We don't support page numbers
+			_, _ = io.WriteString(t.pw, ansi.ExtendedCursorPositionReport(x+1, y+1, 0)) // We don't support page numbers //nolint:errcheck
 		default:
 			return false
 		}
@@ -783,11 +841,16 @@ func (t *Terminal) registerDefaultCsiHandlers() {
 
 	t.RegisterCsiHandler(ansi.Command(0, ' ', 'q'), func(params ansi.Params) bool {
 		// Set Cursor Style [ansi.DECSCUSR]
-		style := 1
-		if param, _, ok := params.Param(0, 0); ok && param > style {
-			style = param
+		n := 1
+		if param, _, ok := params.Param(0, 0); ok && param > n {
+			n = param
 		}
-		t.scr.setCursorStyle(CursorStyle((style/2)+1), style%2 == 1)
+		blink := n == 0 || n%2 == 1
+		style := n / 2
+		if !blink {
+			style--
+		}
+		t.scr.setCursorStyle(CursorStyle(style), blink)
 		return true
 	})
 

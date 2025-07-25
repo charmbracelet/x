@@ -1,12 +1,13 @@
 package vt
 
 import (
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/cellbuf"
 )
 
 // handleControl handles a control character.
 func (t *Terminal) handleControl(r byte) {
+	t.flushGrapheme() // Flush any pending grapheme before handling control codes.
 	if !t.handleCc(r) {
 		t.logf("unhandled sequence: ControlCode %q", r)
 	}
@@ -28,7 +29,7 @@ func (t *Terminal) index() {
 	// XXX: Handle scrollback whenever we add it.
 	if y == scroll.Max.Y-1 && x >= scroll.Min.X && x < scroll.Max.X {
 		t.scr.ScrollUp(1)
-	} else if y < scroll.Max.Y-1 || !cellbuf.Pos(x, y).In(scroll) {
+	} else if y < scroll.Max.Y-1 || !uv.Pos(x, y).In(scroll) {
 		t.scr.moveCursor(0, 1)
 	}
 	t.atPhantom = false
@@ -50,4 +51,10 @@ func (t *Terminal) reverseIndex() {
 	} else {
 		t.scr.moveCursor(0, -1)
 	}
+}
+
+// backspace moves the cursor back one cell, if possible.
+func (t *Terminal) backspace() {
+	// This acts like [ansi.CUB]
+	t.moveCursor(-1, 0)
 }

@@ -3,7 +3,7 @@ package vt
 import (
 	"testing"
 
-	"github.com/charmbracelet/x/cellbuf"
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 // testLogger wraps a testing.TB to implement the Logger interface.
@@ -18,7 +18,9 @@ func (l *testLogger) Printf(format string, v ...any) {
 
 // newTestTerminal creates a new test terminal.
 func newTestTerminal(t testing.TB, width, height int) *Terminal {
-	return NewTerminal(width, height, WithLogger(&testLogger{t}))
+	term := NewTerminal(width, height)
+	term.SetLogger(&testLogger{t})
+	return term
 }
 
 var cases = []struct {
@@ -26,7 +28,7 @@ var cases = []struct {
 	w, h  int
 	input []string
 	want  []string
-	pos   Position
+	pos   uv.Position
 }{
 	// Cursor Backward Tabulation [ansi.CBT]
 	{
@@ -38,7 +40,7 @@ var cases = []struct {
 			"A",
 		},
 		want: []string{"A         "},
-		pos:  cellbuf.Pos(1, 0),
+		pos:  uv.Pos(1, 0),
 	},
 	{
 		name: "CBT Left Starting After Tab Stop",
@@ -51,7 +53,7 @@ var cases = []struct {
 			"A",
 		},
 		want: []string{"        AX "},
-		pos:  cellbuf.Pos(9, 0),
+		pos:  uv.Pos(9, 0),
 	},
 	{
 		name: "CBT Left Starting on Tabstop",
@@ -65,7 +67,7 @@ var cases = []struct {
 			"A",
 		},
 		want: []string{"A       X "},
-		pos:  cellbuf.Pos(1, 0),
+		pos:  uv.Pos(1, 0),
 	},
 	{
 		name: "CBT Left Margin with Origin Mode",
@@ -83,7 +85,7 @@ var cases = []struct {
 			"A",
 		},
 		want: []string{"  AX      "},
-		pos:  cellbuf.Pos(3, 0),
+		pos:  uv.Pos(3, 0),
 	},
 
 	// Cursor Horizontal Tabulation [ansi.CHT]
@@ -96,7 +98,7 @@ var cases = []struct {
 			"A",
 		},
 		want: []string{"         A"},
-		pos:  cellbuf.Pos(9, 0),
+		pos:  uv.Pos(9, 0),
 	},
 	{
 		name: "CHT Right From Before Tabstop",
@@ -109,7 +111,7 @@ var cases = []struct {
 			"X",
 		},
 		want: []string{" A      X "},
-		pos:  cellbuf.Pos(9, 0),
+		pos:  uv.Pos(9, 0),
 	},
 	{
 		name: "CHT Right Margin",
@@ -126,7 +128,7 @@ var cases = []struct {
 			"A",
 		},
 		want: []string{"X    A    "},
-		pos:  cellbuf.Pos(6, 0),
+		pos:  uv.Pos(6, 0),
 	},
 
 	// Carriage Return [ansi.CR]
@@ -143,7 +145,7 @@ var cases = []struct {
 			"X        A",
 			"          ",
 		},
-		pos: cellbuf.Pos(1, 0),
+		pos: uv.Pos(1, 0),
 	},
 	{
 		name: "CR Left Margin",
@@ -159,7 +161,7 @@ var cases = []struct {
 			"X",
 		},
 		want: []string{" X A      "},
-		pos:  cellbuf.Pos(2, 0),
+		pos:  uv.Pos(2, 0),
 	},
 	{
 		name: "CR Left of Left Margin",
@@ -176,7 +178,7 @@ var cases = []struct {
 			"X",
 		},
 		want: []string{"X  A      "},
-		pos:  cellbuf.Pos(1, 0),
+		pos:  uv.Pos(1, 0),
 	},
 	{
 		name: "CR Left Margin with Origin Mode",
@@ -194,7 +196,7 @@ var cases = []struct {
 			"X",
 		},
 		want: []string{" X A      "},
-		pos:  cellbuf.Pos(2, 0),
+		pos:  uv.Pos(2, 0),
 	},
 
 	// Cursor Backward [ansi.CUB]
@@ -211,7 +213,7 @@ var cases = []struct {
 			"        XY",
 			"Z         ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "CUB Leftmost Boundary with Reverse Wrap Disabled",
@@ -226,7 +228,7 @@ var cases = []struct {
 			"A         ",
 			"B         ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "CUB Reverse Wrap",
@@ -245,7 +247,7 @@ var cases = []struct {
 			"         A",
 			"X         ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	// XXX: Support Reverse Wrap (XTREVWRAP) and Extended Reverse Wrap (XTREVWRAP2)
 	// {
@@ -264,7 +266,7 @@ var cases = []struct {
 	// 		"A        X",
 	// 		"B         ",
 	// 	},
-	// 	pos: cellbuf.Pos(9, 0),
+	// 	pos: uv.Pos(9, 0),
 	// },
 	// {
 	// 	name: "CUB Extended Reverse Wrap Wraps to Bottom",
@@ -286,7 +288,7 @@ var cases = []struct {
 	// 		"B         ",
 	// 		"         X",
 	// 	},
-	// 	pos: cellbuf.Pos(9, 2),
+	// 	pos: uv.Pos(9, 2),
 	// },
 	// {
 	// 	name: "CUB Reverse Wrap Outside of Margins",
@@ -304,7 +306,7 @@ var cases = []struct {
 	// 		"          ",
 	// 		"X         ",
 	// 	},
-	// 	pos: cellbuf.Pos(1, 2),
+	// 	pos: uv.Pos(1, 2),
 	// },
 	// {
 	// 	name: "CUB Reverse Wrap with Pending Wrap State",
@@ -320,7 +322,7 @@ var cases = []struct {
 	// 	want: []string{
 	// 		"     ABCDX",
 	// 	},
-	// 	pos: cellbuf.Pos(9, 0),
+	// 	pos: uv.Pos(9, 0),
 	// },
 
 	// Cursor Down [ansi.CUD]
@@ -337,7 +339,7 @@ var cases = []struct {
 			"          ",
 			" X        ",
 		},
-		pos: cellbuf.Pos(2, 2),
+		pos: uv.Pos(2, 2),
 	},
 	{
 		name: "CUD Cursor Down Above Bottom Margin",
@@ -357,7 +359,7 @@ var cases = []struct {
 			" X        ",
 			"          ",
 		},
-		pos: cellbuf.Pos(2, 2),
+		pos: uv.Pos(2, 2),
 	},
 	{
 		name: "CUD Cursor Down Below Bottom Margin",
@@ -379,7 +381,7 @@ var cases = []struct {
 			"          ",
 			"X         ",
 		},
-		pos: cellbuf.Pos(1, 4),
+		pos: uv.Pos(1, 4),
 	},
 
 	// Cursor Position [ansi.CUP]
@@ -396,7 +398,7 @@ var cases = []struct {
 			"          ",
 			"  A       ",
 		},
-		pos: cellbuf.Pos(3, 1),
+		pos: uv.Pos(3, 1),
 	},
 	{
 		name: "CUP Off the Screen",
@@ -412,7 +414,7 @@ var cases = []struct {
 			"          ",
 			"         A",
 		},
-		pos: cellbuf.Pos(9, 2),
+		pos: uv.Pos(9, 2),
 	},
 	{
 		name: "CUP Relative to Origin",
@@ -429,7 +431,7 @@ var cases = []struct {
 			"          ",
 			"X         ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "CUP Relative to Origin with Margins",
@@ -448,7 +450,7 @@ var cases = []struct {
 			"          ",
 			"  X       ",
 		},
-		pos: cellbuf.Pos(3, 1),
+		pos: uv.Pos(3, 1),
 	},
 	{
 		name: "CUP Limits with Scroll Region and Origin Mode",
@@ -468,7 +470,7 @@ var cases = []struct {
 			"          ",
 			"    X     ",
 		},
-		pos: cellbuf.Pos(5, 2),
+		pos: uv.Pos(5, 2),
 	},
 	{
 		name: "CUP Pending Wrap is Unset",
@@ -482,7 +484,7 @@ var cases = []struct {
 		want: []string{
 			"X        A",
 		},
-		pos: cellbuf.Pos(1, 0),
+		pos: uv.Pos(1, 0),
 	},
 
 	// Cursor Forward [ansi.CUF]
@@ -499,7 +501,7 @@ var cases = []struct {
 			"         X",
 			"YZ        ",
 		},
-		pos: cellbuf.Pos(2, 1),
+		pos: uv.Pos(2, 1),
 	},
 	{
 		name: "CUF Rightmost Boundary",
@@ -512,7 +514,7 @@ var cases = []struct {
 		want: []string{
 			"A        B",
 		},
-		pos: cellbuf.Pos(9, 0),
+		pos: uv.Pos(9, 0),
 	},
 	{
 		name: "CUF Left of Right Margin",
@@ -529,7 +531,7 @@ var cases = []struct {
 		want: []string{
 			"    X     ",
 		},
-		pos: cellbuf.Pos(5, 0),
+		pos: uv.Pos(5, 0),
 	},
 	{
 		name: "CUF Right of Right Margin",
@@ -546,7 +548,7 @@ var cases = []struct {
 		want: []string{
 			"         X",
 		},
-		pos: cellbuf.Pos(9, 0),
+		pos: uv.Pos(9, 0),
 	},
 
 	// Cursor Up [ansi.CUU]
@@ -566,7 +568,7 @@ var cases = []struct {
 			"          ",
 			"A         ",
 		},
-		pos: cellbuf.Pos(2, 0),
+		pos: uv.Pos(2, 0),
 	},
 	{
 		name: "CUU Below Top Margin",
@@ -586,7 +588,7 @@ var cases = []struct {
 			"A         ",
 			"          ",
 		},
-		pos: cellbuf.Pos(2, 1),
+		pos: uv.Pos(2, 1),
 	},
 	{
 		name: "CUU Above Top Margin",
@@ -608,7 +610,7 @@ var cases = []struct {
 			"          ",
 			"          ",
 		},
-		pos: cellbuf.Pos(1, 0),
+		pos: uv.Pos(1, 0),
 	},
 
 	// Delete Line [ansi.DL]
@@ -629,7 +631,7 @@ var cases = []struct {
 			"GHI     ",
 			"        ",
 		},
-		pos: cellbuf.Pos(0, 1),
+		pos: uv.Pos(0, 1),
 	},
 	{
 		name: "DL Cursor Outside Scroll Region",
@@ -649,7 +651,7 @@ var cases = []struct {
 			"DEF     ",
 			"GHI     ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "DL With Top/Bottom Scroll Regions",
@@ -671,7 +673,7 @@ var cases = []struct {
 			"        ",
 			"123     ",
 		},
-		pos: cellbuf.Pos(0, 1),
+		pos: uv.Pos(0, 1),
 	},
 	{
 		name: "DL With Left/Right Scroll Regions",
@@ -692,7 +694,7 @@ var cases = []struct {
 			"DHI756  ",
 			"G   89  ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 
 	// Insert Line [ansi.IL]
@@ -714,7 +716,7 @@ var cases = []struct {
 			"DEF     ",
 			"GHI     ",
 		},
-		pos: cellbuf.Pos(0, 1),
+		pos: uv.Pos(0, 1),
 	},
 	{
 		name: "IL Cursor Outside Scroll Region",
@@ -734,7 +736,7 @@ var cases = []struct {
 			"DEF     ",
 			"GHI     ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "IL With Top/Bottom Scroll Regions",
@@ -756,7 +758,7 @@ var cases = []struct {
 			"DEF     ",
 			"123     ",
 		},
-		pos: cellbuf.Pos(0, 1),
+		pos: uv.Pos(0, 1),
 	},
 	{
 		name: "IL With Left/Right Scroll Regions",
@@ -778,7 +780,7 @@ var cases = []struct {
 			"GEF489  ",
 			" HI7    ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 
 	// Delete Character [ansi.DCH]
@@ -791,7 +793,7 @@ var cases = []struct {
 			"\x1b[2P",
 		},
 		want: []string{"AB23    "},
-		pos:  cellbuf.Pos(2, 0),
+		pos:  uv.Pos(2, 0),
 	},
 	{
 		name: "DCH with SGR State",
@@ -803,7 +805,7 @@ var cases = []struct {
 			"\x1b[2P",
 		},
 		want: []string{"AB23    "},
-		pos:  cellbuf.Pos(2, 0),
+		pos:  uv.Pos(2, 0),
 	},
 	{
 		name: "DCH Outside Left/Right Scroll Region",
@@ -818,7 +820,7 @@ var cases = []struct {
 			"\x1b[P",
 		},
 		want: []string{"ABC123  "},
-		pos:  cellbuf.Pos(1, 0),
+		pos:  uv.Pos(1, 0),
 	},
 	{
 		name: "DCH Inside Left/Right Scroll Region",
@@ -833,7 +835,7 @@ var cases = []struct {
 			"\x1b[P",
 		},
 		want: []string{"ABC2 3  "},
-		pos:  cellbuf.Pos(3, 0),
+		pos:  uv.Pos(3, 0),
 	},
 	{
 		name: "DCH Split Wide Character",
@@ -846,7 +848,7 @@ var cases = []struct {
 			"\x1b[P",
 		},
 		want: []string{"A 123     "},
-		pos:  cellbuf.Pos(2, 0),
+		pos:  uv.Pos(2, 0),
 	},
 
 	// Set Top and Bottom Margins [ansi.DECSTBM]
@@ -868,7 +870,7 @@ var cases = []struct {
 			"DEF     ",
 			"GHI     ",
 		},
-		pos: cellbuf.Pos(0, 0),
+		pos: uv.Pos(0, 0),
 	},
 	{
 		name: "DECSTBM Top Only Scroll Up",
@@ -888,7 +890,7 @@ var cases = []struct {
 			"DEF     ",
 			"GHI     ",
 		},
-		pos: cellbuf.Pos(0, 0),
+		pos: uv.Pos(0, 0),
 	},
 	{
 		name: "DECSTBM Top and Bottom Scroll Up",
@@ -908,7 +910,7 @@ var cases = []struct {
 			"GHI     ",
 			"        ",
 		},
-		pos: cellbuf.Pos(0, 0),
+		pos: uv.Pos(0, 0),
 	},
 	{
 		name: "DECSTBM Top Equal Bottom Scroll Up",
@@ -928,7 +930,7 @@ var cases = []struct {
 			"DEF     ",
 			"GHI     ",
 		},
-		pos: cellbuf.Pos(3, 2),
+		pos: uv.Pos(3, 2),
 	},
 
 	// Set Left/Right Margins [ansi.DECSLRM]
@@ -950,7 +952,7 @@ var cases = []struct {
 			"DEF     ",
 			"GHI     ",
 		},
-		pos: cellbuf.Pos(0, 0),
+		pos: uv.Pos(0, 0),
 	},
 	{
 		name: "DECSLRM Left Only",
@@ -972,7 +974,7 @@ var cases = []struct {
 			"GEF     ",
 			" HI     ",
 		},
-		pos: cellbuf.Pos(1, 0),
+		pos: uv.Pos(1, 0),
 	},
 	{
 		name: "DECSLRM Left And Right",
@@ -994,7 +996,7 @@ var cases = []struct {
 			"DEI     ",
 			"GH      ",
 		},
-		pos: cellbuf.Pos(0, 0),
+		pos: uv.Pos(0, 0),
 	},
 	{
 		name: "DECSLRM Left Equal to Right",
@@ -1014,7 +1016,7 @@ var cases = []struct {
 			"DEF     ",
 			"GHI     ",
 		},
-		pos: cellbuf.Pos(3, 2),
+		pos: uv.Pos(3, 2),
 	},
 
 	// Erase Character [ansi.ECH]
@@ -1027,7 +1029,7 @@ var cases = []struct {
 			"\x1b[2X",
 		},
 		want: []string{"  C     "},
-		pos:  cellbuf.Pos(0, 0),
+		pos:  uv.Pos(0, 0),
 	},
 	{
 		name: "ECH Erasing Beyond Edge of Screen",
@@ -1040,7 +1042,7 @@ var cases = []struct {
 			"\x1b[10X",
 		},
 		want: []string{"     A  "},
-		pos:  cellbuf.Pos(6, 0),
+		pos:  uv.Pos(6, 0),
 	},
 	{
 		name: "ECH Reset Pending Wrap State",
@@ -1052,7 +1054,7 @@ var cases = []struct {
 			"X",       // write X
 		},
 		want: []string{"       X"},
-		pos:  cellbuf.Pos(7, 0),
+		pos:  uv.Pos(7, 0),
 	},
 	{
 		name: "ECH with SGR State",
@@ -1064,7 +1066,7 @@ var cases = []struct {
 			"\x1b[2X",
 		},
 		want: []string{"  C     "},
-		pos:  cellbuf.Pos(0, 0),
+		pos:  uv.Pos(0, 0),
 	},
 	{
 		name: "ECH Multi-cell Character",
@@ -1076,7 +1078,7 @@ var cases = []struct {
 			"X",
 		},
 		want: []string{"X BC    "},
-		pos:  cellbuf.Pos(1, 0),
+		pos:  uv.Pos(1, 0),
 	},
 	{
 		name: "ECH Left/Right Scroll Region Ignored",
@@ -1092,7 +1094,7 @@ var cases = []struct {
 			"\x1b[4X",
 		},
 		want: []string{"    BC    "},
-		pos:  cellbuf.Pos(0, 0),
+		pos:  uv.Pos(0, 0),
 	},
 	// XXX: Support DECSCA
 	// {
@@ -1107,7 +1109,7 @@ var cases = []struct {
 	// 		"\x1b[2X",
 	// 	},
 	// 	want: []string{"  C     "},
-	// 	pos:  cellbuf.Pos(0, 0),
+	// 	pos:  uv.Pos(0, 0),
 	// },
 	// {
 	// 	name: "ECH Protected Attributes Respected without DECSCA",
@@ -1120,7 +1122,7 @@ var cases = []struct {
 	// 		"\x1b[2X",
 	// 	},
 	// 	want: []string{"ABC     "},
-	// 	pos:  cellbuf.Pos(0, 0),
+	// 	pos:  uv.Pos(0, 0),
 	// },
 
 	// Erase Line [ansi.EL]
@@ -1133,7 +1135,7 @@ var cases = []struct {
 			"\x1b[0K",
 		},
 		want: []string{"AB      "},
-		pos:  cellbuf.Pos(2, 0),
+		pos:  uv.Pos(2, 0),
 	},
 	{
 		name: "EL Erase Right Resets Pending Wrap",
@@ -1145,7 +1147,7 @@ var cases = []struct {
 			"X",
 		},
 		want: []string{"       X"},
-		pos:  cellbuf.Pos(7, 0),
+		pos:  uv.Pos(7, 0),
 	},
 	{
 		name: "EL Erase Right with SGR State",
@@ -1157,7 +1159,7 @@ var cases = []struct {
 			"\x1b[0K",
 		},
 		want: []string{"A       "},
-		pos:  cellbuf.Pos(1, 0),
+		pos:  uv.Pos(1, 0),
 	},
 	{
 		name: "EL Erase Right Multi-cell Character",
@@ -1168,7 +1170,7 @@ var cases = []struct {
 			"\x1b[0K",
 		},
 		want: []string{"AB      "},
-		pos:  cellbuf.Pos(3, 0),
+		pos:  uv.Pos(3, 0),
 	},
 	{
 		name: "EL Erase Right with Left/Right Margins",
@@ -1183,7 +1185,7 @@ var cases = []struct {
 			"\x1b[0K",
 		},
 		want: []string{"A         "},
-		pos:  cellbuf.Pos(1, 0),
+		pos:  uv.Pos(1, 0),
 	},
 	{
 		name: "EL Simple Erase Left",
@@ -1194,7 +1196,7 @@ var cases = []struct {
 			"\x1b[1K",
 		},
 		want: []string{"   DE   "},
-		pos:  cellbuf.Pos(2, 0),
+		pos:  uv.Pos(2, 0),
 	},
 	{
 		name: "EL Erase Left with SGR State",
@@ -1206,7 +1208,7 @@ var cases = []struct {
 			"\x1b[1K",
 		},
 		want: []string{"  C     "},
-		pos:  cellbuf.Pos(1, 0),
+		pos:  uv.Pos(1, 0),
 	},
 	{
 		name: "EL Erase Left Multi-cell Character",
@@ -1217,7 +1219,7 @@ var cases = []struct {
 			"\x1b[1K",
 		},
 		want: []string{"    DE  "},
-		pos:  cellbuf.Pos(2, 0),
+		pos:  uv.Pos(2, 0),
 	},
 	// XXX: Support DECSCA
 	// {
@@ -1232,7 +1234,7 @@ var cases = []struct {
 	// 		"\x1b[1K",
 	// 	},
 	// 	want: []string{"  CDE   "},
-	// 	pos:  cellbuf.Pos(1, 0),
+	// 	pos:  uv.Pos(1, 0),
 	// },
 	{
 		name: "EL Simple Erase Complete Line",
@@ -1243,7 +1245,7 @@ var cases = []struct {
 			"\x1b[2K",
 		},
 		want: []string{"        "},
-		pos:  cellbuf.Pos(2, 0),
+		pos:  uv.Pos(2, 0),
 	},
 	{
 		name: "EL Erase Complete with SGR State",
@@ -1255,7 +1257,7 @@ var cases = []struct {
 			"\x1b[2K",
 		},
 		want: []string{"        "},
-		pos:  cellbuf.Pos(1, 0),
+		pos:  uv.Pos(1, 0),
 	},
 
 	// Index [ansi.IND]
@@ -1273,7 +1275,7 @@ var cases = []struct {
 			"A         ",
 			" X        ",
 		},
-		pos: cellbuf.Pos(2, 1),
+		pos: uv.Pos(2, 1),
 	},
 	{
 		name: "IND Bottom of Primary Screen",
@@ -1290,7 +1292,7 @@ var cases = []struct {
 			"A         ",
 			" X        ",
 		},
-		pos: cellbuf.Pos(2, 1),
+		pos: uv.Pos(2, 1),
 	},
 	{
 		name: "IND Inside Scroll Region",
@@ -1307,7 +1309,7 @@ var cases = []struct {
 			"A         ",
 			" X        ",
 		},
-		pos: cellbuf.Pos(2, 1),
+		pos: uv.Pos(2, 1),
 	},
 	{
 		name: "IND Bottom of Scroll Region",
@@ -1329,7 +1331,7 @@ var cases = []struct {
 			" X        ",
 			"B         ",
 		},
-		pos: cellbuf.Pos(2, 2),
+		pos: uv.Pos(2, 2),
 	},
 	{
 		name: "IND Bottom of Primary Screen with Scroll Region",
@@ -1351,7 +1353,7 @@ var cases = []struct {
 			"          ",
 			"X         ",
 		},
-		pos: cellbuf.Pos(1, 4),
+		pos: uv.Pos(1, 4),
 	},
 	{
 		name: "IND Outside of Left/Right Scroll Region",
@@ -1373,7 +1375,7 @@ var cases = []struct {
 			"          ",
 			"X A       ",
 		},
-		pos: cellbuf.Pos(1, 2),
+		pos: uv.Pos(1, 2),
 	},
 	{
 		name: "IND Inside of Left/Right Scroll Region",
@@ -1395,7 +1397,7 @@ var cases = []struct {
 			"AAAAAA    ",
 			"   AAA    ",
 		},
-		pos: cellbuf.Pos(0, 2),
+		pos: uv.Pos(0, 2),
 	},
 
 	// Erase Display [ansi.ED]
@@ -1416,7 +1418,7 @@ var cases = []struct {
 			"D       ",
 			"        ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "ED Erase Below with SGR State",
@@ -1436,7 +1438,7 @@ var cases = []struct {
 			"D       ",
 			"        ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "ED Erase Below with Multi-Cell Character",
@@ -1455,7 +1457,7 @@ var cases = []struct {
 			"DE      ",
 			"        ",
 		},
-		pos: cellbuf.Pos(2, 1),
+		pos: uv.Pos(2, 1),
 	},
 	{
 		name: "ED Simple Erase Above",
@@ -1474,7 +1476,7 @@ var cases = []struct {
 			"        ",
 			"GHI     ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "ED Simple Erase Complete",
@@ -1493,7 +1495,7 @@ var cases = []struct {
 			"        ",
 			"        ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 
 	// Reverse Index [ansi.RI]
@@ -1516,7 +1518,7 @@ var cases = []struct {
 			"B         ",
 			"C         ",
 		},
-		pos: cellbuf.Pos(1, 0),
+		pos: uv.Pos(1, 0),
 	},
 	{
 		name: "RI No Scroll Region Not Top of Screen",
@@ -1536,7 +1538,7 @@ var cases = []struct {
 			"B         ",
 			"C         ",
 		},
-		pos: cellbuf.Pos(1, 0),
+		pos: uv.Pos(1, 0),
 	},
 	{
 		name: "RI Top/Bottom Scroll Region",
@@ -1557,7 +1559,7 @@ var cases = []struct {
 			"X         ",
 			"B         ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "RI Outside of Top/Bottom Scroll Region",
@@ -1577,7 +1579,7 @@ var cases = []struct {
 			"B         ",
 			"C         ",
 		},
-		pos: cellbuf.Pos(0, 0),
+		pos: uv.Pos(0, 0),
 	},
 	{
 		name: "RI Left/Right Scroll Region",
@@ -1599,7 +1601,7 @@ var cases = []struct {
 			"GEF       ",
 			" HI       ",
 		},
-		pos: cellbuf.Pos(1, 0),
+		pos: uv.Pos(1, 0),
 	},
 	{
 		name: "RI Outside Left/Right Scroll Region",
@@ -1620,7 +1622,7 @@ var cases = []struct {
 			"DEF       ",
 			"GHI       ",
 		},
-		pos: cellbuf.Pos(0, 0),
+		pos: uv.Pos(0, 0),
 	},
 
 	// Scroll Down [ansi.SD]
@@ -1643,7 +1645,7 @@ var cases = []struct {
 			"          ",
 			"GHI       ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 
 	// Scroll Up [ansi.SU]
@@ -1664,7 +1666,7 @@ var cases = []struct {
 			"GHI       ",
 			"          ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "SU Top/Bottom Scroll Region",
@@ -1684,7 +1686,7 @@ var cases = []struct {
 			"GHI       ",
 			"          ",
 		},
-		pos: cellbuf.Pos(0, 0),
+		pos: uv.Pos(0, 0),
 	},
 	{
 		name: "SU Left/Right Scroll Regions",
@@ -1705,7 +1707,7 @@ var cases = []struct {
 			"DHI756    ",
 			"G   89    ",
 		},
-		pos: cellbuf.Pos(1, 1),
+		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "SU Preserves Pending Wrap",
@@ -1727,7 +1729,7 @@ var cases = []struct {
 			"          ",
 			"X         ",
 		},
-		pos: cellbuf.Pos(1, 3),
+		pos: uv.Pos(1, 3),
 	},
 	{
 		name: "SU Scroll Full Top/Bottom Scroll Region",
@@ -1748,7 +1750,7 @@ var cases = []struct {
 			"          ",
 			"          ",
 		},
-		pos: cellbuf.Pos(0, 0),
+		pos: uv.Pos(0, 0),
 	},
 
 	// Tab Clear [ansi.TBC]
@@ -1765,7 +1767,7 @@ var cases = []struct {
 			"\t",        // tab again - should go to next stop
 		},
 		want: []string{"                       "},
-		pos:  cellbuf.Pos(16, 0),
+		pos:  uv.Pos(16, 0),
 	},
 	{
 		name: "TBC Clear All Tab Stops",
@@ -1779,7 +1781,7 @@ var cases = []struct {
 			"\t",        // tab - should go to end since no stops
 		},
 		want: []string{"                       "},
-		pos:  cellbuf.Pos(22, 0),
+		pos:  uv.Pos(22, 0),
 	},
 }
 
@@ -1813,7 +1815,7 @@ func termText(term *Terminal) []string {
 	for y := range term.Height() {
 		var line string
 		for x := 0; x < term.Width(); x++ {
-			cell := term.Cell(x, y)
+			cell := term.CellAt(x, y)
 			if cell == nil {
 				continue
 			}

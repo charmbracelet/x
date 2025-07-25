@@ -1,6 +1,8 @@
 package vt
 
 import (
+	"io"
+
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -19,9 +21,9 @@ func (t *Terminal) Blur() {
 func (t *Terminal) focus(focus bool) {
 	if mode, ok := t.modes[ansi.FocusEventMode]; ok && mode.IsSet() {
 		if focus {
-			t.buf.WriteString(ansi.Focus)
+			_, _ = io.WriteString(t.pw, ansi.Focus)
 		} else {
-			t.buf.WriteString(ansi.Blur)
+			_, _ = io.WriteString(t.pw, ansi.Blur)
 		}
 	}
 }

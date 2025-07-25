@@ -6,6 +6,7 @@ import (
 
 // handleEsc handles an escape sequence.
 func (t *Terminal) handleEsc(cmd ansi.Cmd) {
+	t.flushGrapheme() // Flush any pending grapheme before handling ESC sequences.
 	if !t.handlers.handleEsc(int(cmd)) {
 		var str string
 		if inter := cmd.Intermediate(); inter != 0 {

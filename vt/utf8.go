@@ -3,38 +3,78 @@ package vt
 import (
 	"unicode/utf8"
 
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/cellbuf"
 	"github.com/mattn/go-runewidth"
+	"github.com/rivo/uniseg"
 )
 
 // handlePrint handles printable characters.
 func (t *Terminal) handlePrint(r rune) {
-	t.handleGrapheme(string(r), runewidth.RuneWidth(r))
+	if r >= ansi.SP && r < ansi.DEL {
+		if len(t.grapheme) > 0 {
+			// If we have a grapheme buffer, flush it before handling the ASCII character.
+			t.flushGrapheme()
+		}
+		t.handleGrapheme(string(r), 1)
+	} else {
+		t.grapheme = append(t.grapheme, r)
+	}
+}
+
+// flushGrapheme flushes the current grapheme buffer, if any, and handles the
+// grapheme as a single unit.
+func (t *Terminal) flushGrapheme() {
+	if len(t.grapheme) == 0 {
+		return
+	}
+
+	unicode := t.isModeSet(ansi.UnicodeCoreMode)
+	gr := string(t.grapheme)
+
+	var cl string
+	var w int
+	state := -1
+	for len(gr) > 0 {
+		cl, gr, w, state = uniseg.FirstGraphemeClusterInString(gr, state)
+		if !unicode {
+			//nolint:godox
+			// TODO: Investigate this further, runewidth.StringWidth doesn't
+			// report the correct width for some edge cases such as variation
+			// selectors.
+			w = 0
+			for _, r := range cl {
+				if r >= 0xFE00 && r <= 0xFE0F {
+					// Variation Selectors 1 - 16
+					continue
+				}
+				if r >= 0xE0100 && r <= 0xE01EF {
+					// Variation Selectors 17-256
+					continue
+				}
+				w += runewidth.RuneWidth(r)
+			}
+		}
+		t.handleGrapheme(cl, w)
+	}
+	t.grapheme = t.grapheme[:0] // Reset the grapheme buffer.
 }
 
 // handleGrapheme handles UTF-8 graphemes.
 func (t *Terminal) handleGrapheme(content string, width int) {
-	var cell *Cell
-	if t.isModeSet(ansi.UnicodeCoreMode) {
-		cell = &Cell{}
-		cell.Width = width
-		for i, r := range content {
-			if i == 0 {
-				cell.Rune = r
-			} else {
-				cell.Comb = append(cell.Comb, r)
-			}
-		}
-	} else {
-		cell = cellbuf.NewCellString(content)
+	awm := t.isModeSet(ansi.AutoWrapMode)
+	cell := uv.Cell{
+		Content: content,
+		Width:   width,
+		Style:   t.scr.cursorPen(),
+		Link:    t.scr.cursorLink(),
 	}
 
 	x, y := t.scr.CursorPosition()
-	if t.atPhantom || x+width > t.scr.Width() {
+	if t.atPhantom && awm {
 		// moves cursor down similar to [Terminal.linefeed] except it doesn't
 		// respects [ansi.LNM] mode.
-		// This will rest the phantom state i.e. pending wrap state.
+		// This will reset the phantom state i.e. pending wrap state.
 		t.index()
 		_, y = t.scr.CursorPosition()
 		x = 0
@@ -55,39 +95,24 @@ func (t *Terminal) handleGrapheme(content string, width int) {
 
 		if charset != nil {
 			if r, ok := charset[c]; ok {
-				cell.Rune = firstRune(r)
-				cell.Comb = nil
+				cell.Content = r
 				cell.Width = 1
-				width = 1
 			}
 		}
 	}
 
-	cell.Style = t.scr.cursorPen()
-	cell.Link = t.scr.cursorLink()
-
-	if t.scr.SetCell(x, y, cell) {
-		if width == 1 && len(content) == 1 {
-			t.lastChar, _ = utf8.DecodeRuneInString(content)
-		}
+	if cell.Width == 1 && len(content) == 1 {
+		t.lastChar, _ = utf8.DecodeRuneInString(content)
 	}
 
+	t.scr.SetCell(x, y, &cell)
+
 	// Handle phantom state at the end of the line
-	if x+width >= t.scr.Width() {
-		if t.isModeSet(ansi.AutoWrapMode) {
-			t.atPhantom = true
-		}
-	} else {
-		x += width
+	t.atPhantom = awm && x >= t.scr.Width()-1
+	if !t.atPhantom {
+		x += cell.Width
 	}
 
 	// NOTE: We don't reset the phantom state here, we handle it up above.
 	t.scr.setCursor(x, y, false)
-}
-
-func firstRune(s string) rune {
-	for _, r := range s {
-		return r
-	}
-	return 0
 }

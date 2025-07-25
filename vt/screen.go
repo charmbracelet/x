@@ -1,9 +1,7 @@
 package vt
 
 import (
-	"sync"
-
-	"github.com/charmbracelet/x/cellbuf"
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 // Screen represents a virtual terminal screen.
@@ -11,139 +9,96 @@ type Screen struct {
 	// cb is the callbacks struct to use.
 	cb *Callbacks
 	// The buffer of the screen.
-	buf Buffer
+	buf uv.Buffer
 	// The cur of the screen.
 	cur, saved Cursor
 	// scroll is the scroll region.
-	scroll Rectangle
-	// mutex for the screen.
-	mu sync.RWMutex
+	scroll uv.Rectangle
 }
 
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
-	s := new(Screen)
+	s := Screen{}
 	s.Resize(w, h)
-	return s
+	return &s
 }
 
 // Reset resets the screen.
 // It clears the screen, sets the cursor to the top left corner, reset the
 // cursor styles, and resets the scroll region.
 func (s *Screen) Reset() {
-	s.mu.Lock()
 	s.buf.Clear()
 	s.cur = Cursor{}
 	s.saved = Cursor{}
 	s.scroll = s.buf.Bounds()
-	s.mu.Unlock()
 }
 
 // Bounds returns the bounds of the screen.
-func (s *Screen) Bounds() Rectangle {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (s *Screen) Bounds() uv.Rectangle {
 	return s.buf.Bounds()
 }
 
-// Cell returns the cell at the given x, y position.
-func (s *Screen) Cell(x int, y int) *Cell {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	return s.buf.Cell(x, y)
+// Touched returns touched lines in the screen buffer.
+func (s *Screen) Touched() []*uv.LineData {
+	return s.buf.Touched
+}
+
+// CellAt returns the cell at the given x, y position.
+func (s *Screen) CellAt(x int, y int) *uv.Cell {
+	return s.buf.CellAt(x, y)
 }
 
 // SetCell sets the cell at the given x, y position.
-// It returns true if the cell was set successfully.
-func (s *Screen) SetCell(x, y int, c *Cell) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	v := s.buf.SetCell(x, y, c)
-	if v && s.cb.Damage != nil {
-		width := 1
-		if c != nil {
-			width = c.Width
-		}
-		s.cb.Damage(CellDamage{x, y, width})
-	}
-	return v
+func (s *Screen) SetCell(x, y int, c *uv.Cell) {
+	s.buf.SetCell(x, y, c)
 }
 
 // Height returns the height of the screen.
 func (s *Screen) Height() int {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
 	return s.buf.Height()
 }
 
 // Resize resizes the screen.
 func (s *Screen) Resize(width int, height int) {
-	s.mu.Lock()
 	s.buf.Resize(width, height)
 	s.scroll = s.buf.Bounds()
-	if s.cb != nil && s.cb.Damage != nil {
-		s.cb.Damage(ScreenDamage{width, height})
-	}
-	s.mu.Unlock()
 }
 
 // Width returns the width of the screen.
 func (s *Screen) Width() int {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
 	return s.buf.Width()
 }
 
-// Clear clears the screen or part of it.
-func (s *Screen) Clear(rects ...Rectangle) {
-	s.mu.Lock()
-	if len(rects) == 0 {
-		s.buf.Clear()
-	} else {
-		for _, r := range rects {
-			s.buf.ClearRect(r)
-		}
-	}
-	if s.cb.Damage != nil {
-		for _, r := range rects {
-			s.cb.Damage(RectDamage(r))
-		}
-	}
-	s.mu.Unlock()
+// Clear clears the screen with blank cells.
+func (s *Screen) Clear() {
+	s.ClearArea(s.Bounds())
+}
+
+// ClearArea clears the given area.
+func (s *Screen) ClearArea(area uv.Rectangle) {
+	s.buf.ClearArea(area)
 }
 
 // Fill fills the screen or part of it.
-func (s *Screen) Fill(c *Cell, rects ...Rectangle) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if len(rects) == 0 {
-		s.buf.Fill(c)
-	} else {
-		for _, r := range rects {
-			s.buf.FillRect(c, r)
-		}
-	}
-	if s.cb.Damage != nil {
-		for _, r := range rects {
-			s.cb.Damage(RectDamage(r))
-		}
-	}
+func (s *Screen) Fill(c *uv.Cell) {
+	s.FillArea(c, s.Bounds())
+}
+
+// FillArea fills the given area with the given cell.
+func (s *Screen) FillArea(c *uv.Cell, area uv.Rectangle) {
+	s.buf.FillArea(c, area)
 }
 
 // setHorizontalMargins sets the horizontal margins.
 func (s *Screen) setHorizontalMargins(left, right int) {
-	s.mu.Lock()
 	s.scroll.Min.X = left
 	s.scroll.Max.X = right
-	s.mu.Unlock()
 }
 
 // setVerticalMargins sets the vertical margins.
 func (s *Screen) setVerticalMargins(top, bottom int) {
-	s.mu.Lock()
 	s.scroll.Min.Y = top
 	s.scroll.Max.Y = bottom
-	s.mu.Unlock()
 }
 
 // setCursorX sets the cursor X position. If margins is true, the cursor is
@@ -161,7 +116,6 @@ func (s *Screen) setCursorY(y int, margins bool) { //nolint:unused
 // setCursor sets the cursor position. If margins is true, the cursor is only
 // set if it is within the scroll margins. This follows how [ansi.CUP] works.
 func (s *Screen) setCursor(x, y int, margins bool) {
-	s.mu.Lock()
 	old := s.cur.Position
 	if !margins {
 		y = clamp(y, 0, s.buf.Height()-1)
@@ -171,9 +125,9 @@ func (s *Screen) setCursor(x, y int, margins bool) {
 		x = clamp(s.scroll.Min.X+x, s.scroll.Min.X, s.scroll.Max.X-1)
 	}
 	s.cur.X, s.cur.Y = x, y
-	s.mu.Unlock()
+
 	if s.cb.CursorPosition != nil && (old.X != x || old.Y != y) {
-		s.cb.CursorPosition(old, cellbuf.Pos(x, y))
+		s.cb.CursorPosition(old, uv.Pos(x, y))
 	}
 }
 
@@ -183,7 +137,6 @@ func (s *Screen) setCursor(x, y int, margins bool) {
 // This follows how [ansi.CUU], [ansi.CUD], [ansi.CUF], [ansi.CUB], [ansi.CNL],
 // [ansi.CPL].
 func (s *Screen) moveCursor(dx, dy int) {
-	s.mu.Lock()
 	scroll := s.scroll
 	old := s.cur.Position
 	if old.X < scroll.Min.X {
@@ -193,7 +146,7 @@ func (s *Screen) moveCursor(dx, dy int) {
 		scroll.Max.X = s.buf.Width()
 	}
 
-	pt := cellbuf.Pos(s.cur.X+dx, s.cur.Y+dy)
+	pt := uv.Pos(s.cur.X+dx, s.cur.Y+dy)
 
 	var x, y int
 	if old.In(scroll) {
@@ -205,46 +158,37 @@ func (s *Screen) moveCursor(dx, dy int) {
 	}
 
 	s.cur.X, s.cur.Y = x, y
-	s.mu.Unlock()
+
 	if s.cb.CursorPosition != nil && (old.X != x || old.Y != y) {
-		s.cb.CursorPosition(old, cellbuf.Pos(x, y))
+		s.cb.CursorPosition(old, uv.Pos(x, y))
 	}
 }
 
 // Cursor returns the cursor.
 func (s *Screen) Cursor() Cursor {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
 	return s.cur
 }
 
 // CursorPosition returns the cursor position.
 func (s *Screen) CursorPosition() (x, y int) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
 	return s.cur.X, s.cur.Y
 }
 
 // ScrollRegion returns the scroll region.
-func (s *Screen) ScrollRegion() Rectangle {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (s *Screen) ScrollRegion() uv.Rectangle {
 	return s.scroll
 }
 
 // SaveCursor saves the cursor.
 func (s *Screen) SaveCursor() {
-	s.mu.Lock()
 	s.saved = s.cur
-	s.mu.Unlock()
 }
 
 // RestoreCursor restores the cursor.
 func (s *Screen) RestoreCursor() {
-	s.mu.Lock()
 	old := s.cur.Position
 	s.cur = s.saved
-	s.mu.Unlock()
+
 	if s.cb.CursorPosition != nil && (old.X != s.cur.X || old.Y != s.cur.Y) {
 		s.cb.CursorPosition(old, s.cur.Position)
 	}
@@ -252,37 +196,30 @@ func (s *Screen) RestoreCursor() {
 
 // setCursorHidden sets the cursor hidden.
 func (s *Screen) setCursorHidden(hidden bool) {
-	s.mu.Lock()
-	wasHidden := s.cur.Hidden
+	changed := s.cur.Hidden != hidden
 	s.cur.Hidden = hidden
-	s.mu.Unlock()
-	if s.cb.CursorVisibility != nil && wasHidden != hidden {
+	if changed && s.cb.CursorVisibility != nil {
 		s.cb.CursorVisibility(!hidden)
 	}
 }
 
 // setCursorStyle sets the cursor style.
 func (s *Screen) setCursorStyle(style CursorStyle, blink bool) {
-	s.mu.Lock()
+	changed := s.cur.Style != style || s.cur.Steady != !blink
 	s.cur.Style = style
 	s.cur.Steady = !blink
-	s.mu.Unlock()
-	if s.cb.CursorStyle != nil {
+	if changed && s.cb.CursorStyle != nil {
 		s.cb.CursorStyle(style, !blink)
 	}
 }
 
 // cursorPen returns the cursor pen.
-func (s *Screen) cursorPen() Style {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (s *Screen) cursorPen() uv.Style {
 	return s.cur.Pen
 }
 
 // cursorLink returns the cursor link.
-func (s *Screen) cursorLink() Link {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+func (s *Screen) cursorLink() uv.Link {
 	return s.cur.Link
 }
 
@@ -303,14 +240,8 @@ func (s *Screen) InsertCell(n int) {
 		return
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	x, y := s.cur.X, s.cur.Y
-
-	s.buf.InsertCellRect(x, y, n, s.blankCell(), s.scroll)
-	if s.cb.Damage != nil {
-		s.cb.Damage(RectDamage(cellbuf.Rect(x, y, s.scroll.Dx()-x, 1)))
-	}
+	s.buf.InsertCellArea(x, y, n, s.blankCell(), s.scroll)
 }
 
 // DeleteCell deletes n cells at the cursor position moving cells to the left.
@@ -320,14 +251,8 @@ func (s *Screen) DeleteCell(n int) {
 		return
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	x, y := s.cur.X, s.cur.Y
-
-	s.buf.DeleteCellRect(x, y, n, s.blankCell(), s.scroll)
-	if s.cb.Damage != nil {
-		s.cb.Damage(RectDamage(cellbuf.Rect(x, y, s.scroll.Dx()-x, 1)))
-	}
+	s.buf.DeleteCellArea(x, y, n, s.blankCell(), s.scroll)
 }
 
 // ScrollUp scrolls the content up n lines within the given region. Lines
@@ -359,8 +284,6 @@ func (s *Screen) InsertLine(n int) bool {
 		return false
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	x, y := s.cur.X, s.cur.Y
 
 	// Only operate if cursor Y is within scroll region
@@ -369,13 +292,7 @@ func (s *Screen) InsertLine(n int) bool {
 		return false
 	}
 
-	s.buf.InsertLineRect(y, n, s.blankCell(), s.scroll)
-	if s.cb.Damage != nil {
-		rect := s.scroll
-		rect.Min.Y = y
-		rect.Max.Y += n
-		s.cb.Damage(RectDamage(rect))
-	}
+	s.buf.InsertLineArea(y, n, s.blankCell(), s.scroll)
 
 	return true
 }
@@ -389,8 +306,6 @@ func (s *Screen) DeleteLine(n int) bool {
 		return false
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	scroll := s.scroll
 	x, y := s.cur.X, s.cur.Y
 
@@ -400,13 +315,7 @@ func (s *Screen) DeleteLine(n int) bool {
 		return false
 	}
 
-	s.buf.DeleteLineRect(y, n, s.blankCell(), scroll)
-	if s.cb.Damage != nil {
-		rect := scroll
-		rect.Min.Y = y
-		rect.Max.Y += n
-		s.cb.Damage(RectDamage(rect))
-	}
+	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
 
 	return true
 }
@@ -414,13 +323,12 @@ func (s *Screen) DeleteLine(n int) bool {
 // blankCell returns the cursor blank cell with the background color set to the
 // current pen background color. If the pen background color is nil, the return
 // value is nil.
-func (s *Screen) blankCell() (c *Cell) {
+func (s *Screen) blankCell() *uv.Cell {
 	if s.cur.Pen.Bg == nil {
-		return
+		return nil
 	}
 
-	c = new(Cell)
-	*c = cellbuf.BlankCell
+	c := uv.EmptyCell
 	c.Style.Bg = s.cur.Pen.Bg
-	return
+	return &c
 }

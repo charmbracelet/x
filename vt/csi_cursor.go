@@ -1,8 +1,8 @@
 package vt
 
 import (
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/charmbracelet/x/cellbuf"
 )
 
 // nextTab moves the cursor to the next tab stop n times. This respects the
@@ -89,7 +89,7 @@ func (t *Terminal) carriageReturn() {
 	x, y := t.scr.CursorPosition()
 	if margins {
 		t.scr.setCursor(0, y, true)
-	} else if region := t.scr.ScrollRegion(); cellbuf.Pos(x, y).In(region) {
+	} else if region := t.scr.ScrollRegion(); uv.Pos(x, y).In(region) {
 		t.scr.setCursor(region.Min.X, y, false)
 	} else {
 		t.scr.setCursor(0, y, false)

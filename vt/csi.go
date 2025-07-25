@@ -2,12 +2,14 @@ package vt
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
 )
 
 func (t *Terminal) handleCsi(cmd ansi.Cmd, params ansi.Params) {
+	t.flushGrapheme() // Flush any pending grapheme before handling CSI sequences.
 	if !t.handlers.handleCsi(cmd, params) {
 		t.logf("unhandled sequence: CSI %q", paramsString(cmd, params))
 	}
@@ -25,7 +27,7 @@ func (t *Terminal) handleRequestMode(params ansi.Params, isAnsi bool) {
 	}
 
 	setting := t.modes[mode]
-	t.buf.WriteString(ansi.ReportMode(mode, setting))
+	_, _ = io.WriteString(t.pw, ansi.ReportMode(mode, setting))
 }
 
 func paramsString(cmd ansi.Cmd, params ansi.Params) string {

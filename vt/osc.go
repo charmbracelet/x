@@ -5,13 +5,14 @@ package vt
 import (
 	"bytes"
 	"image/color"
+	"io"
 
 	"github.com/charmbracelet/x/ansi"
-	"github.com/lucasb-eyer/go-colorful"
 )
 
 // handleOsc handles an OSC escape sequence.
 func (t *Terminal) handleOsc(cmd int, data []byte) {
+	t.flushGrapheme() // Flush any pending grapheme before handling OSC sequences.
 	if !t.handlers.handleOsc(cmd, data) {
 		t.logf("unhandled sequence: OSC %q", data)
 	}
@@ -27,30 +28,33 @@ func (t *Terminal) handleTitle(cmd int, data []byte) {
 	case 0: // Set window title and icon name
 		name := string(parts[1])
 		t.iconName, t.title = name, name
-		if t.Callbacks.Title != nil {
-			t.Callbacks.Title(name)
+		if t.cb.Title != nil {
+			t.cb.Title(name)
 		}
-		if t.Callbacks.IconName != nil {
-			t.Callbacks.IconName(name)
+		if t.cb.IconName != nil {
+			t.cb.IconName(name)
 		}
 	case 1: // Set icon name
 		name := string(parts[1])
 		t.iconName = name
-		if t.Callbacks.IconName != nil {
-			t.Callbacks.IconName(name)
+		if t.cb.IconName != nil {
+			t.cb.IconName(name)
 		}
 	case 2: // Set window title
 		name := string(parts[1])
 		t.title = name
-		if t.Callbacks.Title != nil {
-			t.Callbacks.Title(name)
+		if t.cb.Title != nil {
+			t.cb.Title(name)
 		}
 	}
 }
 
 func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
-	var setCol func(color.Color)
-	var col color.Color
+	if cmd != 10 && cmd != 11 && cmd != 12 &&
+		cmd != 110 && cmd != 111 && cmd != 112 {
+		// Invalid, ignore
+		return
+	}
 
 	parts := bytes.Split(data, []byte{';'})
 	if len(parts) == 0 {
@@ -58,57 +62,66 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 		return
 	}
 
-	switch cmd {
-	case 10, 11, 12:
-		if len(parts) != 2 {
-			// Invalid, ignore
-			return
+	cb := func(c color.Color) {
+		switch cmd {
+		case 10, 110: // Foreground color
+			t.SetForegroundColor(c)
+		case 11, 111: // Background color
+			t.SetBackgroundColor(c)
+		case 12, 112: // Cursor color
+			t.SetCursorColor(c)
 		}
+	}
 
-		var enc func(string) string
-		if s := string(parts[1]); s == "?" { //nolint:nestif
+	switch len(parts) {
+	case 1: // Reset color
+		cb(nil)
+	case 2: // Set/Query color
+		arg := string(parts[1])
+		if arg == "?" {
+			var xrgb ansi.XRGBColor
 			switch cmd {
-			case 10:
-				enc = ansi.SetForegroundColor
-				col = t.ForegroundColor()
-			case 11:
-				enc = ansi.SetBackgroundColor
-				col = t.BackgroundColor()
-			case 12:
-				enc = ansi.SetCursorColor
-				col = t.CursorColor()
-			}
-
-			if enc != nil && col != nil {
-				c, ok := colorful.MakeColor(col)
-				if ok {
-					t.buf.WriteString(enc(c.Hex()))
+			case 10: // Query foreground color
+				xrgb.Color = t.ForegroundColor()
+				if xrgb.Color != nil {
+					io.WriteString(t.pw, ansi.SetForegroundColor(xrgb.String())) //nolint:errcheck,gosec
+				}
+			case 11: // Query background color
+				xrgb.Color = t.BackgroundColor()
+				if xrgb.Color != nil {
+					io.WriteString(t.pw, ansi.SetBackgroundColor(xrgb.String())) //nolint:errcheck,gosec
+				}
+			case 12: // Query cursor color
+				xrgb.Color = t.CursorColor()
+				if xrgb.Color != nil {
+					io.WriteString(t.pw, ansi.SetCursorColor(xrgb.String())) //nolint:errcheck,gosec
 				}
 			}
-		} else {
-			col := ansi.XParseColor(string(parts[1]))
-			if col == nil {
-				return
-			}
+		} else if c := ansi.XParseColor(arg); c != nil {
+			cb(c)
 		}
-	case 110:
-		col = defaultFg
-	case 111:
-		col = defaultBg
-	case 112:
-		col = defaultCur
+	}
+}
+
+func (t *Terminal) handleWorkingDirectory(cmd int, data []byte) {
+	if cmd != 7 {
+		// Invalid, ignore
+		return
 	}
 
-	switch cmd {
-	case 10, 110: // Set/Reset foreground color
-		setCol = t.SetForegroundColor
-	case 11, 111: // Set/Reset background color
-		setCol = t.SetBackgroundColor
-	case 12, 112: // Set/Reset cursor color
-		setCol = t.SetCursorColor
+	// The data is the working directory path.
+	parts := bytes.Split(data, []byte{';'})
+	if len(parts) != 2 {
+		// Invalid, ignore
+		return
 	}
 
-	setCol(col)
+	path := string(parts[1])
+	t.cwd = path
+
+	if t.cb.WorkingDirectory != nil {
+		t.cb.WorkingDirectory(path)
+	}
 }
 
 func (t *Terminal) handleHyperlink(cmd int, data []byte) {

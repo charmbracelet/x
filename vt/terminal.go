@@ -1,17 +1,19 @@
 package vt
 
 import (
-	"bytes"
 	"image/color"
 	"io"
-	"sync"
-	"time"
 
+	uv "github.com/charmbracelet/ultraviolet"
+	"github.com/charmbracelet/ultraviolet/screen"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/ansi/parser"
-	"github.com/charmbracelet/x/cellbuf"
-	"github.com/rivo/uniseg"
 )
+
+// Logger represents a logger interface.
+type Logger interface {
+	Printf(format string, v ...any)
+}
 
 // Terminal represents a virtual terminal.
 type Terminal struct {
@@ -20,8 +22,9 @@ type Terminal struct {
 	// The terminal's indexed 256 colors.
 	colors [256]color.Color
 
-	// Both main and alt screens.
+	// Both main and alt screens and a pointer to the currently active screen.
 	scrs [2]Screen
+	scr  *Screen
 
 	// Character sets
 	charsets [4]CharSet
@@ -30,32 +33,35 @@ type Terminal struct {
 	logger Logger
 
 	// terminal default colors.
-	fg, bg, cur color.Color
+	defaultFg, defaultBg, defaultCur color.Color
+	fgColor, bgColor, curColor       color.Color
 
 	// Terminal modes.
-	modes map[ansi.Mode]ansi.ModeSetting
-
-	// The current focused screen.
-	scr *Screen
+	modes ansi.Modes
 
 	// The last written character.
 	lastChar rune // either ansi.Rune or ansi.Grapheme
+	// A slice of runes to compose a grapheme.
+	grapheme []rune
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
+	// The last parser state.
+	lastState parser.State
 
-	Callbacks Callbacks
+	cb Callbacks
 
 	// The terminal's icon name and title.
 	iconName, title string
+	// The current reported working directory. This is not validated.
+	cwd string
 
 	// tabstop is the list of tab stops.
-	tabstops *cellbuf.TabStops
+	tabstops *uv.TabStops
 
-	// The input buffer of the terminal.
-	buf bytes.Buffer
-
-	mu sync.Mutex
+	// I/O pipes.
+	pr *io.PipeReader
+	pw *io.PipeWriter
 
 	// The GL and GR character set identifiers.
 	gl, gr  int
@@ -69,21 +75,17 @@ type Terminal struct {
 	atPhantom bool
 }
 
-var (
-	defaultFg  = color.White
-	defaultBg  = color.Black
-	defaultCur = color.White
-)
-
 // NewTerminal creates a new terminal.
-func NewTerminal(w, h int, opts ...Option) *Terminal {
+func NewTerminal(w, h int) *Terminal {
 	t := new(Terminal)
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
-	t.scrs[0].cb = &t.Callbacks
-	t.scrs[1].cb = &t.Callbacks
 	t.scr = &t.scrs[0]
-	t.parser = ansi.NewParser() // 4MB data buffer
+	t.scrs[0].cb = &t.cb
+	t.scrs[1].cb = &t.cb
+	t.parser = ansi.NewParser()
+	t.parser.SetParamsSize(parser.MaxParamsSize)
+	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
 	t.parser.SetHandler(ansi.Handler{
 		Print:     t.handlePrint,
 		Execute:   t.handleControl,
@@ -92,34 +94,88 @@ func NewTerminal(w, h int, opts ...Option) *Terminal {
 		HandleDcs: t.handleDcs,
 		HandleOsc: t.handleOsc,
 		HandleApc: t.handleApc,
-		// Pm:      t.handlePm,
-		// Sos:     t.handleSos,
+		HandlePm:  t.handlePm,
+		HandleSos: t.handleSos,
 	})
-	t.parser.SetParamsSize(parser.MaxParamsSize)
-	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
+	t.pr, t.pw = io.Pipe()
 	t.resetModes()
-	t.tabstops = cellbuf.DefaultTabStops(w)
-	t.fg = defaultFg
-	t.bg = defaultBg
-	t.cur = defaultCur
+	t.tabstops = uv.DefaultTabStops(w)
 	t.registerDefaultHandlers()
-
-	for _, opt := range opts {
-		opt(t)
-	}
 
 	return t
 }
 
-// Screen returns the currently active terminal screen.
-func (t *Terminal) Screen() *Screen {
-	return t.scr
+// SetLogger sets the terminal's logger.
+func (t *Terminal) SetLogger(l Logger) {
+	t.logger = l
 }
 
-// Cell returns the current focused screen cell at the given x, y position. It returns nil if the cell
-// is out of bounds.
-func (t *Terminal) Cell(x, y int) *Cell {
-	return t.scr.Cell(x, y)
+// SetCallbacks sets the terminal's callbacks.
+func (t *Terminal) SetCallbacks(cb Callbacks) {
+	t.cb = cb
+	t.scrs[0].cb = &t.cb
+	t.scrs[1].cb = &t.cb
+}
+
+// Touched returns the touched lines in the current screen buffer.
+func (t *Terminal) Touched() []*uv.LineData {
+	return t.scr.Touched()
+}
+
+var _ uv.Screen = (*Terminal)(nil)
+
+// Bounds returns the bounds of the terminal.
+func (t *Terminal) Bounds() uv.Rectangle {
+	return t.scr.Bounds()
+}
+
+// CellAt returns the current focused screen cell at the given x, y position.
+// It returns nil if the cell is out of bounds.
+func (t *Terminal) CellAt(x, y int) *uv.Cell {
+	return t.scr.CellAt(x, y)
+}
+
+// SetCell sets the current focused screen cell at the given x, y position.
+func (t *Terminal) SetCell(x, y int, c *uv.Cell) {
+	t.scr.SetCell(x, y, c)
+}
+
+// WidthMethod returns the width method used by the terminal.
+func (t *Terminal) WidthMethod() uv.WidthMethod {
+	if t.isModeSet(ansi.UnicodeCoreMode) {
+		return ansi.GraphemeWidth
+	}
+	return ansi.WcWidth
+}
+
+// Draw implements the [uv.Drawable] interface.
+func (t *Terminal) Draw(scr uv.Screen, area uv.Rectangle) {
+	bg := uv.EmptyCell
+	bg.Style.Bg = t.bgColor
+	screen.FillArea(scr, &bg, area)
+	for y := range t.Touched() {
+		if y < 0 || y >= t.Height() {
+			continue
+		}
+		for x := 0; x < t.Width(); {
+			w := 1
+			cell := t.CellAt(x, y)
+			if cell != nil {
+				cell = cell.Clone()
+				if cell.Width > 1 {
+					w = cell.Width
+				}
+				if cell.Style.Bg == nil && t.bgColor != nil {
+					cell.Style.Bg = t.bgColor
+				}
+				if cell.Style.Fg == nil && t.fgColor != nil {
+					cell.Style.Fg = t.fgColor
+				}
+				scr.SetCell(x+area.Min.X, y+area.Min.Y, cell)
+			}
+			x += w
+		}
+	}
 }
 
 // Height returns the height of the terminal.
@@ -133,9 +189,9 @@ func (t *Terminal) Width() int {
 }
 
 // CursorPosition returns the terminal's cursor position.
-func (t *Terminal) CursorPosition() Position {
+func (t *Terminal) CursorPosition() uv.Position {
 	x, y := t.scr.CursorPosition()
-	return cellbuf.Pos(x, y)
+	return uv.Pos(x, y)
 }
 
 // Resize resizes the terminal.
@@ -163,33 +219,22 @@ func (t *Terminal) Resize(width int, height int) {
 
 	t.scrs[0].Resize(width, height)
 	t.scrs[1].Resize(width, height)
-	t.tabstops = cellbuf.DefaultTabStops(width)
+	t.tabstops = uv.DefaultTabStops(width)
 
 	t.setCursor(x, y)
 }
 
 // Read reads data from the terminal input buffer.
 func (t *Terminal) Read(p []byte) (n int, err error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
 	if t.closed {
 		return 0, io.EOF
 	}
 
-	if t.buf.Len() == 0 {
-		time.Sleep(10 * time.Millisecond)
-		return 0, nil
-	}
-
-	return t.buf.Read(p) //nolint:wrapcheck
+	return t.pr.Read(p) //nolint:wrapcheck
 }
 
 // Close closes the terminal.
 func (t *Terminal) Close() error {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
 	if t.closed {
 		return nil
 	}
@@ -200,33 +245,25 @@ func (t *Terminal) Close() error {
 
 // Write writes data to the terminal output buffer.
 func (t *Terminal) Write(p []byte) (n int, err error) {
-	t.mu.Lock()
-	defer t.mu.Unlock()
-
-	for len(p) > 0 {
-		action := t.parser.Advance(p[0])
-		if action == parser.CollectAction && t.parser.State() == parser.Utf8State {
-			// Use uniseg to handle UTF-8 sequences.
-			var gr []byte
-			var width int
-			gr, p, width, _ = uniseg.FirstGraphemeCluster(p, -1)
-			t.handleGrapheme(string(gr), width)
-			// Reset the parser back to ground state.
-			t.parser.Reset()
-			n += len(gr)
-		} else {
-			p = p[1:]
-			n++
+	for i := range p {
+		t.parser.Advance(p[i])
+		state := t.parser.State()
+		// flush grapheme if we transitioned to a non-utf8 state or we have
+		// written the whole byte slice.
+		if len(t.grapheme) > 0 {
+			if (t.lastState == parser.GroundState && state != parser.Utf8State) || i == len(p)-1 {
+				t.flushGrapheme()
+			}
 		}
+		t.lastState = state
 	}
-
-	return
+	return len(p), nil
 }
 
 // InputPipe returns the terminal's input pipe.
 // This can be used to send input to the terminal.
 func (t *Terminal) InputPipe() io.Writer {
-	return &t.buf
+	return t.pw
 }
 
 // Paste pastes text into the terminal.
@@ -234,53 +271,100 @@ func (t *Terminal) InputPipe() io.Writer {
 // appropriate escape sequences.
 func (t *Terminal) Paste(text string) {
 	if t.isModeSet(ansi.BracketedPasteMode) {
-		t.buf.WriteString(ansi.BracketedPasteStart)
-		defer t.buf.WriteString(ansi.BracketedPasteEnd)
+		_, _ = io.WriteString(t.pw, ansi.BracketedPasteStart)
+		defer io.WriteString(t.pw, ansi.BracketedPasteEnd) //nolint:errcheck
 	}
 
-	t.buf.WriteString(text)
+	_, _ = io.WriteString(t.pw, text)
 }
 
-// SendText sends text to the terminal.
+// SendText sends arbitrary text to the terminal.
 func (t *Terminal) SendText(text string) {
-	t.buf.WriteString(text)
+	_, _ = io.WriteString(t.pw, text)
 }
 
 // SendKeys sends multiple keys to the terminal.
-func (t *Terminal) SendKeys(keys ...Key) {
+func (t *Terminal) SendKeys(keys ...uv.KeyEvent) {
 	for _, k := range keys {
 		t.SendKey(k)
 	}
 }
 
-// ForegroundColor returns the terminal's foreground color.
+// ForegroundColor returns the terminal's foreground color. This returns nil if
+// the foreground color is not set which means the outer terminal color is
+// used.
 func (t *Terminal) ForegroundColor() color.Color {
-	return t.fg
+	if t.fgColor == nil {
+		return t.defaultFg
+	}
+	return t.fgColor
 }
 
 // SetForegroundColor sets the terminal's foreground color.
 func (t *Terminal) SetForegroundColor(c color.Color) {
-	t.fg = c
+	if c == nil {
+		c = t.defaultFg
+	}
+	t.fgColor = c
+	if t.cb.ForegroundColor != nil {
+		t.cb.ForegroundColor(c)
+	}
 }
 
-// BackgroundColor returns the terminal's background color.
+// SetDefaultForegroundColor sets the terminal's default foreground color.
+func (t *Terminal) SetDefaultForegroundColor(c color.Color) {
+	t.defaultFg = c
+}
+
+// BackgroundColor returns the terminal's background color. This returns nil if
+// the background color is not set which means the outer terminal color is
+// used.
 func (t *Terminal) BackgroundColor() color.Color {
-	return t.bg
+	if t.bgColor == nil {
+		return t.defaultBg
+	}
+	return t.bgColor
 }
 
 // SetBackgroundColor sets the terminal's background color.
 func (t *Terminal) SetBackgroundColor(c color.Color) {
-	t.bg = c
+	if c == nil {
+		c = t.defaultBg
+	}
+	t.bgColor = c
+	if t.cb.BackgroundColor != nil {
+		t.cb.BackgroundColor(c)
+	}
 }
 
-// CursorColor returns the terminal's cursor color.
+// SetDefaultBackgroundColor sets the terminal's default background color.
+func (t *Terminal) SetDefaultBackgroundColor(c color.Color) {
+	t.defaultBg = c
+}
+
+// CursorColor returns the terminal's cursor color. This returns nil if the
+// cursor color is not set which means the outer terminal color is used.
 func (t *Terminal) CursorColor() color.Color {
-	return t.cur
+	if t.curColor == nil {
+		return t.defaultCur
+	}
+	return t.curColor
 }
 
 // SetCursorColor sets the terminal's cursor color.
 func (t *Terminal) SetCursorColor(c color.Color) {
-	t.cur = c
+	if c == nil {
+		c = t.defaultCur
+	}
+	t.curColor = c
+	if t.cb.CursorColor != nil {
+		t.cb.CursorColor(c)
+	}
+}
+
+// SetDefaultCursorColor sets the terminal's default cursor color.
+func (t *Terminal) SetDefaultCursorColor(c color.Color) {
+	t.defaultCur = c
 }
 
 // IndexedColor returns a terminal's indexed color. An indexed color is a color
@@ -293,7 +377,7 @@ func (t *Terminal) IndexedColor(i int) color.Color {
 	c := t.colors[i]
 	if c == nil {
 		// Return the default color.
-		return ansi.ExtendedColor(i) //nolint:gosec,staticcheck
+		return ansi.IndexedColor(i) //nolint:gosec
 	}
 
 	return c
@@ -311,5 +395,11 @@ func (t *Terminal) SetIndexedColor(i int, c color.Color) {
 
 // resetTabStops resets the terminal tab stops to the default set.
 func (t *Terminal) resetTabStops() {
-	t.tabstops = cellbuf.DefaultTabStops(t.Width())
+	t.tabstops = uv.DefaultTabStops(t.Width())
+}
+
+func (t *Terminal) logf(format string, v ...any) {
+	if t.logger != nil {
+		t.logger.Printf(format, v...)
+	}
 }
