@@ -23,7 +23,8 @@ type Program interface {
 
 // TestModelOptions defines all options available to the test function.
 type TestModelOptions struct {
-	size tea.WindowSizeMsg
+	size        tea.WindowSizeMsg
+	programOpts []tea.ProgramOption
 }
 
 // TestOption is a functional option.
@@ -36,6 +37,14 @@ func WithInitialTermSize(x, y int) TestOption {
 			Width:  x,
 			Height: y,
 		}
+	}
+}
+
+// WithProgramOptions adds tea.ProgramOptions to the test model during initialization
+// of the program.
+func WithProgramOptions(options ...tea.ProgramOption) TestOption {
+	return func(opts *TestModelOptions) {
+		opts.programOpts = options
 	}
 }
 
@@ -134,14 +143,16 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 	for _, opt := range options {
 		opt(&opts)
 	}
-
-	tm.program = tea.NewProgram(
-		m,
+	programOpts := append(
+		opts.programOpts,
+		// Append our options to ensure they always override.
 		tea.WithInput(tm.in),
 		tea.WithOutput(tm.out),
 		tea.WithoutSignals(),
 		tea.WithWindowSize(opts.size.Width, opts.size.Height),
 	)
+
+	tm.program = tea.NewProgram(m, programOpts...)
 
 	interruptions := make(chan os.Signal, 1)
 	signal.Notify(interruptions, syscall.SIGINT)
