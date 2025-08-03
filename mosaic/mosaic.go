@@ -13,6 +13,16 @@ import (
 	xdraw "golang.org/x/image/draw"
 )
 
+// Fit can be used to mantain the aspect ratio of the image.
+// Example:
+//
+//	```go
+// mosaic.New().Width(100).Height(mosaic.Fit) // Fits to width
+// mosaic.New().Height(100).Width(mosaic.Fit) // Fits to height
+//	```
+// If used for both width and height, the image width and height will be used.
+const Fit = -1
+
 // Blocks definition.
 var (
 	halfBlocks = []block{
@@ -76,7 +86,7 @@ func Render(img image.Image, width int, height int) string {
 //
 //	```go
 //	art := mosaic.New().Width(100). // Limit to 100 cells
-//	    Scale(mosaic.Fit).          // Fit to width
+//	    Height(mosaic.Fit).         // Fit to width
 //	    Render()
 //	```
 type Mosaic struct {
@@ -163,12 +173,14 @@ func (m Mosaic) InvertColors(invertColors bool) Mosaic {
 }
 
 // Width sets the maximum width the image can have. Defaults to the image width.
+// You can use mosaic.Fit as argument to keep the aspect ratio.
 func (m Mosaic) Width(width int) Mosaic {
 	m.outputWidth = width
 	return m
 }
 
 // Height sets the maximum height the image can have. Defaults to the image height.
+// You can use mosaic.Fit as argument to keep the aspect ratio.
 func (m Mosaic) Height(height int) Mosaic {
 	m.outputHeight = height
 	return m
@@ -188,23 +200,19 @@ func (m *Mosaic) Render(img image.Image) string {
 	srcHeight := bounds.Max.Y - bounds.Min.Y
 
 	// Determine output dimensions.
-	outWidth := srcWidth
-	if m.outputWidth > 0 {
-		outWidth = m.outputWidth
-	}
-
-	outHeight := srcHeight
-	if m.outputHeight > 0 {
-		outHeight = m.outputHeight
-	}
-
-	if outHeight <= 0 {
-		// Calculate height based on aspect ratio and character cell proportions.
+	var outWidth, outHeight int
+	if m.outputWidth > 0 && m.outputHeight > 0 {
+		outWidth, outHeight = m.outputWidth, m.outputHeight
+	} else if m.outputWidth < 0 && m.outputHeight < 0 {
+		outWidth, outHeight = srcWidth, srcHeight
+	} else {
 		// Terminal characters are roughly twice as tall as wide, so we divide by 2.
-		const divider = 2
-		outHeight = int(float64(outWidth) * float64(srcHeight) / float64(srcWidth) / divider)
-		if outHeight < 1 {
-			outHeight = 1
+		ratio := float64(srcHeight) / float64(srcWidth) / 2
+
+		if m.outputWidth > 0 {
+			outWidth, outHeight = m.outputWidth, int(float64(m.outputWidth) * ratio)
+		} else if m.outputHeight > 0 {
+			outWidth, outHeight = int(float64(m.outputHeight) / ratio), m.outputHeight
 		}
 	}
 
