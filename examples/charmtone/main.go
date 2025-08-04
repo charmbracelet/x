@@ -24,7 +24,7 @@ func main() {
 		Use:   "charmtone",
 		Short: "CharmTone color palette tool",
 		Long:  "A command line tool for rendering the CharmTone color palette in various formats",
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			renderGuide()
 		},
 	}
@@ -50,13 +50,22 @@ func main() {
 	vimCmd := &cobra.Command{
 		Use:   "vim",
 		Short: "Generate Vim colorscheme",
-		Long:  "Generate Vim colorscheme using the CharmTone color palette",
+		Long:  "Generate Vim colorscheme for the CharmTone color palette",
 		Run: func(_ *cobra.Command, _ []string) {
 			renderVim()
 		},
 	}
 
-	rootCmd.AddCommand(cssCmd, scssCmd, vimCmd)
+	nixCmd := &cobra.Command{
+		Use:   "nix",
+		Short: "Generate Nix attributes",
+		Long:  "Generate Nix attributes for the CharmTone color palette",
+		Run: func(_ *cobra.Command, _ []string) {
+			renderNix()
+		},
+	}
+
+	rootCmd.AddCommand(cssCmd, scssCmd, vimCmd, nixCmd)
 
 	// Use Fang to execute the command with enhanced styling and features
 	if err := fang.Execute(context.Background(), rootCmd); err != nil {
@@ -82,5 +91,13 @@ func renderCSS() {
 	for _, k := range charmtone.Keys() {
 		name := strings.ToLower(strings.ReplaceAll(k.String(), " ", "-"))
 		fmt.Printf("--charmtone-%s: %s;\n", name, k.Hex())
+	}
+}
+
+func renderNix() {
+	keys := charmtone.Keys()
+	for _, k := range keys {
+		name := strings.ToLower(strings.ReplaceAll(k.String(), " ", "-"))
+		fmt.Printf("%s = \"%s\";\n", name, k.Hex())
 	}
 }
