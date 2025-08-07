@@ -61,11 +61,11 @@ func getState(fd uintptr) (*State, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &State{state: state{termName: t, raw: true, ctl: ctl}}, nil
+	return &State{state: state{termName: t, raw: false, ctl: ctl}}, nil
 
 }
 
-func restore(fd uintptr, state *State) error {
+func restore(_ uintptr, state *State) error {
 	if _, err := state.ctl.Write([]byte("rawoff")); err != nil {
 		return err
 	}
@@ -76,7 +76,14 @@ func getSize(fd uintptr) (width, height int, err error) {
 	return 80, 40, nil
 }
 
-func setState(fd uintptr, state *State) error {
+func setState(_ uintptr, state *State) error {
+	raw := "rawoff"
+	if state.raw {
+		raw = "rawon"
+	}
+	if _, err := state.ctl.Write([]byte(raw)); err != nil {
+		return err
+	}
 	return nil
 }
 
