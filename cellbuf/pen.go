@@ -18,9 +18,7 @@ type PenWriter struct {
 // NewPenWriter returns a new PenWriter.
 func NewPenWriter(w io.Writer) *PenWriter {
 	pw := &PenWriter{w: w}
-	pw.p = ansi.NewParser()
-	pw.p.SetParamsSize(32)            // 32 parameters
-	pw.p.SetDataSize(4 * 1024 * 1024) // 4MB of data buffer
+	pw.p = ansi.GetParser()
 	handleCsi := func(cmd ansi.Cmd, params ansi.Params) {
 		if cmd == 'm' {
 			ReadStyle(params, &pw.style)
@@ -76,13 +74,19 @@ func (w *PenWriter) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
-// Close closes the writer and resets the style and link if necessary.
+// Close closes the writer, resets the style and link if necessary, and releases
+// its parser. Calling it is performance critical, but forgetting it does not
+// cause safety issues or leaks.
 func (w *PenWriter) Close() error {
 	if !w.style.Empty() {
 		_, _ = w.w.Write([]byte(ansi.ResetStyle))
 	}
 	if !w.link.Empty() {
 		_, _ = w.w.Write([]byte(ansi.ResetHyperlink()))
+	}
+	if w.p != nil {
+		ansi.PutParser(w.p)
+		w.p = nil
 	}
 	return nil
 }
