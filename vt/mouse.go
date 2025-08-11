@@ -59,7 +59,7 @@ type MouseMotion = uv.MouseMotionEvent
 
 // SendMouse sends a mouse event to the terminal. This can be any kind of mouse
 // events such as [MouseClick], [MouseRelease], [MouseWheel], or [MouseMotion].
-func (t *Terminal) SendMouse(m Mouse) {
+func (t *Emulator) SendMouse(m Mouse) {
 	// XXX: Support [Utf8ExtMouseMode], [UrxvtExtMouseMode], and
 	// [SgrPixelExtMouseMode].
 	var (

@@ -4,7 +4,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func (t *Terminal) handleMode(params ansi.Params, set, isAnsi bool) {
+func (t *Emulator) handleMode(params ansi.Params, set, isAnsi bool) {
 	for _, p := range params {
 		param := p.Param(-1)
 		if param == -1 {
@@ -33,7 +33,7 @@ func (t *Terminal) handleMode(params ansi.Params, set, isAnsi bool) {
 }
 
 // setAltScreenMode sets the alternate screen mode.
-func (t *Terminal) setAltScreenMode(on bool) {
+func (t *Emulator) setAltScreenMode(on bool) {
 	if (on && t.scr == &t.scrs[1]) || (!on && t.scr == &t.scrs[0]) {
 		// Already in alternate screen mode, or normal screen, do nothing.
 		return
@@ -56,17 +56,17 @@ func (t *Terminal) setAltScreenMode(on bool) {
 }
 
 // saveCursor saves the cursor position.
-func (t *Terminal) saveCursor() {
+func (t *Emulator) saveCursor() {
 	t.scr.SaveCursor()
 }
 
 // restoreCursor restores the cursor position.
-func (t *Terminal) restoreCursor() {
+func (t *Emulator) restoreCursor() {
 	t.scr.RestoreCursor()
 }
 
 // setMode sets the mode to the given value.
-func (t *Terminal) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
+func (t *Emulator) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 	t.logf("setting mode %T(%v) to %v", mode, mode, setting)
 	t.modes[mode] = setting
 	switch mode {
@@ -101,7 +101,7 @@ func (t *Terminal) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 }
 
 // isModeSet returns true if the mode is set.
-func (t *Terminal) isModeSet(mode ansi.Mode) bool {
+func (t *Emulator) isModeSet(mode ansi.Mode) bool {
 	m, ok := t.modes[mode]
 	return ok && m.IsSet()
 }

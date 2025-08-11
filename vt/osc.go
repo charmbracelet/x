@@ -11,14 +11,14 @@ import (
 )
 
 // handleOsc handles an OSC escape sequence.
-func (t *Terminal) handleOsc(cmd int, data []byte) {
+func (t *Emulator) handleOsc(cmd int, data []byte) {
 	t.flushGrapheme() // Flush any pending grapheme before handling OSC sequences.
 	if !t.handlers.handleOsc(cmd, data) {
 		t.logf("unhandled sequence: OSC %q", data)
 	}
 }
 
-func (t *Terminal) handleTitle(cmd int, data []byte) {
+func (t *Emulator) handleTitle(cmd int, data []byte) {
 	parts := bytes.Split(data, []byte{';'})
 	if len(parts) != 2 {
 		// Invalid, ignore
@@ -49,7 +49,7 @@ func (t *Terminal) handleTitle(cmd int, data []byte) {
 	}
 }
 
-func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
+func (t *Emulator) handleDefaultColor(cmd int, data []byte) {
 	if cmd != 10 && cmd != 11 && cmd != 12 &&
 		cmd != 110 && cmd != 111 && cmd != 112 {
 		// Invalid, ignore
@@ -103,7 +103,7 @@ func (t *Terminal) handleDefaultColor(cmd int, data []byte) {
 	}
 }
 
-func (t *Terminal) handleWorkingDirectory(cmd int, data []byte) {
+func (t *Emulator) handleWorkingDirectory(cmd int, data []byte) {
 	if cmd != 7 {
 		// Invalid, ignore
 		return
@@ -124,7 +124,7 @@ func (t *Terminal) handleWorkingDirectory(cmd int, data []byte) {
 	}
 }
 
-func (t *Terminal) handleHyperlink(cmd int, data []byte) {
+func (t *Emulator) handleHyperlink(cmd int, data []byte) {
 	parts := bytes.Split(data, []byte{';'})
 	if len(parts) != 3 || cmd != 8 {
 		// Invalid, ignore

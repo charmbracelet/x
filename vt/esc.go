@@ -5,7 +5,7 @@ import (
 )
 
 // handleEsc handles an escape sequence.
-func (t *Terminal) handleEsc(cmd ansi.Cmd) {
+func (t *Emulator) handleEsc(cmd ansi.Cmd) {
 	t.flushGrapheme() // Flush any pending grapheme before handling ESC sequences.
 	if !t.handlers.handleEsc(int(cmd)) {
 		var str string
@@ -20,7 +20,7 @@ func (t *Terminal) handleEsc(cmd ansi.Cmd) {
 }
 
 // fullReset performs a full terminal reset as in [ansi.RIS].
-func (t *Terminal) fullReset() {
+func (t *Emulator) fullReset() {
 	t.scrs[0].Reset()
 	t.scrs[1].Reset()
 	t.resetTabStops()

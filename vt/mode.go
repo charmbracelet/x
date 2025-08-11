@@ -3,7 +3,7 @@ package vt
 import "github.com/charmbracelet/x/ansi"
 
 // resetModes resets all modes to their default values.
-func (t *Terminal) resetModes() {
+func (t *Emulator) resetModes() {
 	t.modes = ansi.Modes{
 		// Recognized modes and their default values.
 		ansi.CursorKeysMode:          ansi.ModeReset, // ?1

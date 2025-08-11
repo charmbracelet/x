@@ -6,7 +6,7 @@ import (
 )
 
 // handleControl handles a control character.
-func (t *Terminal) handleControl(r byte) {
+func (t *Emulator) handleControl(r byte) {
 	t.flushGrapheme() // Flush any pending grapheme before handling control codes.
 	if !t.handleCc(r) {
 		t.logf("unhandled sequence: ControlCode %q", r)
@@ -14,7 +14,7 @@ func (t *Terminal) handleControl(r byte) {
 }
 
 // linefeed is the same as [index], except that it respects [ansi.LNM] mode.
-func (t *Terminal) linefeed() {
+func (t *Emulator) linefeed() {
 	t.index()
 	if t.isModeSet(ansi.LineFeedNewLineMode) {
 		t.carriageReturn()
@@ -23,7 +23,7 @@ func (t *Terminal) linefeed() {
 
 // index moves the cursor down one line, scrolling up if necessary. This
 // always resets the phantom state i.e. pending wrap state.
-func (t *Terminal) index() {
+func (t *Emulator) index() {
 	x, y := t.scr.CursorPosition()
 	scroll := t.scr.ScrollRegion()
 	// XXX: Handle scrollback whenever we add it.
@@ -36,14 +36,14 @@ func (t *Terminal) index() {
 }
 
 // horizontalTabSet sets a horizontal tab stop at the current cursor position.
-func (t *Terminal) horizontalTabSet() {
+func (t *Emulator) horizontalTabSet() {
 	x, _ := t.scr.CursorPosition()
 	t.tabstops.Set(x)
 }
 
 // reverseIndex moves the cursor up one line, or scrolling down. This does not
 // reset the phantom state i.e. pending wrap state.
-func (t *Terminal) reverseIndex() {
+func (t *Emulator) reverseIndex() {
 	x, y := t.scr.CursorPosition()
 	scroll := t.scr.ScrollRegion()
 	if y == scroll.Min.Y && x >= scroll.Min.X && x < scroll.Max.X {
@@ -54,7 +54,7 @@ func (t *Terminal) reverseIndex() {
 }
 
 // backspace moves the cursor back one cell, if possible.
-func (t *Terminal) backspace() {
+func (t *Emulator) backspace() {
 	// This acts like [ansi.CUB]
 	t.moveCursor(-1, 0)
 }

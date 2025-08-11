@@ -10,7 +10,7 @@ import (
 )
 
 // handlePrint handles printable characters.
-func (t *Terminal) handlePrint(r rune) {
+func (t *Emulator) handlePrint(r rune) {
 	if r >= ansi.SP && r < ansi.DEL {
 		if len(t.grapheme) > 0 {
 			// If we have a grapheme buffer, flush it before handling the ASCII character.
@@ -24,7 +24,7 @@ func (t *Terminal) handlePrint(r rune) {
 
 // flushGrapheme flushes the current grapheme buffer, if any, and handles the
 // grapheme as a single unit.
-func (t *Terminal) flushGrapheme() {
+func (t *Emulator) flushGrapheme() {
 	if len(t.grapheme) == 0 {
 		return
 	}
@@ -61,7 +61,7 @@ func (t *Terminal) flushGrapheme() {
 }
 
 // handleGrapheme handles UTF-8 graphemes.
-func (t *Terminal) handleGrapheme(content string, width int) {
+func (t *Emulator) handleGrapheme(content string, width int) {
 	awm := t.isModeSet(ansi.AutoWrapMode)
 	cell := uv.Cell{
 		Content: content,

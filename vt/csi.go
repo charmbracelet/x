@@ -8,14 +8,14 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func (t *Terminal) handleCsi(cmd ansi.Cmd, params ansi.Params) {
+func (t *Emulator) handleCsi(cmd ansi.Cmd, params ansi.Params) {
 	t.flushGrapheme() // Flush any pending grapheme before handling CSI sequences.
 	if !t.handlers.handleCsi(cmd, params) {
 		t.logf("unhandled sequence: CSI %q", paramsString(cmd, params))
 	}
 }
 
-func (t *Terminal) handleRequestMode(params ansi.Params, isAnsi bool) {
+func (t *Emulator) handleRequestMode(params ansi.Params, isAnsi bool) {
 	n, _, ok := params.Param(0, 0)
 	if !ok || n == 0 {
 		return

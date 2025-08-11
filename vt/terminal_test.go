@@ -17,8 +17,8 @@ func (l *testLogger) Printf(format string, v ...any) {
 }
 
 // newTestTerminal creates a new test terminal.
-func newTestTerminal(t testing.TB, width, height int) *Terminal {
-	term := NewTerminal(width, height)
+func newTestTerminal(t testing.TB, width, height int) *Emulator {
+	term := NewEmulator(width, height)
 	term.SetLogger(&testLogger{t})
 	return term
 }
@@ -1810,7 +1810,7 @@ func TestTerminal(t *testing.T) {
 	}
 }
 
-func termText(term *Terminal) []string {
+func termText(term *Emulator) []string {
 	var lines []string
 	for y := range term.Height() {
 		var line string

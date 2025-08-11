@@ -6,7 +6,7 @@ import (
 
 // eraseCharacter erases n characters starting from the cursor position. It
 // does not move the cursor. This is equivalent to [ansi.ECH].
-func (t *Terminal) eraseCharacter(n int) {
+func (t *Emulator) eraseCharacter(n int) {
 	if n <= 0 {
 		n = 1
 	}

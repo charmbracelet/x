@@ -211,7 +211,7 @@ func (h *handlers) handleEsc(cmd int) bool {
 }
 
 // registerDefaultHandlers registers the default escape sequence handlers.
-func (t *Terminal) registerDefaultHandlers() {
+func (t *Emulator) registerDefaultHandlers() {
 	t.registerDefaultCcHandlers()
 	t.registerDefaultCsiHandlers()
 	t.registerDefaultEscHandlers()
@@ -219,7 +219,7 @@ func (t *Terminal) registerDefaultHandlers() {
 }
 
 // registerDefaultCcHandlers registers the default control character handlers.
-func (t *Terminal) registerDefaultCcHandlers() {
+func (t *Emulator) registerDefaultCcHandlers() {
 	for i := byte(ansi.NUL); i <= ansi.US; i++ {
 		switch i {
 		case ansi.NUL: // Null [ansi.NUL]
@@ -302,7 +302,7 @@ func (t *Terminal) registerDefaultCcHandlers() {
 }
 
 // registerDefaultOscHandlers registers the default OSC escape sequence handlers.
-func (t *Terminal) registerDefaultOscHandlers() {
+func (t *Emulator) registerDefaultOscHandlers() {
 	for _, cmd := range []int{
 		0, // Set window title and icon name
 		1, // Set icon name
@@ -343,7 +343,7 @@ func (t *Terminal) registerDefaultOscHandlers() {
 }
 
 // registerDefaultEscHandlers registers the default ESC escape sequence handlers.
-func (t *Terminal) registerDefaultEscHandlers() {
+func (t *Emulator) registerDefaultEscHandlers() {
 	t.RegisterEscHandler('=', func() bool {
 		// Keypad Application Mode [ansi.DECKPAM]
 		t.setMode(ansi.NumericKeypadMode, ansi.ModeSet)
@@ -456,7 +456,7 @@ func (t *Terminal) registerDefaultEscHandlers() {
 }
 
 // registerDefaultCsiHandlers registers the default CSI escape sequence handlers.
-func (t *Terminal) registerDefaultCsiHandlers() {
+func (t *Emulator) registerDefaultCsiHandlers() {
 	t.RegisterCsiHandler('@', func(params ansi.Params) bool {
 		// Insert Character [ansi.ICH]
 		n, _, _ := params.Param(0, 1)

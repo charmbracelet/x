@@ -22,7 +22,7 @@ const (
 type KeyPressEvent = uv.KeyPressEvent
 
 // SendKey returns the default key map.
-func (t *Terminal) SendKey(k uv.KeyEvent) {
+func (t *Emulator) SendKey(k uv.KeyEvent) {
 	var seq string
 
 	ack := t.isModeSet(ansi.CursorKeysMode)    // Application cursor keys mode
