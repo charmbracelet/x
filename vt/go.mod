@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/charmbracelet/ultraviolet v0.0.0-20250725150304-368180ad03f9
-	github.com/charmbracelet/x/ansi v0.9.3
+	github.com/charmbracelet/x/ansi v0.10.1
 	github.com/mattn/go-runewidth v0.0.16
 	github.com/rivo/uniseg v0.4.7
 )
