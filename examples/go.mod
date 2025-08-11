@@ -9,7 +9,7 @@ require (
 	github.com/charmbracelet/fang v0.3.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.2
-	github.com/charmbracelet/x/ansi v0.9.3
+	github.com/charmbracelet/x/ansi v0.10.1
 	github.com/charmbracelet/x/cellbuf v0.0.13
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250603201427-c31516f43444
 	github.com/charmbracelet/x/exp/toner v0.0.0-20250602202920-5fecc56e9a94
