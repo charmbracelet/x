@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/input
 go 1.23.0
 
 require (
-	github.com/charmbracelet/x/ansi v0.9.3
+	github.com/charmbracelet/x/ansi v0.10.1
 	github.com/charmbracelet/x/windows v0.2.2
 	github.com/muesli/cancelreader v0.2.2
 	github.com/rivo/uniseg v0.4.7
