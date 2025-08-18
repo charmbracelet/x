@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/mosaic
 go 1.23.0
 
 require (
-	github.com/charmbracelet/x/ansi v0.8.0
+	github.com/charmbracelet/x/ansi v0.10.1
 	golang.org/x/image v0.25.0
 )
 
