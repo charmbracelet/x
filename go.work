@@ -19,6 +19,7 @@ use (
 	./exp/strings
 	./exp/teatest
 	./exp/teatest/v2
+	./graphics
 	./input
 	./json
 	./mosaic
