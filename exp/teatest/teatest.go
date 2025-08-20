@@ -221,7 +221,9 @@ func (tm *TestModel) FinalModel(tb testing.TB, opts ...FinalOpt) tea.Model {
 	tm.waitDone(tb, opts)
 	select {
 	case m := <-tm.modelCh:
-		tm.model = m
+		if m != nil {
+			tm.model = m
+		}
 		return tm.model
 	default:
 		return tm.model
