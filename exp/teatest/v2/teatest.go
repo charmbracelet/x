@@ -161,8 +161,8 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		if err != nil {
 			tb.Fatalf("app failed: %s", err)
 		}
-		tm.doneCh <- true
 		tm.modelCh <- m
+		tm.doneCh <- true
 	}()
 	go func() {
 		<-interruptions
