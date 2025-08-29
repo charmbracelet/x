@@ -348,3 +348,142 @@ func TestDeleteAt(t *testing.T) {
 		}
 	}
 }
+
+func TestIsSubset(t *testing.T) {
+	tests := []struct {
+		name     string
+		a        []string
+		b        []string
+		expected bool
+	}{
+		// Basic subset cases
+		{
+			name:     "empty subset of empty",
+			a:        []string{},
+			b:        []string{},
+			expected: true,
+		},
+		{
+			name:     "empty subset of non-empty",
+			a:        []string{},
+			b:        []string{"a", "b", "c"},
+			expected: true,
+		},
+		{
+			name:     "non-empty not subset of empty",
+			a:        []string{"a"},
+			b:        []string{},
+			expected: false,
+		},
+		{
+			name:     "single element subset",
+			a:        []string{"b"},
+			b:        []string{"a", "b", "c"},
+			expected: true,
+		},
+		{
+			name:     "single element not subset",
+			a:        []string{"d"},
+			b:        []string{"a", "b", "c"},
+			expected: false,
+		},
+		{
+			name:     "multiple elements subset",
+			a:        []string{"a", "c"},
+			b:        []string{"a", "b", "c", "d"},
+			expected: true,
+		},
+		{
+			name:     "multiple elements not subset",
+			a:        []string{"a", "e"},
+			b:        []string{"a", "b", "c", "d"},
+			expected: false,
+		},
+		{
+			name:     "equal sets are subsets",
+			a:        []string{"a", "b", "c"},
+			b:        []string{"a", "b", "c"},
+			expected: true,
+		},
+		{
+			name:     "larger set not subset of smaller",
+			a:        []string{"a", "b", "c", "d"},
+			b:        []string{"a", "b"},
+			expected: false,
+		},
+
+		// Order independence
+		{
+			name:     "subset with different order",
+			a:        []string{"c", "a"},
+			b:        []string{"b", "a", "d", "c"},
+			expected: true,
+		},
+
+		// Duplicate handling
+		{
+			name:     "duplicates in subset",
+			a:        []string{"a", "a", "b"},
+			b:        []string{"a", "b", "c"},
+			expected: true,
+		},
+		{
+			name:     "duplicates in superset",
+			a:        []string{"a", "b"},
+			b:        []string{"a", "a", "b", "b", "c"},
+			expected: true,
+		},
+		{
+			name:     "duplicates in both",
+			a:        []string{"a", "a", "b"},
+			b:        []string{"a", "a", "b", "b", "c"},
+			expected: true,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := slice.IsSubset(tt.a, tt.b)
+			if actual != tt.expected {
+				t.Errorf("Test %d: Expected %v, got %v", i, tt.expected, actual)
+			}
+		})
+	}
+}
+
+func TestIsSubsetWithInts(t *testing.T) {
+	tests := []struct {
+		name     string
+		a        []int
+		b        []int
+		expected bool
+	}{
+		{
+			name:     "int subset",
+			a:        []int{1, 3},
+			b:        []int{1, 2, 3, 4},
+			expected: true,
+		},
+		{
+			name:     "int not subset",
+			a:        []int{1, 5},
+			b:        []int{1, 2, 3, 4},
+			expected: false,
+		},
+		{
+			name:     "empty int subset",
+			a:        []int{},
+			b:        []int{1, 2, 3},
+			expected: true,
+		},
+	}
+
+	for i, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			actual := slice.IsSubset(tt.a, tt.b)
+			if actual != tt.expected {
+				t.Errorf("Test %d: Expected %v, got %v", i, tt.expected, actual)
+			}
+		})
+	}
+}

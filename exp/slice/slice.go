@@ -118,3 +118,20 @@ func DeleteAt[T any](slice []T, index int) (element T, newSlice []T, ok bool) {
 
 	return element, newSlice, true
 }
+
+// IsSubset checks if all elements of slice a are present in slice b.
+func IsSubset[T comparable](a, b []T) bool {
+	if len(a) > len(b) {
+		return false
+	}
+	set := make(map[T]struct{}, len(b))
+	for _, item := range b {
+		set[item] = struct{}{}
+	}
+	for _, item := range a {
+		if _, exists := set[item]; !exists {
+			return false
+		}
+	}
+	return true
+}
