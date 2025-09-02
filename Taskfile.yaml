@@ -40,7 +40,7 @@ tasks:
         cmd: cd {{.ITEM}} && gofmt -s -w .
 
   modernize:
-    desc: Run gofumpt for all packages
+    desc: Run modernize for all packages
     cmds:
       - for: { var: PACKAGES }
         cmd: cd {{.ITEM}} && modernize -fix ./...
