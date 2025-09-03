@@ -56,3 +56,9 @@ tasks:
     cmds:
       - for: { var: PACKAGES }
         cmd: cd {{.ITEM}} && go test ./... {{.CLI_ARGS}}
+
+  tidy:
+    desc: Run `go mod tidy` for all packages
+    cmds:
+      - for: { var: PACKAGES }
+        cmd: cd {{.ITEM}} && go mod tidy
