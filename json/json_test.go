@@ -38,3 +38,58 @@ func TestErrReader(t *testing.T) {
 		t.Fatalf("expected same error")
 	}
 }
+
+func TestIsValid(t *testing.T) {
+	tests := []struct {
+		name string
+		data any
+		want bool
+	}{
+		{
+			name: "empty string",
+			data: "",
+			want: false,
+		},
+		{
+			name: "empty bytes",
+			data: []byte(""),
+			want: false,
+		},
+		{
+			name: "valid json string",
+			data: `{"foo": 2}`,
+			want: true,
+		},
+		{
+			name: "valid json bytes",
+			data: []byte(`{"foo": 2}`),
+			want: true,
+		},
+		{
+			name: "invalid json string",
+			data: `{"foo": 2`,
+			want: false,
+		},
+		{
+			name: "invalid json bytes",
+			data: []byte(`{"foo": 2`),
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got bool
+			switch v := tt.data.(type) {
+			case string:
+				got = IsValid(v)
+			case []byte:
+				got = IsValid(v)
+			default:
+				t.Fatalf("unsupported type: %T", tt.data)
+			}
+			if got != tt.want {
+				t.Errorf("IsValid() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

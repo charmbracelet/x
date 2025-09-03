@@ -49,3 +49,13 @@ func Write(w http.ResponseWriter, data any) error {
 	_, err = w.Write(bts)
 	return err //nolint:wrapcheck
 }
+
+// IsValid checks if the given data is valid JSON.
+func IsValid[T string | []byte](data T) bool {
+	if len(data) == 0 { // hot path
+		return false
+	}
+	var m json.RawMessage
+	err := json.Unmarshal([]byte(data), &m)
+	return err == nil
+}
