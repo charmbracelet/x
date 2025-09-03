@@ -22,7 +22,8 @@ require (
 
 require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
-	github.com/bits-and-blooms/bitset v1.22.0 // indirect
+	github.com/aymanbagabas/go-udiff v0.3.1 // indirect
+	github.com/bits-and-blooms/bitset v1.24.0 // indirect
 	github.com/charmbracelet/x/windows v0.2.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -33,7 +34,7 @@ require (
 	github.com/muesli/roff v0.1.0 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 )
 
 require (
