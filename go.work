@@ -22,6 +22,7 @@ use (
 	./input
 	./json
 	./mosaic
+	./powernap
 	./sshkey
 	./term
 	./termios
