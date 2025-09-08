@@ -21,7 +21,7 @@ jobs:
         working-directory: ./ansi
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: ./ansi/go.mod
           cache: true

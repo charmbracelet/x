@@ -21,7 +21,7 @@ jobs:
         working-directory: ./exp/open
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: ./exp/open/go.mod
           cache: true
