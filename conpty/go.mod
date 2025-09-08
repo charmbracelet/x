@@ -1,6 +1,6 @@
 module github.com/charmbracelet/x/conpty
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/charmbracelet/x/errors v0.0.0-20240508181413-e8d8b6e2de86
