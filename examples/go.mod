@@ -17,7 +17,7 @@ require (
 	github.com/charmbracelet/x/mosaic v0.0.0-20250313150240-c09addb0e197
 	github.com/creack/pty v1.1.24
 	github.com/lucasb-eyer/go-colorful v1.2.0
-	github.com/spf13/cobra v1.9.1
+	github.com/spf13/cobra v1.10.1
 )
 
 require (
@@ -33,7 +33,7 @@ require (
 	github.com/muesli/mango-pflag v0.1.0 // indirect
 	github.com/muesli/roff v0.1.0 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	golang.org/x/text v0.28.0 // indirect
 )
 
