@@ -1,6 +1,6 @@
 module github.com/charmbracelet/x/exp/toner
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/charmbracelet/x/ansi v0.8.0

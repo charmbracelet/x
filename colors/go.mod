@@ -1,6 +1,6 @@
 module github.com/charmbracelet/x/colors
 
-go 1.23.0
+go 1.24.0
 
 require github.com/charmbracelet/lipgloss v1.1.0
 
