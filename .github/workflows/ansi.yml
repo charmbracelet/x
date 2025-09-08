@@ -28,6 +28,7 @@ jobs:
           cache-dependency-path: ./ansi/go.sum
       - run: go build -v ./...
       - run: go test -race -v ./...
+
   dependabot:
     needs: [build]
     runs-on: ubuntu-latest
@@ -46,6 +47,7 @@ jobs:
         env:
           PR_URL: ${{github.event.pull_request.html_url}}
           GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
   lint:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
