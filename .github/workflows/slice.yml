@@ -21,7 +21,7 @@ jobs:
         working-directory: ./exp/slice
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: ./exp/slice/go.mod
           cache: true

@@ -21,7 +21,7 @@ jobs:
         working-directory: ./json
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: ./json/go.mod
           cache: true
