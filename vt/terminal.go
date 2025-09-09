@@ -222,6 +222,10 @@ func (t *Emulator) Resize(width int, height int) {
 	t.tabstops = uv.DefaultTabStops(width)
 
 	t.setCursor(x, y)
+
+	if t.isModeSet(ansi.InBandResizeMode) {
+		_, _ = io.WriteString(t.pw, ansi.InBandResize(t.Height(), t.Width(), 0, 0))
+	}
 }
 
 // Read reads data from the terminal input buffer.

@@ -1,6 +1,8 @@
 package vt
 
 import (
+	"io"
+
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -88,6 +90,10 @@ func (t *Emulator) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 			t.saveCursor()
 		}
 		t.setAltScreenMode(setting.IsSet())
+	case ansi.InBandResizeMode:
+		if setting.IsSet() {
+			_, _ = io.WriteString(t.pw, ansi.InBandResize(t.Height(), t.Width(), 0, 0))
+		}
 	}
 	if setting.IsSet() {
 		if t.cb.EnableMode != nil {
