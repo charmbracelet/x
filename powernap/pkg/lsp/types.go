@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/charmbracelet/superjoy/powernap/pkg/transport"
+	"github.com/charmbracelet/x/powernap/pkg/transport"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
