@@ -14,7 +14,7 @@ type ServerConfig struct {
 	RootMarkers       []string          `mapstructure:"root_markers"`
 	Environment       map[string]string `mapstructure:"environment"`
 	Settings          map[string]any    `mapstructure:"settings"`
-	InitOptions       any               `mapstructure:"init_options"`
+	InitOptions       map[string]any    `mapstructure:"init_options"`
 	EnableSnippets    bool              `mapstructure:"enable_snippets"`
 	SingleFileSupport bool              `mapstructure:"single_file_support"`
 }

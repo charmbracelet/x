@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/charmbracelet/x/powernap/pkg/transport"
+	"github.com/charmbracelet/superjoy/powernap/pkg/transport"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
@@ -33,8 +33,8 @@ type Client struct {
 	offsetEncoding   OffsetEncoding
 	rootURI          string
 	workspaceFolders []WorkspaceFolder
-	config           any
-	initOptions      any
+	config           map[string]any
+	initOptions      map[string]any
 }
 
 // ServerCapabilities represents the capabilities of a language server.
@@ -162,8 +162,8 @@ type ClientConfig struct {
 	Args             []string
 	RootURI          string
 	WorkspaceFolders []WorkspaceFolder
-	InitOptions      any
-	Settings         any
+	InitOptions      map[string]any
+	Settings         map[string]any
 	Environment      map[string]string
 	Timeout          time.Duration
 }
