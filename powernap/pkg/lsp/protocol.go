@@ -22,15 +22,15 @@ type Location struct {
 
 // Diagnostic represents a diagnostic, such as a compiler error or warning.
 type Diagnostic struct {
-	Range              Range                  `json:"range"`
-	Severity           DiagnosticSeverity     `json:"severity,omitempty"`
-	Code               interface{}            `json:"code,omitempty"`
-	CodeDescription    *CodeDescription       `json:"codeDescription,omitempty"`
-	Source             string                 `json:"source,omitempty"`
-	Message            string                 `json:"message"`
-	Tags               []DiagnosticTag        `json:"tags,omitempty"`
+	Range              Range                          `json:"range"`
+	Severity           DiagnosticSeverity             `json:"severity,omitempty"`
+	Code               any                            `json:"code,omitempty"`
+	CodeDescription    *CodeDescription               `json:"codeDescription,omitempty"`
+	Source             string                         `json:"source,omitempty"`
+	Message            string                         `json:"message"`
+	Tags               []DiagnosticTag                `json:"tags,omitempty"`
 	RelatedInformation []DiagnosticRelatedInformation `json:"relatedInformation,omitempty"`
-	Data               interface{}            `json:"data,omitempty"`
+	Data               any                            `json:"data,omitempty"`
 }
 
 // DiagnosticSeverity represents the severity of a diagnostic.
@@ -75,7 +75,7 @@ type CompletionItem struct {
 	Kind                CompletionItemKind  `json:"kind,omitempty"`
 	Tags                []CompletionItemTag `json:"tags,omitempty"`
 	Detail              string              `json:"detail,omitempty"`
-	Documentation       interface{}         `json:"documentation,omitempty"`
+	Documentation       any                 `json:"documentation,omitempty"`
 	Deprecated          bool                `json:"deprecated,omitempty"`
 	Preselect           bool                `json:"preselect,omitempty"`
 	SortText            string              `json:"sortText,omitempty"`
@@ -88,7 +88,7 @@ type CompletionItem struct {
 	AdditionalTextEdits []TextEdit          `json:"additionalTextEdits,omitempty"`
 	CommitCharacters    []string            `json:"commitCharacters,omitempty"`
 	Command             *Command            `json:"command,omitempty"`
-	Data                interface{}         `json:"data,omitempty"`
+	Data                any                 `json:"data,omitempty"`
 }
 
 // CompletionItemKind represents the kind of a completion item.
@@ -153,9 +153,9 @@ type TextEdit struct {
 
 // Command represents a reference to a command.
 type Command struct {
-	Title     string        `json:"title"`
-	Command   string        `json:"command"`
-	Arguments []interface{} `json:"arguments,omitempty"`
+	Title     string `json:"title"`
+	Command   string `json:"command"`
+	Arguments []any  `json:"arguments,omitempty"`
 }
 
 // CompletionList represents a collection of completion items.
@@ -166,8 +166,8 @@ type CompletionList struct {
 
 // Hover represents hover information.
 type Hover struct {
-	Contents interface{} `json:"contents"`
-	Range    *Range      `json:"range,omitempty"`
+	Contents any    `json:"contents"`
+	Range    *Range `json:"range,omitempty"`
 }
 
 // MarkupContent represents content with markup.
@@ -244,7 +244,7 @@ type ProgressParams struct {
 }
 
 // ProgressToken represents a progress token.
-type ProgressToken interface{}
+type ProgressToken any
 
 // WorkDoneProgressBegin represents the beginning of a work done progress.
 type WorkDoneProgressBegin struct {
@@ -267,4 +267,22 @@ type WorkDoneProgressReport struct {
 type WorkDoneProgressEnd struct {
 	Kind    string `json:"kind"`
 	Message string `json:"message,omitempty"`
+}
+
+// FileChangeType represents the type of a file change.
+type FileChangeType uint32
+
+const (
+	// Created indicates the file got created.
+	Created FileChangeType = 1
+	// Change indicates the file got changed.
+	Changed FileChangeType = 2
+	// Deleted indicates the file got deleted.
+	Deleted FileChangeType = 3
+)
+
+// FileEvent represents a file change event.
+type FileEvent struct {
+	URI  string `json:"uri"`
+	Type uint32 `json:"type"`
 }

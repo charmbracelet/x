@@ -15,10 +15,10 @@ import (
 
 // Registry manages multiple language server instances.
 type Registry struct {
-	mu       sync.RWMutex
-	clients  map[string]*lsp.Client
-	configs  map[string]*config.ServerConfig
-	logger   *log.Logger
+	mu      sync.RWMutex
+	clients map[string]*lsp.Client
+	configs map[string]*config.ServerConfig
+	logger  *log.Logger
 }
 
 // New creates a new registry.
@@ -43,12 +43,12 @@ func NewWithLogger(logger *log.Logger) *Registry {
 func (r *Registry) LoadConfig(cfg *config.Manager) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	servers := cfg.GetServers()
 	for name, serverCfg := range servers {
 		r.configs[name] = serverCfg
 	}
-	
+
 	return nil
 }
 
@@ -56,18 +56,18 @@ func (r *Registry) LoadConfig(cfg *config.Manager) error {
 func (r *Registry) StartServer(ctx context.Context, name string, projectPath string) (*lsp.Client, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	// Check if server is already running
 	if client, exists := r.clients[name]; exists {
 		return client, nil
 	}
-	
+
 	// Get server configuration
 	serverCfg, exists := r.configs[name]
 	if !exists {
 		return nil, fmt.Errorf("no configuration found for server: %s", name)
 	}
-	
+
 	// Find project root
 	rootPath := r.findProjectRoot(projectPath, serverCfg.RootMarkers)
 	if rootPath == "" {
@@ -77,7 +77,7 @@ func (r *Registry) StartServer(ctx context.Context, name string, projectPath str
 		}
 		rootPath = projectPath
 	}
-	
+
 	// Create workspace folders
 	workspaceFolders := []lsp.WorkspaceFolder{
 		{
@@ -85,7 +85,7 @@ func (r *Registry) StartServer(ctx context.Context, name string, projectPath str
 			Name: filepath.Base(rootPath),
 		},
 	}
-	
+
 	// Create client configuration
 	clientCfg := lsp.ClientConfig{
 		Command:          serverCfg.Command,
@@ -96,21 +96,21 @@ func (r *Registry) StartServer(ctx context.Context, name string, projectPath str
 		Settings:         serverCfg.Settings,
 		Environment:      serverCfg.Environment,
 	}
-	
+
 	// Create and initialize client
 	client, err := lsp.NewClient(clientCfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client: %w", err)
 	}
-	
+
 	// Initialize the client
 	if err := client.Initialize(ctx, serverCfg.EnableSnippets); err != nil {
 		return nil, fmt.Errorf("failed to initialize client: %w", err)
 	}
-	
+
 	// Store the client
 	r.clients[name] = client
-	
+
 	r.logger.Info("Started language server", "name", name, "root", rootPath)
 	return client, nil
 }
@@ -119,25 +119,25 @@ func (r *Registry) StartServer(ctx context.Context, name string, projectPath str
 func (r *Registry) StopServer(ctx context.Context, name string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	client, exists := r.clients[name]
 	if !exists {
 		return fmt.Errorf("server not running: %s", name)
 	}
-	
+
 	// Shutdown the client
 	if err := client.Shutdown(ctx); err != nil {
 		r.logger.Error("Failed to shutdown server", "name", name, "error", err)
 	}
-	
+
 	// Send exit notification
 	if err := client.Exit(); err != nil {
 		r.logger.Error("Failed to exit server", "name", name, "error", err)
 	}
-	
+
 	// Remove from registry
 	delete(r.clients, name)
-	
+
 	r.logger.Info("Stopped language server", "name", name)
 	return nil
 }
@@ -149,7 +149,7 @@ func (r *Registry) RestartServer(ctx context.Context, name string, projectPath s
 		// Ignore error if server wasn't running
 		r.logger.Debug("Server was not running", "name", name)
 	}
-	
+
 	// Start the server
 	return r.StartServer(ctx, name, projectPath)
 }
@@ -158,7 +158,7 @@ func (r *Registry) RestartServer(ctx context.Context, name string, projectPath s
 func (r *Registry) GetClient(name string) (*lsp.Client, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	client, exists := r.clients[name]
 	return client, exists
 }
@@ -171,15 +171,15 @@ func (r *Registry) GetClientsForFile(ctx context.Context, filePath string) ([]*l
 	if err != nil {
 		return nil, fmt.Errorf("failed to get absolute path: %w", err)
 	}
-	
+
 	// Detect language from file
 	language := detectLanguage(absPath)
 	if language == "" {
 		return nil, fmt.Errorf("unsupported file type: %s", filepath.Ext(absPath))
 	}
-	
+
 	r.mu.RLock()
-	
+
 	// Find all servers that support this language
 	var serverNames []string
 	for name, cfg := range r.configs {
@@ -192,16 +192,16 @@ func (r *Registry) GetClientsForFile(ctx context.Context, filePath string) ([]*l
 			}
 		}
 	}
-	
+
 	r.mu.RUnlock()
-	
+
 	if len(serverNames) == 0 {
 		return nil, fmt.Errorf("no language servers found for language: %s", language)
 	}
-	
+
 	var clients []*lsp.Client
 	projectDir := filepath.Dir(absPath)
-	
+
 	// Start or get each server
 	for _, serverName := range serverNames {
 		// Check if server is already running
@@ -217,11 +217,11 @@ func (r *Registry) GetClientsForFile(ctx context.Context, filePath string) ([]*l
 			clients = append(clients, client)
 		}
 	}
-	
+
 	if len(clients) == 0 {
 		return nil, fmt.Errorf("failed to start any language servers for language: %s", language)
 	}
-	
+
 	return clients, nil
 }
 
@@ -233,11 +233,11 @@ func (r *Registry) GetClientForFile(ctx context.Context, filePath string) (*lsp.
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if len(clients) == 0 {
 		return nil, fmt.Errorf("no clients available")
 	}
-	
+
 	return clients[0], nil
 }
 
@@ -245,12 +245,12 @@ func (r *Registry) GetClientForFile(ctx context.Context, filePath string) (*lsp.
 func (r *Registry) ListClients() []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	names := make([]string, 0, len(r.clients))
 	for name := range r.clients {
 		names = append(names, name)
 	}
-	
+
 	return names
 }
 
@@ -258,33 +258,33 @@ func (r *Registry) ListClients() []string {
 func (r *Registry) StopAll(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	var errs []error
-	
+
 	for name, client := range r.clients {
 		if err := client.Shutdown(ctx); err != nil {
 			errs = append(errs, fmt.Errorf("failed to shutdown %s: %w", name, err))
 		}
-		
+
 		if err := client.Exit(); err != nil {
 			errs = append(errs, fmt.Errorf("failed to exit %s: %w", name, err))
 		}
 	}
-	
+
 	// Clear all clients
 	r.clients = make(map[string]*lsp.Client)
-	
+
 	if len(errs) > 0 {
 		return fmt.Errorf("errors stopping servers: %v", errs)
 	}
-	
+
 	return nil
 }
 
 // findProjectRoot finds the project root based on root markers.
 func (r *Registry) findProjectRoot(startPath string, rootMarkers []string) string {
 	currentPath := startPath
-	
+
 	for {
 		// Check for root markers
 		for _, marker := range rootMarkers {
@@ -293,17 +293,17 @@ func (r *Registry) findProjectRoot(startPath string, rootMarkers []string) strin
 				return currentPath
 			}
 		}
-		
+
 		// Move up one directory
 		parentPath := filepath.Dir(currentPath)
 		if parentPath == currentPath {
 			// Reached filesystem root
 			break
 		}
-		
+
 		currentPath = parentPath
 	}
-	
+
 	return ""
 }
 
@@ -320,7 +320,7 @@ func fileExists(path string) bool {
 func detectLanguage(filePath string) string {
 	ext := strings.ToLower(filepath.Ext(filePath))
 	base := filepath.Base(filePath)
-	
+
 	// Check specific filenames first
 	switch base {
 	case "Dockerfile":
@@ -336,7 +336,7 @@ func detectLanguage(filePath string) string {
 	case "pyproject.toml":
 		return "toml"
 	}
-	
+
 	// Check extensions
 	switch ext {
 	case ".go":

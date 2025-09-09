@@ -23,40 +23,40 @@ func customConfigExample() {
 
 	// Create configuration manager
 	cfgManager := config.NewManager()
-	
+
 	// Load configuration from a map instead of TOML file
-	configMap := map[string]interface{}{
-		"servers": map[string]interface{}{
-			"gopls": map[string]interface{}{
-				"command": "gopls",
-				"args": []string{"-remote=auto"},
-				"filetypes": []string{"go", "gomod", "gowork", "gotmpl"},
-				"root_markers": []string{"go.mod", "go.work", ".git"},
-				"enable_snippets": true,
+	configMap := map[string]any{
+		"servers": map[string]any{
+			"gopls": map[string]any{
+				"command":             "gopls",
+				"args":                []string{"-remote=auto"},
+				"filetypes":           []string{"go", "gomod", "gowork", "gotmpl"},
+				"root_markers":        []string{"go.mod", "go.work", ".git"},
+				"enable_snippets":     true,
 				"single_file_support": true,
-				"settings": map[string]interface{}{
-					"gopls": map[string]interface{}{
+				"settings": map[string]any{
+					"gopls": map[string]any{
 						"usePlaceholders": true,
-						"analyses": map[string]interface{}{
+						"analyses": map[string]any{
 							"unusedparams": true,
-							"unusedwrite": true,
+							"unusedwrite":  true,
 						},
 					},
 				},
 			},
-			"rust-analyzer": map[string]interface{}{
-				"command": "rust-analyzer",
-				"filetypes": []string{"rs"},
-				"root_markers": []string{"Cargo.toml", ".git"},
+			"rust-analyzer": map[string]any{
+				"command":         "rust-analyzer",
+				"filetypes":       []string{"rs"},
+				"root_markers":    []string{"Cargo.toml", ".git"},
 				"enable_snippets": true,
-				"settings": map[string]interface{}{
-					"rust-analyzer": map[string]interface{}{
-						"cargo": map[string]interface{}{
-							"buildScripts": map[string]interface{}{
+				"settings": map[string]any{
+					"rust-analyzer": map[string]any{
+						"cargo": map[string]any{
+							"buildScripts": map[string]any{
 								"enable": true,
 							},
 						},
-						"procMacro": map[string]interface{}{
+						"procMacro": map[string]any{
 							"enable": true,
 						},
 					},
@@ -64,7 +64,7 @@ func customConfigExample() {
 			},
 		},
 	}
-	
+
 	// Load the configuration from the map
 	if err := cfgManager.LoadFromMap(configMap); err != nil {
 		log.Fatalf("Failed to load config from map: %v", err)

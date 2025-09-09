@@ -31,7 +31,7 @@ func NewTextDocumentSyncManager(client *Client) *TextDocumentSyncManager {
 		syncKind = TextDocumentSyncKind(int(v))
 	case int:
 		syncKind = TextDocumentSyncKind(v)
-	case map[string]interface{}:
+	case map[string]any:
 		// It's a TextDocumentSyncOptions object
 		if change, ok := v["change"].(float64); ok {
 			syncKind = TextDocumentSyncKind(int(change))
@@ -102,8 +102,8 @@ func (m *TextDocumentSyncManager) Close(uri string) error {
 	delete(m.documents, uri)
 
 	// Send didClose notification
-	params := map[string]interface{}{
-		"textDocument": map[string]interface{}{
+	params := map[string]any{
+		"textDocument": map[string]any{
 			"uri": uri,
 		},
 	}
@@ -118,8 +118,8 @@ func (m *TextDocumentSyncManager) Save(uri string, includeText bool) error {
 		return fmt.Errorf("document not open: %s", uri)
 	}
 
-	params := map[string]interface{}{
-		"textDocument": map[string]interface{}{
+	params := map[string]any{
+		"textDocument": map[string]any{
 			"uri": uri,
 		},
 	}
@@ -235,7 +235,7 @@ func URIToFilePath(uri string) string {
 func detectLanguage(filePath string) string {
 	ext := strings.ToLower(filepath.Ext(filePath))
 	base := filepath.Base(filePath)
-	
+
 	// Check specific filenames first
 	switch base {
 	case "Dockerfile":
@@ -251,7 +251,7 @@ func detectLanguage(filePath string) string {
 	case "pyproject.toml":
 		return "toml"
 	}
-	
+
 	// Check extensions
 	switch ext {
 	case ".go":
