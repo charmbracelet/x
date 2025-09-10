@@ -1,3 +1,5 @@
+// Package lsp provides a client implementation for the Language Server
+// Protocol (LSP).
 package lsp
 
 import (
@@ -12,7 +14,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/log"
-	"github.com/charmbracelet/x/powernap/pkg/transport"
+	"github.com/charmbracelet/superjoy/powernap/pkg/lsp/protocol"
+	"github.com/charmbracelet/superjoy/powernap/pkg/transport"
 )
 
 // LSP method constants
@@ -89,7 +92,7 @@ func (c *Client) Initialize(ctx context.Context, enableSnippets bool) error {
 	// Prepare workspace folders - some servers don't like nil
 	workspaceFolders := c.workspaceFolders
 	if workspaceFolders == nil {
-		workspaceFolders = []WorkspaceFolder{}
+		workspaceFolders = []protocol.WorkspaceFolder{}
 	}
 
 	initParams := map[string]any{
@@ -113,7 +116,7 @@ func (c *Client) Initialize(ctx context.Context, enableSnippets bool) error {
 		log.Debug("Sending initialize request", "params", string(paramsJSON))
 	}
 
-	var result InitializeResult
+	var result protocol.InitializeResult
 	err := c.conn.Call(ctx, MethodInitialize, initParams, &result)
 	if err != nil {
 		return fmt.Errorf("initialize request failed: %w", err)
@@ -195,7 +198,7 @@ func (c *Client) Exit() error {
 }
 
 // GetCapabilities returns the server capabilities.
-func (c *Client) GetCapabilities() ServerCapabilities {
+func (c *Client) GetCapabilities() protocol.ServerCapabilities {
 	return c.capabilities
 }
 
@@ -249,7 +252,7 @@ func (c *Client) NotifyDidOpenTextDocument(ctx context.Context, uri string, lang
 }
 
 // NotifyDidChangeTextDocument notifies the server that a document was changed.
-func (c *Client) NotifyDidChangeTextDocument(ctx context.Context, uri string, version int, changes []TextDocumentContentChangeEvent) error {
+func (c *Client) NotifyDidChangeTextDocument(ctx context.Context, uri string, version int, changes []protocol.TextDocumentContentChangeEvent) error {
 	if !c.initialized {
 		return fmt.Errorf("client not initialized")
 	}
@@ -267,7 +270,7 @@ func (c *Client) NotifyDidChangeTextDocument(ctx context.Context, uri string, ve
 
 // NotifyDidChangeWatchedFiles notifies the server that watched files have
 // changed.
-func (c *Client) NotifyDidChangeWatchedFiles(ctx context.Context, changes []FileEvent) error {
+func (c *Client) NotifyDidChangeWatchedFiles(ctx context.Context, changes []protocol.FileEvent) error {
 	if !c.initialized {
 		return fmt.Errorf("client not initialized")
 	}
@@ -293,7 +296,7 @@ func (c *Client) NotifyWorkspaceDidChangeConfiguration(ctx context.Context, sett
 }
 
 // RequestCompletion requests completion items at the given position.
-func (c *Client) RequestCompletion(ctx context.Context, uri string, position Position) (*CompletionList, error) {
+func (c *Client) RequestCompletion(ctx context.Context, uri string, position protocol.Position) (*protocol.CompletionList, error) {
 	if !c.initialized {
 		return nil, fmt.Errorf("client not initialized")
 	}
@@ -315,7 +318,7 @@ func (c *Client) RequestCompletion(ctx context.Context, uri string, position Pos
 	}
 
 	// Parse the result - can be CompletionList or []CompletionItem
-	var completionList CompletionList
+	var completionList protocol.CompletionList
 
 	switch v := result.(type) {
 	case map[string]any:
@@ -333,7 +336,7 @@ func (c *Client) RequestCompletion(ctx context.Context, uri string, position Pos
 		if err != nil {
 			return nil, err
 		}
-		var items []CompletionItem
+		var items []protocol.CompletionItem
 		if err := json.Unmarshal(data, &items); err != nil {
 			return nil, err
 		}
@@ -345,7 +348,7 @@ func (c *Client) RequestCompletion(ctx context.Context, uri string, position Pos
 }
 
 // RequestHover requests hover information at the given position.
-func (c *Client) RequestHover(ctx context.Context, uri string, position Position) (*Hover, error) {
+func (c *Client) RequestHover(ctx context.Context, uri string, position protocol.Position) (*protocol.Hover, error) {
 	if !c.initialized {
 		return nil, fmt.Errorf("client not initialized")
 	}
@@ -357,7 +360,7 @@ func (c *Client) RequestHover(ctx context.Context, uri string, position Position
 		"position": position,
 	}
 
-	var result Hover
+	var result protocol.Hover
 	err := c.conn.Call(ctx, MethodTextDocumentHover, params, &result)
 	if err != nil {
 		return nil, fmt.Errorf("hover request failed: %w", err)
@@ -370,7 +373,7 @@ func (c *Client) RequestHover(ctx context.Context, uri string, position Position
 func (c *Client) setupHandlers() {
 	// Handle workspace/configuration requests
 	c.conn.RegisterHandler(MethodWorkspaceConfiguration, func(ctx context.Context, method string, params json.RawMessage) (any, error) {
-		var configParams ConfigurationParams
+		var configParams protocol.ConfigurationParams
 		if err := json.Unmarshal(params, &configParams); err != nil {
 			return nil, err
 		}

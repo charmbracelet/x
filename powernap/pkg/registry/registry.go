@@ -1,3 +1,5 @@
+// Package registry provides a registry for managing multiple language server
+// instances.
 package registry
 
 import (
@@ -9,8 +11,9 @@ import (
 	"sync"
 
 	"github.com/charmbracelet/log"
-	"github.com/charmbracelet/x/powernap/pkg/config"
-	"github.com/charmbracelet/x/powernap/pkg/lsp"
+	"github.com/charmbracelet/superjoy/powernap/pkg/config"
+	"github.com/charmbracelet/superjoy/powernap/pkg/lsp"
+	"github.com/charmbracelet/superjoy/powernap/pkg/lsp/protocol"
 )
 
 // Registry manages multiple language server instances.
@@ -79,7 +82,7 @@ func (r *Registry) StartServer(ctx context.Context, name string, projectPath str
 	}
 
 	// Create workspace folders
-	workspaceFolders := []lsp.WorkspaceFolder{
+	workspaceFolders := []protocol.WorkspaceFolder{
 		{
 			URI:  "file://" + rootPath,
 			Name: filepath.Base(rootPath),

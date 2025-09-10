@@ -1,16 +1,19 @@
 package lsp
 
 import (
+	"cmp"
 	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/charmbracelet/superjoy/powernap/pkg/lsp/protocol"
 )
 
 // TextDocumentSyncManager manages text document synchronization with the language server.
 type TextDocumentSyncManager struct {
 	client    *Client
 	documents map[string]*Document
-	syncKind  TextDocumentSyncKind
+	syncKind  protocol.TextDocumentSyncKind
 }
 
 // Document represents an open text document.
@@ -23,20 +26,20 @@ type Document struct {
 
 // NewTextDocumentSyncManager creates a new text document sync manager.
 func NewTextDocumentSyncManager(client *Client) *TextDocumentSyncManager {
-	syncKind := TextDocumentSyncFull // Default to full sync
+	syncKind := protocol.Full // Default to full sync
 
 	// Extract sync kind from capabilities
 	switch v := client.capabilities.TextDocumentSync.(type) {
 	case float64:
-		syncKind = TextDocumentSyncKind(int(v))
+		syncKind = protocol.TextDocumentSyncKind(int(v))
 	case int:
-		syncKind = TextDocumentSyncKind(v)
+		syncKind = protocol.TextDocumentSyncKind(v)
 	case map[string]any:
 		// It's a TextDocumentSyncOptions object
 		if change, ok := v["change"].(float64); ok {
-			syncKind = TextDocumentSyncKind(int(change))
+			syncKind = protocol.TextDocumentSyncKind(int(change))
 		}
-	case *TextDocumentSyncOptions:
+	case *protocol.TextDocumentSyncOptions:
 		syncKind = v.Change
 	}
 
@@ -66,7 +69,7 @@ func (m *TextDocumentSyncManager) Open(uri, languageID, content string) error {
 }
 
 // Change applies changes to an open document.
-func (m *TextDocumentSyncManager) Change(uri string, changes []TextDocumentContentChangeEvent) error {
+func (m *TextDocumentSyncManager) Change(uri string, changes []protocol.TextDocumentContentChangeEvent) error {
 	doc, exists := m.documents[uri]
 	if !exists {
 		return fmt.Errorf("document not open: %s", uri)
@@ -74,12 +77,12 @@ func (m *TextDocumentSyncManager) Change(uri string, changes []TextDocumentConte
 
 	// Apply changes based on sync kind
 	switch m.syncKind {
-	case TextDocumentSyncFull:
+	case protocol.Full:
 		// For full sync, we expect a single change with the full content
 		if len(changes) > 0 {
-			doc.Content = changes[0].Text
+			m.applyFullDocumentChange(doc, changes[0])
 		}
-	case TextDocumentSyncIncremental:
+	case protocol.Incremental:
 		// Apply incremental changes
 		for _, change := range changes {
 			if err := m.applyIncrementalChange(doc, change); err != nil {
@@ -137,50 +140,65 @@ func (m *TextDocumentSyncManager) GetDocument(uri string) (*Document, bool) {
 	return doc, exists
 }
 
+func (m *TextDocumentSyncManager) applyFullDocumentChange(doc *Document, change protocol.TextDocumentContentChangeEvent) {
+	full, ok := change.Value.(protocol.TextDocumentContentChangeWholeDocument)
+	if !ok {
+		return
+	}
+	doc.Content = full.Text
+}
+
 // applyIncrementalChange applies an incremental change to a document.
-func (m *TextDocumentSyncManager) applyIncrementalChange(doc *Document, change TextDocumentContentChangeEvent) error {
-	if change.Range == nil {
+func (m *TextDocumentSyncManager) applyIncrementalChange(doc *Document, change protocol.TextDocumentContentChangeEvent) error {
+	partial, ok := change.Value.(protocol.TextDocumentContentChangePartial)
+	if !ok {
+		return nil
+	}
+	if partial.Range == nil {
 		// Full document change
-		doc.Content = change.Text
+		doc.Content = partial.Text
 		return nil
 	}
 
 	// Convert content to lines for easier manipulation
 	lines := strings.Split(doc.Content, "\n")
+	lineC := uint32(len(lines))
 
 	// Validate range
-	if change.Range.Start.Line < 0 || change.Range.Start.Line >= len(lines) {
-		return fmt.Errorf("invalid start line: %d", change.Range.Start.Line)
+	if partial.Range.Start.Line >= lineC {
+		return fmt.Errorf("invalid start line: %d", partial.Range.Start.Line)
 	}
-	if change.Range.End.Line < 0 || change.Range.End.Line >= len(lines) {
-		return fmt.Errorf("invalid end line: %d", change.Range.End.Line)
+	if partial.Range.End.Line >= lineC {
+		return fmt.Errorf("invalid end line: %d", partial.Range.End.Line)
 	}
 
 	// Calculate the start and end positions in the document
-	startPos := 0
-	for i := 0; i < change.Range.Start.Line; i++ {
-		startPos += len(lines[i]) + 1 // +1 for newline
+	var startPos uint32
+	for i := uint32(0); i < partial.Range.Start.Line; i++ {
+		startPos += uint32(len(lines[i])) + 1 // +1 for newline
 	}
-	startPos += change.Range.Start.Character
+	startPos += partial.Range.Start.Character
 
-	endPos := 0
-	for i := 0; i < change.Range.End.Line; i++ {
-		endPos += len(lines[i]) + 1
+	var endPos uint32
+	for i := uint32(0); i < partial.Range.End.Line; i++ {
+		endPos += uint32(len(lines[i])) + 1
 	}
-	endPos += change.Range.End.Character
+	endPos += partial.Range.End.Character
 
-	// Apply the change
-	newContent := doc.Content[:startPos] + change.Text + doc.Content[endPos:]
+	// Apply the partial
+	newContent := doc.Content[:startPos] + partial.Text + doc.Content[endPos:]
 	doc.Content = newContent
 
 	return nil
 }
 
 // CreateFullDocumentChange creates a change event for full document sync.
-func CreateFullDocumentChange(content string) []TextDocumentContentChangeEvent {
-	return []TextDocumentContentChangeEvent{
+func CreateFullDocumentChange(content string) []protocol.TextDocumentContentChangeEvent {
+	return []protocol.TextDocumentContentChangeEvent{
 		{
-			Text: content,
+			Value: protocol.TextDocumentContentChangeWholeDocument{
+				Text: content,
+			},
 		},
 	}
 }
@@ -194,8 +212,7 @@ func (m *TextDocumentSyncManager) OpenFile(filePath, content string) error {
 	}
 
 	// Detect language from file path
-	languageID := detectLanguage(absPath)
-
+	languageID := cmp.Or(string(DetectLanguage(absPath)), "plaintext")
 	// Create file URI
 	uri := FilePathToURI(absPath)
 
@@ -203,22 +220,10 @@ func (m *TextDocumentSyncManager) OpenFile(filePath, content string) error {
 }
 
 // FilePathToURI converts a file path to a file URI.
-func FilePathToURI(filePath string) string {
-	// Ensure absolute path
-	absPath, err := filepath.Abs(filePath)
-	if err != nil {
-		absPath = filePath
-	}
-
-	// Convert to forward slashes for URI
-	absPath = filepath.ToSlash(absPath)
-
-	// Add file:// prefix
-	if strings.HasPrefix(absPath, "/") {
-		return "file://" + absPath
-	}
-	// Windows path
-	return "file:///" + absPath
+//
+// Deprecated: use [protocol.URIFromPath].
+func FilePathToURI(path string) string {
+	return string(protocol.URIFromPath(path))
 }
 
 // URIToFilePath converts a file URI to a file path.
@@ -229,146 +234,4 @@ func URIToFilePath(uri string) string {
 
 	// Convert to native path separators
 	return filepath.FromSlash(path)
-}
-
-// detectLanguage detects the language ID from file path.
-func detectLanguage(filePath string) string {
-	ext := strings.ToLower(filepath.Ext(filePath))
-	base := filepath.Base(filePath)
-
-	// Check specific filenames first
-	switch base {
-	case "Dockerfile":
-		return "dockerfile"
-	case "Makefile", "makefile", "GNUmakefile":
-		return "makefile"
-	case "go.mod", "go.sum":
-		return "go.mod"
-	case "Cargo.toml", "Cargo.lock":
-		return "toml"
-	case "package.json", "tsconfig.json", "jsconfig.json":
-		return "json"
-	case "pyproject.toml":
-		return "toml"
-	}
-
-	// Check extensions
-	switch ext {
-	case ".go":
-		return "go"
-	case ".rs":
-		return "rust"
-	case ".js", ".mjs", ".cjs":
-		return "javascript"
-	case ".ts":
-		return "typescript"
-	case ".tsx":
-		return "typescriptreact"
-	case ".jsx":
-		return "javascriptreact"
-	case ".py", ".pyi":
-		return "python"
-	case ".c":
-		return "c"
-	case ".cpp", ".cc", ".cxx", ".c++":
-		return "cpp"
-	case ".h":
-		// Could be C or C++, default to C
-		return "c"
-	case ".hpp", ".hh", ".hxx", ".h++":
-		return "cpp"
-	case ".java":
-		return "java"
-	case ".rb":
-		return "ruby"
-	case ".php":
-		return "php"
-	case ".lua":
-		return "lua"
-	case ".json", ".jsonc":
-		return "json"
-	case ".yaml", ".yml":
-		return "yaml"
-	case ".toml":
-		return "toml"
-	case ".md", ".markdown":
-		return "markdown"
-	case ".html", ".htm":
-		return "html"
-	case ".css":
-		return "css"
-	case ".scss":
-		return "scss"
-	case ".sass":
-		return "sass"
-	case ".less":
-		return "less"
-	case ".xml":
-		return "xml"
-	case ".sh", ".bash":
-		return "shellscript"
-	case ".zsh":
-		return "shellscript"
-	case ".fish":
-		return "fish"
-	case ".vim":
-		return "vim"
-	case ".tex":
-		return "latex"
-	case ".r":
-		return "r"
-	case ".sql":
-		return "sql"
-	case ".swift":
-		return "swift"
-	case ".kt", ".kts":
-		return "kotlin"
-	case ".scala":
-		return "scala"
-	case ".clj", ".cljs", ".cljc":
-		return "clojure"
-	case ".ex", ".exs":
-		return "elixir"
-	case ".erl", ".hrl":
-		return "erlang"
-	case ".dart":
-		return "dart"
-	case ".hs", ".lhs":
-		return "haskell"
-	case ".ml", ".mli":
-		return "ocaml"
-	case ".fs", ".fsi", ".fsx":
-		return "fsharp"
-	case ".zig":
-		return "zig"
-	case ".nix":
-		return "nix"
-	case ".vue":
-		return "vue"
-	case ".svelte":
-		return "svelte"
-	case ".astro":
-		return "astro"
-	case ".proto":
-		return "proto"
-	case ".graphql", ".gql":
-		return "graphql"
-	case ".tf", ".tfvars":
-		return "terraform"
-	case ".prisma":
-		return "prisma"
-	case ".sol":
-		return "solidity"
-	case ".jl":
-		return "julia"
-	case ".pl", ".pm":
-		return "perl"
-	case ".cmake":
-		return "cmake"
-	case ".asm", ".s":
-		return "asm"
-	default:
-		// Default to plaintext
-		return "plaintext"
-	}
 }
