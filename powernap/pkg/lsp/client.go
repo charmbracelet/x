@@ -14,8 +14,8 @@ import (
 	"time"
 
 	"github.com/charmbracelet/log"
-	"github.com/charmbracelet/superjoy/powernap/pkg/lsp/protocol"
-	"github.com/charmbracelet/superjoy/powernap/pkg/transport"
+	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
+	"github.com/charmbracelet/x/powernap/pkg/transport"
 )
 
 // LSP method constants

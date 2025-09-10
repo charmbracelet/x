@@ -11,9 +11,9 @@ import (
 	"sync"
 
 	"github.com/charmbracelet/log"
-	"github.com/charmbracelet/superjoy/powernap/pkg/config"
-	"github.com/charmbracelet/superjoy/powernap/pkg/lsp"
-	"github.com/charmbracelet/superjoy/powernap/pkg/lsp/protocol"
+	"github.com/charmbracelet/x/powernap/pkg/config"
+	"github.com/charmbracelet/x/powernap/pkg/lsp"
+	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
 )
 
 // Registry manages multiple language server instances.

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/charmbracelet/superjoy/powernap/pkg/lsp/protocol"
-	"github.com/charmbracelet/superjoy/powernap/pkg/transport"
+	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
+	"github.com/charmbracelet/x/powernap/pkg/transport"
 )
 
 // OffsetEncoding represents the character encoding used for text document offsets.
