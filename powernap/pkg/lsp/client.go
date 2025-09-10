@@ -7,13 +7,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"os/exec"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
 	"github.com/charmbracelet/x/powernap/pkg/transport"
 )
@@ -63,7 +63,7 @@ func NewClient(config ClientConfig) (*Client, error) {
 	}
 
 	// Create transport connection
-	conn, err := transport.NewConnection(ctx, stream, log.Default())
+	conn, err := transport.NewConnection(ctx, stream, slog.Default())
 	if err != nil {
 		cancel()
 		return nil, fmt.Errorf("failed to create connection: %w", err)
@@ -111,10 +111,8 @@ func (c *Client) Initialize(ctx context.Context, enableSnippets bool) error {
 	}
 
 	// Log the initialization params for debugging
-	if log.GetLevel() == log.DebugLevel {
-		paramsJSON, _ := json.MarshalIndent(initParams, "", "  ")
-		log.Debug("Sending initialize request", "params", string(paramsJSON))
-	}
+	paramsJSON, _ := json.MarshalIndent(initParams, "", "  ")
+	slog.Debug("Sending initialize request", "params", string(paramsJSON))
 
 	var result protocol.InitializeResult
 	err := c.conn.Call(ctx, MethodInitialize, initParams, &result)
@@ -242,7 +240,7 @@ func (c *Client) NotifyDidOpenTextDocument(ctx context.Context, uri string, lang
 	}
 
 	// Log what we're sending for debugging
-	log.Debug("Sending textDocument/didOpen",
+	slog.Debug("Sending textDocument/didOpen",
 		"uri", uri,
 		"languageId", languageID,
 		"version", version,
@@ -572,12 +570,12 @@ func startServerProcess(ctx context.Context, config ClientConfig) (io.ReadWriteC
 			n, err := stderr.Read(buf)
 			if err != nil {
 				if err != io.EOF {
-					log.Error("Error reading stderr", "error", err)
+					slog.Error("Error reading stderr", "error", err)
 				}
 				break
 			}
 			if n > 0 {
-				log.Error("Language server stderr", "command", config.Command, "output", string(buf[:n]))
+				slog.Error("Language server stderr", "command", config.Command, "output", string(buf[:n]))
 			}
 		}
 	}()
@@ -585,9 +583,9 @@ func startServerProcess(ctx context.Context, config ClientConfig) (io.ReadWriteC
 	// Monitor process exit
 	go func() {
 		if err := cmd.Wait(); err != nil {
-			log.Error("Language server process exited with error", "command", config.Command, "error", err)
+			slog.Error("Language server process exited with error", "command", config.Command, "error", err)
 		} else {
-			log.Info("Language server process exited normally", "command", config.Command)
+			slog.Info("Language server process exited normally", "command", config.Command)
 		}
 	}()
 

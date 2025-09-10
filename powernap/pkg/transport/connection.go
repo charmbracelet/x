@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log/slog"
 	"sync"
 	"sync/atomic"
 
-	"github.com/charmbracelet/log"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
@@ -16,7 +16,7 @@ type Connection struct {
 	conn      jsonrpc2.JSONRPC2
 	transport *Transport
 	router    *Router
-	logger    *log.Logger
+	logger    *slog.Logger
 
 	// State management
 	closed   atomic.Bool
@@ -30,7 +30,7 @@ type Connection struct {
 }
 
 // NewConnection creates a new managed connection.
-func NewConnection(ctx context.Context, stream io.ReadWriteCloser, logger *log.Logger) (*Connection, error) {
+func NewConnection(ctx context.Context, stream io.ReadWriteCloser, logger *slog.Logger) (*Connection, error) {
 	c := &Connection{
 		router:   NewRouter(),
 		logger:   logger,

@@ -5,12 +5,12 @@ package registry
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
 
-	"github.com/charmbracelet/log"
 	"github.com/charmbracelet/x/powernap/pkg/config"
 	"github.com/charmbracelet/x/powernap/pkg/lsp"
 	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
@@ -21,7 +21,7 @@ type Registry struct {
 	mu      sync.RWMutex
 	clients map[string]*lsp.Client
 	configs map[string]*config.ServerConfig
-	logger  *log.Logger
+	logger  *slog.Logger
 }
 
 // New creates a new registry.
@@ -29,12 +29,12 @@ func New() *Registry {
 	return &Registry{
 		clients: make(map[string]*lsp.Client),
 		configs: make(map[string]*config.ServerConfig),
-		logger:  log.Default(),
+		logger:  slog.Default(),
 	}
 }
 
 // NewWithLogger creates a new registry with a custom logger.
-func NewWithLogger(logger *log.Logger) *Registry {
+func NewWithLogger(logger *slog.Logger) *Registry {
 	return &Registry{
 		clients: make(map[string]*lsp.Client),
 		configs: make(map[string]*config.ServerConfig),

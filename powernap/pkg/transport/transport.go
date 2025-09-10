@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/charmbracelet/log"
 	"github.com/sourcegraph/jsonrpc2"
 )
 
@@ -19,7 +19,7 @@ type Transport struct {
 	conn   jsonrpc2.JSONRPC2
 	reader io.Reader
 	writer io.Writer
-	logger *log.Logger
+	logger *slog.Logger
 	mu     sync.Mutex
 }
 
@@ -34,7 +34,7 @@ type Message struct {
 }
 
 // New creates a new transport.
-func New(reader io.Reader, writer io.Writer, logger *log.Logger) *Transport {
+func New(reader io.Reader, writer io.Writer, logger *slog.Logger) *Transport {
 	return &Transport{
 		reader: reader,
 		writer: writer,
