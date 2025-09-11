@@ -122,6 +122,18 @@ func (t *Emulator) Touched() []*uv.LineData {
 	return t.scr.Touched()
 }
 
+// String returns a string representation of the underlying screen buffer.
+func (t *Emulator) String() string {
+	s := t.scr.buf.String()
+	return uv.TrimSpace(s)
+}
+
+// Render renders a snapshot of the terminal screen as a string with styles and
+// links encoded as ANSI escape codes.
+func (t *Emulator) Render() string {
+	return t.scr.buf.Render()
+}
+
 var _ uv.Screen = (*Emulator)(nil)
 
 // Bounds returns the bounds of the terminal.
@@ -262,6 +274,11 @@ func (t *Emulator) Write(p []byte) (n int, err error) {
 		t.lastState = state
 	}
 	return len(p), nil
+}
+
+// WriteString writes a string to the terminal output buffer.
+func (t *Emulator) WriteString(s string) (n int, err error) {
+	return io.WriteString(t, s) //nolint:wrapcheck
 }
 
 // InputPipe returns the terminal's input pipe.
