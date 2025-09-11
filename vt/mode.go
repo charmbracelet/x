@@ -3,8 +3,8 @@ package vt
 import "github.com/charmbracelet/x/ansi"
 
 // resetModes resets all modes to their default values.
-func (t *Emulator) resetModes() {
-	t.modes = ansi.Modes{
+func (e *Emulator) resetModes() {
+	e.modes = ansi.Modes{
 		// Recognized modes and their default values.
 		ansi.CursorKeysMode:          ansi.ModeReset, // ?1
 		ansi.OriginMode:              ansi.ModeReset, // ?6
@@ -27,7 +27,7 @@ func (t *Emulator) resetModes() {
 	}
 
 	// Set mode effects.
-	for mode, setting := range t.modes {
-		t.setMode(mode, setting)
+	for mode, setting := range e.modes {
+		e.setMode(mode, setting)
 	}
 }

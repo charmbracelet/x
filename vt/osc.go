@@ -11,14 +11,14 @@ import (
 )
 
 // handleOsc handles an OSC escape sequence.
-func (t *Emulator) handleOsc(cmd int, data []byte) {
-	t.flushGrapheme() // Flush any pending grapheme before handling OSC sequences.
-	if !t.handlers.handleOsc(cmd, data) {
-		t.logf("unhandled sequence: OSC %q", data)
+func (e *Emulator) handleOsc(cmd int, data []byte) {
+	e.flushGrapheme() // Flush any pending grapheme before handling OSC sequences.
+	if !e.handlers.handleOsc(cmd, data) {
+		e.logf("unhandled sequence: OSC %q", data)
 	}
 }
 
-func (t *Emulator) handleTitle(cmd int, data []byte) {
+func (e *Emulator) handleTitle(cmd int, data []byte) {
 	parts := bytes.Split(data, []byte{';'})
 	if len(parts) != 2 {
 		// Invalid, ignore
@@ -27,29 +27,29 @@ func (t *Emulator) handleTitle(cmd int, data []byte) {
 	switch cmd {
 	case 0: // Set window title and icon name
 		name := string(parts[1])
-		t.iconName, t.title = name, name
-		if t.cb.Title != nil {
-			t.cb.Title(name)
+		e.iconName, e.title = name, name
+		if e.cb.Title != nil {
+			e.cb.Title(name)
 		}
-		if t.cb.IconName != nil {
-			t.cb.IconName(name)
+		if e.cb.IconName != nil {
+			e.cb.IconName(name)
 		}
 	case 1: // Set icon name
 		name := string(parts[1])
-		t.iconName = name
-		if t.cb.IconName != nil {
-			t.cb.IconName(name)
+		e.iconName = name
+		if e.cb.IconName != nil {
+			e.cb.IconName(name)
 		}
 	case 2: // Set window title
 		name := string(parts[1])
-		t.title = name
-		if t.cb.Title != nil {
-			t.cb.Title(name)
+		e.title = name
+		if e.cb.Title != nil {
+			e.cb.Title(name)
 		}
 	}
 }
 
-func (t *Emulator) handleDefaultColor(cmd int, data []byte) {
+func (e *Emulator) handleDefaultColor(cmd int, data []byte) {
 	if cmd != 10 && cmd != 11 && cmd != 12 &&
 		cmd != 110 && cmd != 111 && cmd != 112 {
 		// Invalid, ignore
@@ -65,11 +65,11 @@ func (t *Emulator) handleDefaultColor(cmd int, data []byte) {
 	cb := func(c color.Color) {
 		switch cmd {
 		case 10, 110: // Foreground color
-			t.SetForegroundColor(c)
+			e.SetForegroundColor(c)
 		case 11, 111: // Background color
-			t.SetBackgroundColor(c)
+			e.SetBackgroundColor(c)
 		case 12, 112: // Cursor color
-			t.SetCursorColor(c)
+			e.SetCursorColor(c)
 		}
 	}
 
@@ -82,19 +82,19 @@ func (t *Emulator) handleDefaultColor(cmd int, data []byte) {
 			var xrgb ansi.XRGBColor
 			switch cmd {
 			case 10: // Query foreground color
-				xrgb.Color = t.ForegroundColor()
+				xrgb.Color = e.ForegroundColor()
 				if xrgb.Color != nil {
-					io.WriteString(t.pw, ansi.SetForegroundColor(xrgb.String())) //nolint:errcheck,gosec
+					io.WriteString(e.pw, ansi.SetForegroundColor(xrgb.String())) //nolint:errcheck,gosec
 				}
 			case 11: // Query background color
-				xrgb.Color = t.BackgroundColor()
+				xrgb.Color = e.BackgroundColor()
 				if xrgb.Color != nil {
-					io.WriteString(t.pw, ansi.SetBackgroundColor(xrgb.String())) //nolint:errcheck,gosec
+					io.WriteString(e.pw, ansi.SetBackgroundColor(xrgb.String())) //nolint:errcheck,gosec
 				}
 			case 12: // Query cursor color
-				xrgb.Color = t.CursorColor()
+				xrgb.Color = e.CursorColor()
 				if xrgb.Color != nil {
-					io.WriteString(t.pw, ansi.SetCursorColor(xrgb.String())) //nolint:errcheck,gosec
+					io.WriteString(e.pw, ansi.SetCursorColor(xrgb.String())) //nolint:errcheck,gosec
 				}
 			}
 		} else if c := ansi.XParseColor(arg); c != nil {
@@ -103,7 +103,7 @@ func (t *Emulator) handleDefaultColor(cmd int, data []byte) {
 	}
 }
 
-func (t *Emulator) handleWorkingDirectory(cmd int, data []byte) {
+func (e *Emulator) handleWorkingDirectory(cmd int, data []byte) {
 	if cmd != 7 {
 		// Invalid, ignore
 		return
@@ -117,20 +117,20 @@ func (t *Emulator) handleWorkingDirectory(cmd int, data []byte) {
 	}
 
 	path := string(parts[1])
-	t.cwd = path
+	e.cwd = path
 
-	if t.cb.WorkingDirectory != nil {
-		t.cb.WorkingDirectory(path)
+	if e.cb.WorkingDirectory != nil {
+		e.cb.WorkingDirectory(path)
 	}
 }
 
-func (t *Emulator) handleHyperlink(cmd int, data []byte) {
+func (e *Emulator) handleHyperlink(cmd int, data []byte) {
 	parts := bytes.Split(data, []byte{';'})
 	if len(parts) != 3 || cmd != 8 {
 		// Invalid, ignore
 		return
 	}
 
-	t.scr.cur.Link.URL = string(parts[1])
-	t.scr.cur.Link.Params = string(parts[2])
+	e.scr.cur.Link.URL = string(parts[1])
+	e.scr.cur.Link.Params = string(parts[2])
 }

@@ -106,82 +106,82 @@ func NewEmulator(w, h int) *Emulator {
 }
 
 // SetLogger sets the terminal's logger.
-func (t *Emulator) SetLogger(l Logger) {
-	t.logger = l
+func (e *Emulator) SetLogger(l Logger) {
+	e.logger = l
 }
 
 // SetCallbacks sets the terminal's callbacks.
-func (t *Emulator) SetCallbacks(cb Callbacks) {
-	t.cb = cb
-	t.scrs[0].cb = &t.cb
-	t.scrs[1].cb = &t.cb
+func (e *Emulator) SetCallbacks(cb Callbacks) {
+	e.cb = cb
+	e.scrs[0].cb = &e.cb
+	e.scrs[1].cb = &e.cb
 }
 
 // Touched returns the touched lines in the current screen buffer.
-func (t *Emulator) Touched() []*uv.LineData {
-	return t.scr.Touched()
+func (e *Emulator) Touched() []*uv.LineData {
+	return e.scr.Touched()
 }
 
 // String returns a string representation of the underlying screen buffer.
-func (t *Emulator) String() string {
-	s := t.scr.buf.String()
+func (e *Emulator) String() string {
+	s := e.scr.buf.String()
 	return uv.TrimSpace(s)
 }
 
 // Render renders a snapshot of the terminal screen as a string with styles and
 // links encoded as ANSI escape codes.
-func (t *Emulator) Render() string {
-	return t.scr.buf.Render()
+func (e *Emulator) Render() string {
+	return e.scr.buf.Render()
 }
 
 var _ uv.Screen = (*Emulator)(nil)
 
 // Bounds returns the bounds of the terminal.
-func (t *Emulator) Bounds() uv.Rectangle {
-	return t.scr.Bounds()
+func (e *Emulator) Bounds() uv.Rectangle {
+	return e.scr.Bounds()
 }
 
 // CellAt returns the current focused screen cell at the given x, y position.
 // It returns nil if the cell is out of bounds.
-func (t *Emulator) CellAt(x, y int) *uv.Cell {
-	return t.scr.CellAt(x, y)
+func (e *Emulator) CellAt(x, y int) *uv.Cell {
+	return e.scr.CellAt(x, y)
 }
 
 // SetCell sets the current focused screen cell at the given x, y position.
-func (t *Emulator) SetCell(x, y int, c *uv.Cell) {
-	t.scr.SetCell(x, y, c)
+func (e *Emulator) SetCell(x, y int, c *uv.Cell) {
+	e.scr.SetCell(x, y, c)
 }
 
 // WidthMethod returns the width method used by the terminal.
-func (t *Emulator) WidthMethod() uv.WidthMethod {
-	if t.isModeSet(ansi.UnicodeCoreMode) {
+func (e *Emulator) WidthMethod() uv.WidthMethod {
+	if e.isModeSet(ansi.UnicodeCoreMode) {
 		return ansi.GraphemeWidth
 	}
 	return ansi.WcWidth
 }
 
 // Draw implements the [uv.Drawable] interface.
-func (t *Emulator) Draw(scr uv.Screen, area uv.Rectangle) {
+func (e *Emulator) Draw(scr uv.Screen, area uv.Rectangle) {
 	bg := uv.EmptyCell
-	bg.Style.Bg = t.bgColor
+	bg.Style.Bg = e.bgColor
 	screen.FillArea(scr, &bg, area)
-	for y := range t.Touched() {
-		if y < 0 || y >= t.Height() {
+	for y := range e.Touched() {
+		if y < 0 || y >= e.Height() {
 			continue
 		}
-		for x := 0; x < t.Width(); {
+		for x := 0; x < e.Width(); {
 			w := 1
-			cell := t.CellAt(x, y)
+			cell := e.CellAt(x, y)
 			if cell != nil {
 				cell = cell.Clone()
 				if cell.Width > 1 {
 					w = cell.Width
 				}
-				if cell.Style.Bg == nil && t.bgColor != nil {
-					cell.Style.Bg = t.bgColor
+				if cell.Style.Bg == nil && e.bgColor != nil {
+					cell.Style.Bg = e.bgColor
 				}
-				if cell.Style.Fg == nil && t.fgColor != nil {
-					cell.Style.Fg = t.fgColor
+				if cell.Style.Fg == nil && e.fgColor != nil {
+					cell.Style.Fg = e.fgColor
 				}
 				scr.SetCell(x+area.Min.X, y+area.Min.Y, cell)
 			}
@@ -191,27 +191,27 @@ func (t *Emulator) Draw(scr uv.Screen, area uv.Rectangle) {
 }
 
 // Height returns the height of the terminal.
-func (t *Emulator) Height() int {
-	return t.scr.Height()
+func (e *Emulator) Height() int {
+	return e.scr.Height()
 }
 
 // Width returns the width of the terminal.
-func (t *Emulator) Width() int {
-	return t.scr.Width()
+func (e *Emulator) Width() int {
+	return e.scr.Width()
 }
 
 // CursorPosition returns the terminal's cursor position.
-func (t *Emulator) CursorPosition() uv.Position {
-	x, y := t.scr.CursorPosition()
+func (e *Emulator) CursorPosition() uv.Position {
+	x, y := e.scr.CursorPosition()
 	return uv.Pos(x, y)
 }
 
 // Resize resizes the terminal.
-func (t *Emulator) Resize(width int, height int) {
-	x, y := t.scr.CursorPosition()
-	if t.atPhantom {
+func (e *Emulator) Resize(width int, height int) {
+	x, y := e.scr.CursorPosition()
+	if e.atPhantom {
 		if x < width-1 {
-			t.atPhantom = false
+			e.atPhantom = false
 			x++
 		}
 	}
@@ -229,173 +229,173 @@ func (t *Emulator) Resize(width int, height int) {
 		x = width - 1
 	}
 
-	t.scrs[0].Resize(width, height)
-	t.scrs[1].Resize(width, height)
-	t.tabstops = uv.DefaultTabStops(width)
+	e.scrs[0].Resize(width, height)
+	e.scrs[1].Resize(width, height)
+	e.tabstops = uv.DefaultTabStops(width)
 
-	t.setCursor(x, y)
+	e.setCursor(x, y)
 
-	if t.isModeSet(ansi.InBandResizeMode) {
-		_, _ = io.WriteString(t.pw, ansi.InBandResize(t.Height(), t.Width(), 0, 0))
+	if e.isModeSet(ansi.InBandResizeMode) {
+		_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
 	}
 }
 
 // Read reads data from the terminal input buffer.
-func (t *Emulator) Read(p []byte) (n int, err error) {
-	if t.closed {
+func (e *Emulator) Read(p []byte) (n int, err error) {
+	if e.closed {
 		return 0, io.EOF
 	}
 
-	return t.pr.Read(p) //nolint:wrapcheck
+	return e.pr.Read(p) //nolint:wrapcheck
 }
 
 // Close closes the terminal.
-func (t *Emulator) Close() error {
-	if t.closed {
+func (e *Emulator) Close() error {
+	if e.closed {
 		return nil
 	}
 
-	t.closed = true
+	e.closed = true
 	return nil
 }
 
 // Write writes data to the terminal output buffer.
-func (t *Emulator) Write(p []byte) (n int, err error) {
+func (e *Emulator) Write(p []byte) (n int, err error) {
 	for i := range p {
-		t.parser.Advance(p[i])
-		state := t.parser.State()
+		e.parser.Advance(p[i])
+		state := e.parser.State()
 		// flush grapheme if we transitioned to a non-utf8 state or we have
 		// written the whole byte slice.
-		if len(t.grapheme) > 0 {
-			if (t.lastState == parser.GroundState && state != parser.Utf8State) || i == len(p)-1 {
-				t.flushGrapheme()
+		if len(e.grapheme) > 0 {
+			if (e.lastState == parser.GroundState && state != parser.Utf8State) || i == len(p)-1 {
+				e.flushGrapheme()
 			}
 		}
-		t.lastState = state
+		e.lastState = state
 	}
 	return len(p), nil
 }
 
 // WriteString writes a string to the terminal output buffer.
-func (t *Emulator) WriteString(s string) (n int, err error) {
-	return io.WriteString(t, s) //nolint:wrapcheck
+func (e *Emulator) WriteString(s string) (n int, err error) {
+	return io.WriteString(e, s) //nolint:wrapcheck
 }
 
 // InputPipe returns the terminal's input pipe.
 // This can be used to send input to the terminal.
-func (t *Emulator) InputPipe() io.Writer {
-	return t.pw
+func (e *Emulator) InputPipe() io.Writer {
+	return e.pw
 }
 
 // Paste pastes text into the terminal.
 // If bracketed paste mode is enabled, the text is bracketed with the
 // appropriate escape sequences.
-func (t *Emulator) Paste(text string) {
-	if t.isModeSet(ansi.BracketedPasteMode) {
-		_, _ = io.WriteString(t.pw, ansi.BracketedPasteStart)
-		defer io.WriteString(t.pw, ansi.BracketedPasteEnd) //nolint:errcheck
+func (e *Emulator) Paste(text string) {
+	if e.isModeSet(ansi.BracketedPasteMode) {
+		_, _ = io.WriteString(e.pw, ansi.BracketedPasteStart)
+		defer io.WriteString(e.pw, ansi.BracketedPasteEnd) //nolint:errcheck
 	}
 
-	_, _ = io.WriteString(t.pw, text)
+	_, _ = io.WriteString(e.pw, text)
 }
 
 // SendText sends arbitrary text to the terminal.
-func (t *Emulator) SendText(text string) {
-	_, _ = io.WriteString(t.pw, text)
+func (e *Emulator) SendText(text string) {
+	_, _ = io.WriteString(e.pw, text)
 }
 
 // SendKeys sends multiple keys to the terminal.
-func (t *Emulator) SendKeys(keys ...uv.KeyEvent) {
+func (e *Emulator) SendKeys(keys ...uv.KeyEvent) {
 	for _, k := range keys {
-		t.SendKey(k)
+		e.SendKey(k)
 	}
 }
 
 // ForegroundColor returns the terminal's foreground color. This returns nil if
 // the foreground color is not set which means the outer terminal color is
 // used.
-func (t *Emulator) ForegroundColor() color.Color {
-	if t.fgColor == nil {
-		return t.defaultFg
+func (e *Emulator) ForegroundColor() color.Color {
+	if e.fgColor == nil {
+		return e.defaultFg
 	}
-	return t.fgColor
+	return e.fgColor
 }
 
 // SetForegroundColor sets the terminal's foreground color.
-func (t *Emulator) SetForegroundColor(c color.Color) {
+func (e *Emulator) SetForegroundColor(c color.Color) {
 	if c == nil {
-		c = t.defaultFg
+		c = e.defaultFg
 	}
-	t.fgColor = c
-	if t.cb.ForegroundColor != nil {
-		t.cb.ForegroundColor(c)
+	e.fgColor = c
+	if e.cb.ForegroundColor != nil {
+		e.cb.ForegroundColor(c)
 	}
 }
 
 // SetDefaultForegroundColor sets the terminal's default foreground color.
-func (t *Emulator) SetDefaultForegroundColor(c color.Color) {
-	t.defaultFg = c
+func (e *Emulator) SetDefaultForegroundColor(c color.Color) {
+	e.defaultFg = c
 }
 
 // BackgroundColor returns the terminal's background color. This returns nil if
 // the background color is not set which means the outer terminal color is
 // used.
-func (t *Emulator) BackgroundColor() color.Color {
-	if t.bgColor == nil {
-		return t.defaultBg
+func (e *Emulator) BackgroundColor() color.Color {
+	if e.bgColor == nil {
+		return e.defaultBg
 	}
-	return t.bgColor
+	return e.bgColor
 }
 
 // SetBackgroundColor sets the terminal's background color.
-func (t *Emulator) SetBackgroundColor(c color.Color) {
+func (e *Emulator) SetBackgroundColor(c color.Color) {
 	if c == nil {
-		c = t.defaultBg
+		c = e.defaultBg
 	}
-	t.bgColor = c
-	if t.cb.BackgroundColor != nil {
-		t.cb.BackgroundColor(c)
+	e.bgColor = c
+	if e.cb.BackgroundColor != nil {
+		e.cb.BackgroundColor(c)
 	}
 }
 
 // SetDefaultBackgroundColor sets the terminal's default background color.
-func (t *Emulator) SetDefaultBackgroundColor(c color.Color) {
-	t.defaultBg = c
+func (e *Emulator) SetDefaultBackgroundColor(c color.Color) {
+	e.defaultBg = c
 }
 
 // CursorColor returns the terminal's cursor color. This returns nil if the
 // cursor color is not set which means the outer terminal color is used.
-func (t *Emulator) CursorColor() color.Color {
-	if t.curColor == nil {
-		return t.defaultCur
+func (e *Emulator) CursorColor() color.Color {
+	if e.curColor == nil {
+		return e.defaultCur
 	}
-	return t.curColor
+	return e.curColor
 }
 
 // SetCursorColor sets the terminal's cursor color.
-func (t *Emulator) SetCursorColor(c color.Color) {
+func (e *Emulator) SetCursorColor(c color.Color) {
 	if c == nil {
-		c = t.defaultCur
+		c = e.defaultCur
 	}
-	t.curColor = c
-	if t.cb.CursorColor != nil {
-		t.cb.CursorColor(c)
+	e.curColor = c
+	if e.cb.CursorColor != nil {
+		e.cb.CursorColor(c)
 	}
 }
 
 // SetDefaultCursorColor sets the terminal's default cursor color.
-func (t *Emulator) SetDefaultCursorColor(c color.Color) {
-	t.defaultCur = c
+func (e *Emulator) SetDefaultCursorColor(c color.Color) {
+	e.defaultCur = c
 }
 
 // IndexedColor returns a terminal's indexed color. An indexed color is a color
 // between 0 and 255.
-func (t *Emulator) IndexedColor(i int) color.Color {
+func (e *Emulator) IndexedColor(i int) color.Color {
 	if i < 0 || i > 255 {
 		return nil
 	}
 
-	c := t.colors[i]
+	c := e.colors[i]
 	if c == nil {
 		// Return the default color.
 		return ansi.IndexedColor(i) //nolint:gosec
@@ -406,21 +406,21 @@ func (t *Emulator) IndexedColor(i int) color.Color {
 
 // SetIndexedColor sets a terminal's indexed color.
 // The index must be between 0 and 255.
-func (t *Emulator) SetIndexedColor(i int, c color.Color) {
+func (e *Emulator) SetIndexedColor(i int, c color.Color) {
 	if i < 0 || i > 255 {
 		return
 	}
 
-	t.colors[i] = c
+	e.colors[i] = c
 }
 
 // resetTabStops resets the terminal tab stops to the default set.
-func (t *Emulator) resetTabStops() {
-	t.tabstops = uv.DefaultTabStops(t.Width())
+func (e *Emulator) resetTabStops() {
+	e.tabstops = uv.DefaultTabStops(e.Width())
 }
 
-func (t *Emulator) logf(format string, v ...any) {
-	if t.logger != nil {
-		t.logger.Printf(format, v...)
+func (e *Emulator) logf(format string, v ...any) {
+	if e.logger != nil {
+		e.logger.Printf(format, v...)
 	}
 }

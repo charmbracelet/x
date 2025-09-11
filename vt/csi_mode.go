@@ -6,7 +6,7 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func (t *Emulator) handleMode(params ansi.Params, set, isAnsi bool) {
+func (e *Emulator) handleMode(params ansi.Params, set, isAnsi bool) {
 	for _, p := range params {
 		param := p.Param(-1)
 		if param == -1 {
@@ -19,7 +19,7 @@ func (t *Emulator) handleMode(params ansi.Params, set, isAnsi bool) {
 			mode = ansi.ANSIMode(param)
 		}
 
-		setting := t.modes[mode]
+		setting := e.modes[mode]
 		if setting == ansi.ModePermanentlyReset || setting == ansi.ModePermanentlySet {
 			// Permanently set modes are ignored.
 			continue
@@ -30,84 +30,84 @@ func (t *Emulator) handleMode(params ansi.Params, set, isAnsi bool) {
 			setting = ansi.ModeSet
 		}
 
-		t.setMode(mode, setting)
+		e.setMode(mode, setting)
 	}
 }
 
 // setAltScreenMode sets the alternate screen mode.
-func (t *Emulator) setAltScreenMode(on bool) {
-	if (on && t.scr == &t.scrs[1]) || (!on && t.scr == &t.scrs[0]) {
+func (e *Emulator) setAltScreenMode(on bool) {
+	if (on && e.scr == &e.scrs[1]) || (!on && e.scr == &e.scrs[0]) {
 		// Already in alternate screen mode, or normal screen, do nothing.
 		return
 	}
 	if on {
-		t.scr = &t.scrs[1]
-		t.scrs[1].cur = t.scrs[0].cur
-		t.scr.Clear()
-		t.scr.buf.Touched = nil
-		t.setCursor(0, 0)
+		e.scr = &e.scrs[1]
+		e.scrs[1].cur = e.scrs[0].cur
+		e.scr.Clear()
+		e.scr.buf.Touched = nil
+		e.setCursor(0, 0)
 	} else {
-		t.scr = &t.scrs[0]
+		e.scr = &e.scrs[0]
 	}
-	if t.cb.AltScreen != nil {
-		t.cb.AltScreen(on)
+	if e.cb.AltScreen != nil {
+		e.cb.AltScreen(on)
 	}
-	if t.cb.CursorVisibility != nil {
-		t.cb.CursorVisibility(!t.scr.cur.Hidden)
+	if e.cb.CursorVisibility != nil {
+		e.cb.CursorVisibility(!e.scr.cur.Hidden)
 	}
 }
 
 // saveCursor saves the cursor position.
-func (t *Emulator) saveCursor() {
-	t.scr.SaveCursor()
+func (e *Emulator) saveCursor() {
+	e.scr.SaveCursor()
 }
 
 // restoreCursor restores the cursor position.
-func (t *Emulator) restoreCursor() {
-	t.scr.RestoreCursor()
+func (e *Emulator) restoreCursor() {
+	e.scr.RestoreCursor()
 }
 
 // setMode sets the mode to the given value.
-func (t *Emulator) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
-	t.logf("setting mode %T(%v) to %v", mode, mode, setting)
-	t.modes[mode] = setting
+func (e *Emulator) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
+	e.logf("setting mode %T(%v) to %v", mode, mode, setting)
+	e.modes[mode] = setting
 	switch mode {
 	case ansi.TextCursorEnableMode:
-		t.scr.setCursorHidden(!setting.IsSet())
+		e.scr.setCursorHidden(!setting.IsSet())
 	case ansi.AltScreenMode:
-		t.setAltScreenMode(setting.IsSet())
+		e.setAltScreenMode(setting.IsSet())
 	case ansi.SaveCursorMode:
 		if setting.IsSet() {
-			t.saveCursor()
+			e.saveCursor()
 		} else {
-			t.restoreCursor()
+			e.restoreCursor()
 		}
 	case ansi.AltScreenSaveCursorMode: // Alternate Screen Save Cursor (1047 & 1048)
 		// Save primary screen cursor position
 		// Switch to alternate screen
 		// Doesn't support scrollback
 		if setting.IsSet() {
-			t.saveCursor()
+			e.saveCursor()
 		}
-		t.setAltScreenMode(setting.IsSet())
+		e.setAltScreenMode(setting.IsSet())
 	case ansi.InBandResizeMode:
 		if setting.IsSet() {
-			_, _ = io.WriteString(t.pw, ansi.InBandResize(t.Height(), t.Width(), 0, 0))
+			_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
 		}
 	}
 	if setting.IsSet() {
-		if t.cb.EnableMode != nil {
-			t.cb.EnableMode(mode)
+		if e.cb.EnableMode != nil {
+			e.cb.EnableMode(mode)
 		}
 	} else if setting.IsReset() {
-		if t.cb.DisableMode != nil {
-			t.cb.DisableMode(mode)
+		if e.cb.DisableMode != nil {
+			e.cb.DisableMode(mode)
 		}
 	}
 }
 
 // isModeSet returns true if the mode is set.
-func (t *Emulator) isModeSet(mode ansi.Mode) bool {
-	m, ok := t.modes[mode]
+func (e *Emulator) isModeSet(mode ansi.Mode) bool {
+	m, ok := e.modes[mode]
 	return ok && m.IsSet()
 }
