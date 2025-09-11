@@ -230,12 +230,12 @@ func (c *Client) NotifyDidOpenTextDocument(ctx context.Context, uri string, lang
 		return fmt.Errorf("client not initialized")
 	}
 
-	params := map[string]any{
-		"textDocument": map[string]any{
-			"uri":        uri,
-			"languageId": languageID,
-			"version":    version,
-			"text":       text,
+	params := protocol.DidOpenTextDocumentParams{
+		TextDocument: protocol.TextDocumentItem{
+			URI:        protocol.DocumentURI(uri),
+			LanguageID: protocol.LanguageKind(languageID),
+			Version:    int32(version),
+			Text:       text,
 		},
 	}
 
@@ -249,18 +249,35 @@ func (c *Client) NotifyDidOpenTextDocument(ctx context.Context, uri string, lang
 	return c.conn.Notify(ctx, MethodTextDocumentDidOpen, params)
 }
 
+// NotifyDidCloseTextDocument notifies the server that a document was closeed.
+func (c *Client) NotifyDidCloseTextDocument(ctx context.Context, uri string) error {
+	if !c.initialized {
+		return fmt.Errorf("client not initialized")
+	}
+
+	params := protocol.DidCloseTextDocumentParams{
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: protocol.DocumentURI(uri),
+		},
+	}
+
+	return c.conn.Notify(ctx, MethodTextDocumentDidClose, params)
+}
+
 // NotifyDidChangeTextDocument notifies the server that a document was changed.
 func (c *Client) NotifyDidChangeTextDocument(ctx context.Context, uri string, version int, changes []protocol.TextDocumentContentChangeEvent) error {
 	if !c.initialized {
 		return fmt.Errorf("client not initialized")
 	}
 
-	params := map[string]any{
-		"textDocument": map[string]any{
-			"uri":     uri,
-			"version": version,
+	params := protocol.DidChangeTextDocumentParams{
+		TextDocument: protocol.VersionedTextDocumentIdentifier{
+			Version: int32(version),
+			TextDocumentIdentifier: protocol.TextDocumentIdentifier{
+				URI: protocol.DocumentURI(uri),
+			},
 		},
-		"contentChanges": changes,
+		ContentChanges: changes,
 	}
 
 	return c.conn.Notify(ctx, MethodTextDocumentDidChange, params)
@@ -273,8 +290,8 @@ func (c *Client) NotifyDidChangeWatchedFiles(ctx context.Context, changes []prot
 		return fmt.Errorf("client not initialized")
 	}
 
-	params := map[string]any{
-		"changes": changes,
+	params := protocol.DidChangeWatchedFilesParams{
+		Changes: changes,
 	}
 
 	return c.conn.Notify(ctx, MethodWorkspaceDidChangeWatchedFiles, params)
@@ -299,13 +316,15 @@ func (c *Client) RequestCompletion(ctx context.Context, uri string, position pro
 		return nil, fmt.Errorf("client not initialized")
 	}
 
-	params := map[string]any{
-		"textDocument": map[string]any{
-			"uri": uri,
+	params := protocol.CompletionParams{
+		Context: protocol.CompletionContext{
+			TriggerKind: protocol.Invoked,
 		},
-		"position": position,
-		"context": map[string]any{
-			"triggerKind": 1, // Invoked
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{
+				URI: protocol.DocumentURI(uri),
+			},
+			Position: position,
 		},
 	}
 
