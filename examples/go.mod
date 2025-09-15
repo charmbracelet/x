@@ -16,7 +16,7 @@ require (
 	github.com/charmbracelet/x/input v0.3.7
 	github.com/charmbracelet/x/mosaic v0.0.0-20250313150240-c09addb0e197
 	github.com/creack/pty v1.1.24
-	github.com/lucasb-eyer/go-colorful v1.2.0
+	github.com/lucasb-eyer/go-colorful v1.3.0
 	github.com/spf13/cobra v1.10.1
 )
 
