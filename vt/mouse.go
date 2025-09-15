@@ -59,7 +59,7 @@ type MouseMotion = uv.MouseMotionEvent
 
 // SendMouse sends a mouse event to the terminal. This can be any kind of mouse
 // events such as [MouseClick], [MouseRelease], [MouseWheel], or [MouseMotion].
-func (t *Emulator) SendMouse(m Mouse) {
+func (e *Emulator) SendMouse(m Mouse) {
 	// XXX: Support [Utf8ExtMouseMode], [UrxvtExtMouseMode], and
 	// [SgrPixelExtMouseMode].
 	var (
@@ -74,7 +74,7 @@ func (t *Emulator) SendMouse(m Mouse) {
 		ansi.ButtonEventMouseMode, // Button press/release/cell motion
 		ansi.AnyEventMouseMode,    // Button press/release/all motion
 	} {
-		if t.isModeSet(m) {
+		if e.isModeSet(m) {
 			mode = m
 		}
 	}
@@ -83,14 +83,14 @@ func (t *Emulator) SendMouse(m Mouse) {
 		return
 	}
 
-	for _, e := range []ansi.DECMode{
+	for _, mm := range []ansi.DECMode{
 		// ansi.Utf8ExtMouseMode,
 		ansi.SgrExtMouseMode,
 		// ansi.UrxvtExtMouseMode,
 		// ansi.SgrPixelExtMouseMode,
 	} {
-		if t.isModeSet(e) {
-			enc = e
+		if e.isModeSet(mm) {
+			enc = mm
 		}
 	}
 
@@ -108,8 +108,8 @@ func (t *Emulator) SendMouse(m Mouse) {
 	// XXX: Support [ansi.Utf8ExtMouseMode], [ansi.UrxvtExtMouseMode], and
 	// [ansi.SgrPixelExtMouseMode].
 	case nil: // X10 mouse encoding
-		_, _ = io.WriteString(t.pw, ansi.MouseX10(b, mouse.X, mouse.Y))
+		_, _ = io.WriteString(e.pw, ansi.MouseX10(b, mouse.X, mouse.Y))
 	case ansi.SgrExtMouseMode: // SGR mouse encoding
-		_, _ = io.WriteString(t.pw, ansi.MouseSgr(b, mouse.X, mouse.Y, isRelease))
+		_, _ = io.WriteString(e.pw, ansi.MouseSgr(b, mouse.X, mouse.Y, isRelease))
 	}
 }
