@@ -386,7 +386,12 @@ func (c *Client) RequestHover(ctx context.Context, uri string, position protocol
 	return &result, nil
 }
 
-// setupHandlers registers handlers for server-initiated requests.
+// RegisterWatchedFilesHandler registers a handler for workspace/didChangeWatchedFiles notifications.
+func (c *Client) RegisterWatchedFilesHandler(handler transport.NotificationHandler) {
+	c.RegisterNotificationHandler(MethodWorkspaceDidChangeWatchedFiles, handler)
+}
+
+// setupHandlers registers handlers for server-initiated requests and notifications.
 func (c *Client) setupHandlers() {
 	// Handle workspace/configuration requests
 	c.conn.RegisterHandler(MethodWorkspaceConfiguration, func(ctx context.Context, method string, params json.RawMessage) (any, error) {
@@ -402,6 +407,22 @@ func (c *Client) setupHandlers() {
 		}
 
 		return result, nil
+	})
+
+	// Handle workspace/didChangeWatchedFiles notifications
+	c.conn.RegisterNotificationHandler(MethodWorkspaceDidChangeWatchedFiles, func(ctx context.Context, method string, params json.RawMessage) {
+		// Log the notification for debugging
+		slog.Debug("Received workspace/didChangeWatchedFiles notification", "params", string(params))
+		
+		// Parse the notification parameters
+		var watchedFilesParams protocol.DidChangeWatchedFilesParams
+		if err := json.Unmarshal(params, &watchedFilesParams); err != nil {
+			slog.Error("Failed to parse workspace/didChangeWatchedFiles notification", "error", err)
+			return
+		}
+		
+		// TODO: Add custom logic to handle file change notifications here
+		// For now, we're just logging the notification
 	})
 
 	// Handle other common server requests
