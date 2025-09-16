@@ -106,6 +106,7 @@ func defaultServers() map[string]*ServerConfig {
 					"analyses": map[string]any{
 						"unusedparams": true,
 					},
+					"watchFileChanges": true,
 				},
 			},
 			EnableSnippets:    true,
