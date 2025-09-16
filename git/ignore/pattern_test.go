@@ -60,260 +60,389 @@ func TestSimpleMatch_withDomain(t *testing.T) {
 	}
 }
 
-func TestSimpleMatch_onlyMatchInDomain_mismatch() {
+func TestSimpleMatch_onlyMatchInDomain_mismatch(t *testing.T) {
 	p := ParsePattern("volcano/", []string{"value", "volcano"})
 	r := p.Match([]string{"value", "volcano", "tail"}, true)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_atStart() {
+func TestSimpleMatch_atStart(t *testing.T) {
 	p := ParsePattern("value", nil)
 	r := p.Match([]string{"value", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_inTheMiddle() {
+func TestSimpleMatch_inTheMiddle(t *testing.T) {
 	p := ParsePattern("value", nil)
 	r := p.Match([]string{"head", "value", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_atEnd() {
+func TestSimpleMatch_atEnd(t *testing.T) {
 	p := ParsePattern("value", nil)
 	r := p.Match([]string{"head", "value"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_atStart_dirWanted() {
+func TestSimpleMatch_atStart_dirWanted(t *testing.T) {
 	p := ParsePattern("value/", nil)
 	r := p.Match([]string{"value", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_inTheMiddle_dirWanted() {
+func TestSimpleMatch_inTheMiddle_dirWanted(t *testing.T) {
 	p := ParsePattern("value/", nil)
 	r := p.Match([]string{"head", "value", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_atEnd_dirWanted() {
+func TestSimpleMatch_atEnd_dirWanted(t *testing.T) {
 	p := ParsePattern("value/", nil)
 	r := p.Match([]string{"head", "value"}, true)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_atEnd_dirWanted_notADir_mismatch() {
+func TestSimpleMatch_atEnd_dirWanted_notADir_mismatch(t *testing.T) {
 	p := ParsePattern("value/", nil)
 	r := p.Match([]string{"head", "value"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_mismatch() {
+func TestSimpleMatch_mismatch(t *testing.T) {
 	p := ParsePattern("value", nil)
 	r := p.Match([]string{"head", "val", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_valueLonger_mismatch() {
+func TestSimpleMatch_valueLonger_mismatch(t *testing.T) {
 	p := ParsePattern("val", nil)
 	r := p.Match([]string{"head", "value", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_withAsterisk() {
+func TestSimpleMatch_withAsterisk(t *testing.T) {
 	p := ParsePattern("v*o", nil)
 	r := p.Match([]string{"value", "vulkano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_withQuestionMark() {
+func TestSimpleMatch_withQuestionMark(t *testing.T) {
 	p := ParsePattern("vul?ano", nil)
 	r := p.Match([]string{"value", "vulkano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_magicChars() {
+func TestSimpleMatch_magicChars(t *testing.T) {
 	p := ParsePattern("v[ou]l[kc]ano", nil)
 	r := p.Match([]string{"value", "volcano"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestSimpleMatch_wrongPattern_mismatch() {
+func TestSimpleMatch_wrongPattern_mismatch(t *testing.T) {
 	p := ParsePattern("v[ou]l[", nil)
 	r := p.Match([]string{"value", "vol["}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_fromRootWithSlash() {
+func TestGlobMatch_fromRootWithSlash(t *testing.T) {
 	p := ParsePattern("/value/vul?ano", nil)
 	r := p.Match([]string{"value", "vulkano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_withDomain() {
+func TestGlobMatch_withDomain(t *testing.T) {
 	p := ParsePattern("middle/tail/", []string{"value", "volcano"})
 	r := p.Match([]string{"value", "volcano", "middle", "tail"}, true)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_onlyMatchInDomain_mismatch() {
+func TestGlobMatch_onlyMatchInDomain_mismatch(t *testing.T) {
 	p := ParsePattern("volcano/tail", []string{"value", "volcano"})
 	r := p.Match([]string{"value", "volcano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_fromRootWithoutSlash() {
+func TestGlobMatch_fromRootWithoutSlash(t *testing.T) {
 	p := ParsePattern("value/vul?ano", nil)
 	r := p.Match([]string{"value", "vulkano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_fromRoot_mismatch() {
+func TestGlobMatch_fromRoot_mismatch(t *testing.T) {
 	p := ParsePattern("value/vulkano", nil)
 	r := p.Match([]string{"value", "volcano"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_fromRoot_tooShort_mismatch() {
+func TestGlobMatch_fromRoot_tooShort_mismatch(t *testing.T) {
 	p := ParsePattern("value/vul?ano", nil)
 	r := p.Match([]string{"value"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_fromRoot_notAtRoot_mismatch() {
+func TestGlobMatch_fromRoot_notAtRoot_mismatch(t *testing.T) {
 	p := ParsePattern("/value/volcano", nil)
 	r := p.Match([]string{"value", "value", "volcano"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_leadingAsterisks_atStart() {
+func TestGlobMatch_leadingAsterisks_atStart(t *testing.T) {
 	p := ParsePattern("**/*lue/vol?ano", nil)
 	r := p.Match([]string{"value", "volcano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_leadingAsterisks_notAtStart() {
+func TestGlobMatch_leadingAsterisks_notAtStart(t *testing.T) {
 	p := ParsePattern("**/*lue/vol?ano", nil)
 	r := p.Match([]string{"head", "value", "volcano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_leadingAsterisks_mismatch() {
+func TestGlobMatch_leadingAsterisks_mismatch(t *testing.T) {
 	p := ParsePattern("**/*lue/vol?ano", nil)
 	r := p.Match([]string{"head", "value", "Volcano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_leadingAsterisks_isDir() {
+func TestGlobMatch_leadingAsterisks_isDir(t *testing.T) {
 	p := ParsePattern("**/*lue/vol?ano/", nil)
 	r := p.Match([]string{"head", "value", "volcano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_leadingAsterisks_isDirAtEnd() {
+func TestGlobMatch_leadingAsterisks_isDirAtEnd(t *testing.T) {
 	p := ParsePattern("**/*lue/vol?ano/", nil)
 	r := p.Match([]string{"head", "value", "volcano"}, true)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_leadingAsterisks_isDir_mismatch() {
+func TestGlobMatch_leadingAsterisks_isDir_mismatch(t *testing.T) {
 	p := ParsePattern("**/*lue/vol?ano/", nil)
 	r := p.Match([]string{"head", "value", "Colcano"}, true)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_leadingAsterisks_isDirNoDirAtEnd_mismatch() {
+func TestGlobMatch_leadingAsterisks_isDirNoDirAtEnd_mismatch(t *testing.T) {
 	p := ParsePattern("**/*lue/vol?ano/", nil)
 	r := p.Match([]string{"head", "value", "volcano"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_tailingAsterisks() {
+func TestGlobMatch_tailingAsterisks(t *testing.T) {
 	p := ParsePattern("/*lue/vol?ano/**", nil)
 	r := p.Match([]string{"value", "volcano", "tail", "moretail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_tailingAsterisks_exactMatch() {
+func TestGlobMatch_tailingAsterisks_exactMatch(t *testing.T) {
 	p := ParsePattern("/*lue/vol?ano/**", nil)
 	r := p.Match([]string{"value", "volcano"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_middleAsterisks_emptyMatch() {
+func TestGlobMatch_middleAsterisks_emptyMatch(t *testing.T) {
 	p := ParsePattern("/*lue/**/vol?ano", nil)
 	r := p.Match([]string{"value", "volcano"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_middleAsterisks_oneMatch() {
+func TestGlobMatch_middleAsterisks_oneMatch(t *testing.T) {
 	p := ParsePattern("/*lue/**/vol?ano", nil)
 	r := p.Match([]string{"value", "middle", "volcano"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_middleAsterisks_multiMatch() {
+func TestGlobMatch_middleAsterisks_multiMatch(t *testing.T) {
 	p := ParsePattern("/*lue/**/vol?ano", nil)
 	r := p.Match([]string{"value", "middle1", "middle2", "volcano"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_middleAsterisks_isDir_trailing() {
+func TestGlobMatch_middleAsterisks_isDir_trailing(t *testing.T) {
 	p := ParsePattern("/*lue/**/vol?ano/", nil)
 	r := p.Match([]string{"value", "middle1", "middle2", "volcano"}, true)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_middleAsterisks_isDir_trailing_mismatch() {
+func TestGlobMatch_middleAsterisks_isDir_trailing_mismatch(t *testing.T) {
 	p := ParsePattern("/*lue/**/vol?ano/", nil)
 	r := p.Match([]string{"value", "middle1", "middle2", "volcano"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_middleAsterisks_isDir() {
+func TestGlobMatch_middleAsterisks_isDir(t *testing.T) {
 	p := ParsePattern("/*lue/**/vol?ano/", nil)
 	r := p.Match([]string{"value", "middle1", "middle2", "volcano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_wrongDoubleAsterisk_mismatch() {
+func TestGlobMatch_wrongDoubleAsterisk_mismatch(t *testing.T) {
 	p := ParsePattern("/*lue/**foo/vol?ano", nil)
 	r := p.Match([]string{"value", "foo", "volcano", "tail"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_magicChars() {
+func TestGlobMatch_magicChars(t *testing.T) {
 	p := ParsePattern("**/head/v[ou]l[kc]ano", nil)
 	r := p.Match([]string{"value", "head", "volcano"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_wrongPattern_noTraversal_mismatch() {
+func TestGlobMatch_wrongPattern_noTraversal_mismatch(t *testing.T) {
 	p := ParsePattern("**/head/v[ou]l[", nil)
 	r := p.Match([]string{"value", "head", "vol["}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_wrongPattern_onTraversal_mismatch() {
+func TestGlobMatch_wrongPattern_onTraversal_mismatch(t *testing.T) {
 	p := ParsePattern("/value/**/v[ou]l[", nil)
 	r := p.Match([]string{"value", "head", "vol["}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_issue_923() {
+func TestGlobMatch_issue_923(t *testing.T) {
 	p := ParsePattern("**/android/**/GeneratedPluginRegistrant.java", nil)
 	r := p.Match([]string{"packages", "flutter_tools", "lib", "src", "android", "gradle.dart"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_folderVersusFile() {
+func TestGlobMatch_folderVersusFile(t *testing.T) {
 	p := ParsePattern("/a*/**", nil)
 	r := p.Match([]string{"ab"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = NoMatch, r)
+	expected := NoMatch
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
 
-func TestGlobMatch_folderVersusFileAgain() {
+func TestGlobMatch_folderVersusFileAgain(t *testing.T) {
 	p := ParsePattern("/a*/**/a*", nil)
 	r := p.Match([]string{"ab", "ab"}, false)
-	if actual != expected { t.Errorf("Expected %v, got %v", expected, actual); return }; actual = Exclude, r)
+	expected := Exclude
+	if r != expected {
+		t.Errorf("Expected %v, got %v", expected, r)
+	}
 }
