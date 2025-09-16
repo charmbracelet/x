@@ -16,7 +16,11 @@ updates:
       - "dependencies"
     commit-message:
       prefix: "chore"
-      include: "scope"' >./.github/dependabot.yml
+      include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"' >./.github/dependabot.yml
 
 find . -type f -name go.mod | cut -f2- -d'/' | sort | while read -r mod; do
   echo '
@@ -31,5 +35,9 @@ find . -type f -name go.mod | cut -f2- -d'/' | sort | while read -r mod; do
       - "dependencies"
     commit-message:
       prefix: "chore"
-      include: "scope"' >>./.github/dependabot.yml
+      include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"' >>./.github/dependabot.yml
 done

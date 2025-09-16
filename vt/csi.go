@@ -8,14 +8,14 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-func (t *Emulator) handleCsi(cmd ansi.Cmd, params ansi.Params) {
-	t.flushGrapheme() // Flush any pending grapheme before handling CSI sequences.
-	if !t.handlers.handleCsi(cmd, params) {
-		t.logf("unhandled sequence: CSI %q", paramsString(cmd, params))
+func (e *Emulator) handleCsi(cmd ansi.Cmd, params ansi.Params) {
+	e.flushGrapheme() // Flush any pending grapheme before handling CSI sequences.
+	if !e.handlers.handleCsi(cmd, params) {
+		e.logf("unhandled sequence: CSI %q", paramsString(cmd, params))
 	}
 }
 
-func (t *Emulator) handleRequestMode(params ansi.Params, isAnsi bool) {
+func (e *Emulator) handleRequestMode(params ansi.Params, isAnsi bool) {
 	n, _, ok := params.Param(0, 0)
 	if !ok || n == 0 {
 		return
@@ -26,8 +26,8 @@ func (t *Emulator) handleRequestMode(params ansi.Params, isAnsi bool) {
 		mode = ansi.ANSIMode(n)
 	}
 
-	setting := t.modes[mode]
-	_, _ = io.WriteString(t.pw, ansi.ReportMode(mode, setting))
+	setting := e.modes[mode]
+	_, _ = io.WriteString(e.pw, ansi.ReportMode(mode, setting))
 }
 
 func paramsString(cmd ansi.Cmd, params ansi.Params) string {

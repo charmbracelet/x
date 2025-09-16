@@ -10,27 +10,27 @@ import (
 )
 
 // handlePrint handles printable characters.
-func (t *Emulator) handlePrint(r rune) {
+func (e *Emulator) handlePrint(r rune) {
 	if r >= ansi.SP && r < ansi.DEL {
-		if len(t.grapheme) > 0 {
+		if len(e.grapheme) > 0 {
 			// If we have a grapheme buffer, flush it before handling the ASCII character.
-			t.flushGrapheme()
+			e.flushGrapheme()
 		}
-		t.handleGrapheme(string(r), 1)
+		e.handleGrapheme(string(r), 1)
 	} else {
-		t.grapheme = append(t.grapheme, r)
+		e.grapheme = append(e.grapheme, r)
 	}
 }
 
 // flushGrapheme flushes the current grapheme buffer, if any, and handles the
 // grapheme as a single unit.
-func (t *Emulator) flushGrapheme() {
-	if len(t.grapheme) == 0 {
+func (e *Emulator) flushGrapheme() {
+	if len(e.grapheme) == 0 {
 		return
 	}
 
-	unicode := t.isModeSet(ansi.UnicodeCoreMode)
-	gr := string(t.grapheme)
+	unicode := e.isModeSet(ansi.UnicodeCoreMode)
+	gr := string(e.grapheme)
 
 	var cl string
 	var w int
@@ -55,28 +55,28 @@ func (t *Emulator) flushGrapheme() {
 				w += runewidth.RuneWidth(r)
 			}
 		}
-		t.handleGrapheme(cl, w)
+		e.handleGrapheme(cl, w)
 	}
-	t.grapheme = t.grapheme[:0] // Reset the grapheme buffer.
+	e.grapheme = e.grapheme[:0] // Reset the grapheme buffer.
 }
 
 // handleGrapheme handles UTF-8 graphemes.
-func (t *Emulator) handleGrapheme(content string, width int) {
-	awm := t.isModeSet(ansi.AutoWrapMode)
+func (e *Emulator) handleGrapheme(content string, width int) {
+	awm := e.isModeSet(ansi.AutoWrapMode)
 	cell := uv.Cell{
 		Content: content,
 		Width:   width,
-		Style:   t.scr.cursorPen(),
-		Link:    t.scr.cursorLink(),
+		Style:   e.scr.cursorPen(),
+		Link:    e.scr.cursorLink(),
 	}
 
-	x, y := t.scr.CursorPosition()
-	if t.atPhantom && awm {
+	x, y := e.scr.CursorPosition()
+	if e.atPhantom && awm {
 		// moves cursor down similar to [Terminal.linefeed] except it doesn't
 		// respects [ansi.LNM] mode.
 		// This will reset the phantom state i.e. pending wrap state.
-		t.index()
-		_, y = t.scr.CursorPosition()
+		e.index()
+		_, y = e.scr.CursorPosition()
 		x = 0
 	}
 
@@ -84,13 +84,13 @@ func (t *Emulator) handleGrapheme(content string, width int) {
 	if len(content) == 1 { //nolint:nestif
 		var charset CharSet
 		c := content[0]
-		if t.gsingle > 1 && t.gsingle < 4 {
-			charset = t.charsets[t.gsingle]
-			t.gsingle = 0
+		if e.gsingle > 1 && e.gsingle < 4 {
+			charset = e.charsets[e.gsingle]
+			e.gsingle = 0
 		} else if c < 128 {
-			charset = t.charsets[t.gl]
+			charset = e.charsets[e.gl]
 		} else {
-			charset = t.charsets[t.gr]
+			charset = e.charsets[e.gr]
 		}
 
 		if charset != nil {
@@ -102,17 +102,17 @@ func (t *Emulator) handleGrapheme(content string, width int) {
 	}
 
 	if cell.Width == 1 && len(content) == 1 {
-		t.lastChar, _ = utf8.DecodeRuneInString(content)
+		e.lastChar, _ = utf8.DecodeRuneInString(content)
 	}
 
-	t.scr.SetCell(x, y, &cell)
+	e.scr.SetCell(x, y, &cell)
 
 	// Handle phantom state at the end of the line
-	t.atPhantom = awm && x >= t.scr.Width()-1
-	if !t.atPhantom {
+	e.atPhantom = awm && x >= e.scr.Width()-1
+	if !e.atPhantom {
 		x += cell.Width
 	}
 
 	// NOTE: We don't reset the phantom state here, we handle it up above.
-	t.scr.setCursor(x, y, false)
+	e.scr.setCursor(x, y, false)
 }

@@ -15,6 +15,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/ansi"
@@ -28,6 +32,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/cellbuf"
@@ -41,6 +49,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/colors"
@@ -54,6 +66,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/conpty"
@@ -67,6 +83,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/editor"
@@ -80,6 +100,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/errors"
@@ -93,6 +117,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/examples"
@@ -106,6 +134,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/exp/charmtone"
@@ -119,6 +151,27 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/exp/color"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "America/New_York"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/exp/golden"
@@ -132,6 +185,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/exp/higherorder"
@@ -145,6 +202,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/exp/maps"
@@ -158,6 +219,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/exp/open"
@@ -171,6 +236,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/exp/ordered"
@@ -184,6 +253,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/exp/slice"
@@ -197,6 +270,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/exp/strings"
@@ -210,6 +287,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/exp/teatest"
@@ -223,6 +304,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/exp/teatest/v2"
@@ -236,6 +321,27 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/exp/toner"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "America/New_York"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/input"
@@ -249,6 +355,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/json"
@@ -262,6 +372,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/mosaic"
@@ -275,6 +389,27 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/powernap"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "05:00"
+      timezone: "America/New_York"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/sshkey"
@@ -288,6 +423,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/term"
@@ -301,6 +440,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/termios"
@@ -314,6 +457,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/vt"
@@ -327,6 +474,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/wcwidth"
@@ -340,6 +491,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/windows"
@@ -353,6 +508,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
 
   - package-ecosystem: "gomod"
     directory: "/xpty"
@@ -366,3 +525,7 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"

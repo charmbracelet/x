@@ -6,55 +6,55 @@ import (
 )
 
 // handleControl handles a control character.
-func (t *Emulator) handleControl(r byte) {
-	t.flushGrapheme() // Flush any pending grapheme before handling control codes.
-	if !t.handleCc(r) {
-		t.logf("unhandled sequence: ControlCode %q", r)
+func (e *Emulator) handleControl(r byte) {
+	e.flushGrapheme() // Flush any pending grapheme before handling control codes.
+	if !e.handleCc(r) {
+		e.logf("unhandled sequence: ControlCode %q", r)
 	}
 }
 
 // linefeed is the same as [index], except that it respects [ansi.LNM] mode.
-func (t *Emulator) linefeed() {
-	t.index()
-	if t.isModeSet(ansi.LineFeedNewLineMode) {
-		t.carriageReturn()
+func (e *Emulator) linefeed() {
+	e.index()
+	if e.isModeSet(ansi.LineFeedNewLineMode) {
+		e.carriageReturn()
 	}
 }
 
 // index moves the cursor down one line, scrolling up if necessary. This
 // always resets the phantom state i.e. pending wrap state.
-func (t *Emulator) index() {
-	x, y := t.scr.CursorPosition()
-	scroll := t.scr.ScrollRegion()
+func (e *Emulator) index() {
+	x, y := e.scr.CursorPosition()
+	scroll := e.scr.ScrollRegion()
 	// XXX: Handle scrollback whenever we add it.
 	if y == scroll.Max.Y-1 && x >= scroll.Min.X && x < scroll.Max.X {
-		t.scr.ScrollUp(1)
+		e.scr.ScrollUp(1)
 	} else if y < scroll.Max.Y-1 || !uv.Pos(x, y).In(scroll) {
-		t.scr.moveCursor(0, 1)
+		e.scr.moveCursor(0, 1)
 	}
-	t.atPhantom = false
+	e.atPhantom = false
 }
 
 // horizontalTabSet sets a horizontal tab stop at the current cursor position.
-func (t *Emulator) horizontalTabSet() {
-	x, _ := t.scr.CursorPosition()
-	t.tabstops.Set(x)
+func (e *Emulator) horizontalTabSet() {
+	x, _ := e.scr.CursorPosition()
+	e.tabstops.Set(x)
 }
 
 // reverseIndex moves the cursor up one line, or scrolling down. This does not
 // reset the phantom state i.e. pending wrap state.
-func (t *Emulator) reverseIndex() {
-	x, y := t.scr.CursorPosition()
-	scroll := t.scr.ScrollRegion()
+func (e *Emulator) reverseIndex() {
+	x, y := e.scr.CursorPosition()
+	scroll := e.scr.ScrollRegion()
 	if y == scroll.Min.Y && x >= scroll.Min.X && x < scroll.Max.X {
-		t.scr.ScrollDown(1)
+		e.scr.ScrollDown(1)
 	} else {
-		t.scr.moveCursor(0, -1)
+		e.scr.moveCursor(0, -1)
 	}
 }
 
 // backspace moves the cursor back one cell, if possible.
-func (t *Emulator) backspace() {
+func (e *Emulator) backspace() {
 	// This acts like [ansi.CUB]
-	t.moveCursor(-1, 0)
+	e.moveCursor(-1, 0)
 }

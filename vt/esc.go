@@ -5,9 +5,9 @@ import (
 )
 
 // handleEsc handles an escape sequence.
-func (t *Emulator) handleEsc(cmd ansi.Cmd) {
-	t.flushGrapheme() // Flush any pending grapheme before handling ESC sequences.
-	if !t.handlers.handleEsc(int(cmd)) {
+func (e *Emulator) handleEsc(cmd ansi.Cmd) {
+	e.flushGrapheme() // Flush any pending grapheme before handling ESC sequences.
+	if !e.handlers.handleEsc(int(cmd)) {
 		var str string
 		if inter := cmd.Intermediate(); inter != 0 {
 			str += string(inter) + " "
@@ -15,21 +15,21 @@ func (t *Emulator) handleEsc(cmd ansi.Cmd) {
 		if final := cmd.Final(); final != 0 {
 			str += string(final)
 		}
-		t.logf("unhandled sequence: ESC %q", str)
+		e.logf("unhandled sequence: ESC %q", str)
 	}
 }
 
 // fullReset performs a full terminal reset as in [ansi.RIS].
-func (t *Emulator) fullReset() {
-	t.scrs[0].Reset()
-	t.scrs[1].Reset()
-	t.resetTabStops()
+func (e *Emulator) fullReset() {
+	e.scrs[0].Reset()
+	e.scrs[1].Reset()
+	e.resetTabStops()
 
 	// XXX: Do we reset all modes here? Investigate.
-	t.resetModes()
+	e.resetModes()
 
-	t.gl, t.gr = 0, 1
-	t.gsingle = 0
-	t.charsets = [4]CharSet{}
-	t.atPhantom = false
+	e.gl, e.gr = 0, 1
+	e.gsingle = 0
+	e.charsets = [4]CharSet{}
+	e.atPhantom = false
 }

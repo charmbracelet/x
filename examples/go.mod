@@ -6,9 +6,9 @@ toolchain go1.24.5
 
 require (
 	github.com/charmbracelet/colorprofile v0.3.2
-	github.com/charmbracelet/fang v0.3.0
+	github.com/charmbracelet/fang v0.4.0
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta.2
+	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1
 	github.com/charmbracelet/x/ansi v0.10.1
 	github.com/charmbracelet/x/cellbuf v0.0.13
 	github.com/charmbracelet/x/exp/charmtone v0.0.0-20250603201427-c31516f43444
@@ -16,8 +16,8 @@ require (
 	github.com/charmbracelet/x/input v0.3.7
 	github.com/charmbracelet/x/mosaic v0.0.0-20250313150240-c09addb0e197
 	github.com/creack/pty v1.1.24
-	github.com/lucasb-eyer/go-colorful v1.2.0
-	github.com/spf13/cobra v1.9.1
+	github.com/lucasb-eyer/go-colorful v1.3.0
+	github.com/spf13/cobra v1.10.1
 )
 
 require (
@@ -33,7 +33,7 @@ require (
 	github.com/muesli/mango-pflag v0.1.0 // indirect
 	github.com/muesli/roff v0.1.0 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.9 // indirect
 	golang.org/x/text v0.28.0 // indirect
 )
 

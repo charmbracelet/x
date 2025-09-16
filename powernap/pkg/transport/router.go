@@ -10,7 +10,7 @@ import (
 )
 
 // Handler is a function that handles incoming messages.
-type Handler func(ctx context.Context, method string, params json.RawMessage) (interface{}, error)
+type Handler func(ctx context.Context, method string, params json.RawMessage) (any, error)
 
 // NotificationHandler is a function that handles incoming notifications.
 type NotificationHandler func(ctx context.Context, method string, params json.RawMessage)
@@ -53,7 +53,7 @@ func (r *Router) SetDefaultHandler(handler Handler) {
 }
 
 // Route routes a message to the appropriate handler.
-func (r *Router) Route(ctx context.Context, req *jsonrpc2.Request) (interface{}, error) {
+func (r *Router) Route(ctx context.Context, req *jsonrpc2.Request) (any, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 

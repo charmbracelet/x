@@ -19,7 +19,8 @@ use (
 	./exp/strings
 	./exp/teatest
 	./exp/teatest/v2
-	./git/ignore
+	./exp/toner
+  ./git/ignore
 	./input
 	./json
 	./mosaic

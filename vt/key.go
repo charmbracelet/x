@@ -22,11 +22,11 @@ const (
 type KeyPressEvent = uv.KeyPressEvent
 
 // SendKey returns the default key map.
-func (t *Emulator) SendKey(k uv.KeyEvent) {
+func (e *Emulator) SendKey(k uv.KeyEvent) {
 	var seq string
 
-	ack := t.isModeSet(ansi.CursorKeysMode)    // Application cursor keys mode
-	akk := t.isModeSet(ansi.NumericKeypadMode) // Application keypad keys mode
+	ack := e.isModeSet(ansi.CursorKeysMode)    // Application cursor keys mode
+	akk := e.isModeSet(ansi.NumericKeypadMode) // Application keypad keys mode
 
 	//nolint:godox
 	// TODO: Support Kitty, CSI u, and XTerm modifyOtherKeys.
@@ -297,7 +297,7 @@ func (t *Emulator) SendKey(k uv.KeyEvent) {
 			}
 		}
 
-		io.WriteString(t.pw, seq) //nolint:errcheck,gosec
+		io.WriteString(e.pw, seq) //nolint:errcheck,gosec
 	}
 }
 

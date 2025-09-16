@@ -7,6 +7,6 @@ import (
 
 // handleSgr handles SGR escape sequences.
 // handleSgr handles Select Graphic Rendition (SGR) escape sequences.
-func (t *Emulator) handleSgr(params ansi.Params) {
-	uv.ReadStyle(params, &t.scr.cur.Pen)
+func (e *Emulator) handleSgr(params ansi.Params) {
+	uv.ReadStyle(params, &e.scr.cur.Pen)
 }

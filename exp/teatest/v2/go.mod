@@ -1,6 +1,6 @@
 module github.com/charmbracelet/x/exp/teatest/v2
 
-go 1.23.0
+go 1.24.0
 
 require (
 	github.com/charmbracelet/bubbletea/v2 v2.0.0-beta.3.0.20250617194119-3f1d09f7d826

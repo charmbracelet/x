@@ -34,14 +34,15 @@ jobs:
       run:
         working-directory: $(dirname "$mod")
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: $mod
           cache: true
           cache-dependency-path: $sum
       - run: go build -v ./...
       - run: go test -race -v ./...
+
   dependabot:
     needs: [build]
     runs-on: ubuntu-latest
@@ -60,9 +61,40 @@ jobs:
         env:
           PR_URL: \${{github.event.pull_request.html_url}}
           GITHUB_TOKEN: \${{secrets.GITHUB_TOKEN}}
+
   lint:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
       directory: $(dirname "$mod")/...
+
+  coverage:
+    strategy:
+      matrix:
+        go-version: [^1]
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        working-directory: $(dirname "$mod")
+    runs-on: \${{ matrix.os }}
+    env:
+      GO111MODULE: \"on\"
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: \${{ matrix.go-version }}
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Coverage
+        run: |
+          go test -race -covermode=atomic -coverprofile='coverage.txt' ./...
+
+      - uses: codecov/codecov-action@v5
+        with:
+          file: ./coverage.txt
+          token: \${{ secrets.CODECOV_TOKEN }}
+
 " >"./.github/workflows/${name}.yml"
 done
