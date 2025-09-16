@@ -20,7 +20,7 @@ use (
 	./exp/teatest
 	./exp/teatest/v2
 	./exp/toner
-  ./git/ignore
+	./gitignore
 	./input
 	./json
 	./mosaic
