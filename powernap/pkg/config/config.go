@@ -1,3 +1,4 @@
+// Package config represents configuration management for language servers.
 package config
 
 import (
@@ -429,8 +430,8 @@ func defaultServers() map[string]*ServerConfig {
 		"zls": {
 			Command:           "zls",
 			Args:              []string{},
-			FileTypes:         []string{"zig"},
-			RootMarkers:       []string{"build.zig", ".git"},
+			FileTypes:         []string{"zig", "zir"},
+			RootMarkers:       []string{"build.zig", ".git", "zls.json"},
 			Settings:          map[string]any{},
 			EnableSnippets:    true,
 			SingleFileSupport: true,

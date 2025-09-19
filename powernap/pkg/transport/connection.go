@@ -118,12 +118,3 @@ func (c *Connection) Close() error {
 func (c *Connection) IsConnected() bool {
 	return !c.closed.Load()
 }
-
-// generateID generates a unique request ID.
-func (c *Connection) generateID() jsonrpc2.ID {
-	id := atomic.AddInt64(&c.nextID, 1)
-	return jsonrpc2.ID{
-		Num:      uint64(id),
-		IsString: false,
-	}
-}

@@ -6760,6 +6760,7 @@ const (
 	LangKotlin          LanguageKind = "kotlin"
 	LangVue             LanguageKind = "vue"
 	LangSvelte          LanguageKind = "svelte"
+	LangZig             LanguageKind = "zig"
 	// Describes the content type that a client supports in various
 	// result literals like `Hover`, `ParameterInfo` or `CompletionItem`.
 	//
