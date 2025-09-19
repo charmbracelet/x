@@ -150,6 +150,8 @@ func DetectLanguage(path string) protocol.LanguageKind {
 		return protocol.LangVue
 	case ".svelte":
 		return protocol.LangSvelte
+	case ".zig", ".zir":
+		return protocol.LangZig
 	default:
 		return protocol.LanguageKind("") // Unknown language
 	}

@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -46,12 +47,8 @@ func NewWithLogger(logger *slog.Logger) *Registry {
 func (r *Registry) LoadConfig(cfg *config.Manager) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-
 	servers := cfg.GetServers()
-	for name, serverCfg := range servers {
-		r.configs[name] = serverCfg
-	}
-
+	maps.Copy(r.configs, servers)
 	return nil
 }
 
@@ -176,7 +173,7 @@ func (r *Registry) GetClientsForFile(ctx context.Context, filePath string) ([]*l
 	}
 
 	// Detect language from file
-	language := detectLanguage(absPath)
+	language := string(lsp.DetectLanguage(absPath))
 	if language == "" {
 		return nil, fmt.Errorf("unsupported file type: %s", filepath.Ext(absPath))
 	}
@@ -317,115 +314,4 @@ func fileExists(path string) bool {
 		return false
 	}
 	return true
-}
-
-// detectLanguage detects the language ID from file path.
-func detectLanguage(filePath string) string {
-	ext := strings.ToLower(filepath.Ext(filePath))
-	base := filepath.Base(filePath)
-
-	// Check specific filenames first
-	switch base {
-	case "Dockerfile":
-		return "dockerfile"
-	case "Makefile", "makefile", "GNUmakefile":
-		return "makefile"
-	case "go.mod", "go.sum":
-		return "go.mod"
-	case "Cargo.toml", "Cargo.lock":
-		return "toml"
-	case "package.json", "tsconfig.json", "jsconfig.json":
-		return "json"
-	case "pyproject.toml":
-		return "toml"
-	}
-
-	// Check extensions
-	switch ext {
-	case ".go":
-		return "go"
-	case ".rs":
-		return "rust"
-	case ".js", ".mjs", ".cjs":
-		return "javascript"
-	case ".ts":
-		return "typescript"
-	case ".tsx":
-		return "typescriptreact"
-	case ".jsx":
-		return "javascriptreact"
-	case ".py", ".pyi":
-		return "python"
-	case ".c":
-		return "c"
-	case ".cpp", ".cc", ".cxx", ".c++":
-		return "cpp"
-	case ".h":
-		// Could be C or C++, default to C
-		return "c"
-	case ".hpp", ".hh", ".hxx", ".h++":
-		return "cpp"
-	case ".java":
-		return "java"
-	case ".rb":
-		return "ruby"
-	case ".php":
-		return "php"
-	case ".lua":
-		return "lua"
-	case ".json", ".jsonc":
-		return "json"
-	case ".yaml", ".yml":
-		return "yaml"
-	case ".toml":
-		return "toml"
-	case ".md", ".markdown":
-		return "markdown"
-	case ".html", ".htm":
-		return "html"
-	case ".css":
-		return "css"
-	case ".scss":
-		return "scss"
-	case ".sass":
-		return "sass"
-	case ".less":
-		return "less"
-	case ".xml":
-		return "xml"
-	case ".sh", ".bash":
-		return "shellscript"
-	case ".zsh":
-		return "shellscript"
-	case ".fish":
-		return "fish"
-	case ".vim":
-		return "vim"
-	case ".tex":
-		return "latex"
-	case ".r":
-		return "r"
-	case ".sql":
-		return "sql"
-	case ".swift":
-		return "swift"
-	case ".kt", ".kts":
-		return "kotlin"
-	case ".scala":
-		return "scala"
-	case ".clj", ".cljs", ".cljc":
-		return "clojure"
-	case ".ex", ".exs":
-		return "elixir"
-	case ".erl", ".hrl":
-		return "erlang"
-	case ".dart":
-		return "dart"
-	case ".vue":
-		return "vue"
-	case ".svelte":
-		return "svelte"
-	default:
-		return ""
-	}
 }
