@@ -1,12 +1,12 @@
 module github.com/charmbracelet/x/examples
 
-go 1.24.0
+go 1.24.2
 
 toolchain go1.24.5
 
 require (
 	github.com/charmbracelet/colorprofile v0.3.2
-	github.com/charmbracelet/fang v0.4.0
+	github.com/charmbracelet/fang v0.4.2
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1
 	github.com/charmbracelet/x/ansi v0.10.1
@@ -24,7 +24,7 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymanbagabas/go-udiff v0.3.1 // indirect
 	github.com/bits-and-blooms/bitset v1.24.0 // indirect
-	github.com/charmbracelet/x/windows v0.2.1 // indirect
+	github.com/charmbracelet/x/windows v0.2.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
@@ -43,5 +43,5 @@ require (
 	github.com/rivo/uniseg v0.4.7
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	golang.org/x/image v0.25.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 )
