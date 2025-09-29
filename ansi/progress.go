@@ -17,7 +17,7 @@ const ResetProgress = "\x1b]9;4;0\x07"
 //
 // See: https://learn.microsoft.com/en-us/windows/terminal/tutorials/progress-bar-sequences
 func SetProgress(percentage int) string {
-	return "\x1b]9;4;1;" + strconv.Itoa(percentage) + "\x07"
+	return "\x1b]9;4;1;" + strconv.Itoa(min(max(0, percentage), 100)) + "\x07"
 }
 
 // SetErrorProgress returns a sequence for setting the progress bar to a specific
@@ -27,7 +27,7 @@ func SetProgress(percentage int) string {
 //
 // See: https://learn.microsoft.com/en-us/windows/terminal/tutorials/progress-bar-sequences
 func SetErrorProgress(percentage int) string {
-	return "\x1b]9;4;2;" + strconv.Itoa(percentage) + "\x07"
+	return "\x1b]9;4;2;" + strconv.Itoa(min(max(0, percentage), 100)) + "\x07"
 }
 
 // SetIntermitentProgress is a sequence that sets the progress bar to the
