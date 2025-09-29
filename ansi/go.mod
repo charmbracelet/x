@@ -5,6 +5,6 @@ go 1.24.0
 require (
 	github.com/bits-and-blooms/bitset v1.24.0
 	github.com/lucasb-eyer/go-colorful v1.3.0
-	github.com/mattn/go-runewidth v0.0.16
+	github.com/mattn/go-runewidth v0.0.17
 	github.com/rivo/uniseg v0.4.7
 )
