@@ -104,5 +104,5 @@ func WaitProcess(ctx context.Context, cmd *exec.Cmd) (err error) {
 		err = r.error
 	}
 
-	return
+	return err
 }

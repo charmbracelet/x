@@ -16,7 +16,7 @@ func TestRender(t *testing.T) {
 	}
 
 	// Create options
-	var mosaic = New().Width(80).Height(40)
+	mosaic := New().Width(80).Height(40)
 
 	result := mosaic.Render(raw)
 
@@ -44,7 +44,7 @@ func TestRender(t *testing.T) {
 `
 
 	if !reflect.DeepEqual(result, expected) {
-		a := os.WriteFile("/tmp/dat1", []byte(result), 0644)
+		a := os.WriteFile("/tmp/dat1", []byte(result), 0o644)
 		t.Log(a)
 		t.Errorf("Result and expected does not match = %v, want %v", result, expected)
 	}

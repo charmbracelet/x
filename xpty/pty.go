@@ -46,7 +46,7 @@ func (p *UnixPty) Close() (err error) {
 	if err := p.master.Close(); err != nil {
 		return err //nolint:wrapcheck
 	}
-	return
+	return err
 }
 
 // Fd implements XPTY.

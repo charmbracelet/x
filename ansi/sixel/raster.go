@@ -45,7 +45,7 @@ func (r Raster) String() string {
 // the number of bytes read.
 func DecodeRaster(data []byte) (r Raster, n int) {
 	if len(data) == 0 || data[0] != RasterAttribute {
-		return
+		return r, n
 	}
 
 	ptr := &r.Pan
@@ -68,5 +68,5 @@ func DecodeRaster(data []byte) (r Raster, n int) {
 		}
 	}
 
-	return
+	return r, n
 }

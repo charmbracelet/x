@@ -249,7 +249,7 @@ func encodeSequence(s string) (evs []xwindows.InputRecord) {
 		state = newState
 		s = s[n:]
 	}
-	return
+	return evs
 }
 
 func encodeUtf16Rune(r rune) []xwindows.InputRecord {

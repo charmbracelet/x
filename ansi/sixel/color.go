@@ -50,11 +50,11 @@ func FromColor(c color.Color) Color {
 // the number of bytes read.
 func DecodeColor(data []byte) (c Color, n int) {
 	if len(data) == 0 || data[0] != ColorIntroducer {
-		return //nolint:nakedret
+		return c, n
 	}
 
 	if len(data) < 2 { // The minimum length is 2: the introducer and a digit.
-		return //nolint:nakedret
+		return c, n
 	}
 
 	// Parse the color number and optional color system.
@@ -93,7 +93,7 @@ func DecodeColor(data []byte) (c Color, n int) {
 		}
 	}
 
-	return //nolint:nakedret
+	return c, n
 }
 
 // Color represents a Sixel color.

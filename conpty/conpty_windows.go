@@ -95,7 +95,7 @@ func New(w int, h int, flags int) (c *ConPty, err error) {
 		return nil, fmt.Errorf("failed to update proc thread attributes for pseudo console: %w", err)
 	}
 
-	return
+	return c, err
 }
 
 // Fd returns the ConPty handle.
@@ -164,7 +164,7 @@ func (c *ConPty) Resize(w int, h int) error {
 func (c *ConPty) Size() (w int, h int, err error) {
 	w = int(c.size.X)
 	h = int(c.size.Y)
-	return
+	return w, h, err
 }
 
 var zeroAttr syscall.ProcAttr

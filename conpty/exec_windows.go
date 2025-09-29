@@ -80,7 +80,7 @@ func execEnvDefault(sys *syscall.SysProcAttr) (env []string, err error) {
 		env = append(env, string(utf16.Decode(entry)))
 		blockp += 2 * (uintptr(len(entry)) + 1)
 	}
-	return
+	return env, err
 }
 
 func isSlash(c uint8) bool {

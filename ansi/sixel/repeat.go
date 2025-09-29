@@ -38,11 +38,11 @@ func (r Repeat) String() string {
 // the number of bytes read.
 func DecodeRepeat(data []byte) (r Repeat, n int) {
 	if len(data) == 0 || data[0] != RepeatIntroducer {
-		return
+		return r, n
 	}
 
 	if len(data) < 3 { // The minimum length is 3: the introducer, a digit, and a character.
-		return
+		return r, n
 	}
 
 	for n = 1; n < len(data); n++ {
@@ -55,5 +55,5 @@ func DecodeRepeat(data []byte) (r Repeat, n int) {
 		}
 	}
 
-	return
+	return r, n
 }

@@ -196,7 +196,7 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 		// Method #0: Use [ansi.CUP] if the distance is long.
 		seq = ansi.CursorPosition(x+1, y+1)
 		if fx == -1 || fy == -1 || notLocal(s.newbuf.Width(), fx, fy, x, y) {
-			return //nolint:nakedret
+			return seq //nolint:nakedret
 		}
 	}
 
@@ -240,7 +240,7 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 		}
 	}
 
-	return //nolint:nakedret
+	return seq //nolint:nakedret
 }
 
 // moveCursor moves the cursor to the specified position.
@@ -545,7 +545,7 @@ func (v capabilities) Contains(c capabilities) bool {
 func xtermCaps(termtype string) (v capabilities) {
 	parts := strings.Split(termtype, "-")
 	if len(parts) == 0 {
-		return //nolint:nakedret
+		return v //nolint:nakedret
 	}
 
 	switch parts[0] {
@@ -572,7 +572,7 @@ func xtermCaps(termtype string) (v capabilities) {
 		v = capVPA | capHPA | capECH | capICH
 	}
 
-	return //nolint:nakedret
+	return v //nolint:nakedret
 }
 
 // NewScreen creates a new Screen.
@@ -607,7 +607,7 @@ func NewScreen(w io.Writer, width, height int, opts *ScreenOptions) (s *Screen) 
 	s.saved = s.cur
 	s.reset()
 
-	return //nolint:nakedret
+	return s //nolint:nakedret
 }
 
 // Width returns the width of the screen.
@@ -807,7 +807,7 @@ func (s *Screen) emitRange(line Line, n int) (eoi bool) {
 		n -= count
 	}
 
-	return //nolint:nakedret
+	return eoi //nolint:nakedret
 }
 
 // putRange puts a range of cells from the old line to the new line.
@@ -1157,7 +1157,7 @@ func (s *Screen) clearToBottom(blank *Cell) {
 // It returns the top line.
 func (s *Screen) clearBottom(total int) (top int) {
 	if total <= 0 {
-		return //nolint:nakedret
+		return top //nolint:nakedret
 	}
 
 	top = total
@@ -1200,7 +1200,7 @@ func (s *Screen) clearBottom(total int) (top int) {
 		}
 	}
 
-	return //nolint:nakedret
+	return top //nolint:nakedret
 }
 
 // clearScreen clears the screen and put cursor at home.
@@ -1253,7 +1253,7 @@ func (s *Screen) flush() (err error) {
 		}
 	}
 
-	return
+	return err
 }
 
 // Render renders changes of the screen to the internal buffer. Call
@@ -1428,11 +1428,11 @@ func (s *Screen) Close() (err error) {
 	// Write the buffer
 	err = s.flush()
 	if err != nil {
-		return
+		return err
 	}
 
 	s.reset()
-	return
+	return err
 }
 
 // reset resets the screen to its initial state.

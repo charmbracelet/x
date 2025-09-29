@@ -25,7 +25,7 @@ func NewCell(r rune, comb ...rune) (c *Cell) {
 	}
 	c.Comb = comb
 	c.Width = runewidth.StringWidth(string(append([]rune{r}, comb...)))
-	return
+	return c
 }
 
 // NewCellString returns a new cell with the given string content. This is a
@@ -47,7 +47,7 @@ func NewCellString(s string) (c *Cell) {
 			c.Comb = append(c.Comb, r)
 		}
 	}
-	return
+	return c
 }
 
 // NewGraphemeCell returns a new cell. This is a convenience function that
@@ -72,7 +72,7 @@ func newGraphemeCell(s string, w int) (c *Cell) {
 			c.Comb = append(c.Comb, r)
 		}
 	}
-	return
+	return c
 }
 
 // Line represents a line in the terminal.
@@ -105,7 +105,7 @@ func (l Line) String() (s string) {
 		}
 	}
 	s = strings.TrimRight(s, " ")
-	return
+	return s
 }
 
 // At returns the cell at the given x position.
@@ -207,7 +207,7 @@ func (b *Buffer) String() (s string) {
 			s += "\r\n"
 		}
 	}
-	return
+	return s
 }
 
 // Line returns a pointer to the line at the given y position.

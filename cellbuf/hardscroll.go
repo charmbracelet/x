@@ -133,7 +133,7 @@ func (s *Screen) scrolln(n, top, bot, maxY int) (v bool) { //nolint:unparam
 	}
 
 	if !v {
-		return //nolint:nakedret
+		return v //nolint:nakedret
 	}
 
 	s.scrollBuffer(s.curbuf, n, top, bot, blank)

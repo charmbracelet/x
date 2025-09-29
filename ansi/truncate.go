@@ -295,5 +295,5 @@ func ByteToGraphemeRange(str string, byteStart, byteStop int) (charStart, charSt
 		charPos += max(1, gr.Width())
 	}
 	charStop = charPos
-	return
+	return charStart, charStop
 }
