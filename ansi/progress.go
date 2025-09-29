@@ -30,10 +30,10 @@ func SetErrorProgress(percentage int) string {
 	return "\x1b]9;4;2;" + strconv.Itoa(min(max(0, percentage), 100)) + "\x07"
 }
 
-// SetIntermitentProgress is a sequence that sets the progress bar to the
-// intermitent state.
+// SetIndeterminateProgress is a sequence that sets the progress bar to the
+// indeterminate state.
 //
 // OSC 9 ; 4 ; 3 BEL
 //
 // See: https://learn.microsoft.com/en-us/windows/terminal/tutorials/progress-bar-sequences
-const SetIntermitentProgress = "\x1b]9;4;3\x07"
+const SetIndeterminateProgress = "\x1b]9;4;3\x07"
