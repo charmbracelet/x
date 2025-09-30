@@ -196,7 +196,7 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 		// Method #0: Use [ansi.CUP] if the distance is long.
 		seq = ansi.CursorPosition(x+1, y+1)
 		if fx == -1 || fy == -1 || notLocal(s.newbuf.Width(), fx, fy, x, y) {
-			return seq //nolint:nakedret
+			return seq
 		}
 	}
 
@@ -240,7 +240,7 @@ func moveCursor(s *Screen, x, y int, overwrite bool) (seq string) {
 		}
 	}
 
-	return seq //nolint:nakedret
+	return seq
 }
 
 // moveCursor moves the cursor to the specified position.
@@ -545,7 +545,7 @@ func (v capabilities) Contains(c capabilities) bool {
 func xtermCaps(termtype string) (v capabilities) {
 	parts := strings.Split(termtype, "-")
 	if len(parts) == 0 {
-		return v //nolint:nakedret
+		return v
 	}
 
 	switch parts[0] {
@@ -572,7 +572,7 @@ func xtermCaps(termtype string) (v capabilities) {
 		v = capVPA | capHPA | capECH | capICH
 	}
 
-	return v //nolint:nakedret
+	return v
 }
 
 // NewScreen creates a new Screen.
@@ -607,7 +607,7 @@ func NewScreen(w io.Writer, width, height int, opts *ScreenOptions) (s *Screen) 
 	s.saved = s.cur
 	s.reset()
 
-	return s //nolint:nakedret
+	return s
 }
 
 // Width returns the width of the screen.
@@ -807,7 +807,7 @@ func (s *Screen) emitRange(line Line, n int) (eoi bool) {
 		n -= count
 	}
 
-	return eoi //nolint:nakedret
+	return eoi
 }
 
 // putRange puts a range of cells from the old line to the new line.
@@ -1157,7 +1157,7 @@ func (s *Screen) clearToBottom(blank *Cell) {
 // It returns the top line.
 func (s *Screen) clearBottom(total int) (top int) {
 	if total <= 0 {
-		return top //nolint:nakedret
+		return top
 	}
 
 	top = total
@@ -1200,7 +1200,7 @@ func (s *Screen) clearBottom(total int) (top int) {
 		}
 	}
 
-	return top //nolint:nakedret
+	return top
 }
 
 // clearScreen clears the screen and put cursor at home.
