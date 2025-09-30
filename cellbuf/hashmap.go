@@ -15,7 +15,7 @@ func hash(l Line) (h uint64) {
 		}
 		h += (h << 5) + uint64(r)
 	}
-	return
+	return h
 }
 
 // hashmap represents a single [Line] hash.
@@ -287,7 +287,7 @@ func (s *Screen) updateCost(from, to Line) (cost int) {
 			cost++
 		}
 	}
-	return
+	return cost
 }
 
 func (s *Screen) updateCostBlank(to Line) (cost int) {
@@ -297,5 +297,5 @@ func (s *Screen) updateCostBlank(to Line) (cost int) {
 			cost++
 		}
 	}
-	return
+	return cost
 }

@@ -572,7 +572,7 @@ func translateControlKeyState(cks uint32) (m KeyMod) {
 	if cks&xwindows.SCROLLLOCK_ON != 0 {
 		m |= ModScrollLock
 	}
-	return
+	return m
 }
 
 //nolint:unused

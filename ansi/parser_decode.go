@@ -490,7 +490,7 @@ func Command(prefix, inter, final byte) (c int) {
 	c = int(final)
 	c |= int(prefix) << parser.PrefixShift
 	c |= int(inter) << parser.IntermedShift
-	return
+	return c
 }
 
 // Param represents a sequence parameter. Sequence parameters with
@@ -520,5 +520,5 @@ func Parameter(p int, hasMore bool) (s int) {
 	if hasMore {
 		s |= parser.HasMoreFlag
 	}
-	return
+	return s
 }

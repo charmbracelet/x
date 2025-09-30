@@ -61,7 +61,7 @@ type URI = string
 // The empty DocumentUri is valid.
 func (uri *DocumentURI) UnmarshalText(data []byte) (err error) {
 	*uri, err = ParseDocumentURI(string(data))
-	return
+	return err
 }
 
 // Path returns the file path for the given URI.

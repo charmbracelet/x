@@ -96,7 +96,7 @@ func (c *Cell) Clear() bool {
 func (c *Cell) Clone() (n *Cell) {
 	n = new(Cell)
 	*n = *c
-	return
+	return n
 }
 
 // Blank makes the cell a blank cell by setting the rune to a space, comb to
