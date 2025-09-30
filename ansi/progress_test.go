@@ -49,3 +49,27 @@ func TestSetErrorProgressAbove100(t *testing.T) {
 		t.Errorf("SetErrorProgress(200) = %q, want %q", got, expect)
 	}
 }
+
+func TestSetWarningProgress(t *testing.T) {
+	expect := "\x1b]9;4;4;50\x07"
+	got := SetWarningProgressBar(50)
+	if expect != got {
+		t.Errorf("SetProgress(50) = %q, want %q", got, expect)
+	}
+}
+
+func TestSetWarningProgressNegative(t *testing.T) {
+	expect := "\x1b]9;4;4;0\x07"
+	got := SetWarningProgressBar(-2)
+	if expect != got {
+		t.Errorf("SetWarningProgress(-2) = %q, want %q", got, expect)
+	}
+}
+
+func TestSetWarningProgressAbove100(t *testing.T) {
+	expect := "\x1b]9;4;4;100\x07"
+	got := SetWarningProgressBar(200)
+	if expect != got {
+		t.Errorf("SetWarningProgress(200) = %q, want %q", got, expect)
+	}
+}
