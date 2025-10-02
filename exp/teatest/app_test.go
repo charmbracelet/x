@@ -41,8 +41,13 @@ func TestApp(t *testing.T) {
 	}
 	teatest.RequireEqualOutput(t, out)
 
-	if tm.FinalModel(t).(model) != 9 {
-		t.Errorf("expected model to be 10, was %d", m)
+	fm := tm.FinalModel(t)
+	if fm == nil {
+		t.Fatal("expected a model, got nil")
+	}
+
+	if fmm, ok := fm.(model); !ok || fmm != 9 {
+		t.Errorf("expected model to be 9, was %d", m)
 	}
 }
 
@@ -72,7 +77,12 @@ func TestAppInteractive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if tm.FinalModel(t).(model) != 7 {
+	fm := tm.FinalModel(t)
+	if fm == nil {
+		t.Fatal("expected a model, got nil")
+	}
+
+	if fmm, ok := fm.(model); !ok || fmm != 7 {
 		t.Errorf("expected model to be 7, was %d", m)
 	}
 }
