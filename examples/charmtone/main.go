@@ -24,7 +24,7 @@ func main() {
 		Use:   "charmtone",
 		Short: "CharmTone color palette tool",
 		Long:  "A command line tool for rendering the CharmTone color palette in various formats",
-		Run: func(cmd *cobra.Command, _ []string) {
+		Run: func(_ *cobra.Command, _ []string) {
 			renderGuide()
 		},
 	}
