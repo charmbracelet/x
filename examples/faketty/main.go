@@ -79,7 +79,7 @@ func main() {
 	}
 
 	n := flag.NFlag()
-	c := exec.Command(os.Args[n+1], os.Args[n+2:]...) //nolint:gosec
+	c := exec.Command(os.Args[n+1], os.Args[n+2:]...) //nolint:gosec,noctx
 	c.Stdout = pts1
 	c.Stderr = pts2
 	c.Stdin = newStdin
