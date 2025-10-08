@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"io"
 	"iter"
 	"os"
@@ -198,8 +199,13 @@ func renderGuide() {
 }
 
 func blendKeys(size int, keys ...charmtone.Key) string {
+	stops := make([]color.Color, len(keys))
+	for i := range keys {
+		stops[i] = color.Color(keys[i])
+	}
+
 	var w strings.Builder
-	for _, c := range charmtone.Blend(size, keys...) {
+	for _, c := range lipgloss.Blend1D(size, stops...) {
 		fmt.Fprint(&w, lipgloss.NewStyle().Background(c).Render(" "))
 	}
 	return w.String()
