@@ -9,7 +9,6 @@ use (
 	./errors
 	./examples
 	./exp/charmtone
-	./exp/color
 	./exp/golden
 	./exp/higherorder
 	./exp/maps
