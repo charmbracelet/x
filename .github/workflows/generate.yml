@@ -21,7 +21,7 @@ jobs:
           cache: true
       - run: ./scripts/dependabot
       - run: ./scripts/builds
-      - uses: stefanzweifel/git-auto-commit-action@v6
+      - uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: "ci: auto-update configuration"
           branch: main
