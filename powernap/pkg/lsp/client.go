@@ -386,6 +386,32 @@ func (c *Client) RequestHover(ctx context.Context, uri string, position protocol
 	return &result, nil
 }
 
+// FindReferences finds all references to the symbol at the given position.
+func (c *Client) FindReferences(ctx context.Context, filepath string, line, character int, includeDeclaration bool) ([]protocol.Location, error) {
+	uri := string(protocol.URIFromPath(filepath))
+	params := protocol.ReferenceParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{
+				URI: protocol.DocumentURI(uri),
+			},
+			Position: protocol.Position{
+				Line:      uint32(line),
+				Character: uint32(character),
+			},
+		},
+		Context: protocol.ReferenceContext{
+			IncludeDeclaration: includeDeclaration,
+		},
+	}
+
+	var result []protocol.Location
+	err := c.conn.Call(ctx, MethodTextDocumentReferences, params, &result)
+	if err != nil {
+		return nil, fmt.Errorf("find references request failed: %w", err)
+	}
+	return result, nil
+}
+
 // setupHandlers registers handlers for server-initiated requests.
 func (c *Client) setupHandlers() {
 	// Handle workspace/configuration requests
