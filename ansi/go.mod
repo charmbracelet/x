@@ -1,6 +1,6 @@
 module github.com/charmbracelet/x/ansi
 
-go 1.24.0
+go 1.24.2
 
 require (
 	github.com/bits-and-blooms/bitset v1.24.0
