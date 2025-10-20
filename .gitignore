@@ -20,3 +20,6 @@
 # Allow graphics used for benchmarks
 !ansi/fixtures/graphics/*.png
 !mosaic/fixtures/*.png
+
+go.work
+go.work.sum
