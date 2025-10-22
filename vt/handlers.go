@@ -802,7 +802,7 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 			_, _ = io.WriteString(e.pw, ansi.DeviceStatusReport(ansi.DECStatusReport(0)))
 		case 6: // Cursor Position Report [ansi.CPR]
 			x, y := e.scr.CursorPosition()
-			_, _ = io.WriteString(e.pw, ansi.CursorPositionReport(x+1, y+1))
+			_, _ = io.WriteString(e.pw, ansi.CursorPositionReport(y+1, x+1))
 		default:
 			return false
 		}
@@ -819,7 +819,7 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		switch n {
 		case 6: // Extended Cursor Position Report [ansi.DECXCPR]
 			x, y := e.scr.CursorPosition()
-			_, _ = io.WriteString(e.pw, ansi.ExtendedCursorPositionReport(x+1, y+1, 0)) // We don't support page numbers //nolint:errcheck
+			_, _ = io.WriteString(e.pw, ansi.ExtendedCursorPositionReport(y+1, x+1, 0)) // We don't support page numbers //nolint:errcheck
 		default:
 			return false
 		}
