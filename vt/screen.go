@@ -1,6 +1,8 @@
 package vt
 
 import (
+	"sync"
+
 	uv "github.com/charmbracelet/ultraviolet"
 )
 
@@ -14,11 +16,16 @@ type Screen struct {
 	cur, saved Cursor
 	// scroll is the scroll region.
 	scroll uv.Rectangle
+	// scrollback is the scrollback buffer for lines that have scrolled off the top.
+	scrollback *Scrollback
+	// mutex for the screen.
+	mu sync.RWMutex
 }
 
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
 	s := Screen{}
+	s.scrollback = NewScrollback(0) // Use default size
 	s.Resize(w, h)
 	return &s
 }
@@ -256,9 +263,31 @@ func (s *Screen) DeleteCell(n int) {
 }
 
 // ScrollUp scrolls the content up n lines within the given region. Lines
-// scrolled past the top margin are lost. This is equivalent to [ansi.SU] which
-// moves the cursor to the top margin and performs a [ansi.DL] operation.
+// scrolled past the top margin are saved to the scrollback buffer if the
+// scroll region encompasses the full screen width and starts at the top.
+// This is equivalent to [ansi.SU] which moves the cursor to the top margin
+// and performs a [ansi.DL] operation.
 func (s *Screen) ScrollUp(n int) {
+	if n <= 0 {
+		return
+	}
+
+	s.mu.Lock()
+	scroll := s.scroll
+	width := s.buf.Width()
+
+	// Only save to scrollback if we're scrolling the main screen area
+	// (not a limited scroll region) and the scroll region starts at Y=0
+	if scroll.Min.Y == 0 && scroll.Min.X == 0 && scroll.Dx() == width {
+		// Save the top n lines to scrollback before they're deleted
+		for i := 0; i < n && i < scroll.Dy(); i++ {
+			y := scroll.Min.Y + i
+			line := extractLine(&s.buf, y, width)
+			s.scrollback.PushLine(line)
+		}
+	}
+	s.mu.Unlock()
+
 	x, y := s.CursorPosition()
 	s.setCursor(s.cur.X, 0, true)
 	s.DeleteLine(n)
@@ -331,4 +360,48 @@ func (s *Screen) blankCell() *uv.Cell {
 	c := uv.EmptyCell
 	c.Style.Bg = s.cur.Pen.Bg
 	return &c
+}
+
+// Scrollback returns the scrollback buffer for this screen.
+func (s *Screen) Scrollback() *Scrollback {
+	return s.scrollback
+}
+
+// ClearScrollback clears all lines from the scrollback buffer.
+func (s *Screen) ClearScrollback() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.scrollback != nil {
+		s.scrollback.Clear()
+	}
+}
+
+// ScrollbackLen returns the number of lines currently in the scrollback buffer.
+func (s *Screen) ScrollbackLen() int {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.scrollback == nil {
+		return 0
+	}
+	return s.scrollback.Len()
+}
+
+// ScrollbackLine returns the line at the specified index in the scrollback buffer.
+// Index 0 is the oldest line. Returns nil if the index is out of bounds.
+func (s *Screen) ScrollbackLine(index int) []uv.Cell {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.scrollback == nil {
+		return nil
+	}
+	return s.scrollback.Line(index)
+}
+
+// SetScrollbackMaxLines sets the maximum number of lines for the scrollback buffer.
+func (s *Screen) SetScrollbackMaxLines(maxLines int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.scrollback != nil {
+		s.scrollback.SetMaxLines(maxLines)
+	}
 }
