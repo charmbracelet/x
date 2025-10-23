@@ -48,6 +48,11 @@ type Reader struct {
 	// It is used to decode ANSI escape sequences and utf16 sequences.
 	keyState win32InputState
 
+	// pending holds partial sequences that need more data to complete
+	pending []byte
+	// inStringTerminated tracks if we're inside an OSC/DCS/APC/SOS/PM sequence
+	inStringTerminated bool
+
 	parser Parser
 	logger Logger
 }
@@ -107,8 +112,21 @@ func (d *Reader) readEvents() ([]Event, error) {
 	var events []Event
 	buf := d.buf[:nb]
 
-	// Lookup table first
-	if bytes.HasPrefix(buf, []byte{'\x1b'}) {
+	// Check if we had pending data from previous incomplete sequences
+	hadPending := len(d.pending) > 0
+
+	// Prepend any pending data from previous incomplete sequences
+	if hadPending {
+		combined := make([]byte, len(d.pending)+len(buf))
+		copy(combined, d.pending)
+		copy(combined[len(d.pending):], buf)
+		buf = combined
+		d.pending = nil
+		d.inStringTerminated = false
+	}
+
+	// Lookup table first (only if no pending data)
+	if !hadPending && bytes.HasPrefix(buf, []byte{'\x1b'}) {
 		if k, ok := d.table[string(buf)]; ok {
 			if d.logger != nil {
 				d.logger.Printf("input: %q", buf)
@@ -136,6 +154,14 @@ func (d *Reader) readEvents() ([]Event, error) {
 
 		switch ev.(type) {
 		case UnknownEvent:
+			// Check if this might be an incomplete string-terminated sequence
+			if d.isIncompleteStringTerminated(buf[i : i+nb]) {
+				// Buffer this data and wait for more
+				d.pending = make([]byte, len(buf[i:]))
+				copy(d.pending, buf[i:])
+				d.inStringTerminated = true
+				return events, nil
+			}
 			// If the sequence is not recognized by the parser, try looking it up.
 			if k, ok := d.table[string(buf[i:i+nb])]; ok {
 				ev = KeyPressEvent(k)
@@ -168,4 +194,58 @@ func (d *Reader) readEvents() ([]Event, error) {
 	}
 
 	return events, nil
+}
+
+// isIncompleteStringTerminated checks if the given bytes represent an incomplete
+// string-terminated sequence (OSC, DCS, APC, SOS, PM) that needs more data.
+func (d *Reader) isIncompleteStringTerminated(b []byte) bool {
+	if len(b) < 2 {
+		return false
+	}
+
+	// Check for OSC sequences: ESC ] or 0x9D
+	if (b[0] == '\x1b' && b[1] == ']') || b[0] == '\x9d' {
+		return d.isIncompleteOscLike(b)
+	}
+
+	// Check for DCS sequences: ESC P or 0x90
+	if (b[0] == '\x1b' && b[1] == 'P') || b[0] == '\x90' {
+		return d.isIncompleteOscLike(b)
+	}
+
+	// Check for APC sequences: ESC _ or 0x9F
+	if (b[0] == '\x1b' && b[1] == '_') || b[0] == '\x9f' {
+		return d.isIncompleteOscLike(b)
+	}
+
+	// Check for SOS sequences: ESC X or 0x98
+	if (b[0] == '\x1b' && b[1] == 'X') || b[0] == '\x98' {
+		return d.isIncompleteOscLike(b)
+	}
+
+	// Check for PM sequences: ESC ^ or 0x9E
+	if (b[0] == '\x1b' && b[1] == '^') || b[0] == '\x9e' {
+		return d.isIncompleteOscLike(b)
+	}
+
+	return false
+}
+
+// isIncompleteOscLike checks if a string-terminated sequence is incomplete
+func (d *Reader) isIncompleteOscLike(b []byte) bool {
+	// Look for terminators: BEL (0x07), ESC \ (ST), CAN (0x18), SUB (0x1A)
+	for i := 0; i < len(b); i++ {
+		switch b[i] {
+		case '\x07': // BEL
+			return false
+		case '\x18', '\x1a': // CAN, SUB
+			return false
+		case '\x1b': // ESC
+			if i+1 < len(b) && b[i+1] == '\\' {
+				return false // Found ST (ESC \)
+			}
+		}
+	}
+	// No terminator found, sequence is incomplete
+	return true
 }
