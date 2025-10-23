@@ -163,7 +163,7 @@ func (e *Emulator) WidthMethod() uv.WidthMethod {
 // Draw implements the [uv.Drawable] interface.
 func (e *Emulator) Draw(scr uv.Screen, area uv.Rectangle) {
 	bg := uv.EmptyCell
-	bg.Style.Bg = e.bgColor
+	bg.Style.Bg = e.BackgroundColor()
 	screen.FillArea(scr, &bg, area)
 	for y := range e.Touched() {
 		if y < 0 || y >= e.Height() {
@@ -256,11 +256,15 @@ func (e *Emulator) Close() error {
 	}
 
 	e.closed = true
-	return nil
+	return e.pw.CloseWithError(io.EOF)
 }
 
 // Write writes data to the terminal output buffer.
 func (e *Emulator) Write(p []byte) (n int, err error) {
+	if e.closed {
+		return 0, io.ErrClosedPipe
+	}
+
 	for i := range p {
 		e.parser.Advance(p[i])
 		state := e.parser.State()
