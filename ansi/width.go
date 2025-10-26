@@ -4,8 +4,9 @@ import (
 	"bytes"
 
 	"github.com/charmbracelet/x/ansi/parser"
+	"github.com/clipperhouse/displaywidth"
+	"github.com/clipperhouse/uax29/v2/graphemes"
 	"github.com/mattn/go-runewidth"
-	"github.com/rivo/uniseg"
 )
 
 // Strip removes ANSI escape codes from a string.
@@ -91,12 +92,20 @@ func stringWidth(m Method, s string) int {
 	for i := 0; i < len(s); i++ {
 		state, action := parser.Table.Transition(pstate, s[i])
 		if state == parser.Utf8State {
-			var w int
-			cluster, _, w, _ = uniseg.FirstGraphemeClusterInString(s[i:], -1)
-			if m == WcWidth {
-				w = runewidth.StringWidth(cluster)
+			// first grapheme cluster in the string
+			g := graphemes.FromString(s[i:])
+			g.Next()
+			cluster = g.Value()
+
+			switch m {
+			case WcWidth:
+				// go-runewidth for backward compatibility
+				width += runewidth.StringWidth(cluster)
+			case GraphemeWidth:
+				// displaywidth for modern terminals
+				width += displaywidth.String(cluster)
 			}
-			width += w
+
 			i += len(cluster) - 1
 			pstate = parser.GroundState
 			continue
