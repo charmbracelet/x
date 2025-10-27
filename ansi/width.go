@@ -84,18 +84,14 @@ func stringWidth(m Method, s string) int {
 	}
 
 	var (
-		pstate  = parser.GroundState // initial state
-		cluster string
-		width   int
+		pstate = parser.GroundState // initial state
+		width  int
 	)
 
 	for i := 0; i < len(s); i++ {
 		state, action := parser.Table.Transition(pstate, s[i])
 		if state == parser.Utf8State {
-			// first grapheme cluster in the string
-			g := graphemes.FromString(s[i:])
-			g.Next()
-			cluster = g.Value()
+			cluster := graphemes.FromString(s[i:]).First()
 
 			switch m {
 			case WcWidth:
