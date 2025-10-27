@@ -6,6 +6,7 @@ import (
 	"github.com/charmbracelet/x/ansi/parser"
 	"github.com/clipperhouse/displaywidth"
 	"github.com/clipperhouse/uax29/v2/graphemes"
+	"github.com/mattn/go-runewidth"
 )
 
 // State represents the state of the ANSI escape sequence parser used by
@@ -177,6 +178,9 @@ func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (s
 
 			if utf8.RuneStart(c) {
 				seq, width = FirstGraphemeCluster(b)
+				if m == WcWidth {
+					width = runewidth.StringWidth(string(seq))
+				}
 				i += len(seq)
 				return b[:i], width, i, NormalState
 			}

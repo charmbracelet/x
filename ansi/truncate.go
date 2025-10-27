@@ -95,7 +95,9 @@ func truncate(m Method, s string, length int, tail string) string {
 			// This action happens when we transition to the Utf8State.
 			var width int
 			cluster, width = FirstGraphemeCluster(b[i:])
-
+			if m == WcWidth {
+				width = runewidth.StringWidth(string(cluster))
+			}
 			// increment the index by the length of the cluster
 			i += len(cluster)
 			curWidth += width
