@@ -6,7 +6,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi/parser"
-	"github.com/mattn/go-runewidth"
 )
 
 // nbsp is a non-breaking space.
@@ -56,10 +55,7 @@ func hardwrap(m Method, s string, limit int, preserveSpace bool) string {
 		state, action := parser.Table.Transition(pstate, b[i])
 		if state == parser.Utf8State { //nolint:nestif
 			var width int
-			cluster, width = FirstGraphemeCluster(b[i:])
-			if m == WcWidth {
-				width = runewidth.StringWidth(string(cluster))
-			}
+			cluster, width = FirstGraphemeCluster(b[i:], m)
 			i += len(cluster)
 
 			if curWidth+width > limit {
@@ -191,10 +187,7 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 		state, action := parser.Table.Transition(pstate, b[i])
 		if state == parser.Utf8State { //nolint:nestif
 			var width int
-			cluster, width = FirstGraphemeCluster(b[i:])
-			if m == WcWidth {
-				width = runewidth.StringWidth(string(cluster))
-			}
+			cluster, width = FirstGraphemeCluster(b[i:], m)
 			i += len(cluster)
 
 			r, _ := utf8.DecodeRune(cluster)
@@ -344,10 +337,7 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 		state, action := parser.Table.Transition(pstate, b[i])
 		if state == parser.Utf8State { //nolint:nestif
 			var width int
-			cluster, width = FirstGraphemeCluster(b[i:])
-			if m == WcWidth {
-				width = runewidth.StringWidth(string(cluster))
-			}
+			cluster, width = FirstGraphemeCluster(b[i:], m)
 			i += len(cluster)
 
 			r, _ := utf8.DecodeRune(cluster)

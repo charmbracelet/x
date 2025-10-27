@@ -177,10 +177,7 @@ func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (s
 			}
 
 			if utf8.RuneStart(c) {
-				seq, width = FirstGraphemeCluster(b)
-				if m == WcWidth {
-					width = runewidth.StringWidth(string(seq))
-				}
+				seq, width = FirstGraphemeCluster(b, m)
 				i += len(seq)
 				return b[:i], width, i, NormalState
 			}
@@ -438,13 +435,19 @@ func HasEscPrefix[T string | []byte](b T) bool {
 // FirstGraphemeCluster returns the first grapheme cluster in the given string or byte slice.
 // This is a syntactic sugar function that wraps
 // uniseg.FirstGraphemeClusterInString and uniseg.FirstGraphemeCluster.
-func FirstGraphemeCluster[T string | []byte](b T) (T, int) {
+func FirstGraphemeCluster[T string | []byte](b T, m Method) (T, int) {
 	switch b := any(b).(type) {
 	case string:
 		cluster := graphemes.FromString(b).First()
+		if m == WcWidth {
+			return T(cluster), runewidth.StringWidth(cluster)
+		}
 		return T(cluster), displaywidth.String(cluster)
 	case []byte:
 		cluster := graphemes.FromBytes(b).First()
+		if m == WcWidth {
+			return T(cluster), runewidth.StringWidth(string(cluster))
+		}
 		return T(cluster), displaywidth.Bytes(cluster)
 	}
 	panic("unreachable")

@@ -6,7 +6,6 @@ import (
 	"github.com/charmbracelet/x/ansi/parser"
 	"github.com/clipperhouse/displaywidth"
 	"github.com/clipperhouse/uax29/v2/graphemes"
-	"github.com/mattn/go-runewidth"
 )
 
 // Cut the string, without adding any prefix or tail strings. This function is
@@ -94,10 +93,7 @@ func truncate(m Method, s string, length int, tail string) string {
 		if state == parser.Utf8State {
 			// This action happens when we transition to the Utf8State.
 			var width int
-			cluster, width = FirstGraphemeCluster(b[i:])
-			if m == WcWidth {
-				width = runewidth.StringWidth(string(cluster))
-			}
+			cluster, width = FirstGraphemeCluster(b[i:], m)
 			// increment the index by the length of the cluster
 			i += len(cluster)
 			curWidth += width
@@ -210,10 +206,7 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 		state, action := parser.Table.Transition(pstate, b[i])
 		if state == parser.Utf8State {
 			var width int
-			cluster, width = FirstGraphemeCluster(b[i:])
-			if m == WcWidth {
-				width = runewidth.StringWidth(string(cluster))
-			}
+			cluster, width = FirstGraphemeCluster(b[i:], m)
 
 			i += len(cluster)
 			curWidth += width
