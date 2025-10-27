@@ -4,8 +4,9 @@ import (
 	"bytes"
 
 	"github.com/charmbracelet/x/ansi/parser"
+	"github.com/clipperhouse/displaywidth"
+	"github.com/clipperhouse/uax29/v2/graphemes"
 	"github.com/mattn/go-runewidth"
-	"github.com/rivo/uniseg"
 )
 
 // Cut the string, without adding any prefix or tail strings. This function is
@@ -93,10 +94,7 @@ func truncate(m Method, s string, length int, tail string) string {
 		if state == parser.Utf8State {
 			// This action happens when we transition to the Utf8State.
 			var width int
-			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
-			if m == WcWidth {
-				width = runewidth.StringWidth(string(cluster))
-			}
+			cluster, width = FirstGraphemeCluster(b[i:])
 
 			// increment the index by the length of the cluster
 			i += len(cluster)
@@ -210,7 +208,7 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 		state, action := parser.Table.Transition(pstate, b[i])
 		if state == parser.Utf8State {
 			var width int
-			cluster, _, width, _ = uniseg.FirstGraphemeCluster(b[i:], -1)
+			cluster, width = FirstGraphemeCluster(b[i:])
 			if m == WcWidth {
 				width = runewidth.StringWidth(string(cluster))
 			}
@@ -278,21 +276,21 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 // You can use this with [Truncate], [TruncateLeft], and [Cut].
 func ByteToGraphemeRange(str string, byteStart, byteStop int) (charStart, charStop int) {
 	bytePos, charPos := 0, 0
-	gr := uniseg.NewGraphemes(str)
+	gr := graphemes.FromString(str)
 	for byteStart > bytePos {
 		if !gr.Next() {
 			break
 		}
-		bytePos += len(gr.Str())
-		charPos += max(1, gr.Width())
+		bytePos += len(gr.Value())
+		charPos += max(1, displaywidth.String(gr.Value()))
 	}
 	charStart = charPos
 	for byteStop > bytePos {
 		if !gr.Next() {
 			break
 		}
-		bytePos += len(gr.Str())
-		charPos += max(1, gr.Width())
+		bytePos += len(gr.Value())
+		charPos += max(1, displaywidth.String(gr.Value()))
 	}
 	charStop = charPos
 	return charStart, charStop

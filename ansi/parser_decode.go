@@ -4,8 +4,8 @@ import (
 	"unicode/utf8"
 
 	"github.com/charmbracelet/x/ansi/parser"
-	"github.com/mattn/go-runewidth"
-	"github.com/rivo/uniseg"
+	"github.com/clipperhouse/displaywidth"
+	"github.com/clipperhouse/uax29/v2/graphemes"
 )
 
 // State represents the state of the ANSI escape sequence parser used by
@@ -176,10 +176,7 @@ func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (s
 			}
 
 			if utf8.RuneStart(c) {
-				seq, _, width, _ = FirstGraphemeCluster(b, -1)
-				if m == WcWidth {
-					width = runewidth.StringWidth(string(seq))
-				}
+				seq, width = FirstGraphemeCluster(b)
 				i += len(seq)
 				return b[:i], width, i, NormalState
 			}
@@ -437,14 +434,14 @@ func HasEscPrefix[T string | []byte](b T) bool {
 // FirstGraphemeCluster returns the first grapheme cluster in the given string or byte slice.
 // This is a syntactic sugar function that wraps
 // uniseg.FirstGraphemeClusterInString and uniseg.FirstGraphemeCluster.
-func FirstGraphemeCluster[T string | []byte](b T, state int) (T, T, int, int) {
+func FirstGraphemeCluster[T string | []byte](b T) (T, int) {
 	switch b := any(b).(type) {
 	case string:
-		cluster, rest, width, newState := uniseg.FirstGraphemeClusterInString(b, state)
-		return T(cluster), T(rest), width, newState
+		cluster := graphemes.FromString(b).First()
+		return T(cluster), displaywidth.String(cluster)
 	case []byte:
-		cluster, rest, width, newState := uniseg.FirstGraphemeCluster(b, state)
-		return T(cluster), T(rest), width, newState
+		cluster := graphemes.FromBytes(b).First()
+		return T(cluster), displaywidth.Bytes(cluster)
 	}
 	panic("unreachable")
 }
