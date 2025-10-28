@@ -315,6 +315,9 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 	)
 
 	addSpace := func() {
+		if spaceWidth == 0 && space.Len() == 0 {
+			return
+		}
 		curWidth += spaceWidth
 		buf.Write(space.Bytes())
 		space.Reset()
@@ -379,6 +382,11 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 				if curWidth+wordLen+spaceWidth > limit {
 					addNewline()
 				}
+
+				if wordLen == limit {
+					// Hardwrap the word if it's too long
+					addWord()
+				}
 			}
 
 			pstate = parser.GroundState
@@ -424,6 +432,7 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 				if curWidth == limit {
 					addNewline()
 				}
+
 				word.WriteRune(r)
 				wordLen++
 
