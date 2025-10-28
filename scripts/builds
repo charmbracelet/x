@@ -65,7 +65,7 @@ jobs:
   lint:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
-      directory: $(dirname "$mod")/...
+      directory: $(dirname "$mod" | cut -f2- -d/)
 
   coverage:
     strategy:

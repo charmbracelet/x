@@ -51,7 +51,7 @@ jobs:
   lint:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
-      directory: ./exp/teatest/v2/...
+      directory: exp/teatest/v2
 
   coverage:
     strategy:

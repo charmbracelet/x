@@ -51,7 +51,7 @@ jobs:
   lint:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
-      directory: ./colors/...
+      directory: colors
 
   coverage:
     strategy:
