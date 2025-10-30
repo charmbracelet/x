@@ -432,9 +432,8 @@ func HasEscPrefix[T string | []byte](b T) bool {
 	return len(b) > 0 && b[0] == ESC
 }
 
-// FirstGraphemeCluster returns the first grapheme cluster in the given string or byte slice.
-// This is a syntactic sugar function that wraps
-// uniseg.FirstGraphemeClusterInString and uniseg.FirstGraphemeCluster.
+// FirstGraphemeCluster returns the first grapheme cluster in the given string
+// or byte slice, and its monospace display width.
 func FirstGraphemeCluster[T string | []byte](b T, m Method) (T, int) {
 	switch b := any(b).(type) {
 	case string:
