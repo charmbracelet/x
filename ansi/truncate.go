@@ -1,7 +1,6 @@
 package ansi
 
 import (
-	"bytes"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi/parser"
@@ -190,7 +189,7 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 	}
 
 	var cluster string
-	var buf bytes.Buffer
+	var buf strings.Builder
 	curWidth := 0
 	ignoring := true
 	pstate := parser.GroundState
