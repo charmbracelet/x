@@ -2,6 +2,7 @@ package ansi
 
 import (
 	"bytes"
+	"strings"
 
 	"github.com/charmbracelet/x/ansi/parser"
 	"github.com/clipperhouse/displaywidth"
@@ -74,12 +75,11 @@ func truncate(m Method, s string, length int, tail string) string {
 		return ""
 	}
 
-	var cluster []byte
-	var buf bytes.Buffer
+	var cluster string
+	var buf strings.Builder
 	curWidth := 0
 	ignoring := false
 	pstate := parser.GroundState // initial state
-	b := []byte(s)
 	i := 0
 
 	// Here we iterate over the bytes of the string and collect printable
@@ -88,12 +88,12 @@ func truncate(m Method, s string, length int, tail string) string {
 	//
 	// Once we reach the given length, we start ignoring characters and only
 	// collect ANSI escape codes until we reach the end of string.
-	for i < len(b) {
-		state, action := parser.Table.Transition(pstate, b[i])
+	for i < len(s) {
+		state, action := parser.Table.Transition(pstate, s[i])
 		if state == parser.Utf8State {
 			// This action happens when we transition to the Utf8State.
 			var width int
-			cluster, width = FirstGraphemeCluster(b[i:], m)
+			cluster, width = FirstGraphemeCluster(s[i:], m)
 			// increment the index by the length of the cluster
 			i += len(cluster)
 			curWidth += width
@@ -114,7 +114,7 @@ func truncate(m Method, s string, length int, tail string) string {
 				continue
 			}
 
-			buf.Write(cluster)
+			buf.WriteString(cluster)
 
 			// Done collecting, now we're back in the ground state.
 			pstate = parser.GroundState
@@ -148,7 +148,7 @@ func truncate(m Method, s string, length int, tail string) string {
 			}
 			fallthrough
 		default:
-			buf.WriteByte(b[i])
+			buf.WriteByte(s[i])
 			i++
 		}
 
@@ -189,24 +189,23 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 		return s
 	}
 
-	var cluster []byte
+	var cluster string
 	var buf bytes.Buffer
 	curWidth := 0
 	ignoring := true
 	pstate := parser.GroundState
-	b := []byte(s)
 	i := 0
 
-	for i < len(b) {
+	for i < len(s) {
 		if !ignoring {
-			buf.Write(b[i:])
+			buf.WriteString(s[i:])
 			break
 		}
 
-		state, action := parser.Table.Transition(pstate, b[i])
+		state, action := parser.Table.Transition(pstate, s[i])
 		if state == parser.Utf8State {
 			var width int
-			cluster, width = FirstGraphemeCluster(b[i:], m)
+			cluster, width = FirstGraphemeCluster(s[i:], m)
 
 			i += len(cluster)
 			curWidth += width
@@ -217,7 +216,7 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 			}
 
 			if curWidth > n {
-				buf.Write(cluster)
+				buf.WriteString(cluster)
 			}
 
 			if ignoring {
@@ -252,7 +251,7 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 			}
 			fallthrough
 		default:
-			buf.WriteByte(b[i])
+			buf.WriteByte(s[i])
 			i++
 		}
 
