@@ -355,6 +355,16 @@ func TestTruncateLeft(t *testing.T) {
 	}
 }
 
+func BenchmarkTruncateLeft(b *testing.B) {
+	b.RunParallel(func(pb *testing.PB) {
+		b.ReportAllocs()
+		b.ResetTimer()
+		for pb.Next() {
+			TruncateLeft("foo", 2, "")
+		}
+	})
+}
+
 func TestCut(t *testing.T) {
 	for i, c := range []struct {
 		desc   string
