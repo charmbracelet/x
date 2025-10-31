@@ -1,0 +1,25 @@
+name: term
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    paths:
+      - term/**
+      - .github/workflows/term.yml
+
+jobs:
+  build-plan9:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./term
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./term/go.mod
+          cache: true
+          cache-dependency-path: ./term/go.sum
+      - run: env GOOS=plan9 GOARCH=amd64 go build -v ./...
