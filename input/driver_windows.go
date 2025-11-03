@@ -59,7 +59,7 @@ func (d *Reader) handleConInput() ([]Event, error) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	events, err = readNConsoleInputs(cc.conin, uint32(len(events)))
+	events, err = readNConsoleInputs(cc.conin, uint32(len(events))) //nolint:gosec
 	if cc.isCanceled() {
 		return nil, cancelreader.ErrCanceled
 	}
