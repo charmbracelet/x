@@ -1,4 +1,4 @@
-name: term
+name: term-plan9
 
 on:
   push:
@@ -7,10 +7,10 @@ on:
   pull_request:
     paths:
       - term/**
-      - .github/workflows/term.yml
+      - .github/workflows/term-plan9.yml
 
 jobs:
-  build-plan9:
+  build:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,3 +23,22 @@ jobs:
           cache: true
           cache-dependency-path: ./term/go.sum
       - run: env GOOS=plan9 GOARCH=amd64 go build -v ./...
+
+  dependabot:
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    if: ${{ github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'}}
+    steps:
+      - id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+      - run: |
+          gh pr review --approve "$PR_URL"
+          gh pr merge --squash --auto "$PR_URL"
+        env:
+          PR_URL: ${{github.event.pull_request.html_url}}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
