@@ -18,17 +18,15 @@ updates:
       prefix: "chore"
       include: "scope"
     groups:
-      actions:
+      all:
         patterns:
           - "*"' >./.github/dependabot.yml
 
-echo '  - package-ecosystem: "gomod"
-    directories:' >>./.github/dependabot.yml
 find . -type f -name go.mod | cut -f2- -d'/' | sort | while read -r mod; do
-  echo '      - "/'"$(dirname "$mod")"'"' >>./.github/dependabot.yml
-done
-
-echo '    schedule:
+  echo '
+  - package-ecosystem: "gomod"
+    directory: "/'"$(dirname "$mod")"'"
+    schedule:
       interval: "weekly"
       day: "monday"
       time: "05:00"
@@ -39,6 +37,7 @@ echo '    schedule:
       prefix: "chore"
       include: "scope"
     groups:
-      gomod:
+      all:
         patterns:
           - "*"' >>./.github/dependabot.yml
+done
