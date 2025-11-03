@@ -338,7 +338,7 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 	i := 0
 	for i < len(s) {
 		state, action := parser.Table.Transition(pstate, s[i])
-		if state == parser.Utf8State {
+		if state == parser.Utf8State { //nolint:nestif
 			var width int
 			cluster, width = FirstGraphemeCluster(s[i:], m)
 			i += len(cluster)
