@@ -1,5 +1,5 @@
-//go:build !darwin && !netbsd && !openbsd
-// +build !darwin,!netbsd,!openbsd
+//go:build !darwin && !netbsd && !openbsd && !windows
+// +build !darwin,!netbsd,!openbsd,!windows
 
 package termios
 
