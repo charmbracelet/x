@@ -95,32 +95,32 @@ func TestSetMode(t *testing.T) {
 		},
 		{
 			name:     "single ANSI mode",
-			modes:    []Mode{KeyboardActionMode},
+			modes:    []Mode{ModeKeyboardAction},
 			expected: "\x1b[2h",
 		},
 		{
 			name:     "single DEC mode",
-			modes:    []Mode{CursorKeysMode},
+			modes:    []Mode{ModeCursorKeys},
 			expected: "\x1b[?1h",
 		},
 		{
 			name:     "multiple ANSI modes",
-			modes:    []Mode{KeyboardActionMode, InsertReplaceMode},
+			modes:    []Mode{ModeKeyboardAction, ModeInsertReplace},
 			expected: "\x1b[2;4h",
 		},
 		{
 			name:     "multiple DEC modes",
-			modes:    []Mode{CursorKeysMode, AutoWrapMode},
+			modes:    []Mode{ModeCursorKeys, ModeAutoWrap},
 			expected: "\x1b[?1;7h",
 		},
 		{
 			name:     "mixed ANSI and DEC modes",
-			modes:    []Mode{KeyboardActionMode, CursorKeysMode},
+			modes:    []Mode{ModeKeyboardAction, ModeCursorKeys},
 			expected: "\x1b[2h\x1b[?1h",
 		},
 		{
 			name:     "multiple mixed ANSI and DEC modes",
-			modes:    []Mode{KeyboardActionMode, InsertReplaceMode, CursorKeysMode, AutoWrapMode},
+			modes:    []Mode{ModeKeyboardAction, ModeInsertReplace, ModeCursorKeys, ModeAutoWrap},
 			expected: "\x1b[2;4h\x1b[?1;7h",
 		},
 	}
@@ -147,32 +147,32 @@ func TestResetMode(t *testing.T) {
 		},
 		{
 			name:     "single ANSI mode",
-			modes:    []Mode{KeyboardActionMode},
+			modes:    []Mode{ModeKeyboardAction},
 			expected: "\x1b[2l",
 		},
 		{
 			name:     "single DEC mode",
-			modes:    []Mode{CursorKeysMode},
+			modes:    []Mode{ModeCursorKeys},
 			expected: "\x1b[?1l",
 		},
 		{
 			name:     "multiple ANSI modes",
-			modes:    []Mode{KeyboardActionMode, InsertReplaceMode},
+			modes:    []Mode{ModeKeyboardAction, ModeInsertReplace},
 			expected: "\x1b[2;4l",
 		},
 		{
 			name:     "multiple DEC modes",
-			modes:    []Mode{CursorKeysMode, AutoWrapMode},
+			modes:    []Mode{ModeCursorKeys, ModeAutoWrap},
 			expected: "\x1b[?1;7l",
 		},
 		{
 			name:     "mixed ANSI and DEC modes",
-			modes:    []Mode{KeyboardActionMode, CursorKeysMode},
+			modes:    []Mode{ModeKeyboardAction, ModeCursorKeys},
 			expected: "\x1b[2l\x1b[?1l",
 		},
 		{
 			name:     "multiple mixed ANSI and DEC modes",
-			modes:    []Mode{KeyboardActionMode, InsertReplaceMode, CursorKeysMode, AutoWrapMode},
+			modes:    []Mode{ModeKeyboardAction, ModeInsertReplace, ModeCursorKeys, ModeAutoWrap},
 			expected: "\x1b[2;4l\x1b[?1;7l",
 		},
 	}
@@ -194,12 +194,12 @@ func TestRequestMode(t *testing.T) {
 	}{
 		{
 			name:     "ANSI mode",
-			mode:     KeyboardActionMode,
+			mode:     ModeKeyboardAction,
 			expected: "\x1b[2$p",
 		},
 		{
 			name:     "DEC mode",
-			mode:     CursorKeysMode,
+			mode:     ModeCursorKeys,
 			expected: "\x1b[?1$p",
 		},
 	}
@@ -222,37 +222,37 @@ func TestReportMode(t *testing.T) {
 	}{
 		{
 			name:     "ANSI mode not recognized",
-			mode:     KeyboardActionMode,
+			mode:     ModeKeyboardAction,
 			value:    ModeNotRecognized,
 			expected: "\x1b[2;0$y",
 		},
 		{
 			name:     "DEC mode set",
-			mode:     CursorKeysMode,
+			mode:     ModeCursorKeys,
 			value:    ModeSet,
 			expected: "\x1b[?1;1$y",
 		},
 		{
 			name:     "ANSI mode reset",
-			mode:     InsertReplaceMode,
+			mode:     ModeInsertReplace,
 			value:    ModeReset,
 			expected: "\x1b[4;2$y",
 		},
 		{
 			name:     "DEC mode permanently set",
-			mode:     AutoWrapMode,
+			mode:     ModeAutoWrap,
 			value:    ModePermanentlySet,
 			expected: "\x1b[?7;3$y",
 		},
 		{
 			name:     "ANSI mode permanently reset",
-			mode:     SendReceiveMode,
+			mode:     ModeSendReceive,
 			value:    ModePermanentlyReset,
 			expected: "\x1b[12;4$y",
 		},
 		{
 			name:     "Invalid mode setting defaults to not recognized",
-			mode:     KeyboardActionMode,
+			mode:     ModeKeyboardAction,
 			value:    5,
 			expected: "\x1b[2;0$y",
 		},
