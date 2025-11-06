@@ -114,12 +114,12 @@ func (s Style) UnderlineStyle(u UnderlineStyle) Style {
 	return s
 }
 
-// SlowBlink appends the slow blink or no blink style attribute to the style.
+// Blink appends the slow blink or no blink style attribute to the style.
 // When v is true, text blinks slowly (less than 150 per minute). When false,
 // blinking is disabled.
-func (s Style) SlowBlink(v bool) Style {
+func (s Style) Blink(v bool) Style {
 	if v {
-		return append(s, attrSlowBlink)
+		return append(s, attrBlink)
 	}
 	return append(s, attrNoBlink)
 }
@@ -127,6 +127,8 @@ func (s Style) SlowBlink(v bool) Style {
 // RapidBlink appends the rapid blink or no blink style attribute to the style.
 // When v is true, text blinks rapidly (150+ per minute). When false, blinking
 // is disabled.
+//
+// Note that this is not widely supported in terminal emulators.
 func (s Style) RapidBlink(v bool) Style {
 	if v {
 		return append(s, attrRapidBlink)
@@ -186,7 +188,7 @@ func (s Style) NoUnderline() Style {
 
 // NoBlink appends the no blink style attribute to the style.
 //
-// Deprecated: use [Style.SlowBlink](false) or [Style.RapidBlink](false) instead.
+// Deprecated: use [Style.Blink](false) or [Style.RapidBlink](false) instead.
 func (s Style) NoBlink() Style {
 	return append(s, attrNoBlink)
 }
@@ -304,7 +306,7 @@ const (
 	AttrFaint                        Attr = 2
 	AttrItalic                       Attr = 3
 	AttrUnderline                    Attr = 4
-	AttrSlowBlink                    Attr = 5
+	AttrBlink                        Attr = 5
 	AttrRapidBlink                   Attr = 6
 	AttrReverse                      Attr = 7
 	AttrConceal                      Attr = 8
@@ -368,7 +370,7 @@ const (
 	FaintAttr                        = AttrFaint
 	ItalicAttr                       = AttrItalic
 	UnderlineAttr                    = AttrUnderline
-	SlowBlinkAttr                    = AttrSlowBlink
+	SlowBlinkAttr                    = AttrBlink
 	RapidBlinkAttr                   = AttrRapidBlink
 	ReverseAttr                      = AttrReverse
 	ConcealAttr                      = AttrConceal
@@ -428,7 +430,7 @@ const (
 	attrFaint                        = "2"
 	attrItalic                       = "3"
 	attrUnderline                    = "4"
-	attrSlowBlink                    = "5"
+	attrBlink                        = "5"
 	attrRapidBlink                   = "6"
 	attrReverse                      = "7"
 	attrConceal                      = "8"

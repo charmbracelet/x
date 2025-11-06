@@ -26,7 +26,7 @@ var attrStrings = map[int]string{
 	AttrFaint:                        attrFaint,
 	AttrItalic:                       attrItalic,
 	AttrUnderline:                    attrUnderline,
-	AttrSlowBlink:                    attrSlowBlink,
+	AttrBlink:                        attrBlink,
 	AttrRapidBlink:                   attrRapidBlink,
 	AttrReverse:                      attrReverse,
 	AttrConceal:                      attrConceal,
