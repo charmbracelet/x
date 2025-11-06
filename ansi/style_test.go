@@ -32,14 +32,14 @@ func TestDefaultBackground(t *testing.T) {
 
 func TestSequence(t *testing.T) {
 	var s ansi.Style
-	s = s.Bold().Underline().ForegroundColor(ansi.ExtendedColor(255))
+	s = s.Bold().Underline(true).ForegroundColor(ansi.ExtendedColor(255))
 	if s.String() != "\x1b[1;4;38;5;255m" {
 		t.Errorf("Unexpected sequence: %q", s)
 	}
 }
 
 func TestColorColor(t *testing.T) {
-	s := ansi.NewStyle().Bold().Underline().ForegroundColor(color.Black)
+	s := ansi.NewStyle().Bold().Underline(true).ForegroundColor(color.Black)
 	if s.String() != "\x1b[1;4;38;2;0;0;0m" {
 		t.Errorf("Unexpected sequence: %q", s)
 	}
@@ -50,7 +50,7 @@ func BenchmarkStyle(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_ = ansi.NewStyle().
 			Bold().
-			DoubleUnderline().
+			UnderlineStyle(ansi.UnderlineStyleDouble).
 			ForegroundColor(color.RGBA{255, 255, 255, 255}).
 			String()
 	}
