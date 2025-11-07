@@ -188,22 +188,22 @@ func (t *Terminal) Snapshot() Snapshot {
 
 	snap := Snapshot{
 		Modes: Modes{
-			ANSIModes: maps.Clone(t.ansiModes),
-			DECModes:  maps.Clone(t.decModes),
+			ANSI: maps.Clone(t.ansiModes),
+			DEC:  maps.Clone(t.decModes),
 		},
 		Title:     t.title,
 		Rows:      t.rows,
 		Cols:      t.cols,
 		AltScreen: t.altScreen,
 		Cursor: Cursor{
-			Position: t.cursorPos,
+			Position: Position(t.cursorPos),
 			Visible:  t.cursorVis,
-			Color:    t.cursorColor,
+			Color:    Color{t.cursorColor},
 			Style:    t.cursorStyle,
 			Blink:    t.cursorBlink,
 		},
-		BgColor: t.bgColor,
-		FgColor: t.fgColor,
+		BgColor: Color{t.bgColor},
+		FgColor: Color{t.fgColor},
 		Cells:   make([][]Cell, t.rows),
 	}
 
@@ -213,9 +213,15 @@ func (t *Terminal) Snapshot() Snapshot {
 			cell := t.CellAt(c, r)
 			snap.Cells[r][c] = Cell{
 				Content: cell.Content,
-				Style:   Style(cell.Style),
-				Link:    Link(cell.Link),
-				Width:   cell.Width,
+				Style: Style{
+					Fg:             Color{cell.Style.Fg},
+					Bg:             Color{cell.Style.Bg},
+					UnderlineColor: Color{cell.Style.UnderlineColor},
+					Underline:      cell.Style.Underline,
+					Attrs:          cell.Style.Attrs,
+				},
+				Link:  Link(cell.Link),
+				Width: cell.Width,
 			}
 		}
 	}
