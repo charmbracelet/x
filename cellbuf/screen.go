@@ -701,12 +701,12 @@ func (s *Screen) putCellLR(cell *Cell) {
 	// Optimize for the lower right corner cell.
 	curX := s.cur.X
 	if cell == nil || !cell.Empty() {
-		s.buf.WriteString(ansi.ResetAutoWrapMode)
+		s.buf.WriteString(ansi.ResetModeAutoWrap)
 		s.putAttrCell(cell)
 		// Writing to lower-right corner cell should not wrap.
 		s.atPhantom = false
 		s.cur.X = curX
-		s.buf.WriteString(ansi.SetAutoWrapMode)
+		s.buf.WriteString(ansi.SetModeAutoWrap)
 	}
 }
 
@@ -897,7 +897,7 @@ func (s *Screen) insertCells(line Line, count int) {
 		s.buf.WriteString(ansi.InsertCharacter(count))
 	} else {
 		// Otherwise, use [ansi.IRM] mode.
-		s.buf.WriteString(ansi.SetInsertReplaceMode)
+		s.buf.WriteString(ansi.SetModeInsertReplace)
 	}
 
 	for i := 0; count > 0; i++ {
@@ -906,7 +906,7 @@ func (s *Screen) insertCells(line Line, count int) {
 	}
 
 	if !supportsICH {
-		s.buf.WriteString(ansi.ResetInsertReplaceMode)
+		s.buf.WriteString(ansi.ResetModeInsertReplace)
 	}
 }
 
@@ -1253,7 +1253,7 @@ func (s *Screen) flush() (err error) {
 		}
 	}
 
-	return err
+	return err //nolint:wrapcheck
 }
 
 // Render renders changes of the screen to the internal buffer. Call
@@ -1289,9 +1289,9 @@ func (s *Screen) render() {
 	// Do we need alt-screen mode?
 	if s.opts.AltScreen != s.altScreenMode {
 		if s.opts.AltScreen {
-			s.buf.WriteString(ansi.SetAltScreenSaveCursorMode)
+			s.buf.WriteString(ansi.SetModeAltScreenSaveCursor)
 		} else {
-			s.buf.WriteString(ansi.ResetAltScreenSaveCursorMode)
+			s.buf.WriteString(ansi.ResetModeAltScreenSaveCursor)
 		}
 		s.altScreenMode = s.opts.AltScreen
 	}
@@ -1416,7 +1416,7 @@ func (s *Screen) Close() (err error) {
 	s.move(0, s.newbuf.Height()-1)
 
 	if s.altScreenMode {
-		s.buf.WriteString(ansi.ResetAltScreenSaveCursorMode)
+		s.buf.WriteString(ansi.ResetModeAltScreenSaveCursor)
 		s.altScreenMode = false
 	}
 
