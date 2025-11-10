@@ -75,6 +75,8 @@ type Emulator struct {
 	atPhantom bool
 }
 
+var _ Terminal = (*Emulator)(nil)
+
 // NewEmulator creates a new virtual terminal emulator.
 func NewEmulator(w, h int) *Emulator {
 	t := new(Emulator)
@@ -154,7 +156,7 @@ func (e *Emulator) SetCell(x, y int, c *uv.Cell) {
 
 // WidthMethod returns the width method used by the terminal.
 func (e *Emulator) WidthMethod() uv.WidthMethod {
-	if e.isModeSet(ansi.UnicodeCoreMode) {
+	if e.isModeSet(ansi.ModeUnicodeCore) {
 		return ansi.GraphemeWidth
 	}
 	return ansi.WcWidth
@@ -235,7 +237,7 @@ func (e *Emulator) Resize(width int, height int) {
 
 	e.setCursor(x, y)
 
-	if e.isModeSet(ansi.InBandResizeMode) {
+	if e.isModeSet(ansi.ModeInBandResize) {
 		_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
 	}
 }
@@ -295,7 +297,7 @@ func (e *Emulator) InputPipe() io.Writer {
 // If bracketed paste mode is enabled, the text is bracketed with the
 // appropriate escape sequences.
 func (e *Emulator) Paste(text string) {
-	if e.isModeSet(ansi.BracketedPasteMode) {
+	if e.isModeSet(ansi.ModeBracketedPaste) {
 		_, _ = io.WriteString(e.pw, ansi.BracketedPasteStart)
 		defer io.WriteString(e.pw, ansi.BracketedPasteEnd) //nolint:errcheck
 	}
