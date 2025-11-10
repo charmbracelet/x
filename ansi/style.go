@@ -96,20 +96,20 @@ func (s Style) Underline(v bool) Style {
 // UnderlineStyle appends the underline style attribute to the style.
 // Supports various underline styles including single, double, curly, dotted,
 // and dashed.
-func (s Style) UnderlineStyle(u UnderlineStyle) Style {
+func (s Style) UnderlineStyle(u Underline) Style {
 	switch u {
-	case UnderlineStyleNone:
+	case UnderlineNone:
 		return s.Underline(false)
-	case UnderlineStyleSingle:
+	case UnderlineSingle:
 		return s.Underline(true)
-	case UnderlineStyleDouble:
-		return append(s, underlineStyleDouble)
-	case UnderlineStyleCurly:
-		return append(s, underlineStyleCurly)
-	case UnderlineStyleDotted:
-		return append(s, underlineStyleDotted)
-	case UnderlineStyleDashed:
-		return append(s, underlineStyleDashed)
+	case UnderlineDouble:
+		return append(s, underlineDouble)
+	case UnderlineCurly:
+		return append(s, underlineCurly)
+	case UnderlineDotted:
+		return append(s, underlineDotted)
+	case UnderlineDashed:
+		return append(s, underlineDashed)
 	}
 	return s
 }
@@ -265,37 +265,49 @@ func (s Style) UnderlineColor(c Color) Style {
 	return append(s, underlineColorString(c))
 }
 
+// Underline represents an ANSI SGR (Select Graphic Rendition) underline style.
+type Underline = byte
+
 // UnderlineStyle represents an ANSI SGR (Select Graphic Rendition) underline
 // style.
+//
+// Deprecated: use [Underline] instead.
 type UnderlineStyle = byte
 
 const (
-	underlineStyleDouble = "4:2"
-	underlineStyleCurly  = "4:3"
-	underlineStyleDotted = "4:4"
-	underlineStyleDashed = "4:5"
+	underlineDouble = "4:2"
+	underlineCurly  = "4:3"
+	underlineDotted = "4:4"
+	underlineDashed = "4:5"
 )
 
 // Underline styles constants.
 const (
-	UnderlineStyleNone UnderlineStyle = iota
-	UnderlineStyleSingle
-	UnderlineStyleDouble
-	UnderlineStyleCurly
-	UnderlineStyleDotted
-	UnderlineStyleDashed
+	UnderlineNone Underline = iota
+	UnderlineSingle
+	UnderlineDouble
+	UnderlineCurly
+	UnderlineDotted
+	UnderlineDashed
 )
 
 // Underline styles constants.
 //
-// Deprecated: use [UnderlineStyleNone], [UnderlineStyleSingle], etc. instead.
+// Deprecated: use [UnderlineNone], [UnderlineSingle], etc. instead.
 const (
-	NoUnderlineStyle UnderlineStyle = iota
+	NoUnderlineStyle Underline = iota
 	SingleUnderlineStyle
 	DoubleUnderlineStyle
 	CurlyUnderlineStyle
 	DottedUnderlineStyle
 	DashedUnderlineStyle
+
+	UnderlineStyleNone Underline = iota
+	UnderlineStyleSingle
+	UnderlineStyleDouble
+	UnderlineStyleCurly
+	UnderlineStyleDotted
+	UnderlineStyleDashed
 )
 
 // SGR (Select Graphic Rendition) style attributes.
