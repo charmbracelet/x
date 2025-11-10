@@ -42,7 +42,7 @@ func (e *Emulator) flushGrapheme() {
 
 // handleGrapheme handles UTF-8 graphemes.
 func (e *Emulator) handleGrapheme(content string, width int) {
-	awm := e.isModeSet(ansi.AutoWrapMode)
+	awm := e.isModeSet(ansi.ModeAutoWrap)
 	cell := uv.Cell{
 		Content: content,
 		Width:   width,

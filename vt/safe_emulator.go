@@ -13,6 +13,8 @@ type SafeEmulator struct {
 	mu sync.RWMutex
 }
 
+var _ Terminal = (*SafeEmulator)(nil)
+
 // NewSafeEmulator creates a new SafeEmulator instance.
 func NewSafeEmulator(w, h int) *SafeEmulator {
 	return &SafeEmulator{
