@@ -66,5 +66,5 @@ func normalizeLineEndings[T string | []byte](s T) string {
 }
 
 func printDiff(t *testing.T, requestContent, cassetteContent string) {
-	t.Logf("Request interaction not found for %q.\nDiff:\n%s", t.Name(), cmp.Diff(requestContent, cassetteContent))
+	t.Logf("Request interaction not found for %q.\nDiff:\n%s", t.Name(), cmp.Diff(cassetteContent, requestContent))
 }
