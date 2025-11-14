@@ -1,3 +1,7 @@
+// Package vttest provides a virtual terminal implementation for testing
+// terminal applications. It allows you to create a terminal instance with a
+// pseudo-terminal (PTY) and capture its state at any moment, enabling you to
+// write tests that verify the behavior of terminal applications.
 package vttest
 
 import (
