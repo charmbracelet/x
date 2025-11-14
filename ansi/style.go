@@ -301,7 +301,12 @@ const (
 	CurlyUnderlineStyle
 	DottedUnderlineStyle
 	DashedUnderlineStyle
+)
 
+// Underline styles constants.
+//
+// Deprecated: use [UnderlineNone], [UnderlineSingle], etc. instead.
+const (
 	UnderlineStyleNone Underline = iota
 	UnderlineStyleSingle
 	UnderlineStyleDouble
