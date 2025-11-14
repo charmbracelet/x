@@ -7,6 +7,8 @@ require (
 	github.com/charmbracelet/x/ansi v0.11.0
 	github.com/charmbracelet/x/vt v0.0.0-20251107210615-3bf63bc1c0e5
 	github.com/charmbracelet/x/xpty v0.1.3
+	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
+	golang.org/x/image v0.33.0
 )
 
 require (
