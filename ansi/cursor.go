@@ -281,7 +281,9 @@ func CUP(col, row int) string {
 }
 
 // CursorHomePosition is a sequence for moving the cursor to the upper left
-// corner of the scrolling region. This is equivalent to `CursorPosition(1, 1)`.
+// corner of the scrolling region.
+//
+// This is equivalent to [CursorPosition](1, 1).
 const CursorHomePosition = "\x1b[H"
 
 // SetCursorPosition (CUP) returns a sequence for setting the cursor to the
