@@ -261,7 +261,7 @@ func CHA(col int) string {
 //
 // See: https://vt100.net/docs/vt510-rm/CUP.html
 func CursorPosition(col, row int) string {
-	if row <= 0 && col <= 0 {
+	if row <= 1 && col <= 1 {
 		return CursorHomePosition
 	}
 
