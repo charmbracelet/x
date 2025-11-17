@@ -4,13 +4,13 @@
 package conpty
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"sync"
 	"syscall"
 	"unsafe"
 
-	"github.com/charmbracelet/x/errors"
 	"golang.org/x/sys/windows"
 )
 
@@ -191,8 +191,10 @@ func (c *ConPty) Size() (w int, h int, err error) {
 	return w, h, err
 }
 
-var zeroAttr syscall.ProcAttr
-var zeroSec windows.SecurityAttributes
+var (
+	zeroAttr syscall.ProcAttr
+	zeroSec  windows.SecurityAttributes
+)
 
 // Spawn spawns a new process attached to the pseudo-console.
 func (c *ConPty) Spawn(name string, args []string, attr *syscall.ProcAttr) (pid int, handle uintptr, err error) {
