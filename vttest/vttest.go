@@ -11,6 +11,8 @@ import (
 	"image/color"
 	"io"
 	"maps"
+	"os"
+	"os/exec"
 	"sync"
 
 	uv "github.com/charmbracelet/ultraviolet"
@@ -63,8 +65,10 @@ func NewTerminal(cols, rows int) (*Terminal, error) {
 		term.ptyIn = p.Slave()
 		term.ptyOut = p.Slave()
 	case *xpty.ConPty:
-		term.ptyIn = p.InPipe()
-		term.ptyOut = p.OutPipe()
+		inFile := os.NewFile(p.InPipeReadFd(), "|0")
+		outFile := os.NewFile(p.OutPipeWriteFd(), "|1")
+		term.ptyIn = inFile
+		term.ptyOut = outFile
 	}
 
 	vterm := vt.NewEmulator(cols, rows)
@@ -139,6 +143,14 @@ func NewTerminal(cols, rows int) (*Terminal, error) {
 	go io.Copy(pty, vterm) //nolint:errcheck Copy terminal output to PTY
 
 	return term, nil
+}
+
+// Start starts a process attached to the terminal's PTY.
+func (t *Terminal) Start(cmd *exec.Cmd) error {
+	if err := t.pty.Start(cmd); err != nil {
+		return fmt.Errorf("failed to start process: %w", err)
+	}
+	return nil
 }
 
 // Close closes the terminal and its PTY.
