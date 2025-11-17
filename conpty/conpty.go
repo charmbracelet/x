@@ -1,17 +1,16 @@
 package conpty
 
 import (
-	"os"
 	"syscall"
 )
 
 type pty interface {
 	Close() error
 	Fd() uintptr
-	InPipe() *os.File
-	InPipeFd() uintptr
-	OutPipe() *os.File
-	OutPipeFd() uintptr
+	InPipeReadFd() uintptr
+	InPipeWriteFd() uintptr
+	OutPipeReadFd() uintptr
+	OutPipeWriteFd() uintptr
 	Read(p []byte) (n int, err error)
 	Resize(w int, h int) error
 	Size() (w int, h int, err error)

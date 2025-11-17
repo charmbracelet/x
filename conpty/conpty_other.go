@@ -4,7 +4,6 @@
 package conpty
 
 import (
-	"os"
 	"syscall"
 )
 
@@ -48,23 +47,23 @@ func (*ConPty) Resize(int, int) error {
 	return ErrUnsupported
 }
 
-// InPipe implements pty.
-func (c *ConPty) InPipe() *os.File {
-	return nil
-}
-
-// InPipeFd implements pty.
-func (c *ConPty) InPipeFd() uintptr {
+// InPipeReadFd returns the input pipe read file descriptor.
+func (*ConPty) InPipeReadFd() uintptr {
 	return 0
 }
 
-// OutPipe implements pty.
-func (c *ConPty) OutPipe() *os.File {
-	return nil
+// InPipeWriteFd returns the input pipe write file descriptor.
+func (*ConPty) InPipeWriteFd() uintptr {
+	return 0
 }
 
-// OutPipeFd implements pty.
-func (c *ConPty) OutPipeFd() uintptr {
+// OutPipeReadFd returns the output pipe read file descriptor.
+func (*ConPty) OutPipeReadFd() uintptr {
+	return 0
+}
+
+// OutPipeWriteFd returns the output pipe write file descriptor.
+func (*ConPty) OutPipeWriteFd() uintptr {
 	return 0
 }
 
