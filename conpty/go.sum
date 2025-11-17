@@ -1,4 +1,4 @@
-github.com/charmbracelet/x/errors v0.0.0-20240508181413-e8d8b6e2de86 h1:JSt3B+U9iqk37QUU2Rvb6DSBYRLtWqFqfxf8l5hOZUA=
-github.com/charmbracelet/x/errors v0.0.0-20240508181413-e8d8b6e2de86/go.mod h1:2P0UgXMEa6TsToMSuFqKFQR+fZTO9CNGUNokkPatT/0=
-golang.org/x/sys v0.36.0 h1:KVRy2GtZBrk1cBYA7MKu5bEZFxQk4NIDV6RLVcC8o0k=
-golang.org/x/sys v0.36.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
+github.com/charmbracelet/x/errors v0.0.0-20251117104201-863d1fef9cfb h1:C2kBKKhdG7QsYAaAb46FgvcVs7aE+EuSTeNkmcWFT8s=
+github.com/charmbracelet/x/errors v0.0.0-20251117104201-863d1fef9cfb/go.mod h1:O2BTD/aMVQDmrvqroIO3fB6zXUuU07ZpVt21QTmZjRg=
+golang.org/x/sys v0.38.0 h1:3yZWxaJjBmCWXqhN1qh02AkOnCQ1poK6oF+a7xWL6Gc=
+golang.org/x/sys v0.38.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
