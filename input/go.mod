@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/input
 go 1.24.2
 
 require (
-	github.com/charmbracelet/x/ansi v0.11.0
+	github.com/charmbracelet/x/ansi v0.11.1
 	github.com/charmbracelet/x/windows v0.2.2
 	github.com/muesli/cancelreader v0.2.2
 	github.com/rivo/uniseg v0.4.7
@@ -12,7 +12,7 @@ require (
 )
 
 require (
-	github.com/clipperhouse/displaywidth v0.4.1 // indirect
+	github.com/clipperhouse/displaywidth v0.5.0 // indirect
 	github.com/clipperhouse/stringish v0.1.1 // indirect
 	github.com/clipperhouse/uax29/v2 v2.3.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.3.0 // indirect
