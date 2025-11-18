@@ -49,7 +49,7 @@ var DefaultImageOptions = func() *ImageOptions {
 type ImageOptions struct {
 	// CellWidth is the width of each cell in pixels. Default is 10.
 	CellWidth int
-	// CellHeight is the height of each cell in pixels. Default is 18.
+	// CellHeight is the height of each cell in pixels. Default is 16.
 	CellHeight int
 	// RegularFace is the font face to use for regular text. Default is Go
 	// mono.
