@@ -80,11 +80,11 @@ type Cursor struct {
 
 // Style represents the Style of a cell.
 type Style struct {
-	Fg             Color             `json:"fg,omitzero" yaml:"fg,omitzero"`
-	Bg             Color             `json:"bg,omitzero" yaml:"bg,omitzero"`
-	UnderlineColor Color             `json:"underline_color,omitzero" yaml:"underline_color,omitzero"`
-	Underline      uv.UnderlineStyle `json:"underline,omitempty" yaml:"underline,omitempty"`
-	Attrs          uv.StyleAttr      `json:"attrs,omitempty" yaml:"attrs,omitempty"`
+	Fg             Color        `json:"fg,omitzero" yaml:"fg,omitzero"`
+	Bg             Color        `json:"bg,omitzero" yaml:"bg,omitzero"`
+	UnderlineColor Color        `json:"underline_color,omitzero" yaml:"underline_color,omitzero"`
+	Underline      uv.Underline `json:"underline,omitempty" yaml:"underline,omitempty"`
+	Attrs          byte         `json:"attrs,omitempty" yaml:"attrs,omitempty"`
 }
 
 // Link represents a hyperlink in the terminal screen.
@@ -98,7 +98,7 @@ type Cell struct {
 	// Content is the [Cell]'s content, which consists of a single grapheme
 	// cluster. Most of the time, this will be a single rune as well, but it
 	// can also be a combination of runes that form a grapheme cluster.
-	Content string `json:"content" yaml:"content"`
+	Content string `json:"content,omitempty" yaml:"content,omitempty"`
 
 	// The style of the cell. Nil style means no style. Zero value prints a
 	// reset sequence.
