@@ -103,10 +103,10 @@ func NewTerminal(cols, rows int) (*Terminal, error) {
 				term.decModes[m] = ansi.ModeReset
 			}
 		},
-		CursorPosition: func(old, new uv.Position) {
+		CursorPosition: func(_, newpos uv.Position) {
 			term.mu.Lock()
 			defer term.mu.Unlock()
-			term.cursorPos = new
+			term.cursorPos = newpos
 		},
 		CursorVisibility: func(visible bool) {
 			term.mu.Lock()
@@ -139,8 +139,10 @@ func NewTerminal(cols, rows int) (*Terminal, error) {
 	term.Emulator = vterm
 	term.pty = pty
 
-	go io.Copy(vterm, pty) //nolint:errcheck Copy PTY input to terminal
-	go io.Copy(pty, vterm) //nolint:errcheck Copy terminal output to PTY
+	// Copy PTY input to terminal
+	go io.Copy(vterm, pty) //nolint:errcheck
+	// Copy terminal output to PTY
+	go io.Copy(pty, vterm) //nolint:errcheck
 
 	return term, nil
 }

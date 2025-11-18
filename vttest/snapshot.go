@@ -23,9 +23,9 @@ type Position struct {
 }
 
 // Color represents a terminal color, which can be one of the following:
-// - An ANSI 16 color (0-15) of type [ansi.BasicColor]
-// - An ANSI 256 color (0-255) of type [ansi.IndexedColor]
-// - Or any other 24-bit color that implements [color.Color]
+// - An ANSI 16 color (0-15) of type [ansi.BasicColor].
+// - An ANSI 256 color (0-255) of type [ansi.IndexedColor].
+// - Or any other 24-bit color that implements [color.Color].
 type Color struct {
 	Color color.Color `json:"color,omitempty" yaml:"color,omitempty"`
 }

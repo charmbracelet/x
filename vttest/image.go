@@ -138,6 +138,7 @@ func (t *Terminal) Image(opts ...*ImageOptions) image.Image {
 		drawer.DrawString(cell.Content)
 
 		// Handle underline
+		//nolint:godox
 		// TODO: Implement more underline styles
 		// For now, we only support single underline
 		if cell.Style.Underline > uv.UnderlineNone {
