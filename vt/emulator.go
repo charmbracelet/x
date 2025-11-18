@@ -274,7 +274,7 @@ func (e *Emulator) Write(p []byte) (n int, err error) {
 		// written the whole byte slice.
 		if len(e.grapheme) > 0 {
 			if (e.lastState == parser.GroundState && state != parser.Utf8State) || i == len(p)-1 {
-				e.flushGrapheme()
+				e.flushGrapheme(true)
 			}
 		}
 		e.lastState = state

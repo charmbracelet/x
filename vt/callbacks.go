@@ -60,4 +60,8 @@ type Callbacks struct {
 	// DisableMode callback. When set, this function is called when a mode is
 	// disabled.
 	DisableMode func(mode ansi.Mode)
+
+	// Damage callback. When set, this function is called when a region of the
+	// terminal is damaged.
+	Damage func(damage Damage)
 }

@@ -7,7 +7,7 @@ import (
 
 // handleEsc handles an escape sequence.
 func (e *Emulator) handleEsc(cmd ansi.Cmd) {
-	e.flushGrapheme() // Flush any pending grapheme before handling ESC sequences.
+	e.flushGrapheme(true) // Flush any pending grapheme before handling ESC sequences.
 	if !e.handlers.handleEsc(int(cmd)) {
 		var str string
 		if inter := cmd.Intermediate(); inter != 0 {
