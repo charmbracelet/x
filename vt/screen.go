@@ -253,21 +253,25 @@ func (s *Screen) DeleteCell(n int) {
 // ScrollUp scrolls the content up n lines within the given region. Lines
 // scrolled past the top margin are lost. This is equivalent to [ansi.SU] which
 // moves the cursor to the top margin and performs a [ansi.DL] operation.
-func (s *Screen) ScrollUp(n int) {
+// It returns true if the operation was successful.
+func (s *Screen) ScrollUp(n int) bool {
 	x, y := s.CursorPosition()
 	s.setCursor(s.cur.X, 0, true)
-	s.DeleteLine(n)
+	v := s.DeleteLine(n)
 	s.setCursor(x, y, false)
+	return v
 }
 
 // ScrollDown scrolls the content down n lines within the given region. Lines
 // scrolled past the bottom margin are lost. This is equivalent to [ansi.SD]
 // which moves the cursor to top margin and performs a [ansi.IL] operation.
-func (s *Screen) ScrollDown(n int) {
+// It returns true if the operation was successful.
+func (s *Screen) ScrollDown(n int) bool {
 	x, y := s.CursorPosition()
 	s.setCursor(s.cur.X, 0, true)
-	s.InsertLine(n)
+	v := s.InsertLine(n)
 	s.setCursor(x, y, false)
+	return v
 }
 
 // InsertLine inserts n blank lines at the cursor position Y coordinate.
