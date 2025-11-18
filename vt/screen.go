@@ -2,6 +2,7 @@ package vt
 
 import (
 	uv "github.com/charmbracelet/ultraviolet"
+	"github.com/charmbracelet/x/exp/ordered"
 )
 
 // Screen represents a virtual terminal screen.
@@ -112,11 +113,11 @@ func (s *Screen) setCursorX(x int, margins bool) {
 func (s *Screen) setCursor(x, y int, margins bool) {
 	old := s.cur.Position
 	if !margins {
-		y = clamp(y, 0, s.buf.Height()-1)
-		x = clamp(x, 0, s.buf.Width()-1)
+		y = ordered.Clamp(y, 0, s.buf.Height()-1)
+		x = ordered.Clamp(x, 0, s.buf.Width()-1)
 	} else {
-		y = clamp(s.scroll.Min.Y+y, s.scroll.Min.Y, s.scroll.Max.Y-1)
-		x = clamp(s.scroll.Min.X+x, s.scroll.Min.X, s.scroll.Max.X-1)
+		y = ordered.Clamp(s.scroll.Min.Y+y, s.scroll.Min.Y, s.scroll.Max.Y-1)
+		x = ordered.Clamp(s.scroll.Min.X+x, s.scroll.Min.X, s.scroll.Max.X-1)
 	}
 	s.cur.X, s.cur.Y = x, y
 
@@ -144,11 +145,11 @@ func (s *Screen) moveCursor(dx, dy int) {
 
 	var x, y int
 	if old.In(scroll) {
-		y = clamp(pt.Y, scroll.Min.Y, scroll.Max.Y-1)
-		x = clamp(pt.X, scroll.Min.X, scroll.Max.X-1)
+		y = ordered.Clamp(pt.Y, scroll.Min.Y, scroll.Max.Y-1)
+		x = ordered.Clamp(pt.X, scroll.Min.X, scroll.Max.X-1)
 	} else {
-		y = clamp(pt.Y, 0, s.buf.Height()-1)
-		x = clamp(pt.X, 0, s.buf.Width()-1)
+		y = ordered.Clamp(pt.Y, 0, s.buf.Height()-1)
+		x = ordered.Clamp(pt.X, 0, s.buf.Width()-1)
 	}
 
 	s.cur.X, s.cur.Y = x, y

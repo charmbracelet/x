@@ -5,6 +5,7 @@ go 1.24.2
 require (
 	github.com/charmbracelet/ultraviolet v0.0.0-20251106193841-7889546fc720
 	github.com/charmbracelet/x/ansi v0.11.0
+	github.com/charmbracelet/x/exp/ordered v0.1.0
 )
 
 require (
