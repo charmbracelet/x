@@ -24,8 +24,8 @@ import (
 
 // Terminal represents a virtual terminal with it's PTY and state.
 type Terminal struct {
-	*vt.Emulator
-	tb testing.TB
+	Emulator *vt.SafeEmulator
+	tb       testing.TB
 
 	cols, rows  int
 	title       string
@@ -74,7 +74,7 @@ func NewTerminal(tb testing.TB, cols, rows int) (*Terminal, error) {
 		term.ptyOut = outFile
 	}
 
-	vterm := vt.NewEmulator(cols, rows)
+	vterm := vt.NewSafeEmulator(cols, rows)
 	vterm.SetCallbacks(vt.Callbacks{
 		Title: func(title string) {
 			term.mu.Lock()
@@ -197,6 +197,37 @@ func (t *Terminal) Resize(cols, rows int) error {
 	return nil
 }
 
+// SendText sends the given raw text to the terminal emulator as if typed by a
+// user.
+func (t *Terminal) SendText(text string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.Emulator.SendText(text)
+}
+
+// SendKey sends the given key event to the terminal emulator as if typed by a
+// user.
+func (t *Terminal) SendKey(k uv.KeyEvent) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.Emulator.SendKey(k)
+}
+
+// SendMouse sends the given mouse event to the terminal emulator as if performed
+// by a user.
+func (t *Terminal) SendMouse(m uv.MouseEvent) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.Emulator.SendMouse(m)
+}
+
+// Paste sends the given text to the terminal emulator as if pasted by a user.
+func (t *Terminal) Paste(text string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.Emulator.Paste(text)
+}
+
 // Input returns the input side of the terminal's PTY.
 func (t *Terminal) Input() io.Reader {
 	return t.ptyIn
@@ -239,7 +270,7 @@ func (t *Terminal) Snapshot() Snapshot {
 	for r := 0; r < t.rows; r++ {
 		snap.Cells[r] = make([]Cell, t.cols)
 		for c := 0; c < t.cols; c++ {
-			cell := t.CellAt(c, r)
+			cell := t.Emulator.CellAt(c, r)
 			snap.Cells[r][c] = Cell{
 				Content: cell.Content,
 				Style: Style{

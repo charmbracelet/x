@@ -167,5 +167,5 @@ func (d *Drawer) Draw(t uv.Screen) image.Image {
 func (t *Terminal) Image() image.Image {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	return DefaultDrawer.Draw(t)
+	return DefaultDrawer.Draw(t.Emulator)
 }
