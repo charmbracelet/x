@@ -14,6 +14,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"testing"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
@@ -24,6 +25,7 @@ import (
 // Terminal represents a virtual terminal with it's PTY and state.
 type Terminal struct {
 	*vt.Emulator
+	tb testing.TB
 
 	cols, rows  int
 	title       string
@@ -48,13 +50,14 @@ type Terminal struct {
 // NewTerminal creates a new virtual terminal with the given size for testing
 // purposes. At any moment, you can take a snapshot of the terminal state by
 // calling the [Terminal.Snapshot] method on the returned Terminal instance.
-func NewTerminal(cols, rows int) (*Terminal, error) {
+func NewTerminal(tb testing.TB, cols, rows int) (*Terminal, error) {
 	pty, err := xpty.NewPty(cols, rows)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pty: %w", err)
 	}
 
 	term := new(Terminal)
+	term.tb = tb
 	term.cols = cols
 	term.rows = rows
 	term.ansiModes = make(map[ansi.ANSIMode]ansi.ModeSetting)
@@ -151,6 +154,14 @@ func NewTerminal(cols, rows int) (*Terminal, error) {
 func (t *Terminal) Start(cmd *exec.Cmd) error {
 	if err := t.pty.Start(cmd); err != nil {
 		return fmt.Errorf("failed to start process: %w", err)
+	}
+	return nil
+}
+
+// Wait waits for the process attached to the terminal's PTY to exit.
+func (t *Terminal) Wait(cmd *exec.Cmd) error {
+	if err := xpty.WaitProcess(t.tb.Context(), cmd); err != nil {
+		return fmt.Errorf("process exited with error: %w", err)
 	}
 	return nil
 }
