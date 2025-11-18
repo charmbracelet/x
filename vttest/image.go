@@ -16,9 +16,9 @@ import (
 	"golang.org/x/image/math/fixed"
 )
 
-// DefaultDrawer are the default options used for creating terminal
+// DefaultImageOptions are the default options used for creating terminal
 // screen images.
-var DefaultDrawer = func() *Drawer {
+var DefaultImageOptions = func() *ImageOptions {
 	cellW, cellH := 10, 16
 	regular, _ := freetype.ParseFont(gomono.TTF)
 	bold, _ := freetype.ParseFont(gomonobold.TTF)
@@ -34,7 +34,7 @@ var DefaultDrawer = func() *Drawer {
 	italicFace := truetype.NewFace(italic, faceOpts)
 	boldItalicFace := truetype.NewFace(boldItalic, faceOpts)
 
-	return &Drawer{
+	return &ImageOptions{
 		CellWidth:      cellW,
 		CellHeight:     cellH,
 		RegularFace:    regularFace,
@@ -44,19 +44,9 @@ var DefaultDrawer = func() *Drawer {
 	}
 }()
 
-// Draw draws a terminal emulator screen to an image.
-func Draw(e Emulator) image.Image {
-	return DefaultDrawer.Draw(e)
-}
-
-// Emulator represents a terminal emulator interface.
-type Emulator interface {
-	uv.Screen
-	BackgroundColor() color.Color
-}
-
-// Drawer contains options for drawing a terminal emulator screen to an image.
-type Drawer struct {
+// ImageOptions contains options for drawing a terminal emulator screen to an
+// image.
+type ImageOptions struct {
 	// CellWidth is the width of each cell in pixels. Default is 10.
 	CellWidth int
 	// CellHeight is the height of each cell in pixels. Default is 18.
@@ -75,38 +65,45 @@ type Drawer struct {
 	BoldItalicFace font.Face
 }
 
-// Draw draws a terminal emulator screen to an image using the drawer's
-// options.
-func (d *Drawer) Draw(e Emulator) image.Image {
-	if d == nil {
-		d = DefaultDrawer
+// Image return s an image of the terminal emulator screen.
+// If d is nil, [DefaultImageOptions] is used.
+func (t *Terminal) Image(opts ...*ImageOptions) image.Image {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	var opt *ImageOptions
+	if len(opts) > 0 {
+		opt = opts[0]
 	}
-	if d.CellWidth <= 0 {
-		d.CellWidth = DefaultDrawer.CellWidth
+	if opt == nil {
+		opt = DefaultImageOptions
 	}
-	if d.CellHeight <= 0 {
-		d.CellHeight = DefaultDrawer.CellHeight
+	if opt.CellWidth <= 0 {
+		opt.CellWidth = DefaultImageOptions.CellWidth
 	}
-	if d.RegularFace == nil {
-		d.RegularFace = DefaultDrawer.RegularFace
+	if opt.CellHeight <= 0 {
+		opt.CellHeight = DefaultImageOptions.CellHeight
 	}
-	if d.BoldFace == nil {
-		d.BoldFace = DefaultDrawer.BoldFace
+	if opt.RegularFace == nil {
+		opt.RegularFace = DefaultImageOptions.RegularFace
 	}
-	if d.ItalicFace == nil {
-		d.ItalicFace = DefaultDrawer.ItalicFace
+	if opt.BoldFace == nil {
+		opt.BoldFace = DefaultImageOptions.BoldFace
 	}
-	if d.BoldItalicFace == nil {
-		d.BoldItalicFace = DefaultDrawer.BoldItalicFace
+	if opt.ItalicFace == nil {
+		opt.ItalicFace = DefaultImageOptions.ItalicFace
+	}
+	if opt.BoldItalicFace == nil {
+		opt.BoldItalicFace = DefaultImageOptions.BoldItalicFace
 	}
 
-	area := e.Bounds()
+	area := t.Bounds()
 	width, height := area.Dx(), area.Dy()
-	r := image.Rect(0, 0, width*d.CellWidth, height*d.CellHeight)
+	r := image.Rect(0, 0, width*opt.CellWidth, height*opt.CellHeight)
 	img := image.NewRGBA(r)
 
 	// Fill background
-	bg := e.BackgroundColor()
+	bg := t.BackgroundColor()
 	if bg == nil {
 		bg = color.Black
 	}
@@ -114,22 +111,22 @@ func (d *Drawer) Draw(e Emulator) image.Image {
 
 	// Draw cells
 	drawCell := func(x, y int, cell *uv.Cell) {
-		px := x * d.CellWidth
-		py := y * d.CellHeight
-		dot := fixed.P(px, py+d.CellHeight-4) // 4 pixels from bottom for baseline
+		px := x * opt.CellWidth
+		py := y * opt.CellHeight
+		dot := fixed.P(px, py+opt.CellHeight-4) // 4 pixels from bottom for baseline
 		style := cell.Style
 		attrs := style.Attrs
 		fg := style.Fg
 		if fg == nil {
 			fg = color.White
 		}
-		face := d.RegularFace
+		face := opt.RegularFace
 		if attrs&uv.AttrBold != 0 && attrs&uv.AttrItalic != 0 {
-			face = d.BoldItalicFace
+			face = opt.BoldItalicFace
 		} else if attrs&uv.AttrBold != 0 {
-			face = d.BoldFace
+			face = opt.BoldFace
 		} else if attrs&uv.AttrItalic != 0 {
-			face = d.ItalicFace
+			face = opt.ItalicFace
 		}
 
 		drawer := &font.Drawer{
@@ -143,13 +140,13 @@ func (d *Drawer) Draw(e Emulator) image.Image {
 		// Handle underline
 		// TODO: Implement more underline styles
 		// For now, we only support single underline
-		if cell.Style.Underline > uv.UnderlineStyleNone {
+		if cell.Style.Underline > uv.UnderlineNone {
 			col := cell.Style.UnderlineColor
 			if col == nil {
 				col = fg
 			}
-			for i := range d.CellWidth {
-				img.Set(px+i, py+d.CellHeight-2, col)
+			for i := range opt.CellWidth {
+				img.Set(px+i, py+opt.CellHeight-2, col)
 			}
 		}
 	}
@@ -157,7 +154,7 @@ func (d *Drawer) Draw(e Emulator) image.Image {
 	// Iterate over screen cells
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; {
-			cell := e.CellAt(x, y)
+			cell := t.CellAt(x, y)
 			if cell == nil {
 				cell = &uv.EmptyCell
 			}

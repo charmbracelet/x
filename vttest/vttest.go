@@ -23,7 +23,7 @@ import (
 
 // Terminal represents a virtual terminal with it's PTY and state.
 type Terminal struct {
-	*vt.Emulator
+	vt.Terminal
 
 	cols, rows  int
 	title       string
@@ -136,7 +136,7 @@ func NewTerminal(cols, rows int) (*Terminal, error) {
 		},
 	})
 
-	term.Emulator = vterm
+	term.Terminal = vterm
 	term.pty = pty
 
 	go io.Copy(vterm, pty) //nolint:errcheck Copy PTY input to terminal
@@ -158,7 +158,7 @@ func (t *Terminal) Close() error {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	if err := t.Emulator.Close(); err != nil && !errors.Is(err, io.EOF) {
+	if err := t.Terminal.Close(); err != nil && !errors.Is(err, io.EOF) {
 		_ = t.pty.Close()
 		return fmt.Errorf("failed to close emulator: %w", err)
 	}
@@ -176,7 +176,7 @@ func (t *Terminal) Resize(cols, rows int) error {
 
 	t.cols = cols
 	t.rows = rows
-	t.Emulator.Resize(cols, rows)
+	t.Terminal.Resize(cols, rows)
 	if err := t.pty.Resize(cols, rows); err != nil {
 		return fmt.Errorf("failed to resize pty: %w", err)
 	}
