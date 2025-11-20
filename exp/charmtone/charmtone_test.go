@@ -1,15 +1,16 @@
 package charmtone
 
 import (
+	"regexp"
 	"testing"
-
-	"github.com/lucasb-eyer/go-colorful"
 )
+
+var hexRegexp = regexp.MustCompile(`^#(?:[0-9a-fA-F]{3}){1,2}$`)
 
 func TestValidateHexes(t *testing.T) {
 	for _, key := range Keys() {
-		if _, err := colorful.Hex(key.Hex()); err != nil {
-			t.Errorf("Key %s: %v", key, err)
+		if !hexRegexp.MatchString(key.Hex()) {
+			t.Errorf("Key %s: invalid hex format %s", key, key.Hex())
 		}
 	}
 }
