@@ -1,15 +1,19 @@
 package charmtone
 
 import (
+	"strconv"
+	"strings"
 	"testing"
-
-	"github.com/lucasb-eyer/go-colorful"
 )
 
 func TestValidateHexes(t *testing.T) {
 	for _, key := range Keys() {
-		if _, err := colorful.Hex(key.Hex()); err != nil {
-			t.Errorf("Key %s: %v", key, err)
+		hex := strings.TrimPrefix(key.Hex(), "#")
+		if len(hex) != 6 && len(hex) != 3 {
+			t.Errorf("Key %s: invalid hex length %d for %s", key, len(hex), key.Hex())
+		}
+		if _, err := strconv.ParseUint(hex, 16, 32); err != nil {
+			t.Errorf("Key %s: invalid hex value %s", key, key.Hex())
 		}
 	}
 }
