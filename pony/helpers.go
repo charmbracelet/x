@@ -114,36 +114,48 @@ func RGB(r, g, b uint8) color.Color {
 // Panel creates a box with border and padding.
 func Panel(child Element, border string, padding int) *Box {
 	return NewBox(child).
-		WithBorder(border).
-		WithPadding(padding)
+		Border(border).
+		Padding(padding)
 }
 
 // PanelWithMargin creates a box with border, padding, and margin.
 func PanelWithMargin(child Element, border string, padding, margin int) *Box {
 	return NewBox(child).
-		WithBorder(border).
-		WithPadding(padding).
-		WithMargin(margin)
+		Border(border).
+		Padding(padding).
+		Margin(margin)
 }
 
 // Card creates a titled card with content.
-func Card(title string, titleStyle, borderStyle uv.Style, children ...Element) Element {
-	return NewBox(
+func Card(title string, titleColor, borderColor color.Color, children ...Element) Element {
+	titleText := NewText(title)
+	if titleColor != nil {
+		titleText = titleText.ForegroundColor(titleColor).Bold()
+	}
+
+	box := NewBox(
 		NewVStack(
-			&Text{Content: title, Style: titleStyle},
+			titleText,
 			NewDivider(),
 			NewVStack(children...),
 		),
-	).WithBorder("rounded").
-		WithBorderStyle(borderStyle).
-		WithPadding(1)
+	).Border("rounded").Padding(1)
+
+	if borderColor != nil {
+		box = box.BorderColor(borderColor)
+	}
+
+	return box
 }
 
 // Section creates a section with a header and content.
-func Section(header string, headerStyle uv.Style, children ...Element) Element {
-	items := []Element{
-		&Text{Content: header, Style: headerStyle},
+func Section(header string, headerColor color.Color, children ...Element) Element {
+	headerText := NewText(header)
+	if headerColor != nil {
+		headerText = headerText.ForegroundColor(headerColor).Bold()
 	}
+
+	items := []Element{headerText}
 	items = append(items, children...)
 	return NewVStack(items...)
 }
@@ -172,7 +184,7 @@ func Overlay(children ...Element) Element {
 
 // FlexGrow creates a flex wrapper with the specified grow value.
 func FlexGrow(child Element, grow int) *Flex {
-	return NewFlex(child).WithGrow(grow)
+	return NewFlex(child).Grow(grow)
 }
 
 // Position creates an absolutely positioned element.
@@ -182,15 +194,15 @@ func Position(child Element, x, y int) *Positioned {
 
 // PositionRight creates an element positioned relative to the right edge.
 func PositionRight(child Element, right, y int) *Positioned {
-	return NewPositioned(child, 0, y).WithRight(right)
+	return NewPositioned(child, 0, y).Right(right)
 }
 
 // PositionBottom creates an element positioned relative to the bottom edge.
 func PositionBottom(child Element, x, bottom int) *Positioned {
-	return NewPositioned(child, x, 0).WithBottom(bottom)
+	return NewPositioned(child, x, 0).Bottom(bottom)
 }
 
 // PositionCorner creates an element positioned at a corner.
 func PositionCorner(child Element, right, bottom int) *Positioned {
-	return NewPositioned(child, 0, 0).WithRight(right).WithBottom(bottom)
+	return NewPositioned(child, 0, 0).Right(right).Bottom(bottom)
 }

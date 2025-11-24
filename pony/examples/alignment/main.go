@@ -18,30 +18,30 @@ func getSize() (int, int) {
 
 func main() {
 	const tmpl = `
-<vstack gap="1">
-	<box border="double" border-style="fg:cyan; bold">
-		<text style="bold; fg:yellow" align="center">Alignment & Padding Demo</text>
+<vstack spacing="1">
+	<box border="double" border-color="cyan">
+		<text font-weight="bold" foreground-color="yellow" alignment="center">Alignment & Padding Demo</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">Text Alignment:</text>
+	<vstack spacing="0">
+		<text font-weight="bold">Text Alignment:</text>
 		<box border="normal">
-			<text align="left">Left aligned text</text>
+			<text alignment="left">Left aligned text</text>
 		</box>
 		<box border="normal">
-			<text align="center">Center aligned text</text>
+			<text alignment="center">Center aligned text</text>
 		</box>
 		<box border="normal">
-			<text align="right">Right aligned text</text>
+			<text alignment="right">Right aligned text</text>
 		</box>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">Padding Demo:</text>
+	<vstack spacing="0">
+		<text font-weight="bold">Padding Demo:</text>
 		<box border="rounded" padding="0">
 			<text>No padding</text>
 		</box>
@@ -53,67 +53,67 @@ func main() {
 		</box>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">VStack Alignment (children):</text>
+	<vstack spacing="0">
+		<text font-weight="bold">VStack Alignment (children):</text>
 		<box border="normal">
-			<vstack align="left">
+			<vstack alignment="left">
 				<text>Left</text>
 				<text>Aligned</text>
 			</vstack>
 		</box>
 		<box border="normal">
-			<vstack align="center">
+			<vstack alignment="center">
 				<text>Center</text>
 				<text>Aligned</text>
 			</vstack>
 		</box>
 		<box border="normal">
-			<vstack align="right">
+			<vstack alignment="right">
 				<text>Right</text>
 				<text>Aligned</text>
 			</vstack>
 		</box>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">HStack Vertical Alignment:</text>
+	<vstack spacing="0">
+		<text font-weight="bold">HStack Vertical Alignment:</text>
 		<box border="normal" height="5">
-			<hstack gap="2" valign="top">
+			<hstack spacing="2" alignment="top">
 				<text>Top</text>
 				<text>Aligned</text>
 			</hstack>
 		</box>
 		<box border="normal" height="5">
-			<hstack gap="2" valign="middle">
+			<hstack spacing="2" alignment="middle">
 				<text>Middle</text>
 				<text>Aligned</text>
 			</hstack>
 		</box>
 		<box border="normal" height="5">
-			<hstack gap="2" valign="bottom">
+			<hstack spacing="2" alignment="bottom">
 				<text>Bottom</text>
 				<text>Aligned</text>
 			</hstack>
 		</box>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">Combined: Width + Padding + Alignment:</text>
-		<hstack gap="1">
-			<box border="rounded" border-style="fg:red" width="33%" padding="1">
-				<text align="center" style="fg:red; bold">Left</text>
+	<vstack spacing="0">
+		<text font-weight="bold">Combined: Width + Padding + Alignment:</text>
+		<hstack spacing="1">
+			<box border="rounded" border-color="red" width="33%" padding="1">
+				<text alignment="center" font-weight="bold" foreground-color="red">Left</text>
 			</box>
-			<box border="rounded" border-style="fg:green" width="33%" padding="1">
-				<text align="center" style="fg:green; bold">Center</text>
+			<box border="rounded" border-color="green" width="33%" padding="1">
+				<text alignment="center" font-weight="bold" foreground-color="green">Center</text>
 			</box>
-			<box border="rounded" border-style="fg:blue" width="33%" padding="1">
-				<text align="center" style="fg:blue; bold">Right</text>
+			<box border="rounded" border-color="blue" width="33%" padding="1">
+				<text alignment="center" font-weight="bold" foreground-color="blue">Right</text>
 			</box>
 		</hstack>
 	</vstack>

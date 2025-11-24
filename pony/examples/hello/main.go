@@ -10,13 +10,13 @@ import (
 
 func main() {
 	const tmpl = `
-<vstack gap="1">
+<vstack spacing="1">
 	<box border="rounded">
 		<text>Hello, World!</text>
 	</box>
 	<text>Welcome to pony - a declarative markup language for terminal UIs.</text>
 	<divider />
-	<hstack gap="2">
+	<hstack spacing="2">
 		<text>Left</text>
 		<text>Right</text>
 	</hstack>

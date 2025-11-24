@@ -24,19 +24,17 @@ func (l *ListItem) Render() pony.Element {
 	text := pony.NewText(l.text)
 	
 	if l.selected {
-		if style, err := pony.ParseStyle("bg:blue; fg:white; bold"); err == nil {
-			text.Style = style
-		}
+		text = text.BackgroundColor(pony.RGB(0, 0, 255)).
+			ForegroundColor(pony.RGB(255, 255, 255)).
+			Bold()
 	}
 
 	box := pony.NewBox(text).
-		WithPadding(1).
-		WithBorder("rounded")
+		Padding(1).
+		Border("rounded")
 
 	if l.selected {
-		if style, err := pony.ParseStyle("fg:blue; bold"); err == nil {
-			box.BorderStyle = style
-		}
+		box = box.BorderColor(pony.RGB(0, 0, 255))
 	}
 
 	// Set the component ID on the root element
@@ -47,25 +45,25 @@ func (l *ListItem) Render() pony.Element {
 
 // Template
 const tmpl = `
-<vstack gap="1">
-	<box border="double" border-style="fg:cyan; bold" padding="1">
-		<text style="bold; fg:yellow" align="center">Scroll View with Clickable Items</text>
+<vstack spacing="1">
+	<box border="double" border-color="cyan" padding="1">
+		<text font-weight="bold" foreground-color="yellow" alignment="center">Scroll View with Clickable Items</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<text style="fg:gray">Selected: {{ .SelectedItem }}</text>
-	<text style="fg:gray; italic">{{ .HitInfo }}</text>
+	<text foreground-color="gray">Selected: {{ .SelectedItem }}</text>
+	<text font-style="italic" foreground-color="gray">{{ .HitInfo }}</text>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<box border="rounded" border-style="fg:green">
+	<box border="rounded" border-color="green">
 		<slot name="scrollview" />
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<text style="fg:gray; italic">Click items to select • Mouse wheel to scroll • q to quit</text>
+	<text font-style="italic" foreground-color="gray">Click items to select • Mouse wheel to scroll • q to quit</text>
 </vstack>
 `
 
@@ -77,7 +75,6 @@ type TemplateData struct {
 type model struct {
 	template     *pony.Template[TemplateData]
 	items        []*ListItem
-	scrollView   *pony.ScrollView
 	scrollOffset int
 	selectedItem string
 	hitInfo      string
@@ -99,17 +96,9 @@ func initialModel() model {
 		itemElements = append(itemElements, item.Render())
 	}
 
-	// Create scroll view
-	scrollView := pony.NewScrollView(pony.NewVStack(itemElements...))
-	scrollView.SetID("main-scroll-view")
-	scrollView.WithHeight(pony.NewFixedConstraint(12))
-	scrollView.WithVertical(true)
-	scrollView.WithScrollbar(true)
-
 	return model{
 		template:     pony.MustParse[TemplateData](tmpl),
 		items:        items,
-		scrollView:   scrollView,
 		selectedItem: "none",
 		width:        80,
 		height:       24,
@@ -135,17 +124,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case tea.MouseWheelMsg:
 		mouse := msg.Mouse()
-		contentSize := m.scrollView.ContentSize()
-		viewportHeight := 12 // Fixed height from WithHeight
-		maxOffset := max(0, contentSize.Height-viewportHeight)
+		// Use fixed viewport height
+		viewportHeight := 12
+		// Calculate content height (20 items, each rendered as box with padding/border)
+		// Approximate: each item is ~5 lines tall
+		contentHeight := len(m.items) * 5
+		maxOffset := max(0, contentHeight-viewportHeight)
 		
 		switch mouse.Button {
 		case tea.MouseWheelUp:
 			m.scrollOffset = max(0, m.scrollOffset-3)
-			m.scrollView.OffsetY = m.scrollOffset
 		case tea.MouseWheelDown:
 			m.scrollOffset = min(maxOffset, m.scrollOffset+3)
-			m.scrollView.OffsetY = m.scrollOffset
 		}
 
 	case selectItemMsg:
@@ -176,12 +166,17 @@ func (m model) View() tea.View {
 		itemElements = append(itemElements, item.Render())
 	}
 
-	// Update scroll view child with current items
-	m.scrollView.Child = pony.NewVStack(itemElements...)
-	m.scrollView.OffsetY = m.scrollOffset
+	// Create scroll view with current offset
+	scrollView := pony.NewScrollView(pony.NewVStack(itemElements...))
+	scrollView.SetID("main-scroll-view")
+	scrollView = scrollView.
+		Height(pony.NewFixedConstraint(12)).
+		Vertical(true).
+		Scrollbar(true).
+		Offset(0, m.scrollOffset)
 
 	slots := map[string]pony.Element{
-		"scrollview": m.scrollView,
+		"scrollview": scrollView,
 	}
 
 	data := TemplateData{

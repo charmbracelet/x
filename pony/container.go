@@ -5,49 +5,49 @@ import uv "github.com/charmbracelet/ultraviolet"
 // VStack represents a vertical stack container.
 type VStack struct {
 	BaseElement
-	Items  []Element
-	Gap    int
-	Width  SizeConstraint
-	Height SizeConstraint
-	Align  string // left, center, right (horizontal alignment of children)
+	items     []Element
+	spacing   int
+	width     SizeConstraint
+	height    SizeConstraint
+	alignment string // leading, center, trailing (horizontal alignment of children)
 }
 
 var _ Element = (*VStack)(nil)
 
 // NewVStack creates a new vertical stack.
 func NewVStack(children ...Element) *VStack {
-	return &VStack{Items: children}
+	return &VStack{items: children}
 }
 
-// WithGap sets the gap and returns the vstack for chaining.
-func (v *VStack) WithGap(gap int) *VStack {
-	v.Gap = gap
+// Spacing sets the spacing between children and returns the vstack for chaining.
+func (v *VStack) Spacing(spacing int) *VStack {
+	v.spacing = spacing
 	return v
 }
 
-// WithAlign sets the alignment and returns the vstack for chaining.
-func (v *VStack) WithAlign(align string) *VStack {
-	v.Align = align
+// Alignment sets the horizontal alignment of children and returns the vstack for chaining.
+func (v *VStack) Alignment(alignment string) *VStack {
+	v.alignment = alignment
 	return v
 }
 
-// WithWidth sets the width constraint and returns the vstack for chaining.
-func (v *VStack) WithWidth(width SizeConstraint) *VStack {
-	v.Width = width
+// Width sets the width constraint and returns the vstack for chaining.
+func (v *VStack) Width(width SizeConstraint) *VStack {
+	v.width = width
 	return v
 }
 
-// WithHeight sets the height constraint and returns the vstack for chaining.
-func (v *VStack) WithHeight(height SizeConstraint) *VStack {
-	v.Height = height
+// Height sets the height constraint and returns the vstack for chaining.
+func (v *VStack) Height(height SizeConstraint) *VStack {
+	v.height = height
 	return v
 }
 
 // calculateChildSizes performs two-pass layout for VStack children.
 // Pass 1: Layout fixed children, Pass 2: Distribute space to flexible children (flex-grow).
 func (v *VStack) calculateChildSizes(constraints Constraints) []Size {
-	childSizes := make([]Size, len(v.Items))
-	if len(v.Items) == 0 {
+	childSizes := make([]Size, len(v.items))
+	if len(v.items) == 0 {
 		return childSizes
 	}
 
@@ -55,7 +55,7 @@ func (v *VStack) calculateChildSizes(constraints Constraints) []Size {
 	fixedHeight := 0
 	totalFlexGrow := 0
 
-	for i, child := range v.Items {
+	for i, child := range v.items {
 		flexGrow := GetFlexGrow(child)
 
 		if flexGrow > 0 {
@@ -76,8 +76,8 @@ func (v *VStack) calculateChildSizes(constraints Constraints) []Size {
 			fixedHeight += size.Height
 		}
 
-		if i < len(v.Items)-1 {
-			fixedHeight += v.Gap
+		if i < len(v.items)-1 {
+			fixedHeight += v.spacing
 		}
 	}
 
@@ -85,7 +85,7 @@ func (v *VStack) calculateChildSizes(constraints Constraints) []Size {
 	if totalFlexGrow > 0 {
 		remainingHeight := constraints.MaxHeight - fixedHeight
 		if remainingHeight > 0 {
-			for i, child := range v.Items {
+			for i, child := range v.items {
 				flexGrow := GetFlexGrow(child)
 				if flexGrow > 0 {
 					// Allocate space proportional to flex-grow
@@ -112,7 +112,7 @@ func (v *VStack) calculateChildSizes(constraints Constraints) []Size {
 func (v *VStack) Draw(scr uv.Screen, area uv.Rectangle) {
 	v.SetBounds(area)
 
-	if len(v.Items) == 0 {
+	if len(v.items) == 0 {
 		return
 	}
 
@@ -127,7 +127,7 @@ func (v *VStack) Draw(scr uv.Screen, area uv.Rectangle) {
 	// Draw all children with calculated sizes
 	y := area.Min.Y
 
-	for i, child := range v.Items {
+	for i, child := range v.items {
 		if y >= area.Max.Y {
 			break
 		}
@@ -136,20 +136,20 @@ func (v *VStack) Draw(scr uv.Screen, area uv.Rectangle) {
 
 		// Calculate x position based on horizontal alignment
 		var x int
-		switch v.Align {
-		case AlignCenter:
+		switch v.alignment {
+		case AlignmentCenter:
 			if childSize.Width < area.Dx() {
 				x = area.Min.X + (area.Dx()-childSize.Width)/2
 			} else {
 				x = area.Min.X
 			}
-		case AlignRight:
+		case AlignmentTrailing:
 			if childSize.Width < area.Dx() {
 				x = area.Max.X - childSize.Width
 			} else {
 				x = area.Min.X
 			}
-		default: // AlignLeft
+		default: // AlignmentLeading
 			x = area.Min.X
 		}
 
@@ -160,15 +160,15 @@ func (v *VStack) Draw(scr uv.Screen, area uv.Rectangle) {
 		child.Draw(scr, childArea)
 
 		y += childSize.Height
-		if i < len(v.Items)-1 {
-			y += v.Gap
+		if i < len(v.items)-1 {
+			y += v.spacing
 		}
 	}
 }
 
 // Layout calculates the total size of the vertical stack.
 func (v *VStack) Layout(constraints Constraints) Size {
-	if len(v.Items) == 0 {
+	if len(v.items) == 0 {
 		return Size{Width: 0, Height: 0}
 	}
 
@@ -185,19 +185,19 @@ func (v *VStack) Layout(constraints Constraints) Size {
 			maxWidth = size.Width
 		}
 
-		if i < len(v.Items)-1 {
-			totalHeight += v.Gap
+		if i < len(v.items)-1 {
+			totalHeight += v.spacing
 		}
 	}
 
 	result := Size{Width: maxWidth, Height: totalHeight}
 
-	if !v.Width.IsAuto() {
-		result.Width = v.Width.Apply(constraints.MaxWidth, result.Width)
+	if !v.width.IsAuto() {
+		result.Width = v.width.Apply(constraints.MaxWidth, result.Width)
 	}
 
-	if !v.Height.IsAuto() {
-		result.Height = v.Height.Apply(constraints.MaxHeight, result.Height)
+	if !v.height.IsAuto() {
+		result.Height = v.height.Apply(constraints.MaxHeight, result.Height)
 	}
 
 	return constraints.Constrain(result)
@@ -205,55 +205,55 @@ func (v *VStack) Layout(constraints Constraints) Size {
 
 // Children returns the child elements.
 func (v *VStack) Children() []Element {
-	return v.Items
+	return v.items
 }
 
 // HStack represents a horizontal stack container.
 type HStack struct {
 	BaseElement
-	Items  []Element
-	Gap    int
-	Width  SizeConstraint
-	Height SizeConstraint
-	Valign string // top, middle, bottom (vertical alignment of children)
+	items     []Element
+	spacing   int
+	width     SizeConstraint
+	height    SizeConstraint
+	alignment string // top, center, bottom (vertical alignment of children)
 }
 
 var _ Element = (*HStack)(nil)
 
 // NewHStack creates a new horizontal stack.
 func NewHStack(children ...Element) *HStack {
-	return &HStack{Items: children}
+	return &HStack{items: children}
 }
 
-// WithGap sets the gap and returns the hstack for chaining.
-func (h *HStack) WithGap(gap int) *HStack {
-	h.Gap = gap
+// Spacing sets the spacing between children and returns the hstack for chaining.
+func (h *HStack) Spacing(spacing int) *HStack {
+	h.spacing = spacing
 	return h
 }
 
-// WithValign sets the vertical alignment and returns the hstack for chaining.
-func (h *HStack) WithValign(valign string) *HStack {
-	h.Valign = valign
+// Alignment sets the vertical alignment of children and returns the hstack for chaining.
+func (h *HStack) Alignment(alignment string) *HStack {
+	h.alignment = alignment
 	return h
 }
 
-// WithWidth sets the width constraint and returns the hstack for chaining.
-func (h *HStack) WithWidth(width SizeConstraint) *HStack {
-	h.Width = width
+// Width sets the width constraint and returns the hstack for chaining.
+func (h *HStack) Width(width SizeConstraint) *HStack {
+	h.width = width
 	return h
 }
 
-// WithHeight sets the height constraint and returns the hstack for chaining.
-func (h *HStack) WithHeight(height SizeConstraint) *HStack {
-	h.Height = height
+// Height sets the height constraint and returns the hstack for chaining.
+func (h *HStack) Height(height SizeConstraint) *HStack {
+	h.height = height
 	return h
 }
 
 // calculateChildSizes performs two-pass layout for HStack children.
 // Pass 1: Layout fixed children, Pass 2: Distribute space to flexible children (flex-grow).
 func (h *HStack) calculateChildSizes(constraints Constraints) []Size {
-	childSizes := make([]Size, len(h.Items))
-	if len(h.Items) == 0 {
+	childSizes := make([]Size, len(h.items))
+	if len(h.items) == 0 {
 		return childSizes
 	}
 
@@ -261,7 +261,7 @@ func (h *HStack) calculateChildSizes(constraints Constraints) []Size {
 	fixedWidth := 0
 	totalFlexGrow := 0
 
-	for i, child := range h.Items {
+	for i, child := range h.items {
 		flexGrow := GetFlexGrow(child)
 
 		if flexGrow > 0 {
@@ -282,8 +282,8 @@ func (h *HStack) calculateChildSizes(constraints Constraints) []Size {
 			fixedWidth += size.Width
 		}
 
-		if i < len(h.Items)-1 {
-			fixedWidth += h.Gap
+		if i < len(h.items)-1 {
+			fixedWidth += h.spacing
 		}
 	}
 
@@ -291,7 +291,7 @@ func (h *HStack) calculateChildSizes(constraints Constraints) []Size {
 	if totalFlexGrow > 0 {
 		remainingWidth := constraints.MaxWidth - fixedWidth
 		if remainingWidth > 0 {
-			for i, child := range h.Items {
+			for i, child := range h.items {
 				flexGrow := GetFlexGrow(child)
 				if flexGrow > 0 {
 					// Allocate space proportional to flex-grow
@@ -318,7 +318,7 @@ func (h *HStack) calculateChildSizes(constraints Constraints) []Size {
 func (h *HStack) Draw(scr uv.Screen, area uv.Rectangle) {
 	h.SetBounds(area)
 
-	if len(h.Items) == 0 {
+	if len(h.items) == 0 {
 		return
 	}
 
@@ -333,7 +333,7 @@ func (h *HStack) Draw(scr uv.Screen, area uv.Rectangle) {
 	// Draw all children
 	x := area.Min.X
 
-	for i, child := range h.Items {
+	for i, child := range h.items {
 		if x >= area.Max.X {
 			break
 		}
@@ -342,20 +342,20 @@ func (h *HStack) Draw(scr uv.Screen, area uv.Rectangle) {
 
 		// Calculate y position based on vertical alignment
 		var y int
-		switch h.Valign {
-		case AlignMiddle:
+		switch h.alignment {
+		case AlignmentCenter:
 			if childSize.Height < area.Dy() {
 				y = area.Min.Y + (area.Dy()-childSize.Height)/2
 			} else {
 				y = area.Min.Y
 			}
-		case AlignBottom:
+		case AlignmentBottom:
 			if childSize.Height < area.Dy() {
 				y = area.Max.Y - childSize.Height
 			} else {
 				y = area.Min.Y
 			}
-		default: // AlignTop
+		default: // AlignmentTop
 			y = area.Min.Y
 		}
 
@@ -366,15 +366,15 @@ func (h *HStack) Draw(scr uv.Screen, area uv.Rectangle) {
 		child.Draw(scr, childArea)
 
 		x += childSize.Width
-		if i < len(h.Items)-1 {
-			x += h.Gap
+		if i < len(h.items)-1 {
+			x += h.spacing
 		}
 	}
 }
 
 // Layout calculates the total size of the horizontal stack.
 func (h *HStack) Layout(constraints Constraints) Size {
-	if len(h.Items) == 0 {
+	if len(h.items) == 0 {
 		return Size{Width: 0, Height: 0}
 	}
 
@@ -391,19 +391,19 @@ func (h *HStack) Layout(constraints Constraints) Size {
 			maxHeight = size.Height
 		}
 
-		if i < len(h.Items)-1 {
-			totalWidth += h.Gap
+		if i < len(h.items)-1 {
+			totalWidth += h.spacing
 		}
 	}
 
 	result := Size{Width: totalWidth, Height: maxHeight}
 
-	if !h.Width.IsAuto() {
-		result.Width = h.Width.Apply(constraints.MaxWidth, result.Width)
+	if !h.width.IsAuto() {
+		result.Width = h.width.Apply(constraints.MaxWidth, result.Width)
 	}
 
-	if !h.Height.IsAuto() {
-		result.Height = h.Height.Apply(constraints.MaxHeight, result.Height)
+	if !h.height.IsAuto() {
+		result.Height = h.height.Apply(constraints.MaxHeight, result.Height)
 	}
 
 	return constraints.Constrain(result)
@@ -411,5 +411,5 @@ func (h *HStack) Layout(constraints Constraints) Size {
 
 // Children returns the child elements.
 func (h *HStack) Children() []Element {
-	return h.Items
+	return h.items
 }

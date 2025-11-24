@@ -9,7 +9,7 @@ func TestNestedInteractiveElementsInSlot(t *testing.T) {
 	// Buttons inside a component that's rendered into a slot
 
 	tmpl := `
-<vstack gap="1">
+<vstack spacing="1">
 	<text id="header">Form</text>
 	<slot name="button-bar" />
 	<text id="footer">Footer</text>
@@ -30,7 +30,7 @@ func TestNestedInteractiveElementsInSlot(t *testing.T) {
 	btn3.SetID("quit-btn")
 
 	// Create an HStack containing the buttons (like ButtonBar.Render())
-	buttonBar := NewHStack(btn1, btn2, btn3).WithGap(2)
+	buttonBar := NewHStack(btn1, btn2, btn3).Spacing(2)
 	buttonBar.SetID("button-bar-hstack")
 
 	slots := map[string]Element{
@@ -105,7 +105,7 @@ func TestMultipleNestedLevelsInSlots(t *testing.T) {
 	btn2 := NewButton("Button 2")
 	btn2.SetID("btn2")
 
-	buttonRow := NewHStack(btn1, btn2).WithGap(1)
+	buttonRow := NewHStack(btn1, btn2).Spacing(1)
 	buttonRow.SetID("button-row")
 
 	text := NewText("Label")
@@ -114,7 +114,7 @@ func TestMultipleNestedLevelsInSlots(t *testing.T) {
 	content := NewVStack(
 		text,
 		buttonRow,
-	).WithGap(1)
+	).Spacing(1)
 	content.SetID("content-vstack")
 
 	slots := map[string]Element{

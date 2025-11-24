@@ -1,28 +1,32 @@
 package pony
 
-import uv "github.com/charmbracelet/ultraviolet"
+import (
+	"image/color"
+
+	uv "github.com/charmbracelet/ultraviolet"
+)
 
 // ScrollView represents a scrollable container.
 // Content can be larger than the viewport and will be clipped.
 type ScrollView struct {
 	BaseElement
-	Child Element
+	child Element
 
 	// Scroll position
-	OffsetX int
-	OffsetY int
+	offsetX int
+	offsetY int
 
 	// Viewport size constraints
-	Width  SizeConstraint
-	Height SizeConstraint
+	width  SizeConstraint
+	height SizeConstraint
 
 	// Scrollbar options
-	ShowScrollbar  bool
-	ScrollbarStyle uv.Style
+	showScrollbar  bool
+	scrollbarColor color.Color
 
 	// Scroll direction
-	Horizontal bool // If true, scrolls horizontally
-	Vertical   bool // If true, scrolls vertically (default)
+	horizontal bool // If true, scrolls horizontally
+	vertical   bool // If true, scrolls vertically (default)
 }
 
 var _ Element = (*ScrollView)(nil)
@@ -30,76 +34,82 @@ var _ Element = (*ScrollView)(nil)
 // NewScrollView creates a new scrollable view.
 func NewScrollView(child Element) *ScrollView {
 	return &ScrollView{
-		Child:         child,
-		Vertical:      true, // Default to vertical scrolling
-		ShowScrollbar: true,
+		child:         child,
+		vertical:      true, // Default to vertical scrolling
+		showScrollbar: true,
 	}
 }
 
-// WithOffset sets the scroll offset and returns the scroll view for chaining.
-func (s *ScrollView) WithOffset(x, y int) *ScrollView {
-	s.OffsetX = x
-	s.OffsetY = y
+// Offset sets the scroll offset and returns the scroll view for chaining.
+func (s *ScrollView) Offset(x, y int) *ScrollView {
+	s.offsetX = x
+	s.offsetY = y
 	return s
 }
 
-// WithVertical enables/disables vertical scrolling.
-func (s *ScrollView) WithVertical(enabled bool) *ScrollView {
-	s.Vertical = enabled
+// Vertical enables/disables vertical scrolling.
+func (s *ScrollView) Vertical(enabled bool) *ScrollView {
+	s.vertical = enabled
 	return s
 }
 
-// WithHorizontal enables/disables horizontal scrolling.
-func (s *ScrollView) WithHorizontal(enabled bool) *ScrollView {
-	s.Horizontal = enabled
+// Horizontal enables/disables horizontal scrolling.
+func (s *ScrollView) Horizontal(enabled bool) *ScrollView {
+	s.horizontal = enabled
 	return s
 }
 
-// WithScrollbar enables/disables scrollbar.
-func (s *ScrollView) WithScrollbar(show bool) *ScrollView {
-	s.ShowScrollbar = show
+// Scrollbar enables/disables scrollbar.
+func (s *ScrollView) Scrollbar(show bool) *ScrollView {
+	s.showScrollbar = show
 	return s
 }
 
-// WithWidth sets the width constraint.
-func (s *ScrollView) WithWidth(width SizeConstraint) *ScrollView {
-	s.Width = width
+// ScrollbarColor sets the scrollbar color.
+func (s *ScrollView) ScrollbarColor(c color.Color) *ScrollView {
+	s.scrollbarColor = c
 	return s
 }
 
-// WithHeight sets the height constraint.
-func (s *ScrollView) WithHeight(height SizeConstraint) *ScrollView {
-	s.Height = height
+// Width sets the width constraint.
+func (s *ScrollView) Width(width SizeConstraint) *ScrollView {
+	s.width = width
+	return s
+}
+
+// Height sets the height constraint.
+func (s *ScrollView) Height(height SizeConstraint) *ScrollView {
+	s.height = height
 	return s
 }
 
 // ScrollUp scrolls up by the given amount.
 func (s *ScrollView) ScrollUp(amount int) {
-	s.OffsetY = max(0, s.OffsetY-amount)
+	s.offsetY = max(0, s.offsetY-amount)
 }
 
 // ScrollDown scrolls down by the given amount.
 func (s *ScrollView) ScrollDown(amount int, contentHeight, viewportHeight int) {
 	maxOffset := max(0, contentHeight-viewportHeight)
-	s.OffsetY = min(maxOffset, s.OffsetY+amount)
+	s.offsetY = min(maxOffset, s.offsetY+amount)
 }
 
 // ScrollLeft scrolls left by the given amount.
 func (s *ScrollView) ScrollLeft(amount int) {
-	s.OffsetX = max(0, s.OffsetX-amount)
+	s.offsetX = max(0, s.offsetX-amount)
 }
 
 // ScrollRight scrolls right by the given amount.
 func (s *ScrollView) ScrollRight(amount int, contentWidth, viewportWidth int) {
 	maxOffset := max(0, contentWidth-viewportWidth)
-	s.OffsetX = min(maxOffset, s.OffsetX+amount)
+	s.offsetX = min(maxOffset, s.offsetX+amount)
 }
 
 // Draw renders the scrollable view.
 func (s *ScrollView) Draw(scr uv.Screen, area uv.Rectangle) {
 	s.SetBounds(area)
 
-	if s.Child == nil {
+	if s.child == nil {
 		return
 	}
 
@@ -110,16 +120,16 @@ func (s *ScrollView) Draw(scr uv.Screen, area uv.Rectangle) {
 	// Reserve space for scrollbar if shown
 	scrollbarWidth := 0
 	scrollbarHeight := 0
-	if s.ShowScrollbar {
-		if s.Vertical && !s.Horizontal {
+	if s.showScrollbar {
+		if s.vertical && !s.horizontal {
 			scrollbarWidth = 1
 			viewportWidth -= scrollbarWidth
 		}
-		if s.Horizontal && !s.Vertical {
+		if s.horizontal && !s.vertical {
 			scrollbarHeight = 1
 			viewportHeight -= scrollbarHeight
 		}
-		if s.Horizontal && s.Vertical {
+		if s.horizontal && s.vertical {
 			scrollbarWidth = 1
 			scrollbarHeight = 1
 			viewportWidth -= scrollbarWidth
@@ -134,22 +144,22 @@ func (s *ScrollView) Draw(scr uv.Screen, area uv.Rectangle) {
 		MinHeight: 0,
 		MaxHeight: 1 << 30,
 	}
-	contentSize := s.Child.Layout(contentConstraints)
+	contentSize := s.child.Layout(contentConstraints)
 
 	// Create a buffer for the full content
 	contentBuffer := uv.NewScreenBuffer(contentSize.Width, contentSize.Height)
 	contentArea := uv.Rect(0, 0, contentSize.Width, contentSize.Height)
-	s.Child.Draw(contentBuffer, contentArea)
+	s.child.Draw(contentBuffer, contentArea)
 
 	// Adjust child bounds to screen coordinates (accounting for viewport position and scroll offset)
-	s.adjustChildBounds(s.Child, area.Min.X-s.OffsetX, area.Min.Y-s.OffsetY)
+	s.adjustChildBounds(s.child, area.Min.X-s.offsetX, area.Min.Y-s.offsetY)
 
 	// Copy visible portion to screen (with offset)
 	for y := 0; y < viewportHeight; y++ {
 		for x := 0; x < viewportWidth; x++ {
 			// Source position in content buffer (with offset)
-			srcX := x + s.OffsetX
-			srcY := y + s.OffsetY
+			srcX := x + s.offsetX
+			srcY := y + s.offsetY
 
 			// Destination position on screen
 			dstX := area.Min.X + x
@@ -164,11 +174,11 @@ func (s *ScrollView) Draw(scr uv.Screen, area uv.Rectangle) {
 	}
 
 	// Draw scrollbar if enabled
-	if s.ShowScrollbar {
-		if s.Vertical {
+	if s.showScrollbar {
+		if s.vertical {
 			s.drawVerticalScrollbar(scr, area, contentSize.Height, viewportHeight, scrollbarWidth)
 		}
-		if s.Horizontal {
+		if s.horizontal {
 			s.drawHorizontalScrollbar(scr, area, contentSize.Width, viewportWidth, scrollbarHeight)
 		}
 	}
@@ -197,7 +207,7 @@ func (s *ScrollView) drawVerticalScrollbar(scr uv.Screen, area uv.Rectangle, con
 	// Position the thumb proportionally
 	thumbPos := scrollbarStart
 	if scrollableRange > 0 {
-		thumbPos = scrollbarStart + (s.OffsetY*trackRange)/scrollableRange
+		thumbPos = scrollbarStart + (s.offsetY*trackRange)/scrollableRange
 	}
 
 	// Ensure thumb stays within bounds (handle rounding edge cases)
@@ -211,8 +221,8 @@ func (s *ScrollView) drawVerticalScrollbar(scr uv.Screen, area uv.Rectangle, con
 	// Create scrollbar cells
 	trackCell := uv.NewCell(scr.WidthMethod(), "░")
 	thumbCell := uv.NewCell(scr.WidthMethod(), "█")
-	if thumbCell != nil && !s.ScrollbarStyle.IsZero() {
-		thumbCell.Style = s.ScrollbarStyle
+	if thumbCell != nil && s.scrollbarColor != nil {
+		thumbCell.Style = uv.Style{Fg: s.scrollbarColor}
 	}
 
 	// Draw scrollbar
@@ -245,7 +255,7 @@ func (s *ScrollView) drawHorizontalScrollbar(scr uv.Screen, area uv.Rectangle, c
 
 	thumbPos := scrollbarStart
 	if scrollableRange > 0 {
-		thumbPos = scrollbarStart + (s.OffsetX*trackRange)/scrollableRange
+		thumbPos = scrollbarStart + (s.offsetX*trackRange)/scrollableRange
 	}
 
 	// Ensure thumb stays within bounds (handle rounding edge cases)
@@ -258,8 +268,8 @@ func (s *ScrollView) drawHorizontalScrollbar(scr uv.Screen, area uv.Rectangle, c
 
 	trackCell := uv.NewCell(scr.WidthMethod(), "░")
 	thumbCell := uv.NewCell(scr.WidthMethod(), "█")
-	if thumbCell != nil && !s.ScrollbarStyle.IsZero() {
-		thumbCell.Style = s.ScrollbarStyle
+	if thumbCell != nil && s.scrollbarColor != nil {
+		thumbCell.Style = uv.Style{Fg: s.scrollbarColor}
 	}
 
 	for x := scrollbarStart; x < scrollbarEnd; x++ {
@@ -278,12 +288,12 @@ func (s *ScrollView) Layout(constraints Constraints) Size {
 	viewportHeight := constraints.MaxHeight
 
 	// Apply width/height constraints if specified
-	if !s.Width.IsAuto() {
-		viewportWidth = s.Width.Apply(constraints.MaxWidth, constraints.MaxWidth)
+	if !s.width.IsAuto() {
+		viewportWidth = s.width.Apply(constraints.MaxWidth, constraints.MaxWidth)
 	}
 
-	if !s.Height.IsAuto() {
-		viewportHeight = s.Height.Apply(constraints.MaxHeight, constraints.MaxHeight)
+	if !s.height.IsAuto() {
+		viewportHeight = s.height.Apply(constraints.MaxHeight, constraints.MaxHeight)
 	}
 
 	// Constrain final size
@@ -295,15 +305,15 @@ func (s *ScrollView) Layout(constraints Constraints) Size {
 
 // Children returns the child element.
 func (s *ScrollView) Children() []Element {
-	if s.Child == nil {
+	if s.child == nil {
 		return nil
 	}
-	return []Element{s.Child}
+	return []Element{s.child}
 }
 
 // ContentSize returns the full size of the content.
 func (s *ScrollView) ContentSize() Size {
-	if s.Child == nil {
+	if s.child == nil {
 		return Size{Width: 0, Height: 0}
 	}
 
@@ -315,7 +325,7 @@ func (s *ScrollView) ContentSize() Size {
 		MaxHeight: 1 << 30,
 	}
 
-	return s.Child.Layout(unbounded)
+	return s.child.Layout(unbounded)
 }
 
 // adjustChildBounds recursively adjusts the bounds of all child elements

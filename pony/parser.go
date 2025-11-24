@@ -3,10 +3,9 @@ package pony
 import (
 	"encoding/xml"
 	"fmt"
+	"image/color"
 	"io"
 	"strings"
-
-	uv "github.com/charmbracelet/ultraviolet"
 )
 
 // node represents a parsed XML element.
@@ -100,13 +99,13 @@ func (n *node) toElement() Element {
 			// Anonymous text node (no tag, just content)
 			content := strings.TrimSpace(n.Content)
 			if content != "" {
-				elem = &Text{Content: content}
+				elem = NewText(content)
 			} else {
 				return nil
 			}
 		default:
 			// Unknown element, treat as a container
-			elem = &VStack{Items: n.childElements()}
+			elem = NewVStack(n.childElements()...)
 		}
 	}
 
@@ -127,7 +126,7 @@ func (n *node) childElements() []Element {
 	for _, child := range n.Children {
 		// Check if this is a text node
 		if child.XMLName.Local == "" && strings.TrimSpace(child.Content) != "" {
-			elements = append(elements, &Text{Content: strings.TrimSpace(child.Content)})
+			elements = append(elements, NewText(strings.TrimSpace(child.Content)))
 			continue
 		}
 
@@ -141,50 +140,74 @@ func (n *node) childElements() []Element {
 
 // toVStack converts node to VStack element.
 func (n *node) toVStack(props Props) Element {
-	gap := parseIntAttr(props, "gap", 0)
+	spacing := parseIntAttr(props, "spacing", 0)
 	width := parseSizeConstraint(props.Get("width"))
 	height := parseSizeConstraint(props.Get("height"))
-	align := props.GetOr("align", AlignLeft)
+	alignment := props.GetOr("alignment", AlignmentLeading)
 
-	return &VStack{
-		Gap:    gap,
-		Items:  n.childElements(),
-		Width:  width,
-		Height: height,
-		Align:  align,
+	vstack := NewVStack(n.childElements()...)
+	if spacing > 0 {
+		vstack = vstack.Spacing(spacing)
 	}
+	if !width.IsAuto() {
+		vstack = vstack.Width(width)
+	}
+	if !height.IsAuto() {
+		vstack = vstack.Height(height)
+	}
+	if alignment != AlignmentLeading {
+		vstack = vstack.Alignment(alignment)
+	}
+
+	return vstack
 }
 
 // toHStack converts node to HStack element.
 func (n *node) toHStack(props Props) Element {
-	gap := parseIntAttr(props, "gap", 0)
+	spacing := parseIntAttr(props, "spacing", 0)
 	width := parseSizeConstraint(props.Get("width"))
 	height := parseSizeConstraint(props.Get("height"))
-	valign := props.GetOr("valign", AlignTop)
+	alignment := props.GetOr("alignment", AlignmentTop)
 
-	return &HStack{
-		Gap:    gap,
-		Items:  n.childElements(),
-		Width:  width,
-		Height: height,
-		Valign: valign,
+	hstack := NewHStack(n.childElements()...)
+	if spacing > 0 {
+		hstack = hstack.Spacing(spacing)
 	}
+	if !width.IsAuto() {
+		hstack = hstack.Width(width)
+	}
+	if !height.IsAuto() {
+		hstack = hstack.Height(height)
+	}
+	if alignment != AlignmentTop {
+		hstack = hstack.Alignment(alignment)
+	}
+
+	return hstack
 }
 
 // toZStack converts node to ZStack element.
 func (n *node) toZStack(props Props) Element {
 	width := parseSizeConstraint(props.Get("width"))
 	height := parseSizeConstraint(props.Get("height"))
-	align := props.GetOr("align", AlignCenter)
-	valign := props.GetOr("valign", AlignMiddle)
+	alignment := props.GetOr("alignment", AlignmentCenter)
+	verticalAlignment := props.GetOr("vertical-alignment", AlignmentCenter)
 
-	return &ZStack{
-		Items:  n.childElements(),
-		Width:  width,
-		Height: height,
-		Align:  align,
-		Valign: valign,
+	zstack := NewZStack(n.childElements()...)
+	if !width.IsAuto() {
+		zstack = zstack.Width(width)
 	}
+	if !height.IsAuto() {
+		zstack = zstack.Height(height)
+	}
+	if alignment != AlignmentCenter {
+		zstack = zstack.Alignment(alignment)
+	}
+	if verticalAlignment != AlignmentCenter {
+		zstack = zstack.VerticalAlignment(verticalAlignment)
+	}
+
+	return zstack
 }
 
 // toText converts node to Text element.
@@ -206,15 +229,47 @@ func (n *node) toText(props Props) Element {
 		}
 	}
 
-	// Parse style if present
-	style := parseStyleAttr(props)
+	textElem := NewText(text)
 
-	return &Text{
-		Content: text,
-		Wrap:    parseBoolAttr(props, "wrap", false),
-		Align:   props.GetOr("align", AlignLeft),
-		Style:   style,
+	// Parse granular style attributes
+	if fontWeight := props.Get("font-weight"); fontWeight == FontWeightBold {
+		textElem = textElem.Bold()
 	}
+
+	if fontStyle := props.Get("font-style"); fontStyle == FontStyleItalic {
+		textElem = textElem.Italic()
+	}
+
+	if decoration := props.Get("text-decoration"); decoration != "" {
+		switch decoration {
+		case DecorationUnderline:
+			textElem = textElem.Underline()
+		case DecorationStrikethrough:
+			textElem = textElem.Strikethrough()
+		}
+	}
+
+	if fgColor := props.Get("foreground-color"); fgColor != "" {
+		if c, err := parseColor(fgColor); err == nil {
+			textElem = textElem.ForegroundColor(c)
+		}
+	}
+
+	if bgColor := props.Get("background-color"); bgColor != "" {
+		if c, err := parseColor(bgColor); err == nil {
+			textElem = textElem.BackgroundColor(c)
+		}
+	}
+
+	if wrap := parseBoolAttr(props, "wrap", false); wrap {
+		textElem = textElem.Wrap(true)
+	}
+
+	if alignment := props.Get("alignment"); alignment != "" {
+		textElem = textElem.Alignment(alignment)
+	}
+
+	return textElem
 }
 
 // toBox converts node to Box element.
@@ -225,12 +280,12 @@ func (n *node) toBox(props Props) Element {
 		child = children[0]
 	}
 
-	// Parse border style if present
-	borderStyleStr := props.Get("border-style")
-	var borderStyle uv.Style
-	if borderStyleStr != "" {
-		if s, err := ParseStyle(borderStyleStr); err == nil {
-			borderStyle = s
+	// Parse border color if present
+	borderColorStr := props.Get("border-color")
+	var borderColor color.Color
+	if borderColorStr != "" {
+		if c, err := parseColor(borderColorStr); err == nil {
+			borderColor = c
 		}
 	}
 
@@ -248,26 +303,48 @@ func (n *node) toBox(props Props) Element {
 	marginBottom := parseIntAttr(props, "margin-bottom", 0)
 	marginLeft := parseIntAttr(props, "margin-left", 0)
 
-	return &Box{
-		Child:        child,
-		Border:       props.GetOr("border", BorderNone),
-		BorderStyle:  borderStyle,
-		Width:        width,
-		Height:       height,
-		Padding:      padding,
-		Margin:       margin,
-		MarginTop:    marginTop,
-		MarginRight:  marginRight,
-		MarginBottom: marginBottom,
-		MarginLeft:   marginLeft,
+	box := NewBox(child)
+	if border := props.Get("border"); border != "" {
+		box = box.Border(border)
 	}
+	if borderColor != nil {
+		box = box.BorderColor(borderColor)
+	}
+	if !width.IsAuto() {
+		box = box.Width(width)
+	}
+	if !height.IsAuto() {
+		box = box.Height(height)
+	}
+	if padding > 0 {
+		box = box.Padding(padding)
+	}
+	if margin > 0 {
+		box = box.Margin(margin)
+	}
+	if marginTop > 0 {
+		box = box.MarginTop(marginTop)
+	}
+	if marginRight > 0 {
+		box = box.MarginRight(marginRight)
+	}
+	if marginBottom > 0 {
+		box = box.MarginBottom(marginBottom)
+	}
+	if marginLeft > 0 {
+		box = box.MarginLeft(marginLeft)
+	}
+
+	return box
 }
 
 // toSpacer converts node to Spacer element.
 func (n *node) toSpacer(props Props) Element {
-	return &Spacer{
-		Size: parseIntAttr(props, "size", 0),
+	size := parseIntAttr(props, "size", 0)
+	if size > 0 {
+		return NewFixedSpacer(size)
 	}
+	return NewSpacer()
 }
 
 // toFlex converts node to Flex element.
@@ -278,12 +355,22 @@ func (n *node) toFlex(props Props) Element {
 		child = children[0]
 	}
 
-	return &Flex{
-		Child:  child,
-		Grow:   parseIntAttr(props, "grow", 0),
-		Shrink: parseIntAttr(props, "shrink", 1),
-		Basis:  parseIntAttr(props, "basis", 0),
+	grow := parseIntAttr(props, "grow", 0)
+	shrink := parseIntAttr(props, "shrink", 1)
+	basis := parseIntAttr(props, "basis", 0)
+
+	flex := NewFlex(child)
+	if grow > 0 {
+		flex = flex.Grow(grow)
 	}
+	if shrink != 1 {
+		flex = flex.Shrink(shrink)
+	}
+	if basis > 0 {
+		flex = flex.Basis(basis)
+	}
+
+	return flex
 }
 
 // toPositioned converts node to Positioned element.
@@ -301,26 +388,47 @@ func (n *node) toPositioned(props Props) Element {
 	width := parseSizeConstraint(props.Get("width"))
 	height := parseSizeConstraint(props.Get("height"))
 
-	return &Positioned{
-		Child:  child,
-		X:      x,
-		Y:      y,
-		Right:  right,
-		Bottom: bottom,
-		Width:  width,
-		Height: height,
+	positioned := NewPositioned(child, x, y)
+	if right >= 0 {
+		positioned = positioned.Right(right)
 	}
+	if bottom >= 0 {
+		positioned = positioned.Bottom(bottom)
+	}
+	if !width.IsAuto() {
+		positioned = positioned.Width(width)
+	}
+	if !height.IsAuto() {
+		positioned = positioned.Height(height)
+	}
+
+	return positioned
 }
 
 // toDivider converts node to Divider element.
 func (n *node) toDivider(props Props) Element {
-	style := parseStyleAttr(props)
+	vertical := parseBoolAttr(props, "vertical", false)
+	char := props.Get("char")
 
-	return &Divider{
-		Vertical: parseBoolAttr(props, "vertical", false),
-		Char:     props.Get("char"),
-		Style:    style,
+	var divider *Divider
+	if vertical {
+		divider = NewVerticalDivider()
+	} else {
+		divider = NewDivider()
 	}
+
+	// Parse foreground color
+	if fgColor := props.Get("foreground-color"); fgColor != "" {
+		if c, err := parseColor(fgColor); err == nil {
+			divider = divider.ForegroundColor(c)
+		}
+	}
+
+	if char != "" {
+		divider = divider.Char(char)
+	}
+
+	return divider
 }
 
 // toSlot converts node to Slot element.
@@ -353,42 +461,41 @@ func (n *node) toScrollView(props Props) Element {
 	vertical := parseBoolAttr(props, "vertical", true)
 	horizontal := parseBoolAttr(props, "horizontal", false)
 
-	// Parse scrollbar style
-	var scrollbarStyle uv.Style
-	if styleStr := props.Get("scrollbar-style"); styleStr != "" {
-		if s, err := ParseStyle(styleStr); err == nil {
-			scrollbarStyle = s
+	// Parse scrollbar color
+	var scrollbarColor color.Color
+	if colorStr := props.Get("scrollbar-color"); colorStr != "" {
+		if c, err := parseColor(colorStr); err == nil {
+			scrollbarColor = c
 		}
 	}
 
-	return &ScrollView{
-		Child:          child,
-		OffsetX:        offsetX,
-		OffsetY:        offsetY,
-		Width:          width,
-		Height:         height,
-		ShowScrollbar:  showScrollbar,
-		ScrollbarStyle: scrollbarStyle,
-		Vertical:       vertical,
-		Horizontal:     horizontal,
+	scrollView := NewScrollView(child)
+	if offsetX != 0 || offsetY != 0 {
+		scrollView = scrollView.Offset(offsetX, offsetY)
 	}
+	if !width.IsAuto() {
+		scrollView = scrollView.Width(width)
+	}
+	if !height.IsAuto() {
+		scrollView = scrollView.Height(height)
+	}
+	if !showScrollbar {
+		scrollView = scrollView.Scrollbar(false)
+	}
+	if !vertical {
+		scrollView = scrollView.Vertical(false)
+	}
+	if horizontal {
+		scrollView = scrollView.Horizontal(true)
+	}
+	if scrollbarColor != nil {
+		scrollView = scrollView.ScrollbarColor(scrollbarColor)
+	}
+
+	return scrollView
 }
 
 // Helper functions for parsing attributes
-
-func parseStyleAttr(props Props) uv.Style {
-	styleStr := props.Get("style")
-	if styleStr == "" {
-		return uv.Style{}
-	}
-
-	style, err := ParseStyle(styleStr)
-	if err != nil {
-		// Log error but don't fail, just return empty style
-		return uv.Style{}
-	}
-	return style
-}
 
 func parseIntAttr(props Props, key string, defaultValue int) int {
 	if val := props.Get(key); val != "" {

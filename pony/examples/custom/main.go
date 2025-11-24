@@ -59,26 +59,19 @@ func (c *Card) Draw(scr uv.Screen, area uv.Rectangle) {
 		themeColor = pony.Hex("#0000FF")
 	}
 
-	// Build styles using helpers - no string parsing!
-	titleStyle := pony.NewStyle().Fg(themeColor).Bold().Build()
-	borderStyle := pony.NewStyle().Fg(themeColor).Build()
-
 	// Build card structure using public pony elements - super easy!
 	card := pony.NewBox(
 		pony.NewVStack(
 			// Title
-			&pony.Text{
-				Content: c.Title,
-				Style:   titleStyle,
-			},
+			pony.NewText(c.Title).ForegroundColor(themeColor).Bold(),
 			// Divider
 			pony.NewDivider(),
 			// Content
 			pony.NewVStack(c.Content...),
 		),
-	).WithBorder("rounded").
-		WithBorderStyle(borderStyle).
-		WithPadding(1)
+	).Border("rounded").
+		BorderColor(themeColor).
+		Padding(1)
 
 	// Draw the composed element
 	card.Draw(scr, area)
@@ -100,15 +93,13 @@ func (c *Card) Layout(constraints pony.Constraints) pony.Size {
 		themeColor = pony.Hex("#0000FF")
 	}
 
-	titleStyle := pony.NewStyle().Fg(themeColor).Bold().Build()
-
 	card := pony.NewBox(
 		pony.NewVStack(
-			&pony.Text{Content: c.Title, Style: titleStyle},
+			pony.NewText(c.Title).ForegroundColor(themeColor).Bold(),
 			pony.NewDivider(),
 			pony.NewVStack(c.Content...),
 		),
-	).WithBorder("rounded").WithPadding(1)
+	).Border("rounded").BorderColor(themeColor).Padding(1)
 
 	return card.Layout(constraints)
 }
@@ -123,48 +114,48 @@ func main() {
 	pony.Register("card", NewCard)
 
 	const tmpl = `
-<vstack gap="1">
-	<box border="double" border-style="fg:yellow; bold" padding="1">
-		<text style="bold; fg:yellow" align="center">🎨 Custom Components Made Easy!</text>
+<vstack spacing="1">
+	<box border="double" border-color="yellow" padding="1">
+		<text font-weight="bold" foreground-color="yellow" alignment="center">🎨 Custom Components Made Easy!</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<text style="bold">Using Built-in Components:</text>
-	<hstack gap="2">
-		<badge text="NEW" style="fg:green; bold" />
-		<badge text="v2.0" style="fg:blue; bold" />
-		<progress value="75" max="100" width="30" style="fg:cyan" />
+	<text font-weight="bold">Using Built-in Components:</text>
+	<hstack spacing="2">
+		<badge text="NEW" font-weight="bold" foreground-color="green" />
+		<badge text="v2.0" font-weight="bold" foreground-color="blue" />
+		<progress value="75" max="100" width="30" foreground-color="cyan" />
 	</hstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<text style="bold">Using Custom Card Component:</text>
-	<hstack gap="2">
+	<text font-weight="bold">Using Custom Card Component:</text>
+	<hstack spacing="2">
 		<card title="Profile" color="cyan">
 			<text>Name: Alice</text>
-			<text>Status: <badge text="Online" style="fg:green; bold" /></text>
+			<text>Status: <badge text="Online" font-weight="bold" foreground-color="green" /></text>
 			<text>Level: 42</text>
 		</card>
 
 		<card title="Stats" color="green">
 			<text>Views: 1,234</text>
 			<text>Likes: 567</text>
-			<progress value="85" max="100" style="fg:green" />
+			<progress value="85" max="100" foreground-color="green" />
 		</card>
 
 		<card title="Alerts" color="red">
-			<badge text="3" style="fg:red; bold" />
+			<badge text="3" font-weight="bold" foreground-color="red" />
 			<text>Warnings</text>
-			<text style="italic; fg:gray">Action needed</text>
+			<text font-style="italic" foreground-color="gray">Action needed</text>
 		</card>
 	</hstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<box border="rounded" border-style="fg:magenta" padding="2">
-		<vstack gap="0">
-			<text style="bold; fg:magenta" align="center">Why This Is Awesome:</text>
+	<box border="rounded" border-color="magenta" padding="2">
+		<vstack spacing="0">
+			<text font-weight="bold" foreground-color="magenta" alignment="center">Why This Is Awesome:</text>
 			<divider />
 			<text>✓ Public fields - direct access</text>
 			<text>✓ Constructors - NewText(), NewBox(), etc.</text>

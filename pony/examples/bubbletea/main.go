@@ -22,35 +22,35 @@ type TemplateData struct {
 
 // Define our template with dynamic content
 const tmpl = `
-<vstack gap="1">
-	<box border="double" border-style="fg:cyan; bold">
-		<text style="bold; fg:yellow">{{ .Title }}</text>
+<vstack spacing="1">
+	<box border="double" border-color="cyan">
+		<text font-weight="bold" foreground-color="yellow">{{ .Title }}</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">Counter Demo:</text>
-		<text style="fg:cyan">Count: {{ .Count }}</text>
-		<text style="fg:magenta">Time: {{ .Time }}</text>
-		<text style="fg:gray">Window: {{ .Width }}x{{ .Height }}</text>
+	<vstack spacing="0">
+		<text font-weight="bold">Counter Demo:</text>
+		<text foreground-color="cyan">Count: {{ .Count }}</text>
+		<text foreground-color="magenta">Time: {{ .Time }}</text>
+		<text foreground-color="gray">Window: {{ .Width }}x{{ .Height }}</text>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">Recent Events:</text>
+	<vstack spacing="0">
+		<text font-weight="bold">Recent Events:</text>
 		{{ range .Events }}
-		<text style="fg:green">• {{ . }}</text>
+		<text foreground-color="green">• {{ . }}</text>
 		{{ end }}
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
 	{{ if .ShowHelp }}
-	<box border="rounded" border-style="fg:blue">
+	<box border="rounded" border-color="blue">
 		<vstack>
-			<text style="bold; fg:blue">Help:</text>
+			<text font-weight="bold" foreground-color="blue">Help:</text>
 			<text>Press 'space' to increment counter</text>
 			<text>Press 'r' to reset</text>
 			<text>Press 'h' to toggle help</text>
@@ -58,11 +58,11 @@ const tmpl = `
 		</vstack>
 	</box>
 	{{ else }}
-	<text style="italic; fg:gray">Press 'h' for help</text>
+	<text font-style="italic" foreground-color="gray">Press 'h' for help</text>
 	{{ end }}
 
 	{{ if gt .Count 10 }}
-	<text style="fg:yellow; bold">🎉 You reached {{ .Count }}!</text>
+	<text font-weight="bold" foreground-color="yellow">🎉 You reached {{ .Count }}!</text>
 	{{ end }}
 </vstack>
 `

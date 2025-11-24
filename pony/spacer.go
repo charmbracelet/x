@@ -5,7 +5,7 @@ import uv "github.com/charmbracelet/ultraviolet"
 // Spacer represents empty space that can grow to fill available space.
 type Spacer struct {
 	BaseElement
-	Size int // fixed size, 0 means flexible
+	fixedSize int // fixed size, 0 means flexible
 }
 
 var _ Element = (*Spacer)(nil)
@@ -17,12 +17,12 @@ func NewSpacer() *Spacer {
 
 // NewFixedSpacer creates a new spacer with fixed size.
 func NewFixedSpacer(size int) *Spacer {
-	return &Spacer{Size: size}
+	return &Spacer{fixedSize: size}
 }
 
-// WithSize sets the size and returns the spacer for chaining.
-func (s *Spacer) WithSize(size int) *Spacer {
-	s.Size = size
+// FixedSize sets the size and returns the spacer for chaining.
+func (s *Spacer) FixedSize(size int) *Spacer {
+	s.fixedSize = size
 	return s
 }
 
@@ -34,8 +34,8 @@ func (s *Spacer) Draw(_ uv.Screen, area uv.Rectangle) {
 
 // Layout calculates the spacer size.
 func (s *Spacer) Layout(constraints Constraints) Size {
-	if s.Size > 0 {
-		return constraints.Constrain(Size{Width: s.Size, Height: s.Size})
+	if s.fixedSize > 0 {
+		return constraints.Constrain(Size{Width: s.fixedSize, Height: s.fixedSize})
 	}
 	// Flexible spacer - take all available space
 	return Size{Width: constraints.MaxWidth, Height: constraints.MaxHeight}

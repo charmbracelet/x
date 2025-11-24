@@ -7,7 +7,7 @@ import (
 func TestBoundsWithSlots(t *testing.T) {
 	// Create a template with a slot
 	tmpl := `
-<vstack gap="1">
+<vstack spacing="1">
 	<text id="title">Title</text>
 	<slot name="button-slot" />
 	<text id="footer">Footer</text>
@@ -71,7 +71,7 @@ func TestBoundsWithSlots(t *testing.T) {
 func TestBoundsWithNestedSlots(t *testing.T) {
 	// Create a complex nested structure with slots
 	tmpl := `
-<vstack gap="1">
+<vstack spacing="1">
 	<slot name="header" />
 	<box border="rounded" id="main-box">
 		<slot name="content" />

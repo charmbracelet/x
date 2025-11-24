@@ -85,19 +85,16 @@ func (i *Input) Render() pony.Element {
 		textColor = pony.RGB(128, 128, 128)
 	}
 
-	borderStyle := pony.NewStyle().Fg(borderColor).Build()
-	textStyle := pony.NewStyle().Fg(textColor).Build()
-
 	// Create the VStack and set the input's ID on it
 	// so clicks anywhere in the input will register as clicking this input
 	vstack := pony.NewVStack(
-		pony.NewText(i.label).WithStyle(pony.NewStyle().Bold().Build()),
+		pony.NewText(i.label).Bold(),
 		pony.NewBox(
-			pony.NewText(displayText).WithStyle(textStyle),
-		).WithBorder("rounded").
-			WithBorderStyle(borderStyle).
-			WithPadding(1).
-			WithWidth(pony.NewFixedConstraint(50)),
+			pony.NewText(displayText).ForegroundColor(textColor),
+		).Border("rounded").
+			BorderColor(borderColor).
+			Padding(1).
+			Width(pony.NewFixedConstraint(50)),
 	)
 	vstack.SetID(i.ID())  // Set the input's ID on the rendered element
 	
@@ -130,73 +127,73 @@ func (b *ButtonBar) Render() pony.Element {
 	if b.showSubmit {
 		submitBtn := pony.NewButton("Submit")
 		submitBtn.SetID("submit-btn")
-		submitBtn = submitBtn.WithBorder("rounded").
-			WithPadding(1).
-			WithStyle(pony.NewStyle().Fg(pony.Hex("#00FF00")).Bold().Build())
+		submitBtn = submitBtn.Border("rounded").
+			Padding(1).
+			Style(pony.NewStyle().Fg(pony.Hex("#00FF00")).Bold().Build())
 		buttons = append(buttons, submitBtn)
 	}
 
 	if b.showClear {
 		clearBtn := pony.NewButton("Clear")
 		clearBtn.SetID("clear-btn")
-		clearBtn = clearBtn.WithBorder("rounded").
-			WithPadding(1).
-			WithStyle(pony.NewStyle().Fg(pony.Hex("#FFFF00")).Build())
+		clearBtn = clearBtn.Border("rounded").
+			Padding(1).
+			Style(pony.NewStyle().Fg(pony.Hex("#FFFF00")).Build())
 		buttons = append(buttons, clearBtn)
 	}
 
 	if b.showQuit {
 		quitBtn := pony.NewButton("Quit")
 		quitBtn.SetID("quit-btn")
-		quitBtn = quitBtn.WithBorder("rounded").
-			WithPadding(1).
-			WithStyle(pony.NewStyle().Fg(pony.Hex("#FF0000")).Build())
+		quitBtn = quitBtn.Border("rounded").
+			Padding(1).
+			Style(pony.NewStyle().Fg(pony.Hex("#FF0000")).Build())
 		buttons = append(buttons, quitBtn)
 	}
 
-	return pony.NewHStack(buttons...).WithGap(2)
+	return pony.NewHStack(buttons...).Spacing(2)
 }
 
 // Template
 const tmpl = `
-<vstack gap="1">
-	<box border="double" border-style="fg:yellow; bold" padding="1">
-		<text style="bold; fg:yellow" align="center">✨ Interactive Form Demo</text>
+<vstack spacing="1">
+	<box border="double" border-color="yellow" padding="1">
+		<text font-weight="bold" foreground-color="yellow" alignment="center">✨ Interactive Form Demo</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="1">
-		<text style="bold; fg:cyan">User Registration Form</text>
-		<text style="fg:gray; italic">Click inputs to focus, type to fill, click buttons to submit</text>
+	<vstack spacing="1">
+		<text font-weight="bold" foreground-color="cyan">User Registration Form</text>
+		<text foreground-color="gray" font-style="italic">Click inputs to focus, type to fill, click buttons to submit</text>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="2">
+	<vstack spacing="2">
 		<slot name="name-input" />
 		<slot name="email-input" />
 		<slot name="username-input" />
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
 	<slot name="button-bar" />
 
 	{{ if .ShowStatus }}
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 	
-	<box border="rounded" border-style="{{ .StatusColor }}" padding="1">
-		<text style="{{ .StatusColor }}">{{ .StatusMessage }}</text>
+	<box border="rounded" border-color="{{ .StatusColor }}" padding="1">
+		<text foreground-color="{{ .StatusColor }}" font-weight="bold">{{ .StatusMessage }}</text>
 	</box>
 	{{ end }}
 
 	{{ if .ShowData }}
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<box border="rounded" border-style="fg:cyan" padding="1">
-		<vstack gap="0">
-			<text style="bold; fg:cyan">Submitted Data:</text>
+	<box border="rounded" border-color="cyan" padding="1">
+		<vstack spacing="0">
+			<text font-weight="bold" foreground-color="cyan">Submitted Data:</text>
 			<divider />
 			<text>Name: {{ .Name }}</text>
 			<text>Email: {{ .Email }}</text>
@@ -205,10 +202,10 @@ const tmpl = `
 	</box>
 	{{ end }}
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<text style="fg:gray; italic">Focused: {{ .FocusedInput }}</text>
-	<text style="fg:gray; italic">Hover: {{ .HoveredElement }}</text>
+	<text foreground-color="gray" font-style="italic">Focused: {{ .FocusedInput }}</text>
+	<text foreground-color="gray" font-style="italic">Hover: {{ .HoveredElement }}</text>
 </vstack>
 `
 
@@ -315,28 +312,28 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.nameInput.Value() == "" {
 				m.showStatus = true
 				m.statusMessage = "❌ Please enter your name"
-				m.statusColor = "fg:red; bold"
+				m.statusColor = "red"
 				m.showData = false
 			} else if m.emailInput.Value() == "" {
 				m.showStatus = true
 				m.statusMessage = "❌ Please enter your email"
-				m.statusColor = "fg:red; bold"
+				m.statusColor = "red"
 				m.showData = false
 			} else if m.usernameInput.Value() == "" {
 				m.showStatus = true
 				m.statusMessage = "❌ Please choose a username"
-				m.statusColor = "fg:red; bold"
+				m.statusColor = "red"
 				m.showData = false
 			} else if !strings.Contains(m.emailInput.Value(), "@") {
 				m.showStatus = true
 				m.statusMessage = "❌ Please enter a valid email address"
-				m.statusColor = "fg:red; bold"
+				m.statusColor = "red"
 				m.showData = false
 			} else {
 				// Success!
 				m.showStatus = true
 				m.statusMessage = "✅ Form submitted successfully!"
-				m.statusColor = "fg:green; bold"
+				m.statusColor = "green"
 				m.showData = true
 				m.submittedName = m.nameInput.Value()
 				m.submittedEmail = m.emailInput.Value()
@@ -353,7 +350,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.usernameInput.cursorPos = 0
 			m.showStatus = true
 			m.statusMessage = "🗑️  Form cleared"
-			m.statusColor = "fg:yellow"
+			m.statusColor = "yellow"
 			m.showData = false
 
 		case "quit-btn":

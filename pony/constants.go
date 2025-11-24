@@ -12,12 +12,11 @@ const (
 
 // Alignment constants.
 const (
-	AlignLeft   = "left"
-	AlignCenter = "center"
-	AlignRight  = "right"
-	AlignTop    = "top"
-	AlignMiddle = "middle"
-	AlignBottom = "bottom"
+	AlignmentLeading  = "leading"  // Horizontal: left side
+	AlignmentCenter   = "center"   // Horizontal and vertical: center
+	AlignmentTrailing = "trailing" // Horizontal: right side
+	AlignmentTop      = "top"      // Vertical: top
+	AlignmentBottom   = "bottom"   // Vertical: bottom
 )
 
 // Size constraint units.
@@ -37,4 +36,20 @@ const (
 	UnderlineDotted = "dotted"
 	UnderlineDashed = "dashed"
 	UnderlineSolid  = "solid"
+)
+
+// Text decoration styles.
+const (
+	DecorationUnderline     = "underline"
+	DecorationStrikethrough = "strikethrough"
+)
+
+// Font weight values.
+const (
+	FontWeightBold = "bold"
+)
+
+// Font style values.
+const (
+	FontStyleItalic = "italic"
 )

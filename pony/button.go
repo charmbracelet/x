@@ -7,14 +7,14 @@ import (
 // Button represents a clickable button element.
 type Button struct {
 	BaseElement
-	Text        string
-	Style       uv.Style
-	HoverStyle  uv.Style
-	ActiveStyle uv.Style
-	Border      string
-	Padding     int
-	Width       SizeConstraint
-	Height      SizeConstraint
+	text        string
+	style       uv.Style
+	hoverStyle  uv.Style
+	activeStyle uv.Style
+	border      string
+	padding     int
+	width       SizeConstraint
+	height      SizeConstraint
 }
 
 var _ Element = (*Button)(nil)
@@ -22,51 +22,51 @@ var _ Element = (*Button)(nil)
 // NewButton creates a new button element.
 func NewButton(text string) *Button {
 	return &Button{
-		Text:    text,
-		Border:  BorderRounded,
-		Padding: 1,
+		text:    text,
+		border:  BorderRounded,
+		padding: 1,
 	}
 }
 
-// WithStyle sets the button style and returns the button for chaining.
-func (b *Button) WithStyle(style uv.Style) *Button {
-	b.Style = style
+// Style sets the button style and returns the button for chaining.
+func (b *Button) Style(style uv.Style) *Button {
+	b.style = style
 	return b
 }
 
-// WithHoverStyle sets the hover style and returns the button for chaining.
-func (b *Button) WithHoverStyle(style uv.Style) *Button {
-	b.HoverStyle = style
+// HoverStyle sets the hover style and returns the button for chaining.
+func (b *Button) HoverStyle(style uv.Style) *Button {
+	b.hoverStyle = style
 	return b
 }
 
-// WithActiveStyle sets the active (pressed) style and returns the button for chaining.
-func (b *Button) WithActiveStyle(style uv.Style) *Button {
-	b.ActiveStyle = style
+// ActiveStyle sets the active (pressed) style and returns the button for chaining.
+func (b *Button) ActiveStyle(style uv.Style) *Button {
+	b.activeStyle = style
 	return b
 }
 
-// WithBorder sets the border type and returns the button for chaining.
-func (b *Button) WithBorder(border string) *Button {
-	b.Border = border
+// Border sets the border type and returns the button for chaining.
+func (b *Button) Border(border string) *Button {
+	b.border = border
 	return b
 }
 
-// WithPadding sets the padding and returns the button for chaining.
-func (b *Button) WithPadding(padding int) *Button {
-	b.Padding = padding
+// Padding sets the padding and returns the button for chaining.
+func (b *Button) Padding(padding int) *Button {
+	b.padding = padding
 	return b
 }
 
-// WithWidth sets the width constraint and returns the button for chaining.
-func (b *Button) WithWidth(width SizeConstraint) *Button {
-	b.Width = width
+// Width sets the width constraint and returns the button for chaining.
+func (b *Button) Width(width SizeConstraint) *Button {
+	b.width = width
 	return b
 }
 
-// WithHeight sets the height constraint and returns the button for chaining.
-func (b *Button) WithHeight(height SizeConstraint) *Button {
-	b.Height = height
+// Height sets the height constraint and returns the button for chaining.
+func (b *Button) Height(height SizeConstraint) *Button {
+	b.height = height
 	return b
 }
 
@@ -75,19 +75,27 @@ func (b *Button) Draw(scr uv.Screen, area uv.Rectangle) {
 	b.SetBounds(area)
 
 	// Create text element
-	textElem := NewText(b.Text)
-	if !b.Style.IsZero() {
-		textElem.Style = b.Style
+	textElem := NewText(b.text).Alignment(AlignmentCenter)
+	if !b.style.IsZero() {
+		// Apply style to text content
+		if b.style.Fg != nil {
+			textElem = textElem.ForegroundColor(b.style.Fg)
+		}
+		if b.style.Attrs&uv.AttrBold != 0 {
+			textElem = textElem.Bold()
+		}
+		if b.style.Attrs&uv.AttrItalic != 0 {
+			textElem = textElem.Italic()
+		}
 	}
-	textElem.Align = AlignCenter
 
 	// Wrap in box with border and padding
 	box := NewBox(textElem).
-		WithBorder(b.Border).
-		WithPadding(b.Padding)
+		Border(b.border).
+		Padding(b.padding)
 
-	if !b.Style.IsZero() {
-		box.BorderStyle = b.Style
+	if !b.style.IsZero() && b.style.Fg != nil {
+		box = box.BorderColor(b.style.Fg)
 	}
 
 	box.Draw(scr, area)
@@ -96,16 +104,16 @@ func (b *Button) Draw(scr uv.Screen, area uv.Rectangle) {
 // Layout calculates button size.
 func (b *Button) Layout(constraints Constraints) Size {
 	// Create text element for sizing
-	textElem := NewText(b.Text)
+	textElem := NewText(b.text)
 	textSize := textElem.Layout(Unbounded())
 
 	// Add padding and border
 	borderSize := 2
-	if b.Border == BorderNone || b.Border == BorderHidden {
+	if b.border == BorderNone || b.border == BorderHidden {
 		borderSize = 0
 	}
 
-	paddingSize := b.Padding * 2
+	paddingSize := b.padding * 2
 
 	width := textSize.Width + borderSize + paddingSize
 	height := textSize.Height + borderSize + paddingSize
@@ -113,13 +121,13 @@ func (b *Button) Layout(constraints Constraints) Size {
 	result := Size{Width: width, Height: height}
 
 	// Apply width constraint if specified
-	if !b.Width.IsAuto() {
-		result.Width = b.Width.Apply(constraints.MaxWidth, result.Width)
+	if !b.width.IsAuto() {
+		result.Width = b.width.Apply(constraints.MaxWidth, result.Width)
 	}
 
 	// Apply height constraint if specified
-	if !b.Height.IsAuto() {
-		result.Height = b.Height.Apply(constraints.MaxHeight, result.Height)
+	if !b.height.IsAuto() {
+		result.Height = b.height.Apply(constraints.MaxHeight, result.Height)
 	}
 
 	return constraints.Constrain(result)
@@ -135,30 +143,37 @@ func NewButtonFromProps(props Props, children []Element) Element {
 	text := props.Get("text")
 	if text == "" && len(children) > 0 {
 		if t, ok := children[0].(*Text); ok {
-			text = t.Content
+			text = t.Content()
 		}
 	}
 
 	btn := NewButton(text)
 
-	if style := parseStyleAttr(props); !style.IsZero() {
-		btn.Style = style
+	// Parse foreground color for button text/border
+	if fgColor := props.Get("foreground-color"); fgColor != "" {
+		if c, err := parseColor(fgColor); err == nil {
+			style := uv.Style{Fg: c}
+			if props.Get("font-weight") == FontWeightBold {
+				style.Attrs |= uv.AttrBold
+			}
+			btn = btn.Style(style)
+		}
 	}
 
 	if border := props.Get("border"); border != "" {
-		btn.Border = border
+		btn = btn.Border(border)
 	}
 
 	if padding := parseIntAttr(props, "padding", 0); padding > 0 {
-		btn.Padding = padding
+		btn = btn.Padding(padding)
 	}
 
 	if width := props.Get("width"); width != "" {
-		btn.Width = parseSizeConstraint(width)
+		btn = btn.Width(parseSizeConstraint(width))
 	}
 
 	if height := props.Get("height"); height != "" {
-		btn.Height = parseSizeConstraint(height)
+		btn = btn.Height(parseSizeConstraint(height))
 	}
 
 	return btn

@@ -18,43 +18,43 @@ type TemplateData struct {
 
 // Define our template with interactive buttons
 const tmpl = `
-<vstack gap="1">
-	<box border="double" border-style="fg:cyan; bold">
-		<text style="bold; fg:yellow" align="center">{{ .Title }}</text>
+<vstack spacing="1">
+	<box border="double" border-color="cyan">
+		<text font-weight="bold" foreground-color="yellow" alignment="center">{{ .Title }}</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="1">
-		<text style="bold">Click Counter: {{ .Count }}</text>
-		<text style="fg:gray">Last clicked: {{ .LastClicked }}</text>
+	<vstack spacing="1">
+		<text font-weight="bold">Click Counter: {{ .Count }}</text>
+		<text foreground-color="gray">Last clicked: {{ .LastClicked }}</text>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="1">
-		<text style="bold">Interactive Buttons:</text>
-		<hstack gap="2">
+	<vstack spacing="1">
+		<text font-weight="bold">Interactive Buttons:</text>
+		<hstack spacing="2">
 			<button id="increment-btn" text="Increment" border="rounded" padding="1" />
 			<button id="decrement-btn" text="Decrement" border="rounded" padding="1" />
 			<button id="reset-btn" text="Reset" border="rounded" padding="1" />
 		</hstack>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="1">
-		<text style="bold">More Buttons:</text>
-		<button id="hello-btn" text="Say Hello" border="thick" padding="1" style="fg:green" />
-		<button id="quit-btn" text="Quit Application" border="thick" padding="1" style="fg:red" />
+	<vstack spacing="1">
+		<text font-weight="bold">More Buttons:</text>
+		<button id="hello-btn" text="Say Hello" border="thick" padding="1" foreground-color="green" />
+		<button id="quit-btn" text="Quit Application" border="thick" padding="1" foreground-color="red" />
 	</vstack>
 
 	{{ if ne .HoveredID "" }}
-	<divider style="fg:gray" />
-	<text style="fg:cyan; italic">Hovering: {{ .HoveredID }}</text>
+	<divider foreground-color="gray" />
+	<text font-style="italic" foreground-color="cyan">Hovering: {{ .HoveredID }}</text>
 	{{ end }}
 
-	<text style="fg:gray; italic">Click buttons with mouse or press 'q' to quit</text>
+	<text font-style="italic" foreground-color="gray">Click buttons with mouse or press 'q' to quit</text>
 </vstack>
 `
 

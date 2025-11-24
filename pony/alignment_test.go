@@ -13,15 +13,15 @@ func TestTextAlignment(t *testing.T) {
 	}{
 		{
 			name:   "left aligned",
-			markup: `<box width="20" border="normal"><text align="left">Left</text></box>`,
+			markup: `<box width="20" border="normal"><text alignment="leading">Left</text></box>`,
 		},
 		{
 			name:   "center aligned",
-			markup: `<box width="20" border="normal"><text align="center">Center</text></box>`,
+			markup: `<box width="20" border="normal"><text alignment="center">Center</text></box>`,
 		},
 		{
 			name:   "right aligned",
-			markup: `<box width="20" border="normal"><text align="right">Right</text></box>`,
+			markup: `<box width="20" border="normal"><text alignment="trailing">Right</text></box>`,
 		},
 	}
 
@@ -52,7 +52,7 @@ func TestBoxPadding(t *testing.T) {
 
 func TestVStackAlignment(t *testing.T) {
 	const markup = `
-<vstack align="center">
+<vstack alignment="center">
 	<text>Short</text>
 	<text>A bit longer text</text>
 </vstack>
@@ -69,7 +69,7 @@ func TestVStackAlignment(t *testing.T) {
 
 func TestHStackValign(t *testing.T) {
 	const markup = `
-<hstack valign="middle">
+<hstack alignment="center">
 	<text>A</text>
 	<text>B</text>
 </hstack>
@@ -86,12 +86,12 @@ func TestHStackValign(t *testing.T) {
 
 func TestCombinedFeatures(t *testing.T) {
 	const markup = `
-<hstack gap="1">
+<hstack spacing="1">
 	<box border="rounded" width="50%" padding="1">
-		<text align="center" style="bold">Centered</text>
+		<text alignment="center" font-weight="bold">Centered</text>
 	</box>
 	<box border="normal" width="50%" padding="2">
-		<text align="right" style="italic">Right</text>
+		<text alignment="trailing" font-style="italic">Right</text>
 	</box>
 </hstack>
 `

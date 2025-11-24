@@ -9,7 +9,7 @@ func TestInputClickFocus(t *testing.T) {
 	// returns the input's ID, not child element IDs
 
 	tmpl := `
-<vstack gap="1">
+<vstack spacing="1">
 	<slot name="input1" />
 	<slot name="input2" />
 </vstack>
@@ -21,13 +21,13 @@ func TestInputClickFocus(t *testing.T) {
 	// Simulate how Input.Render() works - it creates a VStack and sets the input's ID on it
 	input1VStack := NewVStack(
 		NewText("Label 1"),
-		NewBox(NewText("Content 1")).WithBorder("rounded").WithPadding(1),
+		NewBox(NewText("Content 1")).Border("rounded").Padding(1),
 	)
 	input1VStack.SetID("input1-component") // This is what Input.Render() does
 
 	input2VStack := NewVStack(
 		NewText("Label 2"),
-		NewBox(NewText("Content 2")).WithBorder("rounded").WithPadding(1),
+		NewBox(NewText("Content 2")).Border("rounded").Padding(1),
 	)
 	input2VStack.SetID("input2-component")
 
