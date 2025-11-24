@@ -3,10 +3,7 @@
 > **⚠️ EXPERIMENTAL**: This is an experimental project, primarily AI-generated as an exploration of declarative TUI frameworks. Use at your own risk.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/charmbracelet/x/pony.svg)](https://pkg.go.dev/github.com/charmbracelet/x/pony)
-[![Build Status](https://github.com/charmbracelet/x/pony/actions/workflows/build.yml/badge.svg)](https://github.com/charmbracelet/x/pony/actions/workflows/build.yml)
-[![Lint Status](https://github.com/charmbracelet/x/pony/actions/workflows/lint.yml/badge.svg)](https://github.com/charmbracelet/x/pony/actions/workflows/lint.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/charmbracelet/x/pony)](https://goreportcard.com/report/github.com/charmbracelet/x/pony)
-[![codecov](https://codecov.io/gh/charmbracelet/x/branch/main/graph/badge.svg)](https://codecov.io/gh/charmbracelet/x)
+[![Build Status](https://github.com/charmbracelet/x/actions/workflows/pony.yml/badge.svg)](https://github.com/charmbracelet/x/actions/workflows/pony.yml)
 
 A declarative, type-safe markup language for building terminal user interfaces with [Ultraviolet](../ultraviolet) as the rendering engine.
 
@@ -182,12 +179,12 @@ Attributes: `grow` (flex-grow factor), `shrink` (flex-shrink factor), `basis` (i
 ```xml
 <zstack>
     <box>Background</box>
-    
+
     <!-- Position from top-left -->
     <positioned x="10" y="5">
         <text>At (10,5)</text>
     </positioned>
-    
+
     <!-- Position from edges -->
     <positioned right="2" bottom="1">
         <text>Bottom-right corner</text>
@@ -353,7 +350,7 @@ Built-in: `upper`, `lower`, `title`, `trim`, `join`, `printf`, `add`, `sub`, `mu
 // Simple functional component
 pony.Register("card", func(props pony.Props, children []pony.Element) pony.Element {
     titleStyle := pony.NewStyle().Bold().Build()
-    
+
     return pony.NewBox(
         pony.NewVStack(
             pony.NewText(props.Get("title")).WithStyle(titleStyle),
@@ -381,7 +378,7 @@ func NewCard(props pony.Props, children []pony.Element) pony.Element {
 
 func (c *Card) Draw(scr uv.Screen, area uv.Rectangle) {
     c.SetBounds(area) // Track bounds for mouse interaction
-    
+
     // Build composed structure
     style := pony.NewStyle().Fg(pony.Hex("#00FFFF")).Bold().Build()
     card := pony.NewBox(
@@ -391,7 +388,7 @@ func (c *Card) Draw(scr uv.Screen, area uv.Rectangle) {
             pony.NewVStack(c.Content...),
         ),
     ).WithBorder("rounded").WithPadding(1)
-    
+
     card.Draw(scr, area)
 }
 
@@ -405,7 +402,7 @@ func (c *Card) Layout(constraints pony.Constraints) pony.Size {
             pony.NewVStack(c.Content...),
         ),
     ).WithBorder("rounded").WithPadding(1)
-    
+
     return card.Layout(constraints)
 }
 
@@ -461,7 +458,7 @@ func (m model) View() tea.View {
     slots := map[string]pony.Element{
         "input": m.inputComp.Render(),
     }
-    
+
     output := m.template.RenderWithSlots(data, slots, m.width, m.height)
     return tea.NewView(output)
 }
@@ -534,18 +531,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() tea.View {
     data := ViewData{...}
-    
+
     // Render and get bounds map
     scr, boundsMap := m.template.RenderWithBounds(data, nil, m.width, m.height)
-    
+
     view := tea.NewView(scr.Render())
     view.MouseMode = tea.MouseModeAllMotion  // Enable mouse events
-    
+
     // Callback captures boundsMap - no model mutation!
     view.Callback = func(msg tea.Msg) tea.Cmd {
         if click, ok := msg.(tea.MouseClickMsg); ok {
             mouse := click.Mouse()
-            
+
             // Find which element was clicked
             if elem := boundsMap.HitTest(mouse.X, mouse.Y); elem != nil {
                 return func() tea.Msg {
@@ -555,7 +552,7 @@ func (m model) View() tea.View {
         }
         return nil
     }
-    
+
     return view
 }
 ```
@@ -584,10 +581,10 @@ func (i *Input) Render() pony.Element {
         pony.NewText(i.label),
         pony.NewBox(pony.NewText(i.value)).WithBorder("rounded"),
     )
-    
+
     // Set the input's ID on the VStack so clicks return "my-input", not child IDs
     vstack.SetID(i.ID())
-    
+
     return vstack
 }
 
@@ -603,9 +600,9 @@ input.SetID("name-input")  // When clicked, returns "name-input"
 <button id="my-btn" text="Click Me" />
 
 <!-- Styled button -->
-<button id="submit" text="Submit" 
-        border="rounded" 
-        padding="1" 
+<button id="submit" text="Submit"
+        border="rounded"
+        padding="1"
         style="fg:green; bold" />
 ```
 
@@ -639,7 +636,7 @@ view.Callback = func(msg tea.Msg) tea.Cmd {
     switch msg := msg.(type) {
     case tea.MouseClickMsg:
         // Handle clicks
-        
+
     case tea.MouseMotionMsg:
         // Handle hover
         mouse := msg.Mouse()
