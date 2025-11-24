@@ -32,8 +32,8 @@ func TestScrollViewPropsWithOffset(t *testing.T) {
 	for _, eb := range allElems {
 		if sv, ok := eb.Element.(*ScrollView); ok {
 			foundScrollView = true
-			if sv.OffsetY != 5 {
-				t.Errorf("expected OffsetY=5, got %d", sv.OffsetY)
+			if sv.offsetY != 5 {
+				t.Errorf("expected offsetY=5, got %d", sv.offsetY)
 			}
 		}
 	}
@@ -66,8 +66,8 @@ func TestScrollViewPropsWithTemplateOffset(t *testing.T) {
 	for _, eb := range allElems {
 		if sv, ok := eb.Element.(*ScrollView); ok {
 			foundScrollView = true
-			if sv.OffsetY != 8 {
-				t.Errorf("expected OffsetY=8, got %d", sv.OffsetY)
+			if sv.offsetY != 8 {
+				t.Errorf("expected offsetY=8, got %d", sv.offsetY)
 			}
 		}
 	}
@@ -108,23 +108,23 @@ func TestScrollViewPropsAllAttributes(t *testing.T) {
 	}
 
 	// Verify properties were applied
-	if sv.OffsetX != 2 {
-		t.Errorf("expected OffsetX=2, got %d", sv.OffsetX)
+	if sv.offsetX != 2 {
+		t.Errorf("expected offsetX=2, got %d", sv.offsetX)
 	}
 
-	if sv.OffsetY != 3 {
-		t.Errorf("expected OffsetY=3, got %d", sv.OffsetY)
+	if sv.offsetY != 3 {
+		t.Errorf("expected offsetY=3, got %d", sv.offsetY)
 	}
 
-	if !sv.Vertical {
-		t.Error("expected Vertical=true")
+	if !sv.vertical {
+		t.Error("expected vertical=true")
 	}
 
-	if sv.Horizontal {
-		t.Error("expected Horizontal=false")
+	if sv.horizontal {
+		t.Error("expected horizontal=false")
 	}
 
-	if !sv.ShowScrollbar {
-		t.Error("expected ShowScrollbar=true")
+	if !sv.showScrollbar {
+		t.Error("expected showScrollbar=true")
 	}
 }

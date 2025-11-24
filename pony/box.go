@@ -1,23 +1,25 @@
 package pony
 
 import (
+	"image/color"
+
 	uv "github.com/charmbracelet/ultraviolet"
 )
 
 // Box represents a container with an optional border.
 type Box struct {
 	BaseElement
-	Child        Element
-	Border       string // normal, rounded, thick, double, hidden, none
-	BorderStyle  uv.Style
-	Width        SizeConstraint
-	Height       SizeConstraint
-	Padding      int
-	Margin       int // margin on all sides
-	MarginTop    int
-	MarginRight  int
-	MarginBottom int
-	MarginLeft   int
+	child        Element
+	border       string // normal, rounded, thick, double, hidden, none
+	borderColor  color.Color
+	width        SizeConstraint
+	height       SizeConstraint
+	padding      int
+	margin       int // margin on all sides
+	marginTop    int
+	marginRight  int
+	marginBottom int
+	marginLeft   int
 }
 
 var _ Element = (*Box)(nil)
@@ -25,68 +27,68 @@ var _ Element = (*Box)(nil)
 // NewBox creates a new box element.
 func NewBox(child Element) *Box {
 	return &Box{
-		Child:  child,
-		Border: BorderNone,
+		child:  child,
+		border: BorderNone,
 	}
 }
 
-// WithBorder sets the border style and returns the box for chaining.
-func (b *Box) WithBorder(border string) *Box {
-	b.Border = border
+// Border sets the border style and returns the box for chaining.
+func (b *Box) Border(border string) *Box {
+	b.border = border
 	return b
 }
 
-// WithBorderStyle sets the border style and returns the box for chaining.
-func (b *Box) WithBorderStyle(style uv.Style) *Box {
-	b.BorderStyle = style
+// BorderColor sets the border color and returns the box for chaining.
+func (b *Box) BorderColor(c color.Color) *Box {
+	b.borderColor = c
 	return b
 }
 
-// WithPadding sets the padding and returns the box for chaining.
-func (b *Box) WithPadding(padding int) *Box {
-	b.Padding = padding
+// Padding sets the padding and returns the box for chaining.
+func (b *Box) Padding(padding int) *Box {
+	b.padding = padding
 	return b
 }
 
-// WithMargin sets the margin on all sides and returns the box for chaining.
-func (b *Box) WithMargin(margin int) *Box {
-	b.Margin = margin
+// Margin sets the margin on all sides and returns the box for chaining.
+func (b *Box) Margin(margin int) *Box {
+	b.margin = margin
 	return b
 }
 
-// WithMarginTop sets the top margin and returns the box for chaining.
-func (b *Box) WithMarginTop(margin int) *Box {
-	b.MarginTop = margin
+// MarginTop sets the top margin and returns the box for chaining.
+func (b *Box) MarginTop(margin int) *Box {
+	b.marginTop = margin
 	return b
 }
 
-// WithMarginRight sets the right margin and returns the box for chaining.
-func (b *Box) WithMarginRight(margin int) *Box {
-	b.MarginRight = margin
+// MarginRight sets the right margin and returns the box for chaining.
+func (b *Box) MarginRight(margin int) *Box {
+	b.marginRight = margin
 	return b
 }
 
-// WithMarginBottom sets the bottom margin and returns the box for chaining.
-func (b *Box) WithMarginBottom(margin int) *Box {
-	b.MarginBottom = margin
+// MarginBottom sets the bottom margin and returns the box for chaining.
+func (b *Box) MarginBottom(margin int) *Box {
+	b.marginBottom = margin
 	return b
 }
 
-// WithMarginLeft sets the left margin and returns the box for chaining.
-func (b *Box) WithMarginLeft(margin int) *Box {
-	b.MarginLeft = margin
+// MarginLeft sets the left margin and returns the box for chaining.
+func (b *Box) MarginLeft(margin int) *Box {
+	b.marginLeft = margin
 	return b
 }
 
-// WithWidth sets the width constraint and returns the box for chaining.
-func (b *Box) WithWidth(width SizeConstraint) *Box {
-	b.Width = width
+// Width sets the width constraint and returns the box for chaining.
+func (b *Box) Width(width SizeConstraint) *Box {
+	b.width = width
 	return b
 }
 
-// WithHeight sets the height constraint and returns the box for chaining.
-func (b *Box) WithHeight(height SizeConstraint) *Box {
-	b.Height = height
+// Height sets the height constraint and returns the box for chaining.
+func (b *Box) Height(height SizeConstraint) *Box {
+	b.height = height
 	return b
 }
 
@@ -95,21 +97,21 @@ func (b *Box) Draw(scr uv.Screen, area uv.Rectangle) {
 	b.SetBounds(area)
 
 	// Apply margin (shrink the area before drawing)
-	marginTop := b.MarginTop
+	marginTop := b.marginTop
 	if marginTop == 0 {
-		marginTop = b.Margin
+		marginTop = b.margin
 	}
-	marginRight := b.MarginRight
+	marginRight := b.marginRight
 	if marginRight == 0 {
-		marginRight = b.Margin
+		marginRight = b.margin
 	}
-	marginBottom := b.MarginBottom
+	marginBottom := b.marginBottom
 	if marginBottom == 0 {
-		marginBottom = b.Margin
+		marginBottom = b.margin
 	}
-	marginLeft := b.MarginLeft
+	marginLeft := b.marginLeft
 	if marginLeft == 0 {
-		marginLeft = b.Margin
+		marginLeft = b.margin
 	}
 
 	marginH := marginLeft + marginRight
@@ -125,9 +127,9 @@ func (b *Box) Draw(scr uv.Screen, area uv.Rectangle) {
 	}
 
 	// Draw border if specified
-	if b.Border != "" && b.Border != BorderNone {
+	if b.border != "" && b.border != BorderNone {
 		var uvBorder uv.Border
-		switch b.Border {
+		switch b.border {
 		case BorderNormal:
 			uvBorder = uv.NormalBorder()
 		case BorderRounded:
@@ -142,9 +144,9 @@ func (b *Box) Draw(scr uv.Screen, area uv.Rectangle) {
 			uvBorder = uv.NormalBorder()
 		}
 
-		// Apply border style if specified
-		if !b.BorderStyle.IsZero() {
-			uvBorder = uvBorder.Style(b.BorderStyle)
+		// Apply border color if specified
+		if b.borderColor != nil {
+			uvBorder = uvBorder.Style(uv.Style{Fg: b.borderColor})
 		}
 
 		uvBorder.Draw(scr, area)
@@ -156,13 +158,13 @@ func (b *Box) Draw(scr uv.Screen, area uv.Rectangle) {
 	}
 
 	// Apply padding
-	if b.Padding > 0 {
-		padH := b.Padding * 2 // left + right
-		padV := b.Padding * 2 // top + bottom
+	if b.padding > 0 {
+		padH := b.padding * 2 // left + right
+		padV := b.padding * 2 // top + bottom
 		if area.Dx() > padH && area.Dy() > padV {
 			area = uv.Rect(
-				area.Min.X+b.Padding,
-				area.Min.Y+b.Padding,
+				area.Min.X+b.padding,
+				area.Min.Y+b.padding,
 				area.Dx()-padH,
 				area.Dy()-padV,
 			)
@@ -170,29 +172,29 @@ func (b *Box) Draw(scr uv.Screen, area uv.Rectangle) {
 	}
 
 	// Draw child if present
-	if b.Child != nil {
-		b.Child.Draw(scr, area)
+	if b.child != nil {
+		b.child.Draw(scr, area)
 	}
 }
 
 // Layout calculates the box size.
 func (b *Box) Layout(constraints Constraints) Size {
 	// Account for margin
-	marginTop := b.MarginTop
+	marginTop := b.marginTop
 	if marginTop == 0 {
-		marginTop = b.Margin
+		marginTop = b.margin
 	}
-	marginRight := b.MarginRight
+	marginRight := b.marginRight
 	if marginRight == 0 {
-		marginRight = b.Margin
+		marginRight = b.margin
 	}
-	marginBottom := b.MarginBottom
+	marginBottom := b.marginBottom
 	if marginBottom == 0 {
-		marginBottom = b.Margin
+		marginBottom = b.margin
 	}
-	marginLeft := b.MarginLeft
+	marginLeft := b.marginLeft
 	if marginLeft == 0 {
-		marginLeft = b.Margin
+		marginLeft = b.margin
 	}
 
 	marginWidth := marginLeft + marginRight
@@ -201,14 +203,14 @@ func (b *Box) Layout(constraints Constraints) Size {
 	// Account for border
 	borderWidth := 0
 	borderHeight := 0
-	if b.Border != "" && b.Border != BorderNone {
+	if b.border != "" && b.border != BorderNone {
 		borderWidth = 2
 		borderHeight = 2
 	}
 
 	// Account for padding
-	paddingWidth := b.Padding * 2
-	paddingHeight := b.Padding * 2
+	paddingWidth := b.padding * 2
+	paddingHeight := b.padding * 2
 
 	totalReduction := marginWidth + borderWidth + paddingWidth
 	totalReductionH := marginHeight + borderHeight + paddingHeight
@@ -221,8 +223,8 @@ func (b *Box) Layout(constraints Constraints) Size {
 	}
 
 	var childSize Size
-	if b.Child != nil {
-		childSize = b.Child.Layout(childConstraints)
+	if b.child != nil {
+		childSize = b.child.Layout(childConstraints)
 	}
 
 	totalSize := Size{
@@ -231,13 +233,13 @@ func (b *Box) Layout(constraints Constraints) Size {
 	}
 
 	// Apply width constraint if specified
-	if !b.Width.IsAuto() {
-		totalSize.Width = b.Width.Apply(constraints.MaxWidth, totalSize.Width)
+	if !b.width.IsAuto() {
+		totalSize.Width = b.width.Apply(constraints.MaxWidth, totalSize.Width)
 	}
 
 	// Apply height constraint if specified
-	if !b.Height.IsAuto() {
-		totalSize.Height = b.Height.Apply(constraints.MaxHeight, totalSize.Height)
+	if !b.height.IsAuto() {
+		totalSize.Height = b.height.Apply(constraints.MaxHeight, totalSize.Height)
 	}
 
 	return constraints.Constrain(totalSize)
@@ -245,8 +247,8 @@ func (b *Box) Layout(constraints Constraints) Size {
 
 // Children returns the child element.
 func (b *Box) Children() []Element {
-	if b.Child == nil {
+	if b.child == nil {
 		return nil
 	}
-	return []Element{b.Child}
+	return []Element{b.child}
 }

@@ -17,14 +17,14 @@ type ViewData struct {
 }
 
 const tmpl = `
-<vstack gap="1">
-	<box border="rounded" border-style="fg:cyan; bold">
-		<text style="bold; fg:yellow">{{ .Title }}</text>
+<vstack spacing="1">
+	<box border="rounded" border-color="cyan">
+		<text font-weight="bold" foreground-color="yellow">{{ .Title }}</text>
 	</box>
 	<text>Counter: {{ .Count }}</text>
-	<text style="fg:gray">Window: {{ .Width }}x{{ .Height }}</text>
-	<divider style="fg:gray" />
-	<text style="fg:gray; italic">Press space to increment, q to quit</text>
+	<text foreground-color="gray">Window: {{ .Width }}x{{ .Height }}</text>
+	<divider foreground-color="gray" />
+	<text font-style="italic" foreground-color="gray">Press space to increment, q to quit</text>
 </vstack>
 `
 

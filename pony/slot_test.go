@@ -3,7 +3,6 @@ package pony
 import (
 	"testing"
 
-	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/exp/golden"
 )
 
@@ -32,7 +31,7 @@ func TestSlotBasic(t *testing.T) {
 
 func TestMultipleSlots(t *testing.T) {
 	const markup = `
-<vstack gap="1">
+<vstack spacing="1">
 	<slot name="header" />
 	<slot name="body" />
 	<slot name="footer" />
@@ -80,11 +79,11 @@ func TestSlotWithComplexElement(t *testing.T) {
 
 	complexElement := NewBox(
 		NewVStack(
-			NewText("Title").WithStyle(uv.Style{Attrs: uv.AttrBold}),
+			NewText("Title").Bold(),
 			NewDivider(),
 			NewText("Content"),
 		),
-	).WithBorder("rounded")
+	).Border("rounded")
 
 	slots := map[string]Element{
 		"widget": complexElement,
@@ -114,7 +113,7 @@ func TestSlotMissing(t *testing.T) {
 
 func TestSlotsWithTemplateData(t *testing.T) {
 	const markup = `
-<vstack gap="1">
+<vstack spacing="1">
 	<text>{{ .Title }}</text>
 	<slot name="content" />
 	<text>{{ .Footer }}</text>

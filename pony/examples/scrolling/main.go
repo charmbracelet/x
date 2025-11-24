@@ -49,31 +49,29 @@ func (s *ScrollLog) Render() pony.Element {
 		items = append(items, pony.NewText(line))
 	}
 
-	return &pony.ScrollView{
-		Child:         pony.NewVStack(items...),
-		OffsetY:       s.offset,
-		Height:        pony.NewFixedConstraint(s.height),
-		Vertical:      true,
-		ShowScrollbar: true,
-	}
+	return pony.NewScrollView(pony.NewVStack(items...)).
+		Offset(0, s.offset).
+		Height(pony.NewFixedConstraint(s.height)).
+		Vertical(true).
+		Scrollbar(true)
 }
 
 // Template
 const tmpl = `
-<vstack gap="1">
-	<box border="rounded" border-style="fg:cyan; bold" padding="1">
-		<text style="bold; fg:cyan" align="center">Scrolling Demo</text>
+<vstack spacing="1">
+	<box border="rounded" border-color="cyan" padding="1">
+		<text font-weight="bold" foreground-color="cyan" alignment="center">Scrolling Demo</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<box border="rounded" border-style="fg:green">
+	<box border="rounded" border-color="green">
 		<slot name="log" />
 	</box>
 
 	<spacer />
 
-	<text style="fg:gray; italic">↑/↓ or j/k to scroll, mouse wheel works too • q to quit</text>
+	<text font-style="italic" foreground-color="gray">↑/↓ or j/k to scroll, mouse wheel works too • q to quit</text>
 </vstack>
 `
 

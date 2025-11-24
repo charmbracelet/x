@@ -15,7 +15,7 @@ func TestZStackBasic(t *testing.T) {
 		<text>Background</text>
 	</box>
 	<box width="10" height="3">
-		<text style="bold">Overlay</text>
+		<text font-weight="bold">Overlay</text>
 	</box>
 </zstack>
 `
@@ -49,15 +49,13 @@ func TestZStackAlignment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			children := []Element{
-				NewBox(NewText("Background")).WithBorder("rounded").WithWidth(NewFixedConstraint(30)).WithHeight(NewFixedConstraint(10)),
-				NewBox(NewText(tt.name)).WithBorder("normal").WithWidth(NewFixedConstraint(15)).WithHeight(NewFixedConstraint(3)),
+				NewBox(NewText("Background")).Border("rounded").Width(NewFixedConstraint(30)).Height(NewFixedConstraint(10)),
+				NewBox(NewText(tt.name)).Border("normal").Width(NewFixedConstraint(15)).Height(NewFixedConstraint(3)),
 			}
 
-			elem := &ZStack{
-				Items:  children,
-				Align:  tt.align,
-				Valign: tt.valign,
-			}
+			elem := NewZStack(children...).
+				Alignment(tt.align).
+				VerticalAlignment(tt.valign)
 
 			// Use unbounded constraints so ZStack sizes to its children
 			size := elem.Layout(Unbounded())
@@ -161,7 +159,7 @@ func TestBoxMarginSides(t *testing.T) {
 }
 
 func TestBoxMarginLayout(t *testing.T) {
-	child := &Text{Content: "Hello"}
+	child := NewText("Hello")
 	childSize := child.Layout(Unbounded())
 
 	tests := []struct {
@@ -207,15 +205,13 @@ func TestBoxMarginLayout(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			elem := &Box{
-				Child:        child,
-				Border:       "none",
-				Margin:       tt.margin,
-				MarginTop:    tt.marginTop,
-				MarginRight:  tt.marginRight,
-				MarginBottom: tt.marginBottom,
-				MarginLeft:   tt.marginLeft,
-			}
+			elem := NewBox(child).
+				Border("none").
+				Margin(tt.margin).
+				MarginTop(tt.marginTop).
+				MarginRight(tt.marginRight).
+				MarginBottom(tt.marginBottom).
+				MarginLeft(tt.marginLeft)
 
 			size := elem.Layout(Unbounded())
 
@@ -297,12 +293,10 @@ func TestFlexLayout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			child := NewText("Content")
-			flex := &Flex{
-				Child:  child,
-				Grow:   tt.grow,
-				Shrink: tt.shrink,
-				Basis:  tt.basis,
-			}
+			flex := NewFlex(child).
+				Grow(tt.grow).
+				Shrink(tt.shrink).
+				Basis(tt.basis)
 
 			size := flex.Layout(Unbounded())
 			if size.Width == 0 && size.Height == 0 && tt.basis == 0 {
@@ -320,17 +314,17 @@ func TestGetFlexGrow(t *testing.T) {
 	}{
 		{
 			name: "flex element",
-			elem: &Flex{Child: NewText("x"), Grow: 2},
+			elem: NewFlex(NewText("x")).Grow(2),
 			want: 2,
 		},
 		{
 			name: "flexible spacer",
-			elem: &Spacer{Size: 0},
+			elem: NewSpacer(),
 			want: 1,
 		},
 		{
 			name: "fixed spacer",
-			elem: &Spacer{Size: 10},
+			elem: NewFixedSpacer(10),
 			want: 0,
 		},
 		{
@@ -359,10 +353,10 @@ func TestPositionedBasic(t *testing.T) {
 		<text>Background</text>
 	</box>
 	<positioned x="5" y="2">
-		<text style="bold">At (5,2)</text>
+		<text font-weight="bold">At (5,2)</text>
 	</positioned>
 	<positioned x="20" y="5">
-		<text style="bold">At (20,5)</text>
+		<text font-weight="bold">At (20,5)</text>
 	</positioned>
 </zstack>
 `
@@ -383,16 +377,16 @@ func TestPositionedCorners(t *testing.T) {
 		<text>Main Content</text>
 	</box>
 	<positioned x="1" y="1">
-		<text style="bold">TL</text>
+		<text font-weight="bold">TL</text>
 	</positioned>
 	<positioned right="1" y="1">
-		<text style="bold">TR</text>
+		<text font-weight="bold">TR</text>
 	</positioned>
 	<positioned x="1" bottom="1">
-		<text style="bold">BL</text>
+		<text font-weight="bold">BL</text>
 	</positioned>
 	<positioned right="1" bottom="1">
-		<text style="bold">BR</text>
+		<text font-weight="bold">BR</text>
 	</positioned>
 </zstack>
 `
@@ -437,7 +431,7 @@ func TestAdvancedLayoutCombined(t *testing.T) {
 	</vstack>
 	<positioned right="2" y="2">
 		<box border="thick" padding="1">
-			<text style="bold; fg:cyan">Overlay</text>
+			<text font-weight="bold" foreground-color="cyan">Overlay</text>
 		</box>
 	</positioned>
 </zstack>
@@ -456,25 +450,10 @@ func TestAdvancedLayoutCombined(t *testing.T) {
 func TestZStackWithMethods(t *testing.T) {
 	zstack := NewZStack(NewText("a"), NewText("b"))
 
-	zstack.WithAlign(AlignRight)
-	if zstack.Align != AlignRight {
-		t.Error("WithAlign not set")
-	}
-
-	zstack.WithValign(AlignBottom)
-	if zstack.Valign != AlignBottom {
-		t.Error("WithValign not set")
-	}
-
-	zstack.WithWidth(NewFixedConstraint(10))
-	if zstack.Width.IsAuto() {
-		t.Error("WithWidth not set")
-	}
-
-	zstack.WithHeight(NewFixedConstraint(5))
-	if zstack.Height.IsAuto() {
-		t.Error("WithHeight not set")
-	}
+	zstack.Alignment(AlignmentTrailing)
+	zstack.VerticalAlignment(AlignmentBottom)
+	zstack.Width(NewFixedConstraint(10))
+	zstack.Height(NewFixedConstraint(5))
 
 	// Test Children
 	children := zstack.Children()
@@ -487,25 +466,10 @@ func TestZStackWithMethods(t *testing.T) {
 func TestPositionedWithMethods(t *testing.T) {
 	pos := NewPositioned(NewText("test"), 5, 5)
 
-	pos.WithRight(10)
-	if pos.Right != 10 {
-		t.Error("WithRight not set")
-	}
-
-	pos.WithBottom(15)
-	if pos.Bottom != 15 {
-		t.Error("WithBottom not set")
-	}
-
-	pos.WithWidth(NewFixedConstraint(20))
-	if pos.Width.IsAuto() {
-		t.Error("WithWidth not set")
-	}
-
-	pos.WithHeight(NewFixedConstraint(25))
-	if pos.Height.IsAuto() {
-		t.Error("WithHeight not set")
-	}
+	pos.Right(10)
+	pos.Bottom(15)
+	pos.Width(NewFixedConstraint(20))
+	pos.Height(NewFixedConstraint(25))
 
 	// Test Children
 	children := pos.Children()
@@ -514,7 +478,7 @@ func TestPositionedWithMethods(t *testing.T) {
 	}
 
 	// Test with nil child
-	posNil := &Positioned{Child: nil}
+	posNil := NewPositioned(nil, 0, 0)
 	if posNil.Children() != nil {
 		t.Error("Positioned Children with nil child should return nil")
 	}

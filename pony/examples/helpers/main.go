@@ -8,19 +8,19 @@ import (
 
 func main() {
 	const tmpl = `
-<vstack gap="1">
-	<box border="double" border-style="fg:yellow; bold" padding="1">
-		<text style="bold; fg:yellow" align="center">🎨 Style Helpers Demo</text>
+<vstack spacing="1">
+	<box border="double" border-color="yellow" padding="1">
+		<text font-weight="bold" foreground-color="yellow" alignment="center">🎨 Style Helpers Demo</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<text style="bold">Using helpers to build styled elements:</text>
+	<text font-weight="bold">Using helpers to build styled elements:</text>
 	<slot name="styledContent" />
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<text style="bold">Using layout helpers:</text>
+	<text font-weight="bold">Using layout helpers:</text>
 	<slot name="panel" />
 	<slot name="sections" />
 </vstack>
@@ -28,34 +28,13 @@ func main() {
 
 	t := pony.MustParse[any](tmpl)
 
-	// Build styles using StyleBuilder - type-safe!
-	errorStyle := pony.NewStyle().
-		Fg(pony.Hex("#FF5555")).
-		Bold().
-		Build()
-	
-	warningStyle := pony.NewStyle().
-		Fg(pony.Hex("#FFFF55")).
-		Bold().
-		Build()
-	
-	successStyle := pony.NewStyle().
-		Fg(pony.Hex("#50FA7B")).
-		Bold().
-		Build()
-	
-	mutedStyle := pony.NewStyle().
-		Fg(pony.RGB(128, 128, 128)).
-		Italic().
-		Build()
-
-	// Use helpers to build elements
+	// Use granular text modifiers - type-safe and SwiftUI-like!
 	slots := map[string]pony.Element{
 		"styledContent": pony.NewVStack(
-			&pony.Text{Content: "Error: Something went wrong", Style: errorStyle},
-			&pony.Text{Content: "Warning: Check this out", Style: warningStyle},
-			&pony.Text{Content: "Success: All good!", Style: successStyle},
-			&pony.Text{Content: "Muted: Less important info", Style: mutedStyle},
+			pony.NewText("Error: Something went wrong").ForegroundColor(pony.Hex("#FF5555")).Bold(),
+			pony.NewText("Warning: Check this out").ForegroundColor(pony.Hex("#FFFF55")).Bold(),
+			pony.NewText("Success: All good!").ForegroundColor(pony.Hex("#50FA7B")).Bold(),
+			pony.NewText("Muted: Less important info").ForegroundColor(pony.RGB(128, 128, 128)).Italic(),
 		),
 		
 		// Use Panel helper

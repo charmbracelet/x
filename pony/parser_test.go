@@ -22,7 +22,7 @@ func TestParse(t *testing.T) {
 		},
 		{
 			name:    "hstack with gap",
-			markup:  `<hstack gap="2"><text>Left</text><text>Right</text></hstack>`,
+			markup:  `<hstack spacing="2"><text>Left</text><text>Right</text></hstack>`,
 			wantErr: false,
 		},
 		{
@@ -78,23 +78,23 @@ func TestNodeToElement(t *testing.T) {
 			markup: "<text>Hello</text>",
 			check: func(e Element) bool {
 				text, ok := e.(*Text)
-				return ok && text.Content == "Hello"
+				return ok && text.Content() == "Hello"
 			},
 		},
 		{
 			name:   "vstack element",
-			markup: "<vstack gap=\"2\"><text>A</text></vstack>",
+			markup: "<vstack spacing=\"2\"><text>A</text></vstack>",
 			check: func(e Element) bool {
 				vstack, ok := e.(*VStack)
-				return ok && vstack.Gap == 2 && len(vstack.Items) == 1
+				return ok && vstack.spacing == 2 && len(vstack.items) == 1
 			},
 		},
 		{
 			name:   "hstack element",
-			markup: "<hstack gap=\"1\"><text>A</text><text>B</text></hstack>",
+			markup: "<hstack spacing=\"1\"><text>A</text><text>B</text></hstack>",
 			check: func(e Element) bool {
 				hstack, ok := e.(*HStack)
-				return ok && hstack.Gap == 1 && len(hstack.Items) == 2
+				return ok && hstack.spacing == 1 && len(hstack.items) == 2
 			},
 		},
 		{
@@ -102,7 +102,7 @@ func TestNodeToElement(t *testing.T) {
 			markup: "<box border=\"rounded\"><text>Content</text></box>",
 			check: func(e Element) bool {
 				box, ok := e.(*Box)
-				return ok && box.Border == "rounded" && box.Child != nil
+				return ok && box.border == "rounded" && box.child != nil
 			},
 		},
 	}

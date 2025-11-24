@@ -18,63 +18,63 @@ func getSize() (int, int) {
 
 func main() {
 	const tmpl = `
-<vstack gap="1">
-	<box border="double" border-style="fg:cyan; bold">
-		<text style="bold; fg:yellow">Styled pony Showcase</text>
+<vstack spacing="1">
+	<box border="double" border-color="cyan">
+		<text font-weight="bold" foreground-color="yellow">Styled pony Showcase</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">Color Examples:</text>
-		<text style="fg:red">Red text</text>
-		<text style="fg:green">Green text</text>
-		<text style="fg:blue">Blue text</text>
-		<text style="fg:cyan">Cyan text</text>
-		<text style="fg:magenta">Magenta text</text>
-		<text style="fg:yellow">Yellow text</text>
+	<vstack spacing="0">
+		<text font-weight="bold">Color Examples:</text>
+		<text foreground-color="red">Red text</text>
+		<text foreground-color="green">Green text</text>
+		<text foreground-color="blue">Blue text</text>
+		<text foreground-color="cyan">Cyan text</text>
+		<text foreground-color="magenta">Magenta text</text>
+		<text foreground-color="yellow">Yellow text</text>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">Hex Colors:</text>
-		<text style="fg:#FF5555">Bright Red (#FF5555)</text>
-		<text style="fg:#50FA7B">Bright Green (#50FA7B)</text>
-		<text style="fg:#8BE9FD">Bright Cyan (#8BE9FD)</text>
+	<vstack spacing="0">
+		<text font-weight="bold">Hex Colors:</text>
+		<text foreground-color="#FF5555">Bright Red (#FF5555)</text>
+		<text foreground-color="#50FA7B">Bright Green (#50FA7B)</text>
+		<text foreground-color="#8BE9FD">Bright Cyan (#8BE9FD)</text>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">Text Attributes:</text>
-		<text style="bold">Bold text</text>
-		<text style="italic">Italic text</text>
-		<text style="underline">Underlined text</text>
-		<text style="strikethrough">Strikethrough text</text>
-		<text style="bold; italic; fg:magenta">Combined: bold + italic + magenta</text>
+	<vstack spacing="0">
+		<text font-weight="bold">Text Attributes:</text>
+		<text font-weight="bold">Bold text</text>
+		<text font-style="italic">Italic text</text>
+		<text text-decoration="underline">Underlined text</text>
+		<text text-decoration="strikethrough">Strikethrough text</text>
+		<text font-weight="bold" font-style="italic" foreground-color="magenta">Combined: bold + italic + magenta</text>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">Background Colors:</text>
-		<text style="bg:red; fg:white">White on Red</text>
-		<text style="bg:green; fg:black">Black on Green</text>
-		<text style="bg:blue; fg:white">White on Blue</text>
+	<vstack spacing="0">
+		<text font-weight="bold">Background Colors:</text>
+		<text background-color="red" foreground-color="white">White on Red</text>
+		<text background-color="green" foreground-color="black">Black on Green</text>
+		<text background-color="blue" foreground-color="white">White on Blue</text>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<hstack gap="2">
-		<box border="normal" border-style="fg:red">
-			<text style="fg:red; bold">Red Box</text>
+	<hstack spacing="2">
+		<box border="normal" border-color="red">
+			<text foreground-color="red" font-weight="bold">Red Box</text>
 		</box>
-		<box border="rounded" border-style="fg:green">
-			<text style="fg:green; bold">Green Box</text>
+		<box border="rounded" border-color="green">
+			<text foreground-color="green" font-weight="bold">Green Box</text>
 		</box>
-		<box border="thick" border-style="fg:blue">
-			<text style="fg:blue; bold">Blue Box</text>
+		<box border="thick" border-color="blue">
+			<text foreground-color="blue" font-weight="bold">Blue Box</text>
 		</box>
 	</hstack>
 </vstack>

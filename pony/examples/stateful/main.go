@@ -46,19 +46,18 @@ func (i *Input) Render() pony.Element {
 	}
 
 	// Build UI using helpers
-	style := pony.NewStyle().Fg(pony.RGB(255, 255, 255)).Build()
+	textColor := pony.RGB(255, 255, 255)
 	borderColor := pony.Hex("#00FFFF")
 	if !i.focused {
 		borderColor = pony.RGB(128, 128, 128)
 	}
-	borderStyle := pony.NewStyle().Fg(borderColor).Build()
 
 	return pony.NewBox(
-		pony.NewText(displayText).WithStyle(style),
-	).WithBorder("rounded").
-		WithBorderStyle(borderStyle).
-		WithPadding(1).
-		WithWidth(pony.NewFixedConstraint(40))
+		pony.NewText(displayText).ForegroundColor(textColor),
+	).Border("rounded").
+		BorderColor(borderColor).
+		Padding(1).
+		Width(pony.NewFixedConstraint(40))
 }
 
 func (i *Input) Value() string   { return i.value }
@@ -66,28 +65,28 @@ func (i *Input) SetFocus(f bool) { i.focused = f }
 
 // Template
 const tmpl = `
-<vstack gap="1">
-	<box border="rounded" border-style="fg:yellow; bold" padding="1">
-		<text style="bold; fg:yellow" align="center">Stateful Components Demo</text>
+<vstack spacing="1">
+	<box border="rounded" border-color="yellow" padding="1">
+		<text font-weight="bold" foreground-color="yellow" alignment="center">Stateful Components Demo</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="1">
-		<text style="bold">Enter your name:</text>
+	<vstack spacing="1">
+		<text font-weight="bold">Enter your name:</text>
 		<slot name="input" />
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
 	<box padding="1">
-		<vstack gap="0">
-			<text style="bold">Live Value:</text>
-			<text style="fg:cyan">{{ .InputValue }}</text>
+		<vstack spacing="0">
+			<text font-weight="bold">Live Value:</text>
+			<text foreground-color="cyan">{{ .InputValue }}</text>
 		</vstack>
 	</box>
 
-	<text style="fg:gray; italic">Tab to focus, type to edit, Esc to quit</text>
+	<text font-style="italic" foreground-color="gray">Tab to focus, type to edit, Esc to quit</text>
 </vstack>
 `
 

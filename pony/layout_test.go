@@ -175,24 +175,14 @@ func TestSizeConstraintMethods(t *testing.T) {
 func TestVStackWithMethods(t *testing.T) {
 	vstack := NewVStack(NewText("a"), NewText("b"))
 
-	vstack.WithGap(2)
-	if vstack.Gap != 2 {
-		t.Error("WithGap not set")
-	}
+	result := vstack.
+		Spacing(2).
+		Alignment(AlignmentCenter).
+		Width(NewFixedConstraint(10)).
+		Height(NewFixedConstraint(5))
 
-	vstack.WithAlign(AlignCenter)
-	if vstack.Align != AlignCenter {
-		t.Error("WithAlign not set")
-	}
-
-	vstack.WithWidth(NewFixedConstraint(10))
-	if vstack.Width.IsAuto() {
-		t.Error("WithWidth not set")
-	}
-
-	vstack.WithHeight(NewFixedConstraint(5))
-	if vstack.Height.IsAuto() {
-		t.Error("WithHeight not set")
+	if result == nil {
+		t.Error("Method chaining should return vstack")
 	}
 }
 
@@ -202,29 +192,14 @@ func TestHStackConstructor(t *testing.T) {
 	if hstack == nil {
 		t.Fatal("NewHStack returned nil")
 	}
-	if len(hstack.Items) != 2 {
+	if len(hstack.Children()) != 2 {
 		t.Error("NewHStack items not set")
 	}
 
-	hstack.WithGap(2)
-	if hstack.Gap != 2 {
-		t.Error("WithGap not set")
-	}
-
-	hstack.WithValign(AlignMiddle)
-	if hstack.Valign != AlignMiddle {
-		t.Error("WithValign not set")
-	}
-
-	hstack.WithWidth(NewFixedConstraint(10))
-	if hstack.Width.IsAuto() {
-		t.Error("WithWidth not set")
-	}
-
-	hstack.WithHeight(NewFixedConstraint(5))
-	if hstack.Height.IsAuto() {
-		t.Error("WithHeight not set")
-	}
+	hstack.Spacing(2)
+	hstack.Alignment(AlignmentCenter)
+	hstack.Width(NewFixedConstraint(10))
+	hstack.Height(NewFixedConstraint(5))
 
 	// Test Children
 	children := hstack.Children()

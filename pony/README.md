@@ -14,9 +14,9 @@ type ViewData struct {
 }
 
 const tmpl = `
-<vstack gap="1">
-    <box border="rounded" border-style="fg:cyan; bold">
-        <text style="bold; fg:yellow">{{ .Title }}</text>
+<vstack spacing="1">
+    <box border="rounded" border-color="cyan">
+        <text font-weight="bold" foreground-color="yellow">{{ .Title }}</text>
     </box>
     <text>Count: {{ .Count }}</text>
 </vstack>
@@ -57,7 +57,7 @@ import (
 
 func main() {
     const tmpl = `
-    <vstack gap="1">
+    <vstack spacing="1">
         <box border="rounded">
             <text>Hello, World!</text>
         </box>
@@ -77,28 +77,28 @@ func main() {
 
 **VStack** - Vertical stack
 ```xml
-<vstack gap="1" align="center" width="50%" height="20">
+<vstack spacing="1" alignment="center" width="50%" height="20">
     <!-- children -->
 </vstack>
 ```
-Attributes: `gap`, `align` (left|center|right), `width`, `height`
+Attributes: `spacing`, `alignment` (leading|center|trailing), `width`, `height`
 
 **HStack** - Horizontal stack
 ```xml
-<hstack gap="2" valign="middle" width="100%">
+<hstack spacing="2" alignment="center" width="100%">
     <!-- children -->
 </hstack>
 ```
-Attributes: `gap`, `valign` (top|middle|bottom), `width`, `height`
+Attributes: `spacing`, `alignment` (top|center|bottom), `width`, `height`
 
 **ZStack** - Layered stack (overlays)
 ```xml
-<zstack align="center" valign="middle">
+<zstack alignment="center" vertical-alignment="center">
     <box border="rounded">Background</box>
-    <text style="bold">Overlay</text>
+    <text font-weight="bold">Overlay</text>
 </zstack>
 ```
-Attributes: `align` (left|center|right), `valign` (top|middle|bottom), `width`, `height`
+Attributes: `alignment` (leading|center|trailing), `vertical-alignment` (top|center|bottom), `width`, `height`
 
 Children are drawn on top of each other (later children on top).
 
@@ -106,11 +106,11 @@ Children are drawn on top of each other (later children on top).
 
 **Text**
 ```xml
-<text style="fg:cyan; bold" align="center" wrap="true">
+<text foreground-color="cyan" font-weight="bold" alignment="center" wrap="true">
     Content
 </text>
 ```
-Attributes: `style`, `align` (left|center|right), `wrap`
+Attributes: `foreground-color`, `background-color`, `font-weight` (bold), `font-style` (italic), `text-decoration` (underline|strikethrough), `alignment` (leading|center|trailing), `wrap`
 
 **Box** - Container (like a div)
 ```xml
@@ -119,7 +119,7 @@ Attributes: `style`, `align` (left|center|right), `wrap`
 </box>
 
 <!-- With border -->
-<box border="rounded" border-style="fg:cyan" padding="2">
+<box border="rounded" border-color="cyan" padding="2">
     <!-- child -->
 </box>
 
@@ -128,7 +128,7 @@ Attributes: `style`, `align` (left|center|right), `wrap`
     <!-- child -->
 </box>
 ```
-Attributes: `border`, `border-style`, `padding`, `margin`, `margin-top`, `margin-right`, `margin-bottom`, `margin-left`, `width`, `height`
+Attributes: `border`, `border-color`, `padding`, `margin`, `margin-top`, `margin-right`, `margin-bottom`, `margin-left`, `width`, `height`
 
 Border styles: `normal`, `rounded`, `thick`, `double`, `hidden`, `none` (default)
 
@@ -202,56 +202,48 @@ Positioned elements don't affect parent layout (out of flow).
 <badge text="NEW" style="fg:green; bold" />
 ```
 
-**Progress** - Progress bar
+**ProgressView** - Progress bar
 ```xml
-<progress value="75" max="100" width="40" style="fg:green" />
-```
-
-**Header** - Section header
-```xml
-<header text="Title" style="fg:cyan; bold" border="true" />
+<progressview value="75" max="100" width="40" style="fg:green" />
 ```
 
 **Button** - Clickable button
 ```xml
-<button id="submit-btn" text="Submit" border="rounded" padding="1" style="fg:green" />
+<button id="submit-btn" text="Submit" border="rounded" padding="1" />
 ```
-Attributes: `id`, `text`, `border`, `padding`, `style`, `width`, `height`
+Attributes: `id`, `text`, `border`, `padding`, `width`, `height`
 
 ## Styling
 
 ### In Markup
 
 ```xml
-<text style="fg:red; bg:black; bold; italic">Styled text</text>
+<text foreground-color="red" background-color="black" font-weight="bold" font-style="italic">Styled text</text>
 ```
 
+**Text Attributes:**
+- `foreground-color` - Text color (named, hex, rgb)
+- `background-color` - Background color  
+- `font-weight` - `bold` or omit for normal
+- `font-style` - `italic` or omit for normal
+- `text-decoration` - `underline` or `strikethrough`
+- `alignment` - `leading`, `center`, `trailing`
+
 **Colors:**
-- Named: `fg:red`, `bg:blue`
-- Hex: `fg:#FF5555`, `bg:#282a36`
-- RGB: `fg:rgb(255,85,85)`
-- ANSI: `fg:196`
+- Named: `red`, `blue`, `green`, `cyan`, `yellow`, `magenta`, `white`, `black`, `gray`
+- Hex: `#FF5555`, `#282a36`
+- RGB: `rgb(255,85,85)`
+- ANSI: `196`
 
-**Attributes:**
-`bold`, `italic`, `underline`, `strikethrough`, `faint`, `blink`, `reverse`
-
-**Underline styles:**
-`underline:single|double|curly|dotted|dashed`
-
-### In Code (Helpers)
+### In Code (Fluent API)
 
 ```go
-style := pony.NewStyle().
-    Fg(pony.Hex("#FF5555")).
-    Bg(pony.RGB(40, 42, 54)).
+text := pony.NewText("Hello").
+    ForegroundColor(pony.Hex("#FF5555")).
+    BackgroundColor(pony.RGB(40, 42, 54)).
     Bold().
     Italic().
-    Build()
-
-text := &pony.Text{
-    Content: "Hello",
-    Style:   style,
-}
+    Alignment(pony.AlignmentCenter)
 ```
 
 ## Layout
@@ -270,22 +262,22 @@ text := &pony.Text{
 
 **Text:**
 ```xml
-<text align="left|center|right">...</text>
+<text alignment="leading|center|trailing">...</text>
 ```
 
 **VStack children:**
 ```xml
-<vstack align="left|center|right">...</vstack>
+<vstack alignment="leading|center|trailing">...</vstack>
 ```
 
 **HStack children:**
 ```xml
-<hstack valign="top|middle|bottom">...</hstack>
+<hstack alignment="top|center|bottom">...</hstack>
 ```
 
 **ZStack children:**
 ```xml
-<zstack align="left|center|right" valign="top|middle|bottom">...</zstack>
+<zstack alignment="leading|center|trailing" vertical-alignment="top|center|bottom">...</zstack>
 ```
 
 ### Flexible Sizing
@@ -349,15 +341,13 @@ Built-in: `upper`, `lower`, `title`, `trim`, `join`, `printf`, `add`, `sub`, `mu
 ```go
 // Simple functional component
 pony.Register("card", func(props pony.Props, children []pony.Element) pony.Element {
-    titleStyle := pony.NewStyle().Bold().Build()
-
     return pony.NewBox(
         pony.NewVStack(
-            pony.NewText(props.Get("title")).WithStyle(titleStyle),
+            pony.NewText(props.Get("title")).Bold(),
             pony.NewDivider(),
             pony.NewVStack(children...),
         ),
-    ).WithBorder("rounded").WithPadding(1)
+    ).Border("rounded").Padding(1)
 })
 
 // Or create a custom type for more control
@@ -380,28 +370,28 @@ func (c *Card) Draw(scr uv.Screen, area uv.Rectangle) {
     c.SetBounds(area) // Track bounds for mouse interaction
 
     // Build composed structure
-    style := pony.NewStyle().Fg(pony.Hex("#00FFFF")).Bold().Build()
+    themeColor := pony.Hex("#00FFFF")
     card := pony.NewBox(
         pony.NewVStack(
-            pony.NewText(c.Title).WithStyle(style),
+            pony.NewText(c.Title).ForegroundColor(themeColor).Bold(),
             pony.NewDivider(),
             pony.NewVStack(c.Content...),
         ),
-    ).WithBorder("rounded").WithPadding(1)
+    ).Border("rounded").BorderColor(themeColor).Padding(1)
 
     card.Draw(scr, area)
 }
 
 func (c *Card) Layout(constraints pony.Constraints) pony.Size {
     // Delegate to composed structure
-    style := pony.NewStyle().Fg(pony.Hex("#00FFFF")).Bold().Build()
+    themeColor := pony.Hex("#00FFFF")
     card := pony.NewBox(
         pony.NewVStack(
-            pony.NewText(c.Title).WithStyle(style),
+            pony.NewText(c.Title).ForegroundColor(themeColor).Bold(),
             pony.NewDivider(),
             pony.NewVStack(c.Content...),
         ),
-    ).WithBorder("rounded").WithPadding(1)
+    ).Border("rounded").BorderColor(themeColor).Padding(1)
 
     return card.Layout(constraints)
 }
@@ -440,7 +430,7 @@ func (i *Input) Update(msg tea.Msg) {
 func (i *Input) Render() pony.Element {
     return pony.NewBox(
         pony.NewText(i.value),
-    ).WithBorder("rounded")
+    ).Border("rounded")
 }
 ```
 
@@ -579,7 +569,7 @@ btn.SetID("submit-btn")
 func (i *Input) Render() pony.Element {
     vstack := pony.NewVStack(
         pony.NewText(i.label),
-        pony.NewBox(pony.NewText(i.value)).WithBorder("rounded"),
+        pony.NewBox(pony.NewText(i.value)).Border("rounded"),
     )
 
     // Set the input's ID on the VStack so clicks return "my-input", not child IDs
@@ -736,45 +726,53 @@ pony.NewScrollView(child)
 
 ```go
 box := pony.NewBox(child).
-    WithBorder("rounded").
-    WithPadding(2).
-    WithMargin(1).
-    WithMarginTop(2).
-    WithWidth(pony.NewFixedConstraint(50)).
-    WithBorderStyle(style)
+    Border("rounded").
+    Padding(2).
+    Margin(1).
+    MarginTop(2).
+    Width(pony.NewFixedConstraint(50)).
+    BorderColor(pony.Hex("#00FFFF"))
 
 text := pony.NewText("Hello").
-    WithStyle(style).
-    WithAlign("center").
-    WithWrap(true)
+    ForegroundColor(pony.Hex("#FF5555")).
+    Bold().
+    Italic().
+    Alignment(pony.AlignmentCenter).
+    Wrap(true)
 
 button := pony.NewButton("Click Me").
-    WithBorder("rounded").
-    WithPadding(1).
-    WithStyle(style).
-    WithWidth(pony.NewFixedConstraint(20))
+    Border("rounded").
+    Padding(1).
+    Style(style).
+    Width(pony.NewFixedConstraint(20))
 button.SetID("my-button")
 
 flex := pony.NewFlex(child).
-    WithGrow(1).
-    WithShrink(0).
-    WithBasis(20)
+    Grow(1).
+    Shrink(0).
+    Basis(20)
 
 positioned := pony.NewPositioned(child, 10, 5).
-    WithRight(2).
-    WithBottom(1)
+    Right(2).
+    Bottom(1)
 ```
 
 ### Style Builder
 
+StyleBuilder is now deprecated. Use granular Text methods instead:
+
 ```go
-style := pony.NewStyle().
-    Fg(pony.Hex("#FF5555")).
-    Bg(pony.RGB(40, 42, 54)).
+// Old way (deprecated)
+style := pony.NewStyle().Fg(...).Bold().Build()
+text.Style(style)
+
+// New way (SwiftUI-style)
+text := pony.NewText("Hello").
+    ForegroundColor(pony.Hex("#FF5555")).
+    BackgroundColor(pony.RGB(40, 42, 54)).
     Bold().
     Italic().
-    Underline().
-    Build()
+    Underline()
 ```
 
 ### Component Registry
@@ -792,8 +790,8 @@ pony.RegisteredComponents()
 // Basic layouts
 pony.Panel(child, border, padding)
 pony.PanelWithMargin(child, border, padding, margin)
-pony.Card(title, titleStyle, borderStyle, children...)
-pony.Section(header, headerStyle, children...)
+pony.Card(title, titleColor, borderColor, children...)
+pony.Section(header, headerColor, children...)
 pony.Separated(children...)
 
 // Advanced layouts

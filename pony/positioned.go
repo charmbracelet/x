@@ -6,13 +6,13 @@ import uv "github.com/charmbracelet/ultraviolet"
 // The element is positioned at specific coordinates relative to its parent.
 type Positioned struct {
 	BaseElement
-	Child  Element
-	X      int // X position (cells from left)
-	Y      int // Y position (cells from top)
-	Right  int // Distance from right edge (if >= 0, overrides X)
-	Bottom int // Distance from bottom edge (if >= 0, overrides Y)
-	Width  SizeConstraint
-	Height SizeConstraint
+	child  Element
+	x      int // X position (cells from left)
+	y      int // Y position (cells from top)
+	right  int // Distance from right edge (if >= 0, overrides X)
+	bottom int // Distance from bottom edge (if >= 0, overrides Y)
+	width  SizeConstraint
+	height SizeConstraint
 }
 
 var _ Element = (*Positioned)(nil)
@@ -20,37 +20,37 @@ var _ Element = (*Positioned)(nil)
 // NewPositioned creates a new absolutely positioned element.
 func NewPositioned(child Element, x, y int) *Positioned {
 	return &Positioned{
-		Child:  child,
-		X:      x,
-		Y:      y,
-		Right:  -1,
-		Bottom: -1,
+		child:  child,
+		x:      x,
+		y:      y,
+		right:  -1,
+		bottom: -1,
 	}
 }
 
-// WithRight sets the right edge distance and returns the positioned element for chaining.
+// Right sets the right edge distance and returns the positioned element for chaining.
 // When set (>= 0), this overrides the X position.
-func (p *Positioned) WithRight(right int) *Positioned {
-	p.Right = right
+func (p *Positioned) Right(right int) *Positioned {
+	p.right = right
 	return p
 }
 
-// WithBottom sets the bottom edge distance and returns the positioned element for chaining.
+// Bottom sets the bottom edge distance and returns the positioned element for chaining.
 // When set (>= 0), this overrides the Y position.
-func (p *Positioned) WithBottom(bottom int) *Positioned {
-	p.Bottom = bottom
+func (p *Positioned) Bottom(bottom int) *Positioned {
+	p.bottom = bottom
 	return p
 }
 
-// WithWidth sets the width constraint and returns the positioned element for chaining.
-func (p *Positioned) WithWidth(width SizeConstraint) *Positioned {
-	p.Width = width
+// Width sets the width constraint and returns the positioned element for chaining.
+func (p *Positioned) Width(width SizeConstraint) *Positioned {
+	p.width = width
 	return p
 }
 
-// WithHeight sets the height constraint and returns the positioned element for chaining.
-func (p *Positioned) WithHeight(height SizeConstraint) *Positioned {
-	p.Height = height
+// Height sets the height constraint and returns the positioned element for chaining.
+func (p *Positioned) Height(height SizeConstraint) *Positioned {
+	p.height = height
 	return p
 }
 
@@ -58,7 +58,7 @@ func (p *Positioned) WithHeight(height SizeConstraint) *Positioned {
 func (p *Positioned) Draw(scr uv.Screen, area uv.Rectangle) {
 	p.SetBounds(area)
 
-	if p.Child == nil {
+	if p.child == nil {
 		return
 	}
 
@@ -71,53 +71,53 @@ func (p *Positioned) Draw(scr uv.Screen, area uv.Rectangle) {
 	}
 
 	// Apply width/height constraints if specified
-	if !p.Width.IsAuto() {
-		width := p.Width.Apply(area.Dx(), area.Dx())
+	if !p.width.IsAuto() {
+		width := p.width.Apply(area.Dx(), area.Dx())
 		constraints.MinWidth = width
 		constraints.MaxWidth = width
 	}
 
-	if !p.Height.IsAuto() {
-		height := p.Height.Apply(area.Dy(), area.Dy())
+	if !p.height.IsAuto() {
+		height := p.height.Apply(area.Dy(), area.Dy())
 		constraints.MinHeight = height
 		constraints.MaxHeight = height
 	}
 
-	childSize := p.Child.Layout(constraints)
+	childSize := p.child.Layout(constraints)
 
 	// Calculate position based on positioning constraints
 	var childArea uv.Rectangle
 
 	// Handle right/bottom positioning using UV layout helpers
-	if p.Right >= 0 && p.Bottom >= 0 {
+	if p.right >= 0 && p.bottom >= 0 {
 		// Both right and bottom are set - position from bottom-right corner
-		childArea = uv.BottomRightRect(area, childSize.Width+p.Right, childSize.Height+p.Bottom)
+		childArea = uv.BottomRightRect(area, childSize.Width+p.right, childSize.Height+p.bottom)
 		// Adjust for the offset
-		childArea.Min.X = childArea.Max.X - childSize.Width - p.Right
-		childArea.Max.X = childArea.Max.X - p.Right
-		childArea.Min.Y = childArea.Max.Y - childSize.Height - p.Bottom
-		childArea.Max.Y = childArea.Max.Y - p.Bottom
-	} else if p.Right >= 0 {
+		childArea.Min.X = childArea.Max.X - childSize.Width - p.right
+		childArea.Max.X = childArea.Max.X - p.right
+		childArea.Min.Y = childArea.Max.Y - childSize.Height - p.bottom
+		childArea.Max.Y = childArea.Max.Y - p.bottom
+	} else if p.right >= 0 {
 		// Right is set - position from right edge
-		x := area.Max.X - p.Right - childSize.Width
-		y := area.Min.Y + p.Y
+		x := area.Max.X - p.right - childSize.Width
+		y := area.Min.Y + p.y
 		childArea = uv.Rect(x, y, childSize.Width, childSize.Height)
-	} else if p.Bottom >= 0 {
+	} else if p.bottom >= 0 {
 		// Bottom is set - position from bottom edge
-		x := area.Min.X + p.X
-		y := area.Max.Y - p.Bottom - childSize.Height
+		x := area.Min.X + p.x
+		y := area.Max.Y - p.bottom - childSize.Height
 		childArea = uv.Rect(x, y, childSize.Width, childSize.Height)
 	} else {
 		// Standard X/Y positioning from top-left
-		x := area.Min.X + p.X
-		y := area.Min.Y + p.Y
+		x := area.Min.X + p.x
+		y := area.Min.Y + p.y
 		childArea = uv.Rect(x, y, childSize.Width, childSize.Height)
 	}
 
 	// Ensure the area is within parent bounds
 	childArea = childArea.Intersect(area)
 
-	p.Child.Draw(scr, childArea)
+	p.child.Draw(scr, childArea)
 }
 
 // Layout calculates the positioned element size.
@@ -129,8 +129,8 @@ func (p *Positioned) Layout(_ Constraints) Size {
 
 // Children returns the child element.
 func (p *Positioned) Children() []Element {
-	if p.Child == nil {
+	if p.child == nil {
 		return nil
 	}
-	return []Element{p.Child}
+	return []Element{p.child}
 }

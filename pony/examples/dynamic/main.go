@@ -28,41 +28,41 @@ type AppData struct {
 
 func main() {
 	const tmpl = `
-<vstack gap="1">
-	<box border="double" border-style="fg:cyan; bold">
-		<text style="bold; fg:yellow">{{ upper .Title }}</text>
+<vstack spacing="1">
+	<box border="double" border-color="cyan">
+		<text font-weight="bold" foreground-color="yellow">{{ upper .Title }}</text>
 	</box>
 
-	<hstack gap="2">
-		<box border="rounded" border-style="fg:green">
+	<hstack spacing="2">
+		<box border="rounded" border-color="green">
 			<vstack>
-				<text style="bold">User Info:</text>
+				<text font-weight="bold">User Info:</text>
 				<text>Name: {{ .Username }}</text>
 				<text>Messages: {{ .Count }}</text>
 				<text>Time: {{ .Time }}</text>
 			</vstack>
 		</box>
 
-		<box border="rounded" border-style="fg:blue">
+		<box border="rounded" border-color="blue">
 			<vstack>
-				<text style="bold; fg:blue">Recent Messages:</text>
+				<text font-weight="bold" foreground-color="blue">Recent Messages:</text>
 				{{ range .Messages }}
-				<text style="fg:cyan">• {{ . }}</text>
+				<text foreground-color="cyan">• {{ . }}</text>
 				{{ end }}
 			</vstack>
 		</box>
 	</hstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
 	{{ if eq .Status "online" }}
-	<text style="fg:green; bold">Status: ● Online</text>
+	<text font-weight="bold" foreground-color="green">Status: ● Online</text>
 	{{ else }}
-	<text style="fg:red; bold">Status: ○ Offline</text>
+	<text font-weight="bold" foreground-color="red">Status: ○ Offline</text>
 	{{ end }}
 
-	<box border="normal" border-style="fg:magenta">
-		<text style="italic">{{ printf "Generated at %s with pony" .Time }}</text>
+	<box border="normal" border-color="magenta">
+		<text font-style="italic">{{ printf "Generated at %s with pony" .Time }}</text>
 	</box>
 </vstack>
 `

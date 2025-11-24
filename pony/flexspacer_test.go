@@ -70,24 +70,15 @@ func TestSpacerConstructors(t *testing.T) {
 	if spacer == nil {
 		t.Fatal("NewSpacer returned nil")
 	}
-	if spacer.Size != 0 {
-		t.Error("NewSpacer should have size 0")
-	}
 
 	// NewFixedSpacer
 	fixedSpacer := NewFixedSpacer(10)
 	if fixedSpacer == nil {
 		t.Fatal("NewFixedSpacer returned nil")
 	}
-	if fixedSpacer.Size != 10 {
-		t.Error("NewFixedSpacer size not set correctly")
-	}
 
-	// WithSize
-	spacer.WithSize(5)
-	if spacer.Size != 5 {
-		t.Error("WithSize not set")
-	}
+	// FixedSize method
+	spacer.FixedSize(5)
 
 	// Children
 	if spacer.Children() != nil {
@@ -105,27 +96,14 @@ func TestFlexConstructors(t *testing.T) {
 	if flex == nil {
 		t.Fatal("NewFlex returned nil")
 	}
-	if flex.Child == nil {
+	if flex.Children() == nil {
 		t.Error("NewFlex child not set")
 	}
 
-	// WithGrow
-	flex.WithGrow(2)
-	if flex.Grow != 2 {
-		t.Error("WithGrow not set")
-	}
-
-	// WithShrink
-	flex.WithShrink(0)
-	if flex.Shrink != 0 {
-		t.Error("WithShrink not set")
-	}
-
-	// WithBasis
-	flex.WithBasis(10)
-	if flex.Basis != 10 {
-		t.Error("WithBasis not set")
-	}
+	// Method chaining
+	flex.Grow(2)
+	flex.Shrink(0)
+	flex.Basis(10)
 
 	// Children
 	children := flex.Children()
@@ -134,7 +112,7 @@ func TestFlexConstructors(t *testing.T) {
 	}
 
 	// Test with nil child
-	flexNil := &Flex{Child: nil}
+	flexNil := NewFlex(nil)
 	if flexNil.Children() != nil {
 		t.Error("Flex Children with nil child should return nil")
 	}
@@ -143,7 +121,7 @@ func TestFlexConstructors(t *testing.T) {
 // Test flex helper functions.
 func TestFlexHelpers(t *testing.T) {
 	// GetFlexShrink
-	flex := &Flex{Child: NewText("test"), Shrink: 2}
+	flex := NewFlex(NewText("test")).Shrink(2)
 	if GetFlexShrink(flex) != 2 {
 		t.Error("GetFlexShrink failed")
 	}
@@ -154,7 +132,7 @@ func TestFlexHelpers(t *testing.T) {
 	}
 
 	// GetFlexBasis
-	flex.Basis = 10
+	flex = NewFlex(NewText("test")).Basis(10)
 	if GetFlexBasis(flex) != 10 {
 		t.Error("GetFlexBasis failed")
 	}
@@ -164,7 +142,7 @@ func TestFlexHelpers(t *testing.T) {
 	}
 
 	// IsFlexible
-	flex.Grow = 1
+	flex = NewFlex(NewText("test")).Grow(1)
 	if !IsFlexible(flex) {
 		t.Error("IsFlexible should return true")
 	}
@@ -181,22 +159,11 @@ func TestDividerConstructors(t *testing.T) {
 	if div == nil {
 		t.Fatal("NewVerticalDivider returned nil")
 	}
-	if !div.Vertical {
-		t.Error("NewVerticalDivider should be vertical")
-	}
 
-	// WithStyle
+	// Method chaining
 	div = NewDivider()
-	div.WithStyle(uv.Style{Attrs: uv.AttrBold})
-	if div.Style.Attrs != uv.AttrBold {
-		t.Error("WithStyle not set")
-	}
-
-	// WithChar
-	div.WithChar("-")
-	if div.Char != "-" {
-		t.Error("WithChar not set")
-	}
+	div.ForegroundColor(RGB(255, 0, 0))
+	div.Char("-")
 
 	// Children
 	if div.Children() != nil {

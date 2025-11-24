@@ -18,14 +18,14 @@ func getSize() (int, int) {
 
 func main() {
 	const tmpl = `
-<vstack gap="1">
+<vstack spacing="1">
 	<box border="double">
 		<text>pony Layout Showcase</text>
 	</box>
 
 	<divider />
 
-	<vstack gap="0">
+	<vstack spacing="0">
 		<text>Vertical Stack Demo:</text>
 		<box border="normal">
 			<text>Item 1</text>
@@ -40,9 +40,9 @@ func main() {
 
 	<divider />
 
-	<vstack gap="0">
+	<vstack spacing="0">
 		<text>Horizontal Stack Demo:</text>
-		<hstack gap="2">
+		<hstack spacing="2">
 			<box border="rounded">
 				<text>Left Box</text>
 			</box>
@@ -57,9 +57,9 @@ func main() {
 
 	<divider />
 
-	<vstack gap="0">
+	<vstack spacing="0">
 		<text>Width/Height Attributes Demo:</text>
-		<hstack gap="1">
+		<hstack spacing="1">
 			<box border="normal" width="30%">
 				<text>30% width</text>
 			</box>
@@ -71,9 +71,9 @@ func main() {
 
 	<divider />
 
-	<vstack gap="0">
+	<vstack spacing="0">
 		<text>Fixed Size Demo:</text>
-		<hstack gap="1">
+		<hstack spacing="1">
 			<box border="normal" width="20">
 				<text>Fixed 20</text>
 			</box>
@@ -85,11 +85,11 @@ func main() {
 
 	<divider />
 
-	<vstack gap="0">
+	<vstack spacing="0">
 		<text>Nested Layout Demo:</text>
 		<box border="thick">
-			<vstack gap="1">
-				<hstack gap="1">
+			<vstack spacing="1">
+				<hstack spacing="1">
 					<box border="normal">
 						<text>A</text>
 					</box>
@@ -97,7 +97,7 @@ func main() {
 						<text>B</text>
 					</box>
 				</hstack>
-				<hstack gap="1">
+				<hstack spacing="1">
 					<box border="normal">
 						<text>C</text>
 					</box>
@@ -112,7 +112,7 @@ func main() {
 	<divider />
 
 	<text>Border Styles:</text>
-	<hstack gap="1">
+	<hstack spacing="1">
 		<box border="normal">
 			<text>Normal</text>
 		</box>

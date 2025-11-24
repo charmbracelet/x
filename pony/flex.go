@@ -6,10 +6,10 @@ import uv "github.com/charmbracelet/ultraviolet"
 // Use this to make elements flexible within VStack or HStack.
 type Flex struct {
 	BaseElement
-	Child  Element
-	Grow   int // flex-grow: how much to grow relative to siblings (default 0 = no grow)
-	Shrink int // flex-shrink: how much to shrink relative to siblings (default 1)
-	Basis  int // flex-basis: initial size before flex calculation (default 0 = auto)
+	child  Element
+	grow   int // flex-grow: how much to grow relative to siblings (default 0 = no grow)
+	shrink int // flex-shrink: how much to shrink relative to siblings (default 1)
+	basis  int // flex-basis: initial size before flex calculation (default 0 = auto)
 }
 
 var _ Element = (*Flex)(nil)
@@ -17,28 +17,28 @@ var _ Element = (*Flex)(nil)
 // NewFlex creates a new flex wrapper.
 func NewFlex(child Element) *Flex {
 	return &Flex{
-		Child:  child,
-		Grow:   0,
-		Shrink: 1,
-		Basis:  0,
+		child:  child,
+		grow:   0,
+		shrink: 1,
+		basis:  0,
 	}
 }
 
-// WithGrow sets the flex-grow and returns the flex for chaining.
-func (f *Flex) WithGrow(grow int) *Flex {
-	f.Grow = grow
+// Grow sets the flex-grow and returns the flex for chaining.
+func (f *Flex) Grow(grow int) *Flex {
+	f.grow = grow
 	return f
 }
 
-// WithShrink sets the flex-shrink and returns the flex for chaining.
-func (f *Flex) WithShrink(shrink int) *Flex {
-	f.Shrink = shrink
+// Shrink sets the flex-shrink and returns the flex for chaining.
+func (f *Flex) Shrink(shrink int) *Flex {
+	f.shrink = shrink
 	return f
 }
 
-// WithBasis sets the flex-basis and returns the flex for chaining.
-func (f *Flex) WithBasis(basis int) *Flex {
-	f.Basis = basis
+// Basis sets the flex-basis and returns the flex for chaining.
+func (f *Flex) Basis(basis int) *Flex {
+	f.basis = basis
 	return f
 }
 
@@ -46,45 +46,45 @@ func (f *Flex) WithBasis(basis int) *Flex {
 func (f *Flex) Draw(scr uv.Screen, area uv.Rectangle) {
 	f.SetBounds(area)
 
-	if f.Child != nil {
-		f.Child.Draw(scr, area)
+	if f.child != nil {
+		f.child.Draw(scr, area)
 	}
 }
 
 // Layout calculates the flex child size.
 func (f *Flex) Layout(constraints Constraints) Size {
-	if f.Child == nil {
+	if f.child == nil {
 		return Size{Width: 0, Height: 0}
 	}
 
 	// If basis is set, use it as the initial size
-	if f.Basis > 0 {
+	if f.basis > 0 {
 		// Create constraints with basis as preferred size
 		flexConstraints := constraints
-		flexConstraints.MinWidth = min(f.Basis, constraints.MaxWidth)
-		flexConstraints.MinHeight = min(f.Basis, constraints.MaxHeight)
-		return f.Child.Layout(flexConstraints)
+		flexConstraints.MinWidth = min(f.basis, constraints.MaxWidth)
+		flexConstraints.MinHeight = min(f.basis, constraints.MaxHeight)
+		return f.child.Layout(flexConstraints)
 	}
 
-	return f.Child.Layout(constraints)
+	return f.child.Layout(constraints)
 }
 
 // Children returns the child element.
 func (f *Flex) Children() []Element {
-	if f.Child == nil {
+	if f.child == nil {
 		return nil
 	}
-	return []Element{f.Child}
+	return []Element{f.child}
 }
 
 // GetFlexGrow returns the flex-grow value for an element.
 // Returns 0 if the element is not a Flex wrapper.
 func GetFlexGrow(elem Element) int {
 	if flex, ok := elem.(*Flex); ok {
-		return flex.Grow
+		return flex.grow
 	}
 	// Check if it's a flexible spacer
-	if spacer, ok := elem.(*Spacer); ok && spacer.Size == 0 {
+	if spacer, ok := elem.(*Spacer); ok && spacer.fixedSize == 0 {
 		return 1
 	}
 	return 0
@@ -94,7 +94,7 @@ func GetFlexGrow(elem Element) int {
 // Returns 1 if the element is not a Flex wrapper.
 func GetFlexShrink(elem Element) int {
 	if flex, ok := elem.(*Flex); ok {
-		return flex.Shrink
+		return flex.shrink
 	}
 	return 1
 }
@@ -103,7 +103,7 @@ func GetFlexShrink(elem Element) int {
 // Returns 0 (auto) if the element is not a Flex wrapper.
 func GetFlexBasis(elem Element) int {
 	if flex, ok := elem.(*Flex); ok {
-		return flex.Basis
+		return flex.basis
 	}
 	return 0
 }

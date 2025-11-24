@@ -1,15 +1,17 @@
 package pony
 
 import (
+	"image/color"
+
 	uv "github.com/charmbracelet/ultraviolet"
 )
 
 // Divider represents a horizontal or vertical line.
 type Divider struct {
 	BaseElement
-	Vertical bool
-	Char     string
-	Style    uv.Style
+	vertical bool
+	char     string
+	color    color.Color
 }
 
 var _ Element = (*Divider)(nil)
@@ -21,18 +23,18 @@ func NewDivider() *Divider {
 
 // NewVerticalDivider creates a new vertical divider.
 func NewVerticalDivider() *Divider {
-	return &Divider{Vertical: true}
+	return &Divider{vertical: true}
 }
 
-// WithStyle sets the style and returns the divider for chaining.
-func (d *Divider) WithStyle(style uv.Style) *Divider {
-	d.Style = style
+// ForegroundColor sets the color and returns the divider for chaining.
+func (d *Divider) ForegroundColor(c color.Color) *Divider {
+	d.color = c
 	return d
 }
 
-// WithChar sets the character and returns the divider for chaining.
-func (d *Divider) WithChar(char string) *Divider {
-	d.Char = char
+// Char sets the character and returns the divider for chaining.
+func (d *Divider) Char(char string) *Divider {
+	d.char = char
 	return d
 }
 
@@ -40,9 +42,9 @@ func (d *Divider) WithChar(char string) *Divider {
 func (d *Divider) Draw(scr uv.Screen, area uv.Rectangle) {
 	d.SetBounds(area)
 
-	char := d.Char
+	char := d.char
 	if char == "" {
-		if d.Vertical {
+		if d.vertical {
 			char = "│"
 		} else {
 			char = "─"
@@ -50,11 +52,11 @@ func (d *Divider) Draw(scr uv.Screen, area uv.Rectangle) {
 	}
 
 	cell := uv.NewCell(scr.WidthMethod(), char)
-	if cell != nil {
-		cell.Style = d.Style
+	if cell != nil && d.color != nil {
+		cell.Style = uv.Style{Fg: d.color}
 	}
 
-	if d.Vertical {
+	if d.vertical {
 		for y := area.Min.Y; y < area.Max.Y; y++ {
 			scr.SetCell(area.Min.X, y, cell)
 		}
@@ -67,7 +69,7 @@ func (d *Divider) Draw(scr uv.Screen, area uv.Rectangle) {
 
 // Layout calculates the divider size.
 func (d *Divider) Layout(constraints Constraints) Size {
-	if d.Vertical {
+	if d.vertical {
 		return Size{Width: 1, Height: constraints.MaxHeight}
 	}
 	return Size{Width: constraints.MaxWidth, Height: 1}

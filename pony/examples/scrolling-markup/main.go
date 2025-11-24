@@ -25,19 +25,17 @@ func (l *ListItem) Render() pony.Element {
 	text := pony.NewText(l.Text)
 
 	if l.Selected {
-		if style, err := pony.ParseStyle("bg:blue; fg:white; bold"); err == nil {
-			text.Style = style
-		}
+		text = text.BackgroundColor(pony.RGB(0, 0, 255)).
+			ForegroundColor(pony.RGB(255, 255, 255)).
+			Bold()
 	}
 
 	box := pony.NewBox(text).
-		WithPadding(1).
-		WithBorder("rounded")
+		Padding(1).
+		Border("rounded")
 
 	if l.Selected {
-		if style, err := pony.ParseStyle("fg:blue; bold"); err == nil {
-			box.BorderStyle = style
-		}
+		box = box.BorderColor(pony.RGB(0, 0, 255))
 	}
 
 	// Pass through ID
@@ -73,26 +71,26 @@ func init() {
 
 // Template with mostly markup
 const tmpl = `
-<vstack gap="1">
+<vstack spacing="1">
 	<!-- Header -->
-	<box border="double" border-style="fg:cyan; bold" padding="1">
-		<text style="bold; fg:yellow" align="center">Scroll View with Clickable Items (Markup Demo)</text>
+	<box border="double" border-color="cyan" padding="1">
+		<text font-weight="bold" foreground-color="yellow" alignment="center">Scroll View with Clickable Items (Markup Demo)</text>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
 	<!-- Info display -->
-	<vstack gap="0">
-		<text style="bold">Selected: {{ .SelectedItem }}</text>
-		<text style="fg:gray; italic" width="80">{{ .HitInfo }}</text>
+	<vstack spacing="0">
+		<text font-weight="bold">Selected: {{ .SelectedItem }}</text>
+		<text font-style="italic" foreground-color="gray" width="80">{{ .HitInfo }}</text>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
 	<!-- Scroll view with items (entirely in markup!) -->
-	<box border="rounded" border-style="fg:green">
+	<box border="rounded" border-color="green">
 		<scrollview id="main-scroll-view" height="12" offset-y="{{ .ScrollOffset }}">
-			<vstack gap="0">
+			<vstack spacing="0">
 				{{ range .Items }}
 				<listitem id="item-{{ .ID }}" text="{{ .Text }}" selected="{{ .Selected }}" />
 				{{ end }}
@@ -100,10 +98,10 @@ const tmpl = `
 		</scrollview>
 	</box>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
 	<!-- Instructions -->
-	<text style="fg:gray; italic">Click items to select • Mouse wheel to scroll • q to quit</text>
+	<text font-style="italic" foreground-color="gray">Click items to select • Mouse wheel to scroll • q to quit</text>
 </vstack>
 `
 

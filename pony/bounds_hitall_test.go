@@ -11,7 +11,7 @@ func TestHitTestAll(t *testing.T) {
 	// This simulates a scroll view with clickable list items
 
 	tmpl := `
-<vstack gap="1">
+<vstack spacing="1">
 	<slot name="scrollview" />
 </vstack>
 `
@@ -94,7 +94,7 @@ func TestHitTestAll(t *testing.T) {
 func TestHitTestWithContainer(t *testing.T) {
 	// Similar setup as above
 	tmpl := `
-<vstack gap="1">
+<vstack spacing="1">
 	<slot name="scrollview" />
 </vstack>
 `

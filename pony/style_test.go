@@ -4,147 +4,8 @@ import (
 	"image/color"
 	"testing"
 
-	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/exp/golden"
 )
-
-func TestParseStyle(t *testing.T) {
-	tests := []struct {
-		name      string
-		input     string
-		wantErr   bool
-		checkFunc func(uv.Style) bool
-	}{
-		{
-			name:    "empty style",
-			input:   "",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.IsZero()
-			},
-		},
-		{
-			name:    "bold attribute",
-			input:   "bold",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.Attrs&uv.AttrBold != 0
-			},
-		},
-		{
-			name:    "italic attribute",
-			input:   "italic",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.Attrs&uv.AttrItalic != 0
-			},
-		},
-		{
-			name:    "multiple attributes",
-			input:   "bold; italic",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.Attrs&uv.AttrBold != 0 && s.Attrs&uv.AttrItalic != 0
-			},
-		},
-		{
-			name:    "foreground named color",
-			input:   "fg:red",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.Fg != nil
-			},
-		},
-		{
-			name:    "background named color",
-			input:   "bg:blue",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.Bg != nil
-			},
-		},
-		{
-			name:    "foreground hex color",
-			input:   "fg:#FF0000",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				if s.Fg == nil {
-					return false
-				}
-				r, g, b, _ := s.Fg.RGBA()
-				// Check if it's red (allowing for color conversion)
-				return r > g && r > b
-			},
-		},
-		{
-			name:    "combined style",
-			input:   "fg:cyan; bg:black; bold; italic",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.Fg != nil && s.Bg != nil &&
-					s.Attrs&uv.AttrBold != 0 &&
-					s.Attrs&uv.AttrItalic != 0
-			},
-		},
-		{
-			name:    "underline single",
-			input:   "underline:single",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.Underline == uv.UnderlineSingle
-			},
-		},
-		{
-			name:    "underline curly",
-			input:   "underline:curly",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.Underline == uv.UnderlineCurly
-			},
-		},
-		{
-			name:    "underline as attribute",
-			input:   "underline",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.Underline == uv.UnderlineSingle
-			},
-		},
-		{
-			name:    "strikethrough",
-			input:   "strikethrough",
-			wantErr: false,
-			checkFunc: func(s uv.Style) bool {
-				return s.Attrs&uv.AttrStrikethrough != 0
-			},
-		},
-		{
-			name:    "invalid property",
-			input:   "invalid:value",
-			wantErr: true,
-		},
-		{
-			name:    "invalid color",
-			input:   "fg:notacolor",
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			style, err := ParseStyle(tt.input)
-
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ParseStyle() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-
-			if !tt.wantErr && tt.checkFunc != nil && !tt.checkFunc(style) {
-				t.Errorf("ParseStyle() style check failed for input %q", tt.input)
-			}
-		})
-	}
-}
 
 func TestParseColor(t *testing.T) {
 	tests := []struct {
@@ -239,7 +100,7 @@ func TestParseColor(t *testing.T) {
 }
 
 func TestRenderWithStyle(t *testing.T) {
-	const markup = `<text style="bold; fg:red">Styled Text</text>`
+	const markup = `<text font-weight="bold" foreground-color="red">Styled Text</text>`
 
 	tmpl, err := Parse[any](markup)
 	if err != nil {
@@ -251,7 +112,7 @@ func TestRenderWithStyle(t *testing.T) {
 }
 
 func TestRenderBoxWithBorderStyle(t *testing.T) {
-	const markup = `<box border="rounded" border-style="fg:cyan"><text>Content</text></box>`
+	const markup = `<box border="rounded" border-color="cyan"><text>Content</text></box>`
 
 	tmpl, err := Parse[any](markup)
 	if err != nil {
@@ -260,35 +121,6 @@ func TestRenderBoxWithBorderStyle(t *testing.T) {
 
 	output := tmpl.Render(nil, 80, 24)
 	golden.RequireEqual(t, output)
-}
-
-// Test additional style attributes.
-func TestStyleAttributesCoverage(t *testing.T) {
-	tests := []struct {
-		input     string
-		checkFunc func(uv.Style) bool
-	}{
-		{"faint", func(s uv.Style) bool { return s.Attrs&uv.AttrFaint != 0 }},
-		{"dim", func(s uv.Style) bool { return s.Attrs&uv.AttrFaint != 0 }},
-		{"rapid-blink", func(s uv.Style) bool { return s.Attrs&uv.AttrRapidBlink != 0 }},
-		{"invert", func(s uv.Style) bool { return s.Attrs&uv.AttrReverse != 0 }},
-		{"conceal", func(s uv.Style) bool { return s.Attrs&uv.AttrConceal != 0 }},
-		{"hidden", func(s uv.Style) bool { return s.Attrs&uv.AttrConceal != 0 }},
-		{"strike", func(s uv.Style) bool { return s.Attrs&uv.AttrStrikethrough != 0 }},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			style, err := ParseStyle(tt.input)
-			if err != nil {
-				t.Errorf("ParseStyle(%q) error = %v", tt.input, err)
-				return
-			}
-			if !tt.checkFunc(style) {
-				t.Errorf("ParseStyle(%q) check failed", tt.input)
-			}
-		})
-	}
 }
 
 // Test named colors coverage.

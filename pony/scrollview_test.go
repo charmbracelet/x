@@ -29,7 +29,7 @@ func TestScrollViewWithOffset(t *testing.T) {
 			NewText("Line 4"),
 			NewText("Line 5"),
 		),
-	).WithHeight(NewFixedConstraint(3)).WithOffset(0, 2)
+	).Height(NewFixedConstraint(3)).Offset(0, 2)
 
 	// With offset 2, should start from line 3
 	// The viewport itself should be 3 lines tall
@@ -63,30 +63,30 @@ func TestScrollViewContentSize(t *testing.T) {
 
 func TestScrollMethods(t *testing.T) {
 	scroll := NewScrollView(NewText("Content")).
-		WithHeight(NewFixedConstraint(10))
+		Height(NewFixedConstraint(10))
 
 	// Test scroll down
 	scroll.ScrollDown(5, 100, 10)
-	if scroll.OffsetY != 5 {
-		t.Errorf("ScrollDown: OffsetY = %d, want 5", scroll.OffsetY)
+	if scroll.offsetY != 5 {
+		t.Errorf("ScrollDown: OffsetY = %d, want 5", scroll.offsetY)
 	}
 
 	// Test scroll up
 	scroll.ScrollUp(2)
-	if scroll.OffsetY != 3 {
-		t.Errorf("ScrollUp: OffsetY = %d, want 3", scroll.OffsetY)
+	if scroll.offsetY != 3 {
+		t.Errorf("ScrollUp: OffsetY = %d, want 3", scroll.offsetY)
 	}
 
 	// Test scroll bounds
 	scroll.ScrollDown(1000, 100, 10)
-	if scroll.OffsetY > 90 {
-		t.Errorf("ScrollDown should limit to maxOffset = %d, got %d", 90, scroll.OffsetY)
+	if scroll.offsetY > 90 {
+		t.Errorf("ScrollDown should limit to maxOffset = %d, got %d", 90, scroll.offsetY)
 	}
 
 	// Test scroll up to 0
 	scroll.ScrollUp(1000)
-	if scroll.OffsetY != 0 {
-		t.Errorf("ScrollUp should limit to 0, got %d", scroll.OffsetY)
+	if scroll.offsetY != 0 {
+		t.Errorf("ScrollUp should limit to 0, got %d", scroll.offsetY)
 	}
 }
 
@@ -127,8 +127,8 @@ func TestScrollViewWithSlot(t *testing.T) {
 	}
 
 	scroll := NewScrollView(NewVStack(lines...)).
-		WithHeight(NewFixedConstraint(10)).
-		WithOffset(0, 5)
+		Height(NewFixedConstraint(10)).
+		Offset(0, 5)
 
 	tmpl, err := Parse[any](markup)
 	if err != nil {
@@ -147,25 +147,10 @@ func TestScrollViewWithSlot(t *testing.T) {
 func TestScrollViewWithMethods(t *testing.T) {
 	scroll := NewScrollView(NewText("test"))
 
-	scroll.WithVertical(false)
-	if scroll.Vertical {
-		t.Error("WithVertical not set")
-	}
-
-	scroll.WithHorizontal(true)
-	if !scroll.Horizontal {
-		t.Error("WithHorizontal not set")
-	}
-
-	scroll.WithScrollbar(false)
-	if scroll.ShowScrollbar {
-		t.Error("WithScrollbar not set")
-	}
-
-	scroll.WithWidth(NewFixedConstraint(10))
-	if scroll.Width.IsAuto() {
-		t.Error("WithWidth not set")
-	}
+	scroll.Vertical(false)
+	scroll.Horizontal(true)
+	scroll.Scrollbar(false)
+	scroll.Width(NewFixedConstraint(10))
 
 	// Test Children
 	children := scroll.Children()
@@ -179,33 +164,33 @@ func TestScrollHorizontalMethods(t *testing.T) {
 	scroll := NewScrollView(NewText("test"))
 
 	// Test ScrollLeft
-	scroll.OffsetX = 10
+	scroll.offsetX = 10
 	scroll.ScrollLeft(5)
-	if scroll.OffsetX != 5 {
-		t.Errorf("ScrollLeft: expected offset 5, got %d", scroll.OffsetX)
+	if scroll.offsetX != 5 {
+		t.Errorf("ScrollLeft: expected offset 5, got %d", scroll.offsetX)
 	}
 
 	scroll.ScrollLeft(10)
-	if scroll.OffsetX != 0 {
-		t.Errorf("ScrollLeft should clamp to 0, got %d", scroll.OffsetX)
+	if scroll.offsetX != 0 {
+		t.Errorf("ScrollLeft should clamp to 0, got %d", scroll.offsetX)
 	}
 
 	// Test ScrollRight
-	scroll.OffsetX = 0
+	scroll.offsetX = 0
 	scroll.ScrollRight(5, 100, 10)
-	if scroll.OffsetX != 5 {
-		t.Errorf("ScrollRight: expected offset 5, got %d", scroll.OffsetX)
+	if scroll.offsetX != 5 {
+		t.Errorf("ScrollRight: expected offset 5, got %d", scroll.offsetX)
 	}
 
 	scroll.ScrollRight(100, 100, 10)
-	if scroll.OffsetX > 90 {
-		t.Errorf("ScrollRight should clamp to maxOffset 90, got %d", scroll.OffsetX)
+	if scroll.offsetX > 90 {
+		t.Errorf("ScrollRight should clamp to maxOffset 90, got %d", scroll.offsetX)
 	}
 }
 
 // Test ContentSize with nil child.
 func TestScrollViewContentSizeNil(t *testing.T) {
-	scroll := &ScrollView{Child: nil}
+	scroll := &ScrollView{child: nil}
 	size := scroll.ContentSize()
 	if size.Width != 0 || size.Height != 0 {
 		t.Error("ContentSize with nil child should return zero size")
@@ -220,12 +205,12 @@ func TestHorizontalScrollbar(t *testing.T) {
 		items = append(items, NewText("Word"))
 	}
 
-	scroll := NewScrollView(NewHStack(items...).WithGap(1)).
-		WithWidth(NewFixedConstraint(30)).
-		WithHeight(NewFixedConstraint(5)).
-		WithHorizontal(true).
-		WithVertical(false).
-		WithOffset(10, 0)
+	scroll := NewScrollView(NewHStack(items...).Spacing(1)).
+		Width(NewFixedConstraint(30)).
+		Height(NewFixedConstraint(5)).
+		Horizontal(true).
+		Vertical(false).
+		Offset(10, 0)
 
 	constraints := Constraints{
 		MinWidth:  0,
@@ -252,7 +237,7 @@ func TestHorizontalScrollbar(t *testing.T) {
 
 // Test children with nil child.
 func TestScrollViewChildrenNil(t *testing.T) {
-	scroll := &ScrollView{Child: nil}
+	scroll := &ScrollView{child: nil}
 	if scroll.Children() != nil {
 		t.Error("ScrollView Children with nil child should return nil")
 	}

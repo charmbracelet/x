@@ -19,73 +19,64 @@ func getSize() (int, int) {
 
 func main() {
 	const tmpl = `
-<vstack gap="1">
-	<header text="Custom Components Demo" style="fg:cyan; bold" />
+<vstack spacing="1">
+	<text font-weight="bold" foreground-color="cyan">Custom Components Demo</text>
+	<divider foreground-color="cyan" />
 
-	<vstack gap="0">
-		<text style="bold">Built-in Custom Components:</text>
-		<hstack gap="1">
-			<badge text="NEW" style="fg:green; bold" />
-			<badge text="BETA" style="fg:yellow; bold" />
-			<badge text="DEPRECATED" style="fg:red; bold" />
+	<vstack spacing="0">
+		<text font-weight="bold">Built-in Custom Components:</text>
+		<hstack spacing="1">
+			<badge text="NEW" foreground-color="green" />
+			<badge text="BETA" foreground-color="yellow" />
+			<badge text="DEPRECATED" foreground-color="red" />
 		</hstack>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="0">
-		<text style="bold">Progress Bars:</text>
-		<hstack gap="1">
+	<vstack spacing="0">
+		<text font-weight="bold">Progress Bars:</text>
+		<hstack spacing="1">
 			<text>0%</text>
-			<progress value="0" max="100" width="30" />
+			<progressview value="0" max="100" width="30" />
 		</hstack>
-		<hstack gap="1">
+		<hstack spacing="1">
 			<text>25%</text>
-			<progress value="25" max="100" width="30" style="fg:red" />
+			<progressview value="25" max="100" width="30" foreground-color="red" />
 		</hstack>
-		<hstack gap="1">
+		<hstack spacing="1">
 			<text>50%</text>
-			<progress value="50" max="100" width="30" style="fg:yellow" />
+			<progressview value="50" max="100" width="30" foreground-color="yellow" />
 		</hstack>
-		<hstack gap="1">
+		<hstack spacing="1">
 			<text>75%</text>
-			<progress value="75" max="100" width="30" style="fg:blue" />
+			<progressview value="75" max="100" width="30" foreground-color="blue" />
 		</hstack>
-		<hstack gap="1">
+		<hstack spacing="1">
 			<text>100%</text>
-			<progress value="100" max="100" width="30" style="fg:green" />
+			<progressview value="100" max="100" width="30" foreground-color="green" />
 		</hstack>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<vstack gap="1">
-		<header text="Header with Border" level="1" style="fg:magenta" />
-		<text>This header has an underline</text>
-		
-		<header text="Header without Border" border="false" style="fg:blue; bold" />
-		<text>This header has no underline</text>
-	</vstack>
-
-	<divider style="fg:gray" />
-
-	<vstack gap="0">
-		<text style="bold">Status Indicators:</text>
-		<hstack gap="2">
-			<badge text="✓ Success" style="fg:green" />
-			<badge text="⚠ Warning" style="fg:yellow" />
-			<badge text="✗ Error" style="fg:red" />
-			<badge text="ℹ Info" style="fg:blue" />
+	<vstack spacing="0">
+		<text font-weight="bold">Status Indicators:</text>
+		<hstack spacing="2">
+			<badge text="✓ Success" foreground-color="green" />
+			<badge text="⚠ Warning" foreground-color="yellow" />
+			<badge text="✗ Error" foreground-color="red" />
+			<badge text="ℹ Info" foreground-color="blue" />
 		</hstack>
 	</vstack>
 
-	<divider style="fg:gray" />
+	<divider foreground-color="gray" />
 
-	<box border="rounded" border-style="fg:cyan" padding="1">
-		<vstack gap="0">
-			<text style="bold; fg:cyan">About Custom Components:</text>
+	<box border="rounded" border-color="cyan" padding="1">
+		<vstack spacing="0">
+			<text font-weight="bold" foreground-color="cyan">About Custom Components:</text>
 			<text>• Components are registered via pony.Register()</text>
-			<text>• Built-ins: badge, progress, header</text>
+			<text>• Built-ins: badge, progressview</text>
 			<text>• Easy to create your own!</text>
 		</vstack>
 	</box>

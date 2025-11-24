@@ -9,7 +9,7 @@ import (
 func TestRegistry(t *testing.T) {
 	// Register a simple component
 	Register("test-component", func(_ Props, _ []Element) Element {
-		return &Text{Content: "Custom"}
+		return NewText("Custom")
 	})
 	defer Unregister("test-component")
 
@@ -40,9 +40,7 @@ func TestRegistry(t *testing.T) {
 
 func TestCustomComponentInMarkup(t *testing.T) {
 	Register("custom", func(props Props, _ []Element) Element {
-		return &Text{
-			Content: "Custom: " + props.Get("text"),
-		}
+		return NewText("Custom: " + props.Get("text"))
 	})
 	defer Unregister("custom")
 
@@ -68,7 +66,7 @@ func TestBadgeComponent(t *testing.T) {
 		},
 		{
 			name:   "badge with style",
-			markup: `<badge text="BETA" style="fg:yellow; bold" />`,
+			markup: `<badge text="BETA" foreground-color="yellow" />`,
 		},
 		{
 			name:   "badge with child text",
@@ -96,51 +94,15 @@ func TestProgressComponent(t *testing.T) {
 	}{
 		{
 			name:   "progress with value",
-			markup: `<progress value="50" max="100" width="40" />`,
+			markup: `<progressview value="50" max="100" width="40" />`,
 		},
 		{
 			name:   "progress with custom width",
-			markup: `<progress value="75" max="100" width="30" />`,
+			markup: `<progressview value="75" max="100" width="30" />`,
 		},
 		{
 			name:   "progress with style",
-			markup: `<progress value="100" max="100" width="20" style="fg:green" />`,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			tmpl, err := Parse[any](tt.markup)
-			if err != nil {
-				t.Fatalf("Parse() error = %v", err)
-			}
-
-			output := tmpl.Render(nil, 80, 24)
-			golden.RequireEqual(t, output)
-		})
-	}
-}
-
-func TestHeaderComponent(t *testing.T) {
-	tests := []struct {
-		name   string
-		markup string
-	}{
-		{
-			name:   "header with text",
-			markup: `<header text="Title" />`,
-		},
-		{
-			name:   "header with border",
-			markup: `<header text="Bordered Title" border="true" />`,
-		},
-		{
-			name:   "header no border",
-			markup: `<header text="No Border" border="false" />`,
-		},
-		{
-			name:   "header with style",
-			markup: `<header text="Styled" style="fg:cyan; bold" />`,
+			markup: `<progressview value="100" max="100" width="20" foreground-color="green" />`,
 		},
 	}
 
@@ -159,12 +121,7 @@ func TestHeaderComponent(t *testing.T) {
 
 func TestCustomComponentWithChildren(t *testing.T) {
 	Register("wrapper", func(_ Props, children []Element) Element {
-		return &Box{
-			Child: &VStack{
-				Items: children,
-			},
-			Border: "rounded",
-		}
+		return NewBox(NewVStack(children...)).Border("rounded")
 	})
 	defer Unregister("wrapper")
 
@@ -202,27 +159,20 @@ func TestClearRegistry(t *testing.T) {
 
 	// Re-register built-in components since we cleared everything
 	Register("badge", NewBadge)
-	Register("progress", NewProgress)
-	Register("header", NewHeader)
+	Register("progressview", NewProgressView)
 }
 
 // Test component Children methods.
 func TestComponentChildren(t *testing.T) {
 	// Badge Children
-	badge := &Badge{Text: "test"}
+	badge := &Badge{text: "test"}
 	if badge.Children() != nil {
 		t.Error("Badge Children should return nil")
 	}
 
-	// Progress Children
-	progress := &Progress{Value: 50, Max: 100}
+	// ProgressView Children
+	progress := &ProgressView{value: 50, max: 100}
 	if progress.Children() != nil {
-		t.Error("Progress Children should return nil")
-	}
-
-	// Header Children
-	header := &Header{Text: "test"}
-	if header.Children() != nil {
-		t.Error("Header Children should return nil")
+		t.Error("ProgressView Children should return nil")
 	}
 }

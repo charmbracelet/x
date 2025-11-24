@@ -6,11 +6,11 @@ import uv "github.com/charmbracelet/ultraviolet"
 // Later children in the stack are drawn on top of earlier children.
 type ZStack struct {
 	BaseElement
-	Items  []Element
-	Width  SizeConstraint
-	Height SizeConstraint
-	Align  string // Horizontal alignment: left, center, right
-	Valign string // Vertical alignment: top, middle, bottom
+	items             []Element
+	width             SizeConstraint
+	height            SizeConstraint
+	alignment         string // Horizontal alignment: leading, center, trailing
+	verticalAlignment string // Vertical alignment: top, center, bottom
 }
 
 var _ Element = (*ZStack)(nil)
@@ -18,33 +18,33 @@ var _ Element = (*ZStack)(nil)
 // NewZStack creates a new layered stack.
 func NewZStack(children ...Element) *ZStack {
 	return &ZStack{
-		Items:  children,
-		Align:  AlignCenter,
-		Valign: AlignMiddle,
+		items:             children,
+		alignment:         AlignmentCenter,
+		verticalAlignment: AlignmentCenter,
 	}
 }
 
-// WithAlign sets the horizontal alignment and returns the zstack for chaining.
-func (z *ZStack) WithAlign(align string) *ZStack {
-	z.Align = align
+// Alignment sets the horizontal alignment and returns the zstack for chaining.
+func (z *ZStack) Alignment(alignment string) *ZStack {
+	z.alignment = alignment
 	return z
 }
 
-// WithValign sets the vertical alignment and returns the zstack for chaining.
-func (z *ZStack) WithValign(valign string) *ZStack {
-	z.Valign = valign
+// VerticalAlignment sets the vertical alignment and returns the zstack for chaining.
+func (z *ZStack) VerticalAlignment(alignment string) *ZStack {
+	z.verticalAlignment = alignment
 	return z
 }
 
-// WithWidth sets the width constraint and returns the zstack for chaining.
-func (z *ZStack) WithWidth(width SizeConstraint) *ZStack {
-	z.Width = width
+// Width sets the width constraint and returns the zstack for chaining.
+func (z *ZStack) Width(width SizeConstraint) *ZStack {
+	z.width = width
 	return z
 }
 
-// WithHeight sets the height constraint and returns the zstack for chaining.
-func (z *ZStack) WithHeight(height SizeConstraint) *ZStack {
-	z.Height = height
+// Height sets the height constraint and returns the zstack for chaining.
+func (z *ZStack) Height(height SizeConstraint) *ZStack {
+	z.height = height
 	return z
 }
 
@@ -52,7 +52,7 @@ func (z *ZStack) WithHeight(height SizeConstraint) *ZStack {
 func (z *ZStack) Draw(scr uv.Screen, area uv.Rectangle) {
 	z.SetBounds(area)
 
-	if len(z.Items) == 0 {
+	if len(z.items) == 0 {
 		return
 	}
 
@@ -64,13 +64,13 @@ func (z *ZStack) Draw(scr uv.Screen, area uv.Rectangle) {
 		MaxHeight: area.Dy(),
 	}
 
-	childSizes := make([]Size, len(z.Items))
-	for i, child := range z.Items {
+	childSizes := make([]Size, len(z.items))
+	for i, child := range z.items {
 		childSizes[i] = child.Layout(childConstraints)
 	}
 
 	// Draw each child in order (later children draw on top)
-	for i, child := range z.Items {
+	for i, child := range z.items {
 		// Positioned elements handle their own layout and positioning
 		if _, isPositioned := child.(*Positioned); isPositioned {
 			child.Draw(scr, area)
@@ -84,23 +84,23 @@ func (z *ZStack) Draw(scr uv.Screen, area uv.Rectangle) {
 
 		// Determine positioning based on horizontal and vertical alignment
 		switch {
-		case z.Align == AlignLeft && z.Valign == AlignTop:
+		case z.alignment == AlignmentLeading && z.verticalAlignment == AlignmentTop:
 			childArea = uv.TopLeftRect(area, childSize.Width, childSize.Height)
-		case z.Align == AlignCenter && z.Valign == AlignTop:
+		case z.alignment == AlignmentCenter && z.verticalAlignment == AlignmentTop:
 			childArea = uv.TopCenterRect(area, childSize.Width, childSize.Height)
-		case z.Align == AlignRight && z.Valign == AlignTop:
+		case z.alignment == AlignmentTrailing && z.verticalAlignment == AlignmentTop:
 			childArea = uv.TopRightRect(area, childSize.Width, childSize.Height)
-		case z.Align == AlignLeft && z.Valign == AlignMiddle:
+		case z.alignment == AlignmentLeading && z.verticalAlignment == AlignmentCenter:
 			childArea = uv.LeftCenterRect(area, childSize.Width, childSize.Height)
-		case z.Align == AlignCenter && z.Valign == AlignMiddle:
+		case z.alignment == AlignmentCenter && z.verticalAlignment == AlignmentCenter:
 			childArea = uv.CenterRect(area, childSize.Width, childSize.Height)
-		case z.Align == AlignRight && z.Valign == AlignMiddle:
+		case z.alignment == AlignmentTrailing && z.verticalAlignment == AlignmentCenter:
 			childArea = uv.RightCenterRect(area, childSize.Width, childSize.Height)
-		case z.Align == AlignLeft && z.Valign == AlignBottom:
+		case z.alignment == AlignmentLeading && z.verticalAlignment == AlignmentBottom:
 			childArea = uv.BottomLeftRect(area, childSize.Width, childSize.Height)
-		case z.Align == AlignCenter && z.Valign == AlignBottom:
+		case z.alignment == AlignmentCenter && z.verticalAlignment == AlignmentBottom:
 			childArea = uv.BottomCenterRect(area, childSize.Width, childSize.Height)
-		case z.Align == AlignRight && z.Valign == AlignBottom:
+		case z.alignment == AlignmentTrailing && z.verticalAlignment == AlignmentBottom:
 			childArea = uv.BottomRightRect(area, childSize.Width, childSize.Height)
 		default:
 			// Fallback to top-left
@@ -114,7 +114,7 @@ func (z *ZStack) Draw(scr uv.Screen, area uv.Rectangle) {
 // Layout calculates the total size of the layered stack.
 // ZStack takes the maximum width and height of all children.
 func (z *ZStack) Layout(constraints Constraints) Size {
-	if len(z.Items) == 0 {
+	if len(z.items) == 0 {
 		return Size{Width: 0, Height: 0}
 	}
 
@@ -122,7 +122,7 @@ func (z *ZStack) Layout(constraints Constraints) Size {
 	maxHeight := 0
 
 	// Find maximum dimensions
-	for _, child := range z.Items {
+	for _, child := range z.items {
 		size := child.Layout(constraints)
 		if size.Width > maxWidth {
 			maxWidth = size.Width
@@ -135,13 +135,13 @@ func (z *ZStack) Layout(constraints Constraints) Size {
 	result := Size{Width: maxWidth, Height: maxHeight}
 
 	// Apply width constraint if specified
-	if !z.Width.IsAuto() {
-		result.Width = z.Width.Apply(constraints.MaxWidth, result.Width)
+	if !z.width.IsAuto() {
+		result.Width = z.width.Apply(constraints.MaxWidth, result.Width)
 	}
 
 	// Apply height constraint if specified
-	if !z.Height.IsAuto() {
-		result.Height = z.Height.Apply(constraints.MaxHeight, result.Height)
+	if !z.height.IsAuto() {
+		result.Height = z.height.Apply(constraints.MaxHeight, result.Height)
 	}
 
 	return constraints.Constrain(result)
@@ -149,5 +149,5 @@ func (z *ZStack) Layout(constraints Constraints) Size {
 
 // Children returns the child elements.
 func (z *ZStack) Children() []Element {
-	return z.Items
+	return z.items
 }

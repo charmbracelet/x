@@ -173,7 +173,7 @@ box := NewBox(child).
 
 text := NewText("Hello").
     WithStyle(style).
-    WithAlign("center")
+    WithAlignment"center")
 ```
 
 Method naming: `With<Property>(*Element) *Element`
@@ -197,7 +197,7 @@ Two approaches:
 pony.Register("card", func(props pony.Props, children []pony.Element) pony.Element {
     return pony.NewBox(
         pony.NewVStack(children...),
-    ).WithBorder("rounded").WithPadding(1)
+    ).Border("rounded").Padding(1)
 })
 ```
 
@@ -219,13 +219,13 @@ func NewCard(props Props, children []Element) Element {
 func (c *Card) Draw(scr uv.Screen, area uv.Rectangle) {
     c.SetBounds(area)  // Required
     // Build composed structure and draw
-    card := NewBox(NewVStack(c.Content...)).WithBorder("rounded")
+    card := NewBox(NewVStack(c.Content...)).Border("rounded")
     card.Draw(scr, area)
 }
 
 func (c *Card) Layout(constraints Constraints) Size {
     // Delegate to composed structure
-    card := NewBox(NewVStack(c.Content...)).WithBorder("rounded")
+    card := NewBox(NewVStack(c.Content...)).Border("rounded")
     return card.Layout(constraints)
 }
 
@@ -284,7 +284,7 @@ Parse from string with `parseSizeConstraint(value)` (handles `"50%"`, `"20"`, `"
 
 Use constants from `constants.go`:
 - Borders: `BorderNone`, `BorderRounded`, `BorderNormal`, `BorderThick`, `BorderDouble`, `BorderHidden`
-- Alignment: `AlignLeft`, `AlignCenter`, `AlignRight`, `AlignTop`, `AlignMiddle`, `AlignBottom`
+- Alignment: `Alignmenteft`, `Alignmententer`, `Alignmentight`, `Alignmentop`, `Alignmentiddle`, `Alignmentottom`
 - Units: `UnitAuto`, `UnitMin`, `UnitMax`, `UnitPercent`
 
 ## Testing Approach

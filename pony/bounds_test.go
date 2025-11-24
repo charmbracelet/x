@@ -55,7 +55,7 @@ func TestHitTest(t *testing.T) {
 	btn2 := NewButton("Button 2")
 	btn2.SetID("btn2")
 
-	vstack := NewVStack(btn1, btn2).WithGap(1)
+	vstack := NewVStack(btn1, btn2).Spacing(1)
 
 	// Layout and draw
 	constraints := Fixed(40, 20)
@@ -111,7 +111,7 @@ func TestHitTest(t *testing.T) {
 
 func TestRenderWithBounds(t *testing.T) {
 	tmpl := `
-<vstack gap="1">
+<vstack spacing="1">
 	<text id="title">Title</text>
 	<button id="submit-btn" text="Submit" />
 </vstack>

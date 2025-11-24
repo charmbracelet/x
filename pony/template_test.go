@@ -122,7 +122,7 @@ func TestTemplateFunctions(t *testing.T) {
 }
 
 func TestTemplateWithStyle(t *testing.T) {
-	const markup = `<text style="fg:{{ .Color }}; bold">{{ .Message }}</text>`
+	const markup = `<text foreground-color="{{ .Color }}" font-weight="bold">{{ .Message }}</text>`
 
 	tmpl, err := Parse[map[string]interface{}](markup)
 	if err != nil {

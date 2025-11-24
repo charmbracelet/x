@@ -17,9 +17,9 @@
 //	}
 //
 //	const tmpl = `
-//	<vstack gap="1">
+//	<vstack spacing="1">
 //	  <box border="rounded">
-//	    <text style="bold; fg:cyan">{{ .Title }}</text>
+//	    <text font-weight="bold" foreground-color="cyan">{{ .Title }}</text>
 //	  </box>
 //	  <text>{{ .Content }}</text>
 //	</vstack>
@@ -34,8 +34,8 @@
 //
 // # Elements
 //
-//   - vstack: Vertical stack container with gap and alignment
-//   - hstack: Horizontal stack container with gap and alignment
+//   - vstack: Vertical stack container with spacing and alignment
+//   - hstack: Horizontal stack container with spacing and alignment
 //   - text: Text content with styling and alignment
 //   - box: Container with borders and padding
 //   - scrollview: Scrollable viewport with scrollbars
@@ -45,16 +45,16 @@
 //
 // # Styling
 //
-// Elements support CSS-like inline styling:
+// Text elements support granular styling attributes:
 //
-//	<text style="fg:cyan; bg:#1a1b26; bold; italic">Styled text</text>
+//	<text foreground-color="cyan" background-color="#1a1b26" font-weight="bold" font-style="italic">Styled text</text>
 //
-// For programmatic styling, use the StyleBuilder:
+// For programmatic styling, use Text methods:
 //
-//	style := pony.NewStyle().
-//	    Fg(pony.Hex("#FF5555")).
+//	text := pony.NewText("Hello").
+//	    ForegroundColor(pony.Hex("#FF5555")).
 //	    Bold().
-//	    Build()
+//	    Italic()
 //
 // # Custom Components
 //
@@ -63,7 +63,7 @@
 //	pony.Register("card", func(props Props, children []Element) Element {
 //	    return pony.NewBox(
 //	        pony.NewVStack(children...),
-//	    ).WithBorder("rounded").WithPadding(1)
+//	    ).Border("rounded").Padding(1)
 //	})
 //
 // Use in markup:
@@ -81,7 +81,7 @@
 //	func (i *Input) Update(msg tea.Msg) { /* handle events */ }
 //
 //	func (i *Input) Render() pony.Element {
-//	    return pony.NewBox(pony.NewText(i.value)).WithBorder("rounded")
+//	    return pony.NewBox(pony.NewText(i.value)).Border("rounded")
 //	}
 //
 // Template with slot:
