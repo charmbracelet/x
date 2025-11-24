@@ -1,0 +1,59 @@
+# https://taskfile.dev
+
+version: "3"
+
+tasks:
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list
+
+  lint:install:
+    desc: Install golangci-lint
+    cmds:
+      - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+
+  lint:
+    desc: Run base linters
+    cmds:
+      - golangci-lint run --path-mode=abs --config=".golangci.yml" --timeout=5m
+
+  lint:fix:
+    desc: Run base linters and fix issues
+    cmds:
+      - golangci-lint run --path-mode=abs --config=".golangci.yml" --timeout=5m --fix
+
+  fmt:
+    desc: Format code
+    cmds:
+      - gofumpt -l -w .
+      - goimports -l -w .
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -v -race ./...
+
+  test:coverage:
+    desc: Run tests with coverage
+    cmds:
+      - go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - echo "Coverage report generated at coverage.html"
+
+  test:update:
+    desc: Update golden test files
+    cmds:
+      - go test -update ./...
+
+  clean:
+    desc: Clean build artifacts and test cache
+    cmds:
+      - go clean -testcache
+      - rm -f coverage.out coverage.html
+      - find ./examples -type f -executable -delete
+
+  tidy:
+    desc: Tidy go.mod
+    cmds:
+      - go mod tidy
