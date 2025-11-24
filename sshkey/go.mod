@@ -4,7 +4,7 @@ go 1.24.0
 
 require (
 	github.com/charmbracelet/huh v0.8.0
-	golang.org/x/crypto v0.44.0
+	golang.org/x/crypto v0.45.0
 )
 
 require (
