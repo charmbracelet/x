@@ -9,7 +9,7 @@ import (
 )
 
 func TestRender(t *testing.T) {
-	raw, err := loadImage("./fixtures/charm-wish.png")
+	raw, err := loadImage("../fixtures/charm-wish.png")
 	if err != nil {
 		t.Errorf("unexpected error: %v", err)
 		os.Exit(1)

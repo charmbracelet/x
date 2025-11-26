@@ -15,7 +15,7 @@ import (
 
 // func BenchmarkEncodingGoSixel(b *testing.B) {
 // 	for i := 0; i < b.N; i++ {
-// 		raw, err := loadImage("./../fixtures/graphics/JigokudaniMonkeyPark.png")
+// 		raw, err := loadImage("../../fixtures/JigokudaniMonkeyPark.png")
 // 		if err != nil {
 // 			os.Exit(1)
 // 		}
@@ -45,7 +45,7 @@ func writeSixelGraphics(w io.Writer, m image.Image) error {
 
 func BenchmarkEncodingXSixel(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		raw, err := loadImage("./../fixtures/graphics/JigokudaniMonkeyPark.png")
+		raw, err := loadImage("../../fixtures/JigokudaniMonkeyPark.png")
 		if err != nil {
 			os.Exit(1)
 		}
