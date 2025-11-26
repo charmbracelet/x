@@ -20,7 +20,9 @@ jobs:
       run:
         working-directory: ./termios
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
       - uses: actions/setup-go@v6
         with:
           go-version-file: ./termios/go.mod
@@ -56,7 +58,6 @@ jobs:
   coverage:
     strategy:
       matrix:
-        go-version: [^1]
         os: [ubuntu-latest, windows-latest, macos-latest]
     defaults:
       run:
@@ -65,18 +66,15 @@ jobs:
     env:
       GO111MODULE: "on"
     steps:
-      - name: Install Go
-        uses: actions/setup-go@v6
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
+      - uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Coverage
+      - name: test
         run: |
           go test -race -covermode=atomic -coverprofile='coverage.txt' ./...
-
       - uses: codecov/codecov-action@v5
         with:
           file: ./coverage.txt
