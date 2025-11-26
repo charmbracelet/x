@@ -43,7 +43,12 @@ jobs:
           cache: true
           cache-dependency-path: $sum
       - run: go build -v ./...
-      - run: go test -race -v ./...
+      - run: |
+          go test -race -covermode=atomic -coverprofile='coverage.txt' ./...
+      - uses: codecov/codecov-action@v5
+        with:
+          file: ./coverage.txt
+          token: \${{ secrets.CODECOV_TOKEN }}
 
   dependabot:
     needs: [build]
@@ -68,31 +73,6 @@ jobs:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
       directory: $(dirname "$mod" | cut -f2- -d/)
-
-  coverage:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    defaults:
-      run:
-        working-directory: $(dirname "$mod")
-    runs-on: \${{ matrix.os }}
-    env:
-      GO111MODULE: \"on\"
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          lfs: true
-      - uses: actions/setup-go@v6
-        with:
-          go-version: \${{ matrix.go-version }}
-      - name: test
-        run: |
-          go test -race -covermode=atomic -coverprofile='coverage.txt' ./...
-      - uses: codecov/codecov-action@v5
-        with:
-          file: ./coverage.txt
-          token: \${{ secrets.CODECOV_TOKEN }}
 
 " >"./.github/workflows/${name}.yml"
 done
