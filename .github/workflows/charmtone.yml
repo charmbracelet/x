@@ -20,14 +20,21 @@ jobs:
       run:
         working-directory: ./exp/charmtone
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
       - uses: actions/setup-go@v6
         with:
           go-version-file: ./exp/charmtone/go.mod
           cache: true
           cache-dependency-path: ./exp/charmtone/go.sum
       - run: go build -v ./...
-      - run: go test -race -v ./...
+      - run: |
+          go test -race -covermode=atomic -coverprofile='coverage.txt' ./...
+      - uses: codecov/codecov-action@v5
+        with:
+          file: ./coverage.txt
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   dependabot:
     needs: [build]
@@ -52,34 +59,5 @@ jobs:
     uses: charmbracelet/meta/.github/workflows/lint.yml@main
     with:
       directory: exp/charmtone
-
-  coverage:
-    strategy:
-      matrix:
-        go-version: [^1]
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    defaults:
-      run:
-        working-directory: ./exp/charmtone
-    runs-on: ${{ matrix.os }}
-    env:
-      GO111MODULE: "on"
-    steps:
-      - name: Install Go
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ matrix.go-version }}
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Coverage
-        run: |
-          go test -race -covermode=atomic -coverprofile='coverage.txt' ./...
-
-      - uses: codecov/codecov-action@v5
-        with:
-          file: ./coverage.txt
-          token: ${{ secrets.CODECOV_TOKEN }}
 
 
