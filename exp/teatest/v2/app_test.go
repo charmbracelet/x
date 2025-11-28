@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea/v2"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/exp/teatest/v2"
 )
 
@@ -116,8 +116,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // View returns a string based on data in the model. That string which will be
 // rendered to the terminal.
-func (m model) View() string {
-	return fmt.Sprintf("Hi. This program will exit in %d seconds. To quit sooner press any key.\n", m)
+func (m model) View() tea.View {
+	return tea.NewView(fmt.Sprintf("Hi. This program will exit in %d seconds. To quit sooner press any key.\n", m))
 }
 
 // Messages are events that we respond to in our Update function. This
