@@ -20,7 +20,7 @@ jobs:
       run:
         working-directory: ./termios
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           lfs: true
       - uses: actions/setup-go@v6
