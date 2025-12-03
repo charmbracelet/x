@@ -15,4 +15,7 @@ func (e *Emulator) eraseCharacter(n int) {
 	e.scr.FillArea(e.scr.blankCell(), rect)
 	e.atPhantom = false
 	// ECH does not move the cursor.
+	if e.cb.Damage != nil {
+		e.cb.Damage(RectDamage(rect))
+	}
 }

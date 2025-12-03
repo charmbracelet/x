@@ -9,10 +9,18 @@ import (
 
 // handlePrint handles printable characters.
 func (e *Emulator) handlePrint(r rune) {
+	e.handleRune(r, true)
+}
+
+func (e *Emulator) handleRune(r rune, damage bool) {
 	if r >= ansi.SP && r < ansi.DEL {
 		if len(e.grapheme) > 0 {
 			// If we have a grapheme buffer, flush it before handling the ASCII character.
-			e.flushGrapheme()
+			e.flushGrapheme(damage)
+		}
+		if damage && e.cb.Damage != nil {
+			x, y := e.scr.CursorPosition()
+			e.cb.Damage(CellDamage{X: x, Y: y, Width: 1})
 		}
 		e.handleGrapheme(string(r), 1)
 	} else {
@@ -22,7 +30,7 @@ func (e *Emulator) handlePrint(r rune) {
 
 // flushGrapheme flushes the current grapheme buffer, if any, and handles the
 // grapheme as a single unit.
-func (e *Emulator) flushGrapheme() {
+func (e *Emulator) flushGrapheme(damage bool) {
 	if len(e.grapheme) == 0 {
 		return
 	}
@@ -34,6 +42,10 @@ func (e *Emulator) flushGrapheme() {
 	graphemes := string(e.grapheme)
 	for len(graphemes) > 0 {
 		cluster, width := ansi.FirstGraphemeCluster(graphemes, method)
+		if damage && e.cb.Damage != nil {
+			x, y := e.scr.CursorPosition()
+			e.cb.Damage(CellDamage{X: x, Y: y, Width: width})
+		}
 		e.handleGrapheme(cluster, width)
 		graphemes = graphemes[len(cluster):]
 	}
