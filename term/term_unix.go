@@ -40,6 +40,33 @@ func makeRaw(fd uintptr) (*State, error) {
 	return &oldState, nil
 }
 
+func makeRawOutput(fd uintptr) (*State, error) {
+	termios, err := unix.IoctlGetTermios(int(fd), ioctlReadTermios)
+	if err != nil {
+		return nil, err //nolint:wrapcheck
+	}
+
+	oldState := State{state{Termios: *termios}}
+
+	// Set raw mode for input: disable canonical mode, echo, signals, and special processing
+	termios.Iflag &^= unix.IGNBRK | unix.BRKINT | unix.PARMRK | unix.ISTRIP | unix.INLCR | unix.IGNCR | unix.ICRNL | unix.IXON
+	termios.Lflag &^= unix.ECHO | unix.ECHONL | unix.ICANON | unix.ISIG | unix.IEXTEN
+	termios.Cflag &^= unix.CSIZE | unix.PARENB
+	termios.Cflag |= unix.CS8
+	
+	// Keep output processing enabled (OPOST) and enable newline translation (ONLCR)
+	// This allows println() and logging to work correctly by translating \n to \r\n
+	termios.Oflag |= unix.OPOST | unix.ONLCR
+	
+	termios.Cc[unix.VMIN] = 1
+	termios.Cc[unix.VTIME] = 0
+	if err := unix.IoctlSetTermios(int(fd), ioctlWriteTermios, termios); err != nil {
+		return nil, err //nolint:wrapcheck
+	}
+
+	return &oldState, nil
+}
+
 func setState(fd uintptr, state *State) error {
 	var termios *unix.Termios
 	if state != nil {

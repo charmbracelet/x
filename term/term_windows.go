@@ -32,6 +32,10 @@ func makeRaw(fd uintptr) (*State, error) {
 	return &State{state{st}}, nil
 }
 
+func makeRawOutput(fd uintptr) (*State, error) {
+	return makeRaw(fd)
+}
+
 func setState(fd uintptr, state *State) error {
 	var mode uint32
 	if state != nil {
