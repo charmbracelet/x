@@ -1,3 +1,5 @@
+// Package etag provides utilities for generating and handling ETag headers in
+// HTTP requests and responses.
 package etag
 
 import (
