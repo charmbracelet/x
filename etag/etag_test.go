@@ -149,3 +149,71 @@ func TestResponse_Overwrites(t *testing.T) {
 		t.Errorf("Response() should overwrite ETag, got %v, want \"etag2\"", got)
 	}
 }
+
+func TestMatches(t *testing.T) {
+	tests := []struct {
+		name   string
+		etag   string
+		header string
+		want   bool
+	}{
+		{
+			name:   "exact match with quotes",
+			etag:   "abc123",
+			header: "abc123",
+			want:   true,
+		},
+		{
+			name:   "no match",
+			etag:   "abc123",
+			header: "def456",
+			want:   false,
+		},
+		{
+			name:   "empty etag",
+			etag:   "",
+			header: "abc123",
+			want:   false,
+		},
+		{
+			name:   "empty header",
+			etag:   "abc123",
+			header: "",
+			want:   false,
+		},
+		{
+			name:   "both empty",
+			etag:   "",
+			header: "",
+			want:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest("GET", "http://example.com", nil)
+			if tt.header != "" {
+				req.Header.Set("If-None-Match", tt.header)
+			}
+			got := Matches(req, tt.etag)
+			if got != tt.want {
+				t.Errorf("Matches() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMatches_Integration(t *testing.T) {
+	req := httptest.NewRequest("GET", "http://example.com", nil)
+	etag := "test-etag-123"
+
+	Request(req, etag)
+
+	if !Matches(req, `"test-etag-123"`) {
+		t.Error("Matches() should return true for Request()-set etag with quotes")
+	}
+
+	if !Matches(req, etag) {
+		t.Error("Matches() should return true for Request()-set etag without quotes")
+	}
+}

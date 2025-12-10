@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 // Of returns the etag for the given data.
@@ -30,4 +31,18 @@ func Response(w http.ResponseWriter, etag string) {
 		return
 	}
 	w.Header().Set("ETag", fmt.Sprintf(`"%s"`, etag))
+}
+
+// Matches checks if the given request has `If-None-Match` header matching the
+// given etag.
+func Matches(r *http.Request, etag string) bool {
+	header := r.Header.Get("If-None-Match")
+	if header == "" || etag == "" {
+		return false
+	}
+	return unquote(header) == unquote(etag)
+}
+
+func unquote(s string) string {
+	return strings.TrimSuffix(strings.TrimPrefix(s, `"`), `"`)
 }
