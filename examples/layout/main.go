@@ -386,8 +386,8 @@ func main() {
 
 	// Enable mouse events.
 	modes := []ansi.Mode{
-		ansi.ButtonEventMouseMode,
-		ansi.SgrExtMouseMode,
+		ansi.ModeMouseButtonEvent,
+		ansi.ModeMouseExtSgr,
 	}
 
 	os.Stdout.WriteString(ansi.SetMode(modes...))         //nolint:errcheck,gosec

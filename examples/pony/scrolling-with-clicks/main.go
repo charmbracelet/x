@@ -1,3 +1,4 @@
+// Package main example.
 package main
 
 import (
@@ -8,7 +9,7 @@ import (
 	"github.com/charmbracelet/x/pony"
 )
 
-// Clickable list item.
+// ListItem is a clickable list item.
 type ListItem struct {
 	pony.BaseElement
 	id       string
@@ -88,12 +89,6 @@ func initialModel() model {
 		id := fmt.Sprintf("item-%d", i)
 		text := fmt.Sprintf("List Item %d - Click me!", i)
 		items = append(items, NewListItem(id, text))
-	}
-
-	// Build list of items for scroll view
-	var itemElements []pony.Element
-	for _, item := range items {
-		itemElements = append(itemElements, item.Render())
 	}
 
 	return model{

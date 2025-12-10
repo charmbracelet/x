@@ -1,3 +1,4 @@
+// Package main example.
 package main
 
 import (
@@ -44,7 +45,7 @@ func (s *ScrollLog) Update(msg tea.Msg) {
 }
 
 func (s *ScrollLog) Render() pony.Element {
-	var items []pony.Element
+	items := make([]pony.Element, 0, len(s.lines))
 	for _, line := range s.lines {
 		items = append(items, pony.NewText(line))
 	}

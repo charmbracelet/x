@@ -1,3 +1,4 @@
+// Package main example.
 package main
 
 import (
@@ -8,13 +9,13 @@ import (
 	"github.com/charmbracelet/x/pony"
 )
 
-// Simple stateful input component.
+// Input is a simple text input component.
 type Input struct {
 	value   string
 	focused bool
 }
 
-func NewInput(placeholder string) *Input {
+func NewInput(string) *Input {
 	return &Input{}
 }
 

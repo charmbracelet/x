@@ -1,3 +1,4 @@
+// Package main example.
 package main
 
 import (
@@ -57,8 +58,8 @@ func (l *ListItem) Children() []pony.Element {
 	return nil
 }
 
-// Factory function for parser.
-func NewListItemFromProps(props pony.Props, children []pony.Element) pony.Element {
+// NewListItemFromProps is the factory function for ListItem.
+func NewListItemFromProps(props pony.Props, _ []pony.Element) pony.Element {
 	text := props.Get("text")
 	selected := props.Get("selected") == "true"
 	return NewListItem(text, selected)
@@ -105,7 +106,7 @@ const tmpl = `
 </vstack>
 `
 
-// Data structures.
+// ItemData structures.
 type ItemData struct {
 	ID       int
 	Text     string

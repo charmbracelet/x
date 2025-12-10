@@ -1,3 +1,4 @@
+// Package main example.
 package main
 
 import (
@@ -310,26 +311,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case buttonClickMsg:
 		switch msg {
 		case "submit-btn":
+			m.statusColor = "red"
 			// Validate and submit
 			if m.nameInput.Value() == "" {
 				m.showStatus = true
 				m.statusMessage = "❌ Please enter your name"
-				m.statusColor = "red"
 				m.showData = false
 			} else if m.emailInput.Value() == "" {
 				m.showStatus = true
 				m.statusMessage = "❌ Please enter your email"
-				m.statusColor = "red"
 				m.showData = false
 			} else if m.usernameInput.Value() == "" {
 				m.showStatus = true
 				m.statusMessage = "❌ Please choose a username"
-				m.statusColor = "red"
 				m.showData = false
 			} else if !strings.Contains(m.emailInput.Value(), "@") {
 				m.showStatus = true
 				m.statusMessage = "❌ Please enter a valid email address"
-				m.statusColor = "red"
 				m.showData = false
 			} else {
 				// Success!
