@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/x/pony"
 )
 
-// TemplateData represents the data passed to the template
+// TemplateData represents the data passed to the template.
 type TemplateData struct {
 	Title    string
 	Count    int
@@ -20,7 +20,7 @@ type TemplateData struct {
 	Height   int
 }
 
-// Define our template with dynamic content
+// Define our template with dynamic content.
 const tmpl = `
 <vstack spacing="1">
 	<box border="double" border-color="cyan">
@@ -157,7 +157,7 @@ func (m model) View() tea.View {
 	return view
 }
 
-// Messages
+// Messages.
 type tickMsg time.Time
 
 func tick() tea.Cmd {

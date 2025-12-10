@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/x/pony"
 )
 
-// TemplateData represents the data passed to the template
+// TemplateData represents the data passed to the template.
 type TemplateData struct {
 	Title       string
 	Count       int
@@ -16,7 +16,7 @@ type TemplateData struct {
 	HoveredID   string
 }
 
-// Define our template with interactive buttons
+// Define our template with interactive buttons.
 const tmpl = `
 <vstack spacing="1">
 	<box border="double" border-color="cyan">
@@ -83,7 +83,7 @@ func (m model) Init() tea.Cmd {
 	)
 }
 
-// Custom messages for button clicks
+// Custom messages for button clicks.
 type buttonClickMsg string
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -123,52 +123,55 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 type hoverMsg string
 
 func (m model) View() tea.View {
-	// Prepare data for template
-	data := TemplateData{
-		Title:       "pony Mouse Click Demo",
-		Count:       m.count,
-		LastClicked: m.lastClicked,
-		HoveredID:   m.hoveredID,
-	}
+	// XXX: view.Callback doesn't exist.
+	return tea.NewView("")
 
-	// Render with bounds for hit testing
-	scr, boundsMap := m.template.RenderWithBounds(data, nil, m.width, m.height)
-
-	// Create view with callback for mouse events
-	view := tea.NewView(scr.Render())
-	view.AltScreen = true
-	view.MouseMode = tea.MouseModeAllMotion
-
-	// Set up callback to handle mouse events using bounds map
-	view.Callback = func(msg tea.Msg) tea.Cmd {
-		switch msg := msg.(type) {
-		case tea.MouseClickMsg:
-			mouse := msg.Mouse()
-			// Hit test to find which element was clicked
-			if elem := boundsMap.HitTest(mouse.X, mouse.Y); elem != nil {
-				// Return command with button ID
-				return func() tea.Msg {
-					return buttonClickMsg(elem.ID())
-				}
-			}
-
-		case tea.MouseMotionMsg:
-			mouse := msg.Mouse()
-			// Track hover state
-			if elem := boundsMap.HitTest(mouse.X, mouse.Y); elem != nil {
-				return func() tea.Msg {
-					return hoverMsg(elem.ID())
-				}
-			} else {
-				return func() tea.Msg {
-					return hoverMsg("")
-				}
-			}
-		}
-		return nil
-	}
-
-	return view
+	// // Prepare data for template
+	// data := TemplateData{
+	// 	Title:       "pony Mouse Click Demo",
+	// 	Count:       m.count,
+	// 	LastClicked: m.lastClicked,
+	// 	HoveredID:   m.hoveredID,
+	// }
+	//
+	// // Render with bounds for hit testing
+	// scr, boundsMap := m.template.RenderWithBounds(data, nil, m.width, m.height)
+	//
+	// // Create view with callback for mouse events
+	// view := tea.NewView(scr.Render())
+	// view.AltScreen = true
+	// view.MouseMode = tea.MouseModeAllMotion
+	//
+	// // Set up callback to handle mouse events using bounds map
+	// view.Callback = func(msg tea.Msg) tea.Cmd {
+	// 	switch msg := msg.(type) {
+	// 	case tea.MouseClickMsg:
+	// 		mouse := msg.Mouse()
+	// 		// Hit test to find which element was clicked
+	// 		if elem := boundsMap.HitTest(mouse.X, mouse.Y); elem != nil {
+	// 			// Return command with button ID
+	// 			return func() tea.Msg {
+	// 				return buttonClickMsg(elem.ID())
+	// 			}
+	// 		}
+	//
+	// 	case tea.MouseMotionMsg:
+	// 		mouse := msg.Mouse()
+	// 		// Track hover state
+	// 		if elem := boundsMap.HitTest(mouse.X, mouse.Y); elem != nil {
+	// 			return func() tea.Msg {
+	// 				return hoverMsg(elem.ID())
+	// 			}
+	// 		} else {
+	// 			return func() tea.Msg {
+	// 				return hoverMsg("")
+	// 			}
+	// 		}
+	// 	}
+	// 	return nil
+	// }
+	//
+	// return view
 }
 
 func main() {

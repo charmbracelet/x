@@ -6,10 +6,10 @@ toolchain go1.24.5
 
 require (
 	charm.land/bubbletea/v2 v2.0.0-rc.2
+	charm.land/lipgloss/v2 v2.0.0-beta.3.0.20251106193318-19329a3e8410
 	github.com/charmbracelet/colorprofile v0.3.3
 	github.com/charmbracelet/fang v0.4.4
 	github.com/charmbracelet/lipgloss v1.1.0
-	github.com/charmbracelet/lipgloss/v2 v2.0.0-beta1
 	github.com/charmbracelet/ultraviolet v0.0.0-20251120225753-26363bddd922
 	github.com/charmbracelet/x/ansi v0.11.1
 	github.com/charmbracelet/x/cellbuf v0.0.14

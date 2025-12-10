@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/x/pony"
 )
 
-// Scrollable log component
+// Scrollable log component.
 type ScrollLog struct {
 	lines  []string
 	offset int
@@ -56,7 +56,7 @@ func (s *ScrollLog) Render() pony.Element {
 		Scrollbar(true)
 }
 
-// Template
+// Template.
 const tmpl = `
 <vstack spacing="1">
 	<box border="rounded" border-color="cyan" padding="1">

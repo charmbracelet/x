@@ -6,8 +6,8 @@ import (
 	"os"
 
 	uv "github.com/charmbracelet/ultraviolet"
-	"github.com/charmbracelet/x/term"
 	"github.com/charmbracelet/x/pony"
+	"github.com/charmbracelet/x/term"
 )
 
 func getSize() (int, int) {
@@ -18,7 +18,7 @@ func getSize() (int, int) {
 	return width, height
 }
 
-// Card is a custom component - a styled container with title and content
+// Card is a custom component - a styled container with title and content.
 type Card struct {
 	pony.BaseElement
 	Title   string
@@ -28,7 +28,7 @@ type Card struct {
 
 var _ pony.Element = (*Card)(nil)
 
-// NewCard creates a card component (this is the factory function)
+// NewCard creates a card component (this is the factory function).
 func NewCard(props pony.Props, children []pony.Element) pony.Element {
 	title := props.Get("title")
 	color := props.GetOr("color", "blue")
@@ -43,7 +43,7 @@ func NewCard(props pony.Props, children []pony.Element) pony.Element {
 // Draw renders the card - we compose from other pony elements!
 func (c *Card) Draw(scr uv.Screen, area uv.Rectangle) {
 	c.SetBounds(area)
-	
+
 	// Get color from name
 	var themeColor color.Color
 	switch c.Color {
@@ -77,7 +77,7 @@ func (c *Card) Draw(scr uv.Screen, area uv.Rectangle) {
 	card.Draw(scr, area)
 }
 
-// Layout delegates to the composed structure
+// Layout delegates to the composed structure.
 func (c *Card) Layout(constraints pony.Constraints) pony.Size {
 	var themeColor color.Color
 	switch c.Color {
@@ -104,7 +104,7 @@ func (c *Card) Layout(constraints pony.Constraints) pony.Size {
 	return card.Layout(constraints)
 }
 
-// Children returns the content elements
+// Children returns the content elements.
 func (c *Card) Children() []pony.Element {
 	return c.Content
 }

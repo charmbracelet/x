@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/x/pony"
 )
 
-// ViewData is the type-safe data structure for our template
+// ViewData is the type-safe data structure for our template.
 type ViewData struct {
 	Title  string
 	Count  int

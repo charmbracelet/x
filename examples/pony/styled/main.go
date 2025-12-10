@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/charmbracelet/x/term"
 	"github.com/charmbracelet/x/pony"
+	"github.com/charmbracelet/x/term"
 )
 
 func getSize() (int, int) {

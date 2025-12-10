@@ -5,11 +5,11 @@ import (
 	"log"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/x/pony"
 	uv "github.com/charmbracelet/ultraviolet"
+	"github.com/charmbracelet/x/pony"
 )
 
-// ListItem is a custom component that can be registered and used in markup
+// ListItem is a custom component that can be registered and used in markup.
 type ListItem struct {
 	pony.BaseElement
 	Text     string
@@ -20,7 +20,7 @@ func NewListItem(text string, selected bool) *ListItem {
 	return &ListItem{Text: text, Selected: selected}
 }
 
-// Render implements the Component interface
+// Render implements the Component interface.
 func (l *ListItem) Render() pony.Element {
 	text := pony.NewText(l.Text)
 
@@ -57,7 +57,7 @@ func (l *ListItem) Children() []pony.Element {
 	return nil
 }
 
-// Factory function for parser
+// Factory function for parser.
 func NewListItemFromProps(props pony.Props, children []pony.Element) pony.Element {
 	text := props.Get("text")
 	selected := props.Get("selected") == "true"
@@ -69,7 +69,7 @@ func init() {
 	pony.Register("listitem", NewListItemFromProps)
 }
 
-// Template with mostly markup
+// Template with mostly markup.
 const tmpl = `
 <vstack spacing="1">
 	<!-- Header -->
@@ -105,7 +105,7 @@ const tmpl = `
 </vstack>
 `
 
-// Data structures
+// Data structures.
 type ItemData struct {
 	ID       int
 	Text     string
@@ -119,7 +119,7 @@ type TemplateData struct {
 	Items        []ItemData
 }
 
-// Model
+// Model.
 type model struct {
 	template     *pony.Template[TemplateData]
 	items        []ItemData
@@ -153,10 +153,12 @@ func (m model) Init() tea.Cmd {
 	return tea.RequestWindowSize
 }
 
-// Messages
-type selectItemMsg int
-type hitInfoMsg string
-type scrollOffsetMsg int
+// Messages.
+type (
+	selectItemMsg   int
+	hitInfoMsg      string
+	scrollOffsetMsg int
+)
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -193,94 +195,97 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() tea.View {
-	data := TemplateData{
-		SelectedItem: m.selectedItem,
-		HitInfo:      m.hitInfo,
-		ScrollOffset: m.scrollOffset,
-		Items:        m.items,
-	}
+	// XXX: view.Callback doesn't exist.
+	return tea.NewView("")
 
-	// Render with bounds
-	scr, boundsMap := m.template.RenderWithBounds(data, nil, m.width, m.height)
-
-	view := tea.NewView(scr.Render())
-	view.AltScreen = true
-	view.MouseMode = tea.MouseModeAllMotion
-
-	// Set up callback using HitTestAll
-	view.Callback = func(msg tea.Msg) tea.Cmd {
-		switch msg := msg.(type) {
-		case tea.MouseWheelMsg:
-			// Get the ScrollView to calculate actual content size
-			if sv, ok := boundsMap.GetByID("main-scroll-view"); ok {
-				if scrollView, ok := sv.(*pony.ScrollView); ok {
-					// Get actual content size from ScrollView
-					contentSize := scrollView.ContentSize()
-					viewportHeight := 12 // Height specified in template
-					maxOffset := max(0, contentSize.Height-viewportHeight)
-
-					mouse := msg.Mouse()
-					newOffset := m.scrollOffset
-
-					switch mouse.Button {
-					case tea.MouseWheelUp:
-						newOffset = max(0, m.scrollOffset-3)
-					case tea.MouseWheelDown:
-						newOffset = min(maxOffset, m.scrollOffset+3)
-					}
-
-					if newOffset != m.scrollOffset {
-						return func() tea.Msg {
-							return scrollOffsetMsg(newOffset)
-						}
-					}
-				}
-			}
-
-		case tea.MouseClickMsg:
-			mouse := msg.Mouse()
-
-			// Use HitTestAll to get all elements at click position
-			hits := boundsMap.HitTestAll(mouse.X, mouse.Y)
-
-			if len(hits) == 0 {
-				return nil
-			}
-
-			// Log what we hit for debugging
-			var hitIDs []string
-			for _, elem := range hits {
-				hitIDs = append(hitIDs, elem.ID())
-			}
-			hitInfo := fmt.Sprintf("Hit %d elements: %v", len(hits), hitIDs)
-
-			// Check if we clicked a list item
-			for _, elem := range hits {
-				id := elem.ID()
-				// Parse item-N format
-				var itemNum int
-				if n, err := fmt.Sscanf(id, "item-%d", &itemNum); err == nil && n == 1 {
-					// Found a list item! Return batch of commands
-					return tea.Batch(
-						func() tea.Msg {
-							return hitInfoMsg(hitInfo)
-						},
-						func() tea.Msg {
-							return selectItemMsg(itemNum)
-						},
-					)
-				}
-			}
-
-			// If no item found, just update hit info
-			return func() tea.Msg {
-				return hitInfoMsg(hitInfo)
-			}
-		}
-		return nil
-	}
-
-	return view
+	// data := TemplateData{
+	// 	SelectedItem: m.selectedItem,
+	// 	HitInfo:      m.hitInfo,
+	// 	ScrollOffset: m.scrollOffset,
+	// 	Items:        m.items,
+	// }
+	//
+	// // Render with bounds
+	// scr, boundsMap := m.template.RenderWithBounds(data, nil, m.width, m.height)
+	//
+	// view := tea.NewView(scr.Render())
+	// view.AltScreen = true
+	// view.MouseMode = tea.MouseModeAllMotion
+	//
+	// // Set up callback using HitTestAll
+	// view.Callback = func(msg tea.Msg) tea.Cmd {
+	// 	switch msg := msg.(type) {
+	// 	case tea.MouseWheelMsg:
+	// 		// Get the ScrollView to calculate actual content size
+	// 		if sv, ok := boundsMap.GetByID("main-scroll-view"); ok {
+	// 			if scrollView, ok := sv.(*pony.ScrollView); ok {
+	// 				// Get actual content size from ScrollView
+	// 				contentSize := scrollView.ContentSize()
+	// 				viewportHeight := 12 // Height specified in template
+	// 				maxOffset := max(0, contentSize.Height-viewportHeight)
+	//
+	// 				mouse := msg.Mouse()
+	// 				newOffset := m.scrollOffset
+	//
+	// 				switch mouse.Button {
+	// 				case tea.MouseWheelUp:
+	// 					newOffset = max(0, m.scrollOffset-3)
+	// 				case tea.MouseWheelDown:
+	// 					newOffset = min(maxOffset, m.scrollOffset+3)
+	// 				}
+	//
+	// 				if newOffset != m.scrollOffset {
+	// 					return func() tea.Msg {
+	// 						return scrollOffsetMsg(newOffset)
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	//
+	// 	case tea.MouseClickMsg:
+	// 		mouse := msg.Mouse()
+	//
+	// 		// Use HitTestAll to get all elements at click position
+	// 		hits := boundsMap.HitTestAll(mouse.X, mouse.Y)
+	//
+	// 		if len(hits) == 0 {
+	// 			return nil
+	// 		}
+	//
+	// 		// Log what we hit for debugging
+	// 		var hitIDs []string
+	// 		for _, elem := range hits {
+	// 			hitIDs = append(hitIDs, elem.ID())
+	// 		}
+	// 		hitInfo := fmt.Sprintf("Hit %d elements: %v", len(hits), hitIDs)
+	//
+	// 		// Check if we clicked a list item
+	// 		for _, elem := range hits {
+	// 			id := elem.ID()
+	// 			// Parse item-N format
+	// 			var itemNum int
+	// 			if n, err := fmt.Sscanf(id, "item-%d", &itemNum); err == nil && n == 1 {
+	// 				// Found a list item! Return batch of commands
+	// 				return tea.Batch(
+	// 					func() tea.Msg {
+	// 						return hitInfoMsg(hitInfo)
+	// 					},
+	// 					func() tea.Msg {
+	// 						return selectItemMsg(itemNum)
+	// 					},
+	// 				)
+	// 			}
+	// 		}
+	//
+	// 		// If no item found, just update hit info
+	// 		return func() tea.Msg {
+	// 			return hitInfoMsg(hitInfo)
+	// 		}
+	// 	}
+	// 	return nil
+	// }
+	//
+	// return view
 }
 
 func main() {

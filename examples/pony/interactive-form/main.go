@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/x/pony"
 )
 
-// Input is a stateful text input component
+// Input is a stateful text input component.
 type Input struct {
 	pony.BaseElement
 	label       string
@@ -96,8 +96,8 @@ func (i *Input) Render() pony.Element {
 			Padding(1).
 			Width(pony.NewFixedConstraint(50)),
 	)
-	vstack.SetID(i.ID())  // Set the input's ID on the rendered element
-	
+	vstack.SetID(i.ID()) // Set the input's ID on the rendered element
+
 	return vstack
 }
 
@@ -105,7 +105,7 @@ func (i *Input) Value() string   { return i.value }
 func (i *Input) SetFocus(f bool) { i.focused = f }
 func (i *Input) IsFocused() bool { return i.focused }
 
-// ButtonBar is a component that renders action buttons
+// ButtonBar is a component that renders action buttons.
 type ButtonBar struct {
 	pony.BaseElement
 	showSubmit bool
@@ -154,7 +154,7 @@ func (b *ButtonBar) Render() pony.Element {
 	return pony.NewHStack(buttons...).Spacing(2)
 }
 
-// Template
+// Template.
 const tmpl = `
 <vstack spacing="1">
 	<box border="double" border-color="yellow" padding="1">
@@ -182,7 +182,7 @@ const tmpl = `
 
 	{{ if .ShowStatus }}
 	<divider foreground-color="gray" />
-	
+
 	<box border="rounded" border-color="{{ .StatusColor }}" padding="1">
 		<text foreground-color="{{ .StatusColor }}" font-weight="bold">{{ .StatusMessage }}</text>
 	</box>
@@ -270,9 +270,11 @@ func (m model) Init() tea.Cmd {
 	return tea.RequestWindowSize
 }
 
-// Custom messages
-type buttonClickMsg string
-type hoverMsg string
+// Custom messages.
+type (
+	buttonClickMsg string
+	hoverMsg       string
+)
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
@@ -371,74 +373,77 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() tea.View {
-	// Prepare data
-	focusedInput := "none"
-	if m.nameInput.IsFocused() {
-		focusedInput = "name"
-	} else if m.emailInput.IsFocused() {
-		focusedInput = "email"
-	} else if m.usernameInput.IsFocused() {
-		focusedInput = "username"
-	}
+	// XXX: view.Callback doesn't exist.
+	return tea.NewView("")
 
-	data := ViewData{
-		Name:           m.nameInput.Value(),
-		Email:          m.emailInput.Value(),
-		Username:       m.usernameInput.Value(),
-		FocusedInput:   focusedInput,
-		HoveredElement: m.hoveredElement,
-		ShowStatus:     m.showStatus,
-		StatusMessage:  m.statusMessage,
-		StatusColor:    m.statusColor,
-		ShowData:       m.showData,
-	}
-
-	// Fill slots with stateful components
-	slots := map[string]pony.Element{
-		"name-input":     m.nameInput.Render(),
-		"email-input":    m.emailInput.Render(),
-		"username-input": m.usernameInput.Render(),
-		"button-bar":     m.buttonBar.Render(),
-	}
-
-	// Render with bounds
-	scr, boundsMap := m.template.RenderWithBounds(data, slots, m.width, m.height)
-
-	view := tea.NewView(scr.Render())
-	view.AltScreen = true
-	view.MouseMode = tea.MouseModeAllMotion
-
-	// Set up callback for mouse events
-	view.Callback = func(msg tea.Msg) tea.Cmd {
-		switch msg := msg.(type) {
-		case tea.MouseClickMsg:
-			mouse := msg.Mouse()
-
-			// Hit test to find clicked element
-			if elem := boundsMap.HitTest(mouse.X, mouse.Y); elem != nil {
-				return func() tea.Msg {
-					return buttonClickMsg(elem.ID())
-				}
-			}
-
-		case tea.MouseMotionMsg:
-			mouse := msg.Mouse()
-
-			// Track hover state
-			if elem := boundsMap.HitTest(mouse.X, mouse.Y); elem != nil {
-				return func() tea.Msg {
-					return hoverMsg(elem.ID())
-				}
-			} else {
-				return func() tea.Msg {
-					return hoverMsg("")
-				}
-			}
-		}
-		return nil
-	}
-
-	return view
+	// // Prepare data
+	// focusedInput := "none"
+	// if m.nameInput.IsFocused() {
+	// 	focusedInput = "name"
+	// } else if m.emailInput.IsFocused() {
+	// 	focusedInput = "email"
+	// } else if m.usernameInput.IsFocused() {
+	// 	focusedInput = "username"
+	// }
+	//
+	// data := ViewData{
+	// 	Name:           m.nameInput.Value(),
+	// 	Email:          m.emailInput.Value(),
+	// 	Username:       m.usernameInput.Value(),
+	// 	FocusedInput:   focusedInput,
+	// 	HoveredElement: m.hoveredElement,
+	// 	ShowStatus:     m.showStatus,
+	// 	StatusMessage:  m.statusMessage,
+	// 	StatusColor:    m.statusColor,
+	// 	ShowData:       m.showData,
+	// }
+	//
+	// // Fill slots with stateful components
+	// slots := map[string]pony.Element{
+	// 	"name-input":     m.nameInput.Render(),
+	// 	"email-input":    m.emailInput.Render(),
+	// 	"username-input": m.usernameInput.Render(),
+	// 	"button-bar":     m.buttonBar.Render(),
+	// }
+	//
+	// // Render with bounds
+	// scr, boundsMap := m.template.RenderWithBounds(data, slots, m.width, m.height)
+	//
+	// view := tea.NewView(scr.Render())
+	// view.AltScreen = true
+	// view.MouseMode = tea.MouseModeAllMotion
+	//
+	// // Set up callback for mouse events
+	// view.Callback = func(msg tea.Msg) tea.Cmd {
+	// 	switch msg := msg.(type) {
+	// 	case tea.MouseClickMsg:
+	// 		mouse := msg.Mouse()
+	//
+	// 		// Hit test to find clicked element
+	// 		if elem := boundsMap.HitTest(mouse.X, mouse.Y); elem != nil {
+	// 			return func() tea.Msg {
+	// 				return buttonClickMsg(elem.ID())
+	// 			}
+	// 		}
+	//
+	// 	case tea.MouseMotionMsg:
+	// 		mouse := msg.Mouse()
+	//
+	// 		// Track hover state
+	// 		if elem := boundsMap.HitTest(mouse.X, mouse.Y); elem != nil {
+	// 			return func() tea.Msg {
+	// 				return hoverMsg(elem.ID())
+	// 			}
+	// 		} else {
+	// 			return func() tea.Msg {
+	// 				return hoverMsg("")
+	// 			}
+	// 		}
+	// 	}
+	// 	return nil
+	// }
+	//
+	// return view
 }
 
 func main() {

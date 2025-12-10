@@ -8,7 +8,7 @@ import (
 	"github.com/charmbracelet/x/pony"
 )
 
-// Simple stateful input component
+// Simple stateful input component.
 type Input struct {
 	value   string
 	focused bool
@@ -18,7 +18,7 @@ func NewInput(placeholder string) *Input {
 	return &Input{}
 }
 
-// Update handles events
+// Update handles events.
 func (i *Input) Update(msg tea.Msg) {
 	if !i.focused {
 		return
@@ -38,7 +38,7 @@ func (i *Input) Update(msg tea.Msg) {
 	}
 }
 
-// Render returns pony elements
+// Render returns pony elements.
 func (i *Input) Render() pony.Element {
 	displayText := i.value
 	if displayText == "" {
@@ -63,7 +63,7 @@ func (i *Input) Render() pony.Element {
 func (i *Input) Value() string   { return i.value }
 func (i *Input) SetFocus(f bool) { i.focused = f }
 
-// Template
+// Template.
 const tmpl = `
 <vstack spacing="1">
 	<box border="rounded" border-color="yellow" padding="1">
