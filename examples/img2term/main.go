@@ -16,7 +16,7 @@ import (
 	"github.com/charmbracelet/x/ansi/sixel"
 )
 
-// $ go run . ../../fixtures/JigokudaniMonkeyPark.png
+// $ go run . ../../fixtures/JigokudaniMonkeyPark.png.
 func main() {
 	flag.Parse()
 	args := flag.Args()

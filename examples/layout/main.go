@@ -10,8 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/colorprofile"
-	"github.com/charmbracelet/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 	"github.com/charmbracelet/x/cellbuf"
 	"github.com/charmbracelet/x/input"
@@ -386,8 +386,8 @@ func main() {
 
 	// Enable mouse events.
 	modes := []ansi.Mode{
-		ansi.ButtonEventMouseMode,
-		ansi.SgrExtMouseMode,
+		ansi.ModeMouseButtonEvent,
+		ansi.ModeMouseExtSgr,
 	}
 
 	os.Stdout.WriteString(ansi.SetMode(modes...))         //nolint:errcheck,gosec
