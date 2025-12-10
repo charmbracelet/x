@@ -55,7 +55,7 @@ func main() {
 	x, y := (w/2)-10, h/2
 
 	text := ansi.SetHyperlink("https://charm.sh") +
-		ansi.Style{}.Reverse().Styled(" !Hello, world! ") +
+		ansi.Style{}.Reverse(true).Styled(" !Hello, world! ") +
 		ansi.ResetHyperlink()
 	scrw := cellbuf.NewScreenWriter(scr)
 	render := func() {
