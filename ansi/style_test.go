@@ -45,6 +45,14 @@ func TestColorColor(t *testing.T) {
 	}
 }
 
+func TestNilColors(t *testing.T) {
+	var s ansi.Style
+	s = s.ForegroundColor(nil).BackgroundColor(nil).UnderlineColor(nil)
+	if s.String() != "\x1b[39;49;59m" {
+		t.Errorf("Unexpected sequence: %q", s)
+	}
+}
+
 func BenchmarkStyle(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
