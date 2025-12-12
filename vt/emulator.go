@@ -104,6 +104,11 @@ func NewEmulator(w, h int) *Emulator {
 	t.tabstops = uv.DefaultTabStops(w)
 	t.registerDefaultHandlers()
 
+	// Default colors
+	t.defaultFg = color.White
+	t.defaultBg = color.Black
+	t.defaultCur = color.White
+
 	return t
 }
 
@@ -340,6 +345,9 @@ func (e *Emulator) SetForegroundColor(c color.Color) {
 
 // SetDefaultForegroundColor sets the terminal's default foreground color.
 func (e *Emulator) SetDefaultForegroundColor(c color.Color) {
+	if c == nil {
+		c = color.White
+	}
 	e.defaultFg = c
 }
 
@@ -366,6 +374,9 @@ func (e *Emulator) SetBackgroundColor(c color.Color) {
 
 // SetDefaultBackgroundColor sets the terminal's default background color.
 func (e *Emulator) SetDefaultBackgroundColor(c color.Color) {
+	if c == nil {
+		c = color.Black
+	}
 	e.defaultBg = c
 }
 
@@ -391,6 +402,9 @@ func (e *Emulator) SetCursorColor(c color.Color) {
 
 // SetDefaultCursorColor sets the terminal's default cursor color.
 func (e *Emulator) SetDefaultCursorColor(c color.Color) {
+	if c == nil {
+		c = color.White
+	}
 	e.defaultCur = c
 }
 
