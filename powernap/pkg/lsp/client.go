@@ -625,8 +625,18 @@ func startServerProcess(ctx context.Context, config ClientConfig) (io.ReadWriteC
 		}
 	}()
 
+	// Create a stream transport with process closer
+	closer := &processCloser{
+		cmd:    cmd,
+		stdin:  stdin,
+		stdout: stdout,
+		stderr: stderr,
+		done:   make(chan struct{}),
+	}
+
 	// Monitor process exit
 	go func() {
+		defer close(closer.done)
 		if err := cmd.Wait(); err != nil {
 			slog.Error("Language server process exited with error", "command", config.Command, "error", err)
 		} else {
@@ -634,13 +644,7 @@ func startServerProcess(ctx context.Context, config ClientConfig) (io.ReadWriteC
 		}
 	}()
 
-	// Create a stream transport
-	stream := transport.NewStreamTransport(stdout, stdin, &processCloser{
-		cmd:    cmd,
-		stdin:  stdin,
-		stdout: stdout,
-		stderr: stderr,
-	})
+	stream := transport.NewStreamTransport(stdout, stdin, closer)
 
 	return stream, nil
 }
@@ -650,6 +654,7 @@ type processCloser struct {
 	stdin  io.WriteCloser
 	stdout io.ReadCloser
 	stderr io.ReadCloser
+	done   chan struct{} // closed when cmd.Wait() completes
 	mu     sync.Mutex
 }
 
@@ -672,19 +677,16 @@ func (c *processCloser) Close() error {
 	}
 
 	// Give the process time to exit gracefully
-	done := make(chan error, 1)
-	go func() {
-		done <- c.cmd.Wait()
-	}()
-
 	select {
-	case <-done:
+	case <-c.done:
 		// Process exited
 	case <-time.After(5 * time.Second):
 		// Timeout, kill the process
 		if err := c.cmd.Process.Kill(); err != nil {
 			errs = append(errs, err)
 		}
+		// Wait for the process to actually exit
+		<-c.done
 	}
 
 	if len(errs) > 0 {
