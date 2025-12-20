@@ -19,6 +19,12 @@ func MakeRaw(fd uintptr) (*State, error) {
 	return makeRaw(fd)
 }
 
+// MakeRawOutput puts the terminal into raw mode for input while preserving
+// output processing.
+func MakeRawOutput(fd uintptr) (*State, error) {
+	return makeRawOutput(fd)
+}
+
 // GetState returns the current state of a terminal which may be useful to
 // restore the terminal after a signal.
 func GetState(fd uintptr) (*State, error) {

@@ -18,6 +18,10 @@ func makeRaw(fd uintptr) (*State, error) {
 	return nil, fmt.Errorf("terminal: MakeRaw not implemented on %s/%s", runtime.GOOS, runtime.GOARCH)
 }
 
+func makeRawOutput(fd uintptr) (*State, error) {
+	return nil, fmt.Errorf("terminal: MakeRawOutput not implemented on %s/%s", runtime.GOOS, runtime.GOARCH)
+}
+
 func getState(fd uintptr) (*State, error) {
 	return nil, fmt.Errorf("terminal: GetState not implemented on %s/%s", runtime.GOOS, runtime.GOARCH)
 }
