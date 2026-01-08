@@ -60,6 +60,7 @@ func EndOfLine() Option {
 
 // AtPosition opens the file at the given line and column in supported editors.
 // If line or column is less than 1, they will be set to 1.
+// If the editor only supports line numbers, the column will be ignored.
 func AtPosition(line, column int) Option {
 	line = max(line, 1)
 	column = max(column, 1)
