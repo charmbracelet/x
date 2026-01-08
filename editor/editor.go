@@ -7,11 +7,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 )
 
-const defaultEditor = "nano"
+const (
+	defaultEditor        = "nano"
+	defaultEditorWindows = "notepad"
+)
 
 // Option defines an editor option.
 //
@@ -27,19 +31,17 @@ func OpenAtLine(n int) Option { return LineNumber(n) }
 // LineNumber opens the file at the given line number in supported editors. If
 // [number] is less than line 1, the file will be opened at line 1.
 func LineNumber(number int) Option {
-	if number < 1 {
-		number = 1
-	}
+	number = max(1, number)
 	plusLineEditors := []string{"vi", "vim", "nvim", "nano", "emacs", "kak", "gedit"}
 	return func(editor, filename string) ([]string, bool) {
 		if slices.Contains(plusLineEditors, editor) {
 			return []string{fmt.Sprintf("+%d", number)}, false
 		}
-		if editor == "code" {
-			return []string{
-				"--goto",
-				fmt.Sprintf("%s:%d", filename, number),
-			}, true
+		switch editor {
+		case "code":
+			return []string{"--goto", fmt.Sprintf("%s:%d", filename, number)}, true
+		case "hx":
+			return []string{fmt.Sprintf("%s:%d", filename, number)}, true
 		}
 		return nil, false
 	}
@@ -51,6 +53,32 @@ func EndOfLine() Option {
 		switch editor {
 		case "vim", "nvim":
 			return []string{"+norm! $"}, false
+		}
+		return nil, false
+	}
+}
+
+// AtPosition opens the file at the given line and column in supported editors.
+// If line or column is less than 1, they will be set to 1.
+func AtPosition(line, column int) Option {
+	line = max(line, 1)
+	column = max(column, 1)
+	vimLike := []string{"vi", "vim", "nvim"}
+	return func(editor, filename string) (args []string, pathInArgs bool) {
+		if slices.Contains(vimLike, editor) {
+			return []string{fmt.Sprintf("+call cursor(%d,%d)", line, column)}, false
+		}
+		switch editor {
+		case "nano":
+			return []string{fmt.Sprintf("+%d,%d", line, column)}, false
+		case "emacs", "kak":
+			return []string{fmt.Sprintf("+%d:%d", line, column)}, false
+		case "gedit":
+			return []string{fmt.Sprintf("+%d", line)}, false
+		case "code":
+			return []string{"--goto", fmt.Sprintf("%s:%d:%d", filename, line, column)}, true
+		case "hx":
+			return []string{fmt.Sprintf("%s:%d:%d", filename, line, column)}, true
 		}
 		return nil, false
 	}
@@ -102,5 +130,10 @@ func getEditor() (string, []string) {
 	if len(editor) == 1 {
 		return editor[0], []string{}
 	}
-	return defaultEditor, []string{}
+	switch runtime.GOOS {
+	case "windows":
+		return defaultEditorWindows, []string{}
+	default:
+		return defaultEditor, []string{}
+	}
 }
