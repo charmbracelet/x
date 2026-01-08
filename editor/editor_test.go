@@ -2,13 +2,28 @@ package editor
 
 import (
 	"reflect"
+	"runtime"
 	"testing"
 )
+
+func TestDefaultEditor(t *testing.T) {
+	t.Setenv("EDITOR", "")
+	cmd, _ := Cmd("X", "README.md")
+	got := cmd.Args
+	expect := []string{"notepad", "README.md"}
+	if runtime.GOOS != "windows" {
+		expect = []string{"nano", "README.md"}
+	}
+	if !reflect.DeepEqual(got, expect) {
+		t.Fatalf("expected %v; got %v", expect, got)
+	}
+}
 
 func TestEditor(t *testing.T) {
 	filename := "README.md"
 	for k, v := range map[string][]string{
-		"":             {"nano", filename},
+		"nano":         {"nano", filename},
+		"notepad":      {"notepad", filename},
 		"nvim":         {"nvim", filename},
 		"vim":          {"vim", filename},
 		"vscode --foo": {"vscode", "--foo", filename},
@@ -26,7 +41,8 @@ func TestEditor(t *testing.T) {
 
 	t.Run("with line number", func(t *testing.T) {
 		for k, v := range map[string][]string{
-			"":             {"nano", "+12", filename},
+			"nano":         {"nano", "+12", filename},
+			"notepad":      {"notepad", filename},
 			"vi":           {"vi", "+12", filename},
 			"nvim":         {"nvim", "+12", filename},
 			"vim":          {"vim", "+12", filename},
@@ -51,7 +67,8 @@ func TestEditor(t *testing.T) {
 
 	t.Run("with end of line", func(t *testing.T) {
 		for k, v := range map[string][]string{
-			"":             {"nano", filename},
+			"nano":         {"nano", filename},
+			"notepad":      {"notepad", filename},
 			"vi":           {"vi", filename},
 			"nvim":         {"nvim", "+norm! $", filename},
 			"vim":          {"vim", "+norm! $", filename},
@@ -72,7 +89,8 @@ func TestEditor(t *testing.T) {
 
 	t.Run("with line and end of line", func(t *testing.T) {
 		for k, v := range map[string][]string{
-			"":             {"nano", "+3", filename},
+			"nano":         {"nano", "+3", filename},
+			"notepad":      {"notepad", filename},
 			"nvim":         {"nvim", "+norm! $", "+3", filename},
 			"vim":          {"vim", "+norm! $", "+3", filename},
 			"vscode --foo": {"vscode", "--foo", filename},
@@ -103,7 +121,8 @@ func TestEditor(t *testing.T) {
 
 	t.Run("with at position", func(t *testing.T) {
 		for k, v := range map[string][]string{
-			"":             {"nano", "+5,10", filename},
+			"nano":         {"nano", "+5,10", filename},
+			"notepad":      {"notepad", filename},
 			"vi":           {"vi", "+call cursor(5,10)", filename},
 			"vim":          {"vim", "+call cursor(5,10)", filename},
 			"nvim":         {"nvim", "+call cursor(5,10)", filename},
