@@ -2,13 +2,28 @@ package editor
 
 import (
 	"reflect"
+	"runtime"
 	"testing"
 )
+
+func TestDefaultEditor(t *testing.T) {
+	t.Setenv("EDITOR", "")
+	cmd, _ := Cmd("X", "README.md")
+	got := cmd.Args
+	expect := []string{"notepad", "README.md"}
+	if runtime.GOOS != "windows" {
+		expect = []string{"nano", "README.md"}
+	}
+	if !reflect.DeepEqual(got, expect) {
+		t.Fatalf("expected %v; got %v", expect, got)
+	}
+}
 
 func TestEditor(t *testing.T) {
 	filename := "README.md"
 	for k, v := range map[string][]string{
-		"":             {"nano", filename},
+		"nano":         {"nano", filename},
+		"notepad":      {"notepad", filename},
 		"nvim":         {"nvim", filename},
 		"vim":          {"vim", filename},
 		"vscode --foo": {"vscode", "--foo", filename},
@@ -26,9 +41,15 @@ func TestEditor(t *testing.T) {
 
 	t.Run("with line number", func(t *testing.T) {
 		for k, v := range map[string][]string{
-			"":             {"nano", "+12", filename},
+			"nano":         {"nano", "+12", filename},
+			"notepad":      {"notepad", filename},
+			"vi":           {"vi", "+12", filename},
 			"nvim":         {"nvim", "+12", filename},
 			"vim":          {"vim", "+12", filename},
+			"emacs":        {"emacs", "+12", filename},
+			"kak":          {"kak", "+12", filename},
+			"gedit":        {"gedit", "+12", filename},
+			"hx":           {"hx", filename + ":12"},
 			"vscode --foo": {"vscode", "--foo", filename},
 			"nvim -a -b":   {"nvim", "-a", "-b", "+12", filename},
 			"code --foo":   {"code", "--foo", "--goto", filename + ":12"},
@@ -46,7 +67,9 @@ func TestEditor(t *testing.T) {
 
 	t.Run("with end of line", func(t *testing.T) {
 		for k, v := range map[string][]string{
-			"":             {"nano", filename},
+			"nano":         {"nano", filename},
+			"notepad":      {"notepad", filename},
+			"vi":           {"vi", filename},
 			"nvim":         {"nvim", "+norm! $", filename},
 			"vim":          {"vim", "+norm! $", filename},
 			"vscode --foo": {"vscode", "--foo", filename},
@@ -66,7 +89,8 @@ func TestEditor(t *testing.T) {
 
 	t.Run("with line and end of line", func(t *testing.T) {
 		for k, v := range map[string][]string{
-			"":             {"nano", "+3", filename},
+			"nano":         {"nano", "+3", filename},
+			"notepad":      {"notepad", filename},
 			"nvim":         {"nvim", "+norm! $", "+3", filename},
 			"vim":          {"vim", "+norm! $", "+3", filename},
 			"vscode --foo": {"vscode", "--foo", filename},
@@ -92,6 +116,32 @@ func TestEditor(t *testing.T) {
 		}
 		if got != nil {
 			t.Fatalf("should have returned nil, got %v", got)
+		}
+	})
+
+	t.Run("with at position", func(t *testing.T) {
+		for k, v := range map[string][]string{
+			"nano":         {"nano", "+5,10", filename},
+			"notepad":      {"notepad", filename},
+			"vi":           {"vi", "+call cursor(5,10)", filename},
+			"vim":          {"vim", "+call cursor(5,10)", filename},
+			"nvim":         {"nvim", "+call cursor(5,10)", filename},
+			"emacs":        {"emacs", "+5:10", filename},
+			"kak":          {"kak", "+5:10", filename},
+			"gedit":        {"gedit", "+5", filename},
+			"code":         {"code", "--goto", filename + ":5:10"},
+			"hx":           {"hx", filename + ":5:10"},
+			"vscode --foo": {"vscode", "--foo", filename},
+			"nvim -a -b":   {"nvim", "-a", "-b", "+call cursor(5,10)", filename},
+		} {
+			t.Run(k, func(t *testing.T) {
+				t.Setenv("EDITOR", k)
+				cmd, _ := Cmd("X", "README.md", AtPosition(5, 10))
+				got := cmd.Args
+				if !reflect.DeepEqual(got, v) {
+					t.Fatalf("expected %v; got %v", v, got)
+				}
+			})
 		}
 	})
 }
