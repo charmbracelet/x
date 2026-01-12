@@ -4,7 +4,9 @@ package registry
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"maps"
 	"os"
@@ -126,7 +128,10 @@ func (r *Registry) StopServer(ctx context.Context, name string) error {
 	}
 
 	// Shutdown the client
-	if err := client.Shutdown(ctx); err != nil {
+	if err := client.Shutdown(ctx); err != nil &&
+		!errors.Is(err, io.EOF) &&
+		!errors.Is(err, context.Canceled) &&
+		err.Error() != "signal: killed" {
 		r.logger.Error("Failed to shutdown server", "name", name, "error", err)
 	}
 
