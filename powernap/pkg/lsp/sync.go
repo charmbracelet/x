@@ -31,13 +31,13 @@ func NewTextDocumentSyncManager(client *Client) *TextDocumentSyncManager {
 	// Extract sync kind from capabilities
 	switch v := client.capabilities.TextDocumentSync.(type) {
 	case float64:
-		syncKind = protocol.TextDocumentSyncKind(int(v))
+		syncKind = protocol.TextDocumentSyncKind(int(v)) //nolint:gosec
 	case int:
-		syncKind = protocol.TextDocumentSyncKind(v)
+		syncKind = protocol.TextDocumentSyncKind(v) //nolint:gosec
 	case map[string]any:
 		// It's a TextDocumentSyncOptions object
 		if change, ok := v["change"].(float64); ok {
-			syncKind = protocol.TextDocumentSyncKind(int(change))
+			syncKind = protocol.TextDocumentSyncKind(int(change)) //nolint:gosec
 		}
 	case *protocol.TextDocumentSyncOptions:
 		syncKind = v.Change
@@ -77,6 +77,9 @@ func (m *TextDocumentSyncManager) Change(uri string, changes []protocol.TextDocu
 
 	// Apply changes based on sync kind
 	switch m.syncKind {
+	case protocol.None:
+		// Server doesn't want document change notifications
+		return nil
 	case protocol.Full:
 		// For full sync, we expect a single change with the full content
 		if len(changes) > 0 {
@@ -111,7 +114,7 @@ func (m *TextDocumentSyncManager) Close(uri string) error {
 		},
 	}
 
-	return m.client.conn.Notify(m.client.ctx, MethodTextDocumentDidClose, params)
+	return m.client.conn.Notify(m.client.ctx, MethodTextDocumentDidClose, params) //nolint:wrapcheck
 }
 
 // Save notifies the server that a document was saved.
@@ -131,7 +134,7 @@ func (m *TextDocumentSyncManager) Save(uri string, includeText bool) error {
 		params["text"] = doc.Content
 	}
 
-	return m.client.conn.Notify(m.client.ctx, MethodTextDocumentDidSave, params)
+	return m.client.conn.Notify(m.client.ctx, MethodTextDocumentDidSave, params) //nolint:wrapcheck
 }
 
 // GetDocument returns the document for the given URI.
@@ -162,7 +165,7 @@ func (m *TextDocumentSyncManager) applyIncrementalChange(doc *Document, change p
 
 	// Convert content to lines for easier manipulation
 	lines := strings.Split(doc.Content, "\n")
-	lineC := uint32(len(lines))
+	lineC := uint32(len(lines)) //nolint:gosec
 
 	// Validate range
 	if partial.Range.Start.Line >= lineC {
@@ -175,13 +178,13 @@ func (m *TextDocumentSyncManager) applyIncrementalChange(doc *Document, change p
 	// Calculate the start and end positions in the document
 	var startPos uint32
 	for i := uint32(0); i < partial.Range.Start.Line; i++ {
-		startPos += uint32(len(lines[i])) + 1 // +1 for newline
+		startPos += uint32(len(lines[i])) + 1 //nolint:gosec
 	}
 	startPos += partial.Range.Start.Character
 
 	var endPos uint32
 	for i := uint32(0); i < partial.Range.End.Line; i++ {
-		endPos += uint32(len(lines[i])) + 1
+		endPos += uint32(len(lines[i])) + 1 //nolint:gosec
 	}
 	endPos += partial.Range.End.Character
 

@@ -109,7 +109,7 @@ slow:
 
 	u, err := url.ParseRequestURI(string(uri))
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("parsing URI %q: %w", uri, err)
 	}
 	if u.Scheme != fileScheme {
 		return "", fmt.Errorf("only file URIs are supported, got %q from %q", u.Scheme, uri)
@@ -144,7 +144,7 @@ func ParseDocumentURI(s string) (DocumentURI, error) {
 	// in particular over-escapes :, @, etc. Unescape and re-encode to canonicalize.
 	path, err := url.PathUnescape(s[len("file://"):])
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("unescaping URI path %q: %w", s, err)
 	}
 
 	// File URIs from Windows may have lowercase drive letters.

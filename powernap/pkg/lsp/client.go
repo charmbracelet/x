@@ -19,7 +19,7 @@ import (
 	"github.com/charmbracelet/x/powernap/pkg/transport"
 )
 
-// LSP method constants
+// LSP method constants.
 const (
 	MethodInitialize                         = "initialize"
 	MethodInitialized                        = "initialized"
@@ -235,7 +235,7 @@ func (c *Client) NotifyDidOpenTextDocument(ctx context.Context, uri string, lang
 		TextDocument: protocol.TextDocumentItem{
 			URI:        protocol.DocumentURI(uri),
 			LanguageID: protocol.LanguageKind(languageID),
-			Version:    int32(version),
+			Version:    int32(version), //nolint:gosec
 			Text:       text,
 		},
 	}
@@ -247,7 +247,7 @@ func (c *Client) NotifyDidOpenTextDocument(ctx context.Context, uri string, lang
 		"version", version,
 		"textLength", len(text))
 
-	return c.conn.Notify(ctx, MethodTextDocumentDidOpen, params)
+	return c.conn.Notify(ctx, MethodTextDocumentDidOpen, params) //nolint:wrapcheck
 }
 
 // NotifyDidCloseTextDocument notifies the server that a document was closeed.
@@ -262,7 +262,7 @@ func (c *Client) NotifyDidCloseTextDocument(ctx context.Context, uri string) err
 		},
 	}
 
-	return c.conn.Notify(ctx, MethodTextDocumentDidClose, params)
+	return c.conn.Notify(ctx, MethodTextDocumentDidClose, params) //nolint:wrapcheck
 }
 
 // NotifyDidChangeTextDocument notifies the server that a document was changed.
@@ -273,7 +273,7 @@ func (c *Client) NotifyDidChangeTextDocument(ctx context.Context, uri string, ve
 
 	params := protocol.DidChangeTextDocumentParams{
 		TextDocument: protocol.VersionedTextDocumentIdentifier{
-			Version: int32(version),
+			Version: int32(version), //nolint:gosec
 			TextDocumentIdentifier: protocol.TextDocumentIdentifier{
 				URI: protocol.DocumentURI(uri),
 			},
@@ -281,7 +281,7 @@ func (c *Client) NotifyDidChangeTextDocument(ctx context.Context, uri string, ve
 		ContentChanges: changes,
 	}
 
-	return c.conn.Notify(ctx, MethodTextDocumentDidChange, params)
+	return c.conn.Notify(ctx, MethodTextDocumentDidChange, params) //nolint:wrapcheck
 }
 
 // NotifyDidChangeWatchedFiles notifies the server that watched files have
@@ -295,7 +295,7 @@ func (c *Client) NotifyDidChangeWatchedFiles(ctx context.Context, changes []prot
 		Changes: changes,
 	}
 
-	return c.conn.Notify(ctx, MethodWorkspaceDidChangeWatchedFiles, params)
+	return c.conn.Notify(ctx, MethodWorkspaceDidChangeWatchedFiles, params) //nolint:wrapcheck
 }
 
 // NotifyWorkspaceDidChangeConfiguration notifies the server that the workspace configuration has changed.
@@ -308,7 +308,7 @@ func (c *Client) NotifyWorkspaceDidChangeConfiguration(ctx context.Context, sett
 		"settings": settings,
 	}
 
-	return c.conn.Notify(ctx, MethodWorkspaceDidChangeConfiguration, params)
+	return c.conn.Notify(ctx, MethodWorkspaceDidChangeConfiguration, params) //nolint:wrapcheck
 }
 
 // RequestCompletion requests completion items at the given position.
@@ -343,20 +343,20 @@ func (c *Client) RequestCompletion(ctx context.Context, uri string, position pro
 		// It's a CompletionList
 		data, err := json.Marshal(v)
 		if err != nil {
-			return nil, err
+			return nil, err //nolint:wrapcheck
 		}
 		if err := json.Unmarshal(data, &completionList); err != nil {
-			return nil, err
+			return nil, err //nolint:wrapcheck
 		}
 	case []any:
 		// It's an array of CompletionItem
 		data, err := json.Marshal(v)
 		if err != nil {
-			return nil, err
+			return nil, err //nolint:wrapcheck
 		}
 		var items []protocol.CompletionItem
 		if err := json.Unmarshal(data, &items); err != nil {
-			return nil, err
+			return nil, err //nolint:wrapcheck
 		}
 		completionList.Items = items
 		completionList.IsIncomplete = false
@@ -396,8 +396,8 @@ func (c *Client) FindReferences(ctx context.Context, filepath string, line, char
 				URI: protocol.DocumentURI(uri),
 			},
 			Position: protocol.Position{
-				Line:      uint32(line),
-				Character: uint32(character),
+				Line:      uint32(line),      //nolint:gosec
+				Character: uint32(character), //nolint:gosec
 			},
 		},
 		Context: protocol.ReferenceContext{
@@ -416,10 +416,10 @@ func (c *Client) FindReferences(ctx context.Context, filepath string, line, char
 // setupHandlers registers handlers for server-initiated requests.
 func (c *Client) setupHandlers() {
 	// Handle workspace/configuration requests
-	c.conn.RegisterHandler(MethodWorkspaceConfiguration, func(ctx context.Context, method string, params json.RawMessage) (any, error) {
+	c.conn.RegisterHandler(MethodWorkspaceConfiguration, func(_ context.Context, _ string, params json.RawMessage) (any, error) {
 		var configParams protocol.ConfigurationParams
 		if err := json.Unmarshal(params, &configParams); err != nil {
-			return nil, err
+			return nil, err //nolint:wrapcheck
 		}
 
 		// Return configuration for each requested item
@@ -577,7 +577,7 @@ func (c *Client) makeClientCapabilities(enableSnippets bool) map[string]any {
 
 // startServerProcess starts the language server process.
 func startServerProcess(ctx context.Context, config ClientConfig) (io.ReadWriteCloser, error) {
-	cmd := exec.CommandContext(ctx, config.Command, config.Args...)
+	cmd := exec.CommandContext(ctx, config.Command, config.Args...) //nolint:gosec
 
 	// Set environment variables
 	if config.Environment != nil {

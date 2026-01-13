@@ -12,11 +12,11 @@ import (
 type OffsetEncoding int
 
 const (
-	// UTF8 encoding - bytes
+	// UTF8 encoding - bytes.
 	UTF8 OffsetEncoding = iota
-	// UTF16 encoding - default for LSP
+	// UTF16 encoding - default for LSP.
 	UTF16
-	// UTF32 encoding - codepoints
+	// UTF32 encoding - codepoints.
 	UTF32
 )
 
