@@ -22,7 +22,7 @@ func TestProcessCloser_ConcurrentClose(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			stream.Close()
+			_ = stream.Close()
 		}()
 	}
 	wg.Wait()
@@ -41,7 +41,7 @@ func TestProcessCloser_CloseAfterContextCancel(t *testing.T) {
 	}
 
 	cancel()
-	stream.Close()
+	_ = stream.Close()
 }
 
 func TestProcessCloser_ConcurrentCancelAndClose(t *testing.T) {
@@ -66,7 +66,7 @@ func TestProcessCloser_ConcurrentCancelAndClose(t *testing.T) {
 	}()
 	go func() {
 		defer wg.Done()
-		stream.Close()
+		_ = stream.Close()
 	}()
 	wg.Wait()
 }

@@ -1,3 +1,4 @@
+// Package transport provides JSON-RPC 2.0 transport for LSP communication.
 package transport
 
 import (
@@ -26,7 +27,6 @@ type Connection struct {
 	// Request tracking
 	requestMu sync.Mutex
 	requests  map[jsonrpc2.ID]chan *Message
-	nextID    int64
 }
 
 // NewConnection creates a new managed connection.
@@ -56,7 +56,7 @@ func (c *Connection) Call(ctx context.Context, method string, params any, result
 		return fmt.Errorf("connection is closed")
 	}
 
-	return c.conn.Call(ctx, method, params, result)
+	return c.conn.Call(ctx, method, params, result) //nolint:wrapcheck
 }
 
 // Notify sends a notification to the language server.
@@ -65,11 +65,11 @@ func (c *Connection) Notify(ctx context.Context, method string, params any) erro
 		return fmt.Errorf("connection is closed")
 	}
 
-	return c.conn.Notify(ctx, method, params)
+	return c.conn.Notify(ctx, method, params) //nolint:wrapcheck
 }
 
 // handleRequest handles incoming requests from the language server.
-func (c *Connection) handleRequest(ctx context.Context, conn *jsonrpc2.Conn, req *jsonrpc2.Request) (any, error) {
+func (c *Connection) handleRequest(ctx context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (any, error) {
 	if c.logger != nil {
 		c.logger.Debug("Handling request", "method", req.Method)
 	}

@@ -61,12 +61,12 @@ func (t *Transport) Send(ctx context.Context, msg *Message) error {
 			var result json.RawMessage
 			err := t.conn.Call(ctx, msg.Method, msg.Params, &result)
 			if err != nil {
-				return err
+				return err //nolint:wrapcheck
 			}
 			msg.Result = result
 		} else {
 			// It's a notification
-			return t.conn.Notify(ctx, msg.Method, msg.Params)
+			return t.conn.Notify(ctx, msg.Method, msg.Params) //nolint:wrapcheck
 		}
 		return nil
 	}
@@ -96,7 +96,7 @@ func (t *Transport) Send(ctx context.Context, msg *Message) error {
 }
 
 // Receive receives a message from the language server.
-func (t *Transport) Receive(ctx context.Context) (*Message, error) {
+func (t *Transport) Receive(_ context.Context) (*Message, error) {
 	if t.conn != nil {
 		// This is handled by the connection's handler
 		return nil, fmt.Errorf("receive not supported with existing connection")
@@ -161,13 +161,13 @@ func (t *Transport) Close() error {
 
 	if closer, ok := t.writer.(io.Closer); ok {
 		if err := closer.Close(); err != nil {
-			return err
+			return err //nolint:wrapcheck
 		}
 	}
 
 	if closer, ok := t.reader.(io.Closer); ok {
 		if err := closer.Close(); err != nil {
-			return err
+			return err //nolint:wrapcheck
 		}
 	}
 
@@ -192,18 +192,18 @@ func NewStreamTransport(reader io.Reader, writer io.Writer, closer io.Closer) *S
 
 // Read implements io.Reader.
 func (s *StreamTransport) Read(p []byte) (n int, err error) {
-	return s.reader.Read(p)
+	return s.reader.Read(p) //nolint:wrapcheck
 }
 
 // Write implements io.Writer.
 func (s *StreamTransport) Write(p []byte) (n int, err error) {
-	return s.writer.Write(p)
+	return s.writer.Write(p) //nolint:wrapcheck
 }
 
 // Close implements io.Closer.
 func (s *StreamTransport) Close() error {
 	if s.closer != nil {
-		return s.closer.Close()
+		return s.closer.Close() //nolint:wrapcheck
 	}
 	return nil
 }

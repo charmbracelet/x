@@ -1,5 +1,6 @@
 package protocol
 
+// TableKindMap maps SymbolKind values to their string representations.
 var TableKindMap = map[SymbolKind]string{
 	File:          "File",
 	Module:        "Module",

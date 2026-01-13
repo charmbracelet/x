@@ -5,33 +5,39 @@ import (
 	"log/slog"
 )
 
-// PatternInfo is an interface for types that represent glob patterns
+// PatternInfo is an interface for types that represent glob patterns.
 type PatternInfo interface {
 	GetPattern() string
 	GetBasePath() string
 	isPattern() // marker method
 }
 
-// StringPattern implements PatternInfo for string patterns
+// StringPattern implements PatternInfo for string patterns.
 type StringPattern struct {
 	Pattern string
 }
 
-func (p StringPattern) GetPattern() string  { return p.Pattern }
+// GetPattern returns the glob pattern string.
+func (p StringPattern) GetPattern() string { return p.Pattern }
+
+// GetBasePath returns an empty string for simple patterns.
 func (p StringPattern) GetBasePath() string { return "" }
 func (p StringPattern) isPattern()          {}
 
-// RelativePatternInfo implements PatternInfo for RelativePattern
+// RelativePatternInfo implements PatternInfo for RelativePattern.
 type RelativePatternInfo struct {
 	RP       RelativePattern
 	BasePath string
 }
 
-func (p RelativePatternInfo) GetPattern() string  { return string(p.RP.Pattern) }
+// GetPattern returns the glob pattern string.
+func (p RelativePatternInfo) GetPattern() string { return p.RP.Pattern }
+
+// GetBasePath returns the base path for the pattern.
 func (p RelativePatternInfo) GetBasePath() string { return p.BasePath }
 func (p RelativePatternInfo) isPattern()          {}
 
-// AsPattern converts GlobPattern to a PatternInfo object
+// AsPattern converts GlobPattern to a PatternInfo object.
 func (g *GlobPattern) AsPattern() (PatternInfo, error) {
 	if g.Value == nil {
 		return nil, fmt.Errorf("nil pattern")

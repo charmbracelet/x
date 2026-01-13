@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 )
 
-// Message represents a JSON-RPC 2.0 message
+// Message represents a JSON-RPC 2.0 message.
 type Message struct {
 	JSONRPC string          `json:"jsonrpc"`
 	ID      int32           `json:"id,omitempty"`
@@ -14,16 +14,17 @@ type Message struct {
 	Error   *ResponseError  `json:"error,omitempty"`
 }
 
-// ResponseError represents a JSON-RPC 2.0 error
+// ResponseError represents a JSON-RPC 2.0 error.
 type ResponseError struct {
 	Code    int    `json:"code"`
 	Message string `json:"message"`
 }
 
+// NewRequest creates a new JSON-RPC 2.0 request message.
 func NewRequest(id int32, method string, params any) (*Message, error) {
 	paramsJSON, err := json.Marshal(params)
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
 	return &Message{
@@ -34,10 +35,11 @@ func NewRequest(id int32, method string, params any) (*Message, error) {
 	}, nil
 }
 
+// NewNotification creates a new JSON-RPC 2.0 notification message.
 func NewNotification(method string, params any) (*Message, error) {
 	paramsJSON, err := json.Marshal(params)
 	if err != nil {
-		return nil, err
+		return nil, err //nolint:wrapcheck
 	}
 
 	return &Message{
