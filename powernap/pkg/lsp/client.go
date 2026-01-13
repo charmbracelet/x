@@ -5,6 +5,7 @@ package lsp
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -646,9 +647,11 @@ type processCloser struct {
 
 func (c *processCloser) Close() error {
 	c.closeOnce.Do(func() {
-		c.stdin.Close()
-		c.stdout.Close()
-		c.stderr.Close()
+		errs := []error{
+			c.stdin.Close(),
+			c.stdout.Close(),
+			c.stderr.Close(),
+		}
 
 		done := make(chan error, 1)
 		go func() {
@@ -656,10 +659,14 @@ func (c *processCloser) Close() error {
 		}()
 
 		select {
-		case c.closeErr = <-done:
+		case err := <-done:
+			errs = append(errs, err)
 		case <-time.After(5 * time.Second):
-			c.closeErr = c.cmd.Process.Kill()
+			errs = append(errs, c.cmd.Process.Kill())
+			<-done
 		}
+
+		c.closeErr = errors.Join(errs...)
 	})
 	return c.closeErr
 }
