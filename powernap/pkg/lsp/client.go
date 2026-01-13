@@ -625,71 +625,41 @@ func startServerProcess(ctx context.Context, config ClientConfig) (io.ReadWriteC
 		}
 	}()
 
-	// Monitor process exit
-	go func() {
-		if err := cmd.Wait(); err != nil {
-			slog.Error("Language server process exited with error", "command", config.Command, "error", err)
-		} else {
-			slog.Info("Language server process exited normally", "command", config.Command)
-		}
-	}()
-
-	// Create a stream transport
-	stream := transport.NewStreamTransport(stdout, stdin, &processCloser{
+	closer := &processCloser{
 		cmd:    cmd,
 		stdin:  stdin,
 		stdout: stdout,
 		stderr: stderr,
-	})
+	}
 
-	return stream, nil
+	return transport.NewStreamTransport(stdout, stdin, closer), nil
 }
 
 type processCloser struct {
-	cmd    *exec.Cmd
-	stdin  io.WriteCloser
-	stdout io.ReadCloser
-	stderr io.ReadCloser
-	mu     sync.Mutex
+	cmd       *exec.Cmd
+	stdin     io.WriteCloser
+	stdout    io.ReadCloser
+	stderr    io.ReadCloser
+	closeOnce sync.Once
+	closeErr  error
 }
 
 func (c *processCloser) Close() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.closeOnce.Do(func() {
+		c.stdin.Close()
+		c.stdout.Close()
+		c.stderr.Close()
 
-	var errs []error
+		done := make(chan error, 1)
+		go func() {
+			done <- c.cmd.Wait()
+		}()
 
-	if err := c.stdin.Close(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := c.stdout.Close(); err != nil {
-		errs = append(errs, err)
-	}
-
-	if err := c.stderr.Close(); err != nil {
-		errs = append(errs, err)
-	}
-
-	// Give the process time to exit gracefully
-	done := make(chan error, 1)
-	go func() {
-		done <- c.cmd.Wait()
-	}()
-
-	select {
-	case <-done:
-		// Process exited
-	case <-time.After(5 * time.Second):
-		// Timeout, kill the process
-		if err := c.cmd.Process.Kill(); err != nil {
-			errs = append(errs, err)
+		select {
+		case c.closeErr = <-done:
+		case <-time.After(5 * time.Second):
+			c.closeErr = c.cmd.Process.Kill()
 		}
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("errors closing process: %v", errs)
-	}
-
-	return nil
+	})
+	return c.closeErr
 }
