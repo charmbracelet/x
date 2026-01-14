@@ -21,7 +21,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lua5.4
 
       - name: Extract LSP configs
-        run: ./scripts/extract-lsp-configs.sh
+        run: bash ./scripts/extract-lsp-configs.sh
 
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
