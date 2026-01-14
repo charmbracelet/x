@@ -39,13 +39,35 @@ _G.vim = setmetatable({
     filetype = { match = ret_nil },
 }, { __index = function() return noop end })
 
+-- Flatten nested tables (like lspconfig's tbl_flatten)
+local function tbl_flatten(t)
+    local result = {}
+    local function flatten(tbl)
+        for _, v in ipairs(tbl) do
+            if type(v) == "table" then flatten(v) else result[#result+1] = v end
+        end
+    end
+    flatten(t)
+    return result
+end
+
+-- Create a callable table that stores patterns and can be identified later
+local function make_root_pattern(...)
+    local patterns = tbl_flatten({...})
+    -- Return a callable table that stores the patterns
+    local obj = { _root_patterns = patterns }
+    setmetatable(obj, { __call = function() return nil end })
+    return obj
+end
+
 package.preload['lspconfig.util'] = function()
     return {
-        root_pattern = function() return ret_nil end,
+        root_pattern = make_root_pattern,
         find_git_ancestor = ret_nil, find_node_modules_ancestor = ret_nil, find_package_json_ancestor = ret_nil,
         insert_package_json = noop,
         path = { exists = function() return false end, join = function(...) return table.concat({...}, "/") end, is_dir = function() return false end, is_file = function() return false end, dirname = ret_str, is_absolute = function() return true end },
         get_active_clients_list_by_ft = empty, get_active_client_by_name = ret_nil,
+        tbl_flatten = tbl_flatten,
     }
 end
 package.preload['lspconfig/util'] = package.preload['lspconfig.util']
@@ -91,8 +113,59 @@ local function is_serializable(val, depth)
     return true
 end
 
+-- Extract root patterns from source text (fallback for function-wrapped root_dir)
+local function extract_patterns_from_source(source)
+    local patterns = {}
+    local seen = {}
+    
+    -- Match root_pattern('a', 'b', ...) or root_pattern { 'a', 'b' }
+    for args in source:gmatch("root_pattern%s*[%({]([^%)%}]+)[%)%}]") do
+        for pattern in args:gmatch("['\"]([^'\"]+)['\"]") do
+            if not seen[pattern] then
+                patterns[#patterns+1] = pattern
+                seen[pattern] = true
+            end
+        end
+    end
+    
+    -- Match vim.fs.root(fname, 'pattern') or vim.fs.root(0, 'pattern')
+    for pattern in source:gmatch("vim%.fs%.root%s*%([^,]+,%s*['\"]([^'\"]+)['\"]%s*%)") do
+        if not seen[pattern] then
+            patterns[#patterns+1] = pattern
+            seen[pattern] = true
+        end
+    end
+    
+    return patterns
+end
+
 -- Extract fields we care about from a config
-local function extract(cfg)
+local ignore_keys = { editorInfo = true, editorPluginInfo = true }
+local home_dir = os.getenv("HOME") or "/home/user"
+
+local function filter_table(t)
+    if type(t) ~= "table" then
+        -- Skip stringified table references (e.g., "table: 0x...")
+        if type(t) == "string" and t:match("^table: 0x") then
+            return nil
+        end
+        -- Replace home directory with $HOME in strings
+        if type(t) == "string" and t:find(home_dir, 1, true) then
+            return t:gsub(home_dir, "$HOME")
+        end
+        return t
+    end
+    local r = {}
+    for k, v in pairs(t) do
+        if not ignore_keys[k] then
+            local filtered = filter_table(v)
+            if filtered ~= nil then r[k] = filtered end
+        end
+    end
+    return next(r) and r or nil
+end
+
+local function extract(cfg, source)
     if not cfg.cmd then return nil end
     local r = {}
     
@@ -109,13 +182,31 @@ local function extract(cfg)
         if #ft > 0 then r.filetypes = ft end
     end
     
+    -- Check for root_markers (explicit) or extract from root_dir (root_pattern result)
+    local markers = {}
     if type(cfg.root_markers) == "table" then
-        local rm = {} for _, v in ipairs(cfg.root_markers) do if type(v) == "string" then rm[#rm+1] = v end end
-        if #rm > 0 then r.root_markers = rm end
+        for _, v in ipairs(cfg.root_markers) do if type(v) == "string" then markers[#markers+1] = v end end
     end
+    -- Extract patterns from root_dir if it's a root_pattern result
+    if type(cfg.root_dir) == "table" and cfg.root_dir._root_patterns then
+        for _, v in ipairs(cfg.root_dir._root_patterns) do
+            if type(v) == "string" then markers[#markers+1] = v end
+        end
+    end
+    -- Fallback: parse source for patterns if root_dir is a function
+    if #markers == 0 and type(cfg.root_dir) == "function" and source then
+        markers = extract_patterns_from_source(source)
+    end
+    if #markers > 0 then r.root_markers = markers end
     
-    if type(cfg.settings) == "table" and is_serializable(cfg.settings) and next(cfg.settings) then r.settings = cfg.settings end
-    if type(cfg.init_options) == "table" and is_serializable(cfg.init_options) and next(cfg.init_options) then r.init_options = cfg.init_options end
+    if type(cfg.settings) == "table" and is_serializable(cfg.settings) then
+        local filtered = filter_table(cfg.settings)
+        if filtered then r.settings = filtered end
+    end
+    if type(cfg.init_options) == "table" and is_serializable(cfg.init_options) then
+        local filtered = filter_table(cfg.init_options)
+        if filtered then r.init_options = filtered end
+    end
     
     return r
 end
@@ -127,11 +218,16 @@ if handle then
     for filepath in handle:lines() do
         local name = filepath:match("([^/]+)%.lua$")
         if name then
+            -- Read source for pattern extraction fallback
+            local f = io.open(filepath, "r")
+            local source = f and f:read("*a") or ""
+            if f then f:close() end
+            
             local chunk = loadfile(filepath)
             if chunk then
                 local ok, result = pcall(chunk)
                 if ok and type(result) == "table" then
-                    local cfg = extract(result.default_config or result)
+                    local cfg = extract(result.default_config or result, source)
                     if cfg then configs[name] = cfg; names[#names+1] = name end
                 end
             end
