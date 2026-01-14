@@ -1,6 +1,5 @@
 #!/usr/bin/env lua
--- Extract LSP configurations from nvim-lspconfig and output JSON
--- Usage: lua extract-lsp-configs.lua <lsp-dir>
+-- Extract LSP configurations from nvim-lspconfig and output JSON.
 
 local lsp_dir = arg[1]
 if not lsp_dir then
@@ -8,437 +7,143 @@ if not lsp_dir then
     os.exit(1)
 end
 
--- Mock lspconfig.util module
-local lspconfig_util = {
-    root_pattern = function(...)
-        local patterns = {...}
-        -- Return a function that returns nil (we capture patterns separately)
-        return function() return nil end
-    end,
-    find_git_ancestor = function() return nil end,
-    find_node_modules_ancestor = function() return nil end,
-    find_package_json_ancestor = function() return nil end,
-    insert_package_json = function() end,
-    path = {
-        exists = function() return false end,
-        join = function(...) return table.concat({...}, "/") end,
-        is_dir = function() return false end,
-        is_file = function() return false end,
-        dirname = function(p) return p:match("(.*/)[^/]*$") or "" end,
-        is_absolute = function() return true end,
-    },
-    get_active_clients_list_by_ft = function() return {} end,
-    get_active_client_by_name = function() return nil end,
-}
+-- Minimal vim mock - just enough to load config files without errors.
+local noop = function() end
+local empty = function() return {} end
+local ret_nil = function() return nil end
+local ret_str = function() return "" end
 
--- Mock package.preload for lspconfig modules
-package.preload['lspconfig.util'] = function() return lspconfig_util end
-package.preload['lspconfig/util'] = function() return lspconfig_util end
-package.preload['lspconfig.async'] = function() return { run = function() end } end
-package.preload['lspconfig'] = function() return { util = lspconfig_util } end
-
-local vim_fn = {
-    system = function() return "" end,
-    expand = function(s) return s end,
-    fnamemodify = function(path, mods) return path end,
-    filereadable = function() return 0 end,
-    isdirectory = function() return 0 end,
-    getcwd = function() return "/" end,
-    executable = function() return 1 end,
-    exepath = function(cmd) return cmd end,
-    json_decode = function() return {} end,
-    json_encode = function() return "{}" end,
-    mkdir = function() return 0 end,
-    glob = function() return "" end,
-    globpath = function() return "" end,
-    getenv = function() return "" end,
-    has = function() return 0 end,
-    stdpath = function() return "/tmp" end,
-    shellescape = function(s) return "'" .. s .. "'" end,
-    tempname = function() return "/tmp/nvim_temp" end,
-    find = function() return {} end,  -- vim.fn.find returns a list
-}
-
--- Mock vim APIs that configs might use
-local vim_mock = {
-    fn = setmetatable(vim_fn, {
-        __index = function() return function() return "" end end
-    }),
-    api = setmetatable({}, {
-        __index = function() return function() return {} end end
-    }),
-    env = setmetatable({}, {
-        __index = function() return "" end
-    }),
-    fs = {
-        root = function() return nil end,
-        dirname = function(path) 
-            if type(path) ~= "string" then return "" end
-            return path:match("(.*/)[^/]*$") or "" 
-        end,
-        joinpath = function(...) return table.concat({...}, "/") end,
-        normalize = function(p) return p or "" end,
-        find = function() return {} end,
-    },
-    uv = {
-        os_homedir = function() return os.getenv("HOME") or "/home/user" end,
-        os_tmpdir = function() return os.getenv("TMPDIR") or "/tmp" end,
-        fs_stat = function() return nil end,
-        cwd = function() return "/" end,
-    },
-    lsp = {
-        get_clients = function() return {} end,
-        Config = {},  -- type annotation, not used at runtime
-        rpc = {
-            connect = function(host, port)
-                -- Return a marker table so we know it's a TCP connection
-                return { __tcp_connect = true, host = host, port = port }
-            end,
-        },
-        protocol = {
-            make_client_capabilities = function() return {} end,
-            Methods = {},
-            MessageType = { Error = 1, Warning = 2, Info = 3, Log = 4 },
-        },
-        config = setmetatable({}, {
-            __index = function() return {} end,
-            __call = function() return {} end,
-        }),
-    },
-    g = setmetatable({}, {
-        __index = function() return nil end,
-        __newindex = function() end,
-    }),
-    loop = setmetatable({}, {
-        __index = function() return function() return nil end end
-    }),
-    tbl_deep_extend = function(behavior, ...)
-        local result = {}
-        for _, t in ipairs({...}) do
-            if type(t) == "table" then
-                for k, v in pairs(t) do
-                    result[k] = v
-                end
-            end
-        end
-        return result
-    end,
-    tbl_extend = function(behavior, ...)
-        local result = {}
-        for _, t in ipairs({...}) do
-            if type(t) == "table" then
-                for k, v in pairs(t) do
-                    result[k] = v
-                end
-            end
-        end
-        return result
-    end,
-    notify = function() end,
-    schedule = function(fn) end,
-    system = function() end,
-    trim = function(s) 
-        if type(s) ~= "string" then return "" end
-        return s:match("^%s*(.-)%s*$") 
-    end,
-    inspect = function(t) return tostring(t) end,
-    startswith = function(s, prefix)
-        if type(s) ~= "string" or type(prefix) ~= "string" then return false end
-        return s:sub(1, #prefix) == prefix
-    end,
-    split = function(s, sep)
-        local result = {}
-        for match in (s..sep):gmatch("(.-)"..sep) do
-            table.insert(result, match)
-        end
-        return result
-    end,
-    list_extend = function(dst, src)
-        for _, v in ipairs(src) do
-            table.insert(dst, v)
-        end
-        return dst
-    end,
-    deepcopy = function(t)
-        if type(t) ~= "table" then return t end
-        local copy = {}
-        for k, v in pairs(t) do
-            copy[k] = vim_mock.deepcopy(v)
-        end
-        return copy
-    end,
+_G.vim = setmetatable({
+    fn = setmetatable({}, { __index = function() return ret_str end }),
+    api = setmetatable({}, { __index = function() return empty end }),
+    env = setmetatable({}, { __index = function() return "" end }),
+    fs = { root = ret_nil, dirname = ret_str, joinpath = function(...) return table.concat({...}, "/") end, normalize = function(p) return p or "" end, find = empty },
+    uv = { os_homedir = function() return os.getenv("HOME") or "/home/user" end, os_tmpdir = function() return "/tmp" end, fs_stat = ret_nil, cwd = function() return "/" end },
+    lsp = { get_clients = empty, rpc = { connect = function(h, p) return { host = h, port = p } end }, protocol = { make_client_capabilities = empty }, config = setmetatable({}, { __index = empty, __call = empty }) },
+    g = setmetatable({}, { __index = ret_nil, __newindex = noop }),
+    o = setmetatable({}, { __index = ret_str }),
+    bo = setmetatable({}, { __index = ret_str }),
+    log = { levels = { DEBUG = 1, INFO = 2, WARN = 3, ERROR = 4 } },
+    diagnostic = { severity = { ERROR = 1, WARN = 2, INFO = 3, HINT = 4 } },
+    tbl_deep_extend = function(_, ...) local r = {} for _, t in ipairs({...}) do if type(t) == "table" then for k, v in pairs(t) do r[k] = v end end end return r end,
+    tbl_extend = function(_, ...) local r = {} for _, t in ipairs({...}) do if type(t) == "table" then for k, v in pairs(t) do r[k] = v end end end return r end,
+    list_extend = function(dst, src) for _, v in ipairs(src) do dst[#dst+1] = v end return dst end,
+    deepcopy = function(t) if type(t) ~= "table" then return t end local c = {} for k, v in pairs(t) do c[k] = _G.vim.deepcopy(v) end return c end,
+    split = function(s, sep) local r = {} for m in (s..sep):gmatch("(.-)"..sep) do r[#r+1] = m end return r end,
+    trim = function(s) return type(s) == "string" and s:match("^%s*(.-)%s*$") or "" end,
+    startswith = function(s, p) return type(s) == "string" and s:sub(1, #p) == p end,
+    notify = noop, schedule = noop, system = noop, cmd = noop, inspect = tostring,
+    uri_from_bufnr = ret_str, uri_from_fname = function(f) return "file://" .. f end,
+    empty_dict = empty, deprecate = noop, is_callable = function() return false end,
     version = function() return { major = 0, minor = 11, patch = 0 } end,
-    diagnostic = {
-        severity = { ERROR = 1, WARN = 2, INFO = 3, HINT = 4 },
-    },
-    log = {
-        levels = { DEBUG = 1, INFO = 2, WARN = 3, ERROR = 4 },
-    },
-    uri_from_bufnr = function() return "" end,
-    uri_from_fname = function(fname) return "file://" .. fname end,
-    empty_dict = function() return {} end,
-    deprecate = function() end,
-    find = function() return nil end,
-    is_callable = function() return false end,
-    o = setmetatable({}, {
-        __index = function() return "" end,
-    }),
-    bo = setmetatable({}, {
-        __index = function() return "" end,
-    }),
-    cmd = function() end,
-    filetype = {
-        match = function() return nil end,
-    },
-}
-_G.vim = vim_mock
+    filetype = { match = ret_nil },
+}, { __index = function() return noop end })
 
--- JSON encoding
-local function json_encode_value(val)
+package.preload['lspconfig.util'] = function()
+    return {
+        root_pattern = function() return ret_nil end,
+        find_git_ancestor = ret_nil, find_node_modules_ancestor = ret_nil, find_package_json_ancestor = ret_nil,
+        insert_package_json = noop,
+        path = { exists = function() return false end, join = function(...) return table.concat({...}, "/") end, is_dir = function() return false end, is_file = function() return false end, dirname = ret_str, is_absolute = function() return true end },
+        get_active_clients_list_by_ft = empty, get_active_client_by_name = ret_nil,
+    }
+end
+package.preload['lspconfig/util'] = package.preload['lspconfig.util']
+package.preload['lspconfig.async'] = function() return { run = noop } end
+package.preload['lspconfig'] = function() return { util = package.preload['lspconfig.util']() } end
+
+-- JSON encoder
+local function json(val)
     local t = type(val)
-    if t == "nil" then
-        return "null"
-    elseif t == "boolean" then
-        return val and "true" or "false"
-    elseif t == "number" then
-        return tostring(val)
-    elseif t == "string" then
-        -- Escape special characters
-        local escaped = val:gsub('\\', '\\\\')
-                           :gsub('"', '\\"')
-                           :gsub('\n', '\\n')
-                           :gsub('\r', '\\r')
-                           :gsub('\t', '\\t')
-        return '"' .. escaped .. '"'
+    if t == "nil" then return "null"
+    elseif t == "boolean" then return val and "true" or "false"
+    elseif t == "number" then return tostring(val)
+    elseif t == "string" then return '"' .. val:gsub('\\', '\\\\'):gsub('"', '\\"'):gsub('\n', '\\n'):gsub('\r', '\\r'):gsub('\t', '\\t') .. '"'
     elseif t == "table" then
-        -- Check if array (sequential integer keys starting at 1)
-        local is_array = true
-        local max_idx = 0
-        for k, _ in pairs(val) do
-            if type(k) ~= "number" or k ~= math.floor(k) or k < 1 then
-                is_array = false
-                break
-            end
-            if k > max_idx then max_idx = k end
+        local is_arr, max = true, 0
+        for k in pairs(val) do
+            if type(k) ~= "number" or k < 1 or k ~= math.floor(k) then is_arr = false; break end
+            if k > max then max = k end
         end
-        if is_array and max_idx > 0 then
-            -- Verify no holes
-            for i = 1, max_idx do
-                if val[i] == nil then
-                    is_array = false
-                    break
-                end
-            end
-        end
-        if max_idx == 0 then
-            -- Empty table - check if it's meant to be an object
-            is_array = false
-        end
-        
-        if is_array then
-            local parts = {}
-            for i = 1, max_idx do
-                parts[i] = json_encode_value(val[i])
-            end
+        if is_arr and max > 0 then for i = 1, max do if val[i] == nil then is_arr = false; break end end end
+        if max == 0 then is_arr = false end
+        if is_arr then
+            local parts = {} for i = 1, max do parts[i] = json(val[i]) end
             return "[" .. table.concat(parts, ", ") .. "]"
         else
-            local parts = {}
-            for k, v in pairs(val) do
-                if type(k) == "string" then
-                    table.insert(parts, json_encode_value(k) .. ": " .. json_encode_value(v))
-                end
-            end
-            table.sort(parts)  -- Consistent ordering
+            local parts = {} for k, v in pairs(val) do if type(k) == "string" then parts[#parts+1] = json(k) .. ": " .. json(v) end end
+            table.sort(parts)
             return "{" .. table.concat(parts, ", ") .. "}"
         end
-    elseif t == "function" then
-        return nil  -- Skip functions
-    else
-        return nil
     end
 end
 
--- Check if a value is "simple" (can be serialized to JSON without functions)
-local function is_simple_value(val, depth)
-    depth = depth or 0
-    if depth > 10 then return false end
-    
+-- Check if value is JSON-serializable (no functions)
+local function is_serializable(val, depth)
+    if (depth or 0) > 10 then return false end
     local t = type(val)
-    if t == "nil" or t == "boolean" or t == "number" or t == "string" then
-        return true
-    elseif t == "table" then
-        for k, v in pairs(val) do
-            if type(k) ~= "string" and type(k) ~= "number" then
-                return false
-            end
-            if not is_simple_value(v, depth + 1) then
-                return false
-            end
-        end
-        return true
+    if t == "function" then return false end
+    if t ~= "table" then return true end
+    for k, v in pairs(val) do
+        if type(k) ~= "string" and type(k) ~= "number" then return false end
+        if not is_serializable(v, (depth or 0) + 1) then return false end
     end
-    return false
+    return true
 end
 
--- Load and parse a config file
-local function load_config(filepath)
-    local chunk, err = loadfile(filepath)
-    if not chunk then
-        io.stderr:write("Error loading " .. filepath .. ": " .. tostring(err) .. "\n")
-        return nil
+-- Extract fields we care about from a config
+local function extract(cfg)
+    if not cfg.cmd then return nil end
+    local r = {}
+    
+    if type(cfg.cmd) == "table" and #cfg.cmd > 0 then
+        r.command = cfg.cmd[1]
+        if #cfg.cmd > 1 then r.args = {} for i = 2, #cfg.cmd do r.args[#r.args+1] = cfg.cmd[i] end end
+    elseif type(cfg.cmd) == "string" then
+        r.command = cfg.cmd
+    end
+    if not r.command then return nil end
+    
+    if type(cfg.filetypes) == "table" then
+        local ft = {} for _, v in ipairs(cfg.filetypes) do if type(v) == "string" then ft[#ft+1] = v end end
+        if #ft > 0 then r.filetypes = ft end
     end
     
-    local ok, result = pcall(chunk)
-    if not ok then
-        io.stderr:write("Error executing " .. filepath .. ": " .. tostring(result) .. "\n")
-        return nil
+    if type(cfg.root_markers) == "table" then
+        local rm = {} for _, v in ipairs(cfg.root_markers) do if type(v) == "string" then rm[#rm+1] = v end end
+        if #rm > 0 then r.root_markers = rm end
     end
     
-    if type(result) ~= "table" then
-        return nil
-    end
+    if type(cfg.settings) == "table" and is_serializable(cfg.settings) and next(cfg.settings) then r.settings = cfg.settings end
+    if type(cfg.init_options) == "table" and is_serializable(cfg.init_options) and next(cfg.init_options) then r.init_options = cfg.init_options end
     
-    return result
-end
-
--- Extract relevant fields from config
-local function extract_config(config)
-    local result = {}
-    
-    -- Command (required)
-    if config.cmd then
-        if type(config.cmd) == "table" and #config.cmd > 0 then
-            -- First element is the command
-            result.command = config.cmd[1]
-            -- Rest are args
-            if #config.cmd > 1 then
-                result.args = {}
-                for i = 2, #config.cmd do
-                    table.insert(result.args, config.cmd[i])
-                end
-            end
-        elseif type(config.cmd) == "string" then
-            result.command = config.cmd
-        end
-    end
-    
-    if not result.command then
-        return nil
-    end
-    
-    -- Filetypes
-    if config.filetypes and type(config.filetypes) == "table" then
-        local ft = {}
-        for _, v in ipairs(config.filetypes) do
-            if type(v) == "string" then
-                table.insert(ft, v)
-            end
-        end
-        if #ft > 0 then
-            result.filetypes = ft
-        end
-    end
-    
-    -- Root markers
-    if config.root_markers and type(config.root_markers) == "table" then
-        local rm = {}
-        for _, v in ipairs(config.root_markers) do
-            if type(v) == "string" then
-                table.insert(rm, v)
-            end
-        end
-        if #rm > 0 then
-            result.root_markers = rm
-        end
-    end
-    
-    -- Single file support
-    if config.single_file_support ~= nil then
-        result.single_file_support = config.single_file_support
-    end
-    
-    -- Settings (if simple enough to serialize)
-    if config.settings and type(config.settings) == "table" then
-        if is_simple_value(config.settings) then
-            -- Only include if not empty
-            local has_content = false
-            for _ in pairs(config.settings) do
-                has_content = true
-                break
-            end
-            if has_content then
-                result.settings = config.settings
-            end
-        end
-    end
-    
-    -- Init options
-    if config.init_options and type(config.init_options) == "table" then
-        if is_simple_value(config.init_options) then
-            local has_content = false
-            for _ in pairs(config.init_options) do
-                has_content = true
-                break
-            end
-            if has_content then
-                result.init_options = config.init_options
-            end
-        end
-    end
-    
-    return result
-end
-
--- Get list of lua files
-local function get_lua_files(dir)
-    local files = {}
-    local handle = io.popen('ls "' .. dir .. '"/*.lua 2>/dev/null')
-    if handle then
-        for line in handle:lines() do
-            table.insert(files, line)
-        end
-        handle:close()
-    end
-    return files
+    return r
 end
 
 -- Main
-local files = get_lua_files(lsp_dir)
-local configs = {}
-local names = {}
-
-for _, filepath in ipairs(files) do
-    local name = filepath:match("([^/]+)%.lua$")
-    if name then
-        local config = load_config(filepath)
-        if config then
-            -- nvim-lspconfig wraps the actual config in default_config
-            local actual_config = config.default_config or config
-            local extracted = extract_config(actual_config)
-            if extracted then
-                configs[name] = extracted
-                table.insert(names, name)
+local configs, names = {}, {}
+local handle = io.popen('ls "' .. lsp_dir .. '"/*.lua 2>/dev/null')
+if handle then
+    for filepath in handle:lines() do
+        local name = filepath:match("([^/]+)%.lua$")
+        if name then
+            local chunk = loadfile(filepath)
+            if chunk then
+                local ok, result = pcall(chunk)
+                if ok and type(result) == "table" then
+                    local cfg = extract(result.default_config or result)
+                    if cfg then configs[name] = cfg; names[#names+1] = name end
+                end
             end
         end
     end
+    handle:close()
 end
 
--- Sort names for consistent output
 table.sort(names)
-
--- Output JSON
 io.write("{\n")
 for i, name in ipairs(names) do
-    local config = configs[name]
-    local json = json_encode_value(config)
-    if json then
-        io.write('  "' .. name .. '": ' .. json)
-        if i < #names then
-            io.write(",")
-        end
-        io.write("\n")
-    end
+    io.write('  "' .. name .. '": ' .. json(configs[name]) .. (i < #names and "," or "") .. "\n")
 end
 io.write("}\n")
-
 io.stderr:write("Generated " .. #names .. " server configs\n")

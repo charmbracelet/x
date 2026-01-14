@@ -71,8 +71,8 @@ func TestSingleFileSupport(t *testing.T) {
 		t.Fatalf("LoadDefaults failed: %v", err)
 	}
 
-	// These servers should have single file support from upstream
-	withSupport := []string{"gopls", "pylsp", "bashls", "lua_ls", "efm", "rust_analyzer"}
+	// These servers should have single file support from overrides
+	withSupport := []string{"gopls", "pylsp", "bashls", "lua_ls", "zls", "marksman"}
 	for _, name := range withSupport {
 		server, ok := m.GetServer(name)
 		if !ok {
@@ -84,13 +84,13 @@ func TestSingleFileSupport(t *testing.T) {
 		}
 	}
 
-	// ada_ls does not have single file support
-	ada, ok := m.GetServer("ada_ls")
+	// rust_analyzer does not have single file support (requires Cargo.toml)
+	ra, ok := m.GetServer("rust_analyzer")
 	if !ok {
-		t.Fatal("ada_ls not found")
+		t.Fatal("rust_analyzer not found")
 	}
-	if ada.SingleFileSupport {
-		t.Error("Expected ada_ls to have SingleFileSupport=false")
+	if ra.SingleFileSupport {
+		t.Error("Expected rust_analyzer to have SingleFileSupport=false")
 	}
 }
 

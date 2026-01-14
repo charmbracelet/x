@@ -22,7 +22,7 @@ type ServerConfig struct {
 	Settings          map[string]any    `mapstructure:"settings" json:"settings,omitempty"`
 	InitOptions       map[string]any    `mapstructure:"init_options" json:"init_options,omitempty"`
 	EnableSnippets    bool              `mapstructure:"enable_snippets" json:"-"`
-	SingleFileSupport bool              `mapstructure:"single_file_support" json:"single_file_support,omitempty"`
+	SingleFileSupport bool              `mapstructure:"single_file_support" json:"-"`
 }
 
 // Config represents the overall configuration.
@@ -51,16 +51,22 @@ func (m *Manager) LoadDefaults() error {
 		return fmt.Errorf("failed to parse embedded lsps.json: %w", err)
 	}
 
-	// Filter out servers without commands and apply overrides
+	// Filter to only supported servers and apply overrides
 	for name, server := range servers {
+		if _, ok := supportedServers[name]; !ok {
+			delete(servers, name)
+			continue
+		}
 		if len(server.Command) == 0 {
 			delete(servers, name)
 			continue
 		}
 
-		// Apply snippet support
 		if _, ok := snippetSupport[name]; ok {
 			server.EnableSnippets = true
+		}
+		if _, ok := singleFileSupport[name]; ok {
+			server.SingleFileSupport = true
 		}
 	}
 
