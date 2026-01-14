@@ -1,0 +1,29 @@
+name: powernap-update-lsp-configs
+
+on:
+  schedule:
+    - cron: "0 0 * * 0" # Weekly on Sunday at midnight UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./powernap
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract LSP configs
+        run: ./scripts/extract-lsp-configs.sh
+
+      - uses: stefanzweifel/git-auto-commit-action@v7
+        with:
+          commit_message: "chore(powernap): update LSP configs from nvim-lspconfig"
+          branch: main
+          commit_user_name: actions-user
+          commit_user_email: actions@github.com
+          file_pattern: powernap/pkg/config/lsps.json
