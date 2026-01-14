@@ -51,21 +51,6 @@ func (m *Manager) LoadDefaults() error {
 		return fmt.Errorf("failed to parse embedded lsps.json: %w", err)
 	}
 
-	// Filter to only supported servers and apply overrides
-	for name, server := range servers {
-		if len(server.Command) == 0 {
-			delete(servers, name)
-			continue
-		}
-
-		if _, ok := snippetSupport[name]; ok {
-			server.EnableSnippets = true
-		}
-		if _, ok := singleFileSupport[name]; ok {
-			server.SingleFileSupport = true
-		}
-	}
-
 	m.config.Servers = servers
 	m.applyDefaults()
 	return nil
@@ -94,7 +79,7 @@ func (m *Manager) RemoveServer(name string) {
 
 // applyDefaults applies default values to server configurations.
 func (m *Manager) applyDefaults() {
-	for _, server := range m.config.Servers {
+	for name, server := range m.config.Servers {
 		if server.RootMarkers == nil {
 			server.RootMarkers = []string{".git"}
 		}
@@ -106,6 +91,8 @@ func (m *Manager) applyDefaults() {
 		if server.Settings == nil {
 			server.Settings = make(map[string]any)
 		}
+		_, server.EnableSnippets = snippetSupport[name]
+		_, server.SingleFileSupport = singleFileSupport[name]
 	}
 }
 
