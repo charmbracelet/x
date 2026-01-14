@@ -17,6 +17,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Install Lua
+        run: sudo apt-get update && sudo apt-get install -y lua5.4
+
       - name: Extract LSP configs
         run: ./scripts/extract-lsp-configs.sh
 

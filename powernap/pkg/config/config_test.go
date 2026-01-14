@@ -65,6 +65,35 @@ func TestGetServer(t *testing.T) {
 	}
 }
 
+func TestSingleFileSupport(t *testing.T) {
+	m := NewManager()
+	if err := m.LoadDefaults(); err != nil {
+		t.Fatalf("LoadDefaults failed: %v", err)
+	}
+
+	// These servers should have single file support from upstream
+	withSupport := []string{"gopls", "pylsp", "bashls", "lua_ls", "efm", "rust_analyzer"}
+	for _, name := range withSupport {
+		server, ok := m.GetServer(name)
+		if !ok {
+			t.Errorf("Server %s not found", name)
+			continue
+		}
+		if !server.SingleFileSupport {
+			t.Errorf("Expected %s to have SingleFileSupport=true", name)
+		}
+	}
+
+	// ada_ls does not have single file support
+	ada, ok := m.GetServer("ada_ls")
+	if !ok {
+		t.Fatal("ada_ls not found")
+	}
+	if ada.SingleFileSupport {
+		t.Error("Expected ada_ls to have SingleFileSupport=false")
+	}
+}
+
 func TestAddRemoveServer(t *testing.T) {
 	m := NewManager()
 	if err := m.LoadDefaults(); err != nil {
