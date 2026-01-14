@@ -53,10 +53,6 @@ func (m *Manager) LoadDefaults() error {
 
 	// Filter to only supported servers and apply overrides
 	for name, server := range servers {
-		if _, ok := supportedServers[name]; !ok {
-			delete(servers, name)
-			continue
-		}
 		if len(server.Command) == 0 {
 			delete(servers, name)
 			continue
