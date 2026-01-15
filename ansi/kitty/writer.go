@@ -129,6 +129,11 @@ func EncodeGraphics(w io.Writer, m image.Image, o *Options) error {
 	)
 	chunk := make([]byte, MaxChunkSize)
 	isFirstChunk := true
+	chunkFormatter := o.ChunkFormatter
+	if chunkFormatter == nil {
+		// Default to no formatting
+		chunkFormatter = func(s string) string { return s }
+	}
 
 	for {
 		// Stop if we read less than the chunk size [MaxChunkSize].
@@ -141,7 +146,8 @@ func EncodeGraphics(w io.Writer, m image.Image, o *Options) error {
 		}
 
 		opts := buildChunkOptions(o, isFirstChunk, false)
-		if _, err := io.WriteString(w, ansi.KittyGraphics(chunk[:n], opts...)); err != nil {
+		if _, err := io.WriteString(w,
+			chunkFormatter(ansi.KittyGraphics(chunk[:n], opts...))); err != nil {
 			return err //nolint:wrapcheck
 		}
 
@@ -150,7 +156,7 @@ func EncodeGraphics(w io.Writer, m image.Image, o *Options) error {
 
 	// Write the last chunk
 	opts := buildChunkOptions(o, isFirstChunk, true)
-	_, err = io.WriteString(w, ansi.KittyGraphics(chunk[:n], opts...))
+	_, err = io.WriteString(w, chunkFormatter(ansi.KittyGraphics(chunk[:n], opts...)))
 	return err //nolint:wrapcheck
 }
 
