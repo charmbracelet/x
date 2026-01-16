@@ -100,11 +100,18 @@ func (e *Emulator) carriageReturn() {
 // repeatPreviousCharacter repeats the previous character n times. This is
 // equivalent to typing the same character n times. This performs the same as
 // [ansi.REP].
-func (e *Emulator) repeatPreviousCharacter(n int) {
+// It returns true if the operation was performed, false otherwise.
+func (e *Emulator) repeatPreviousCharacter(n int) bool {
 	if e.lastChar == 0 {
-		return
+		return false
+	}
+	if e.cb.Damage != nil {
+		x, y := e.scr.CursorPosition()
+		rect := uv.Rect(x, y, n, 1)
+		e.cb.Damage(RectDamage(rect))
 	}
 	for range n {
-		e.handlePrint(e.lastChar)
+		e.handleRune(e.lastChar, false)
 	}
+	return true
 }
