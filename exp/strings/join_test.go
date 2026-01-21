@@ -1,6 +1,8 @@
 package strings
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestEnglishJoin(t *testing.T) {
 	for i, tc := range []struct {
