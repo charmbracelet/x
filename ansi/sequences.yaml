@@ -1,0 +1,924 @@
+constants:
+  BEL: "\a"
+  CSI: ESC[
+  ESC: "\e"
+  OSC: ESC]
+  SP: " "
+  ST: ESC\
+
+sequences:
+  - name: CursorBackward
+    aliases: [CUB]
+    doc: |
+      Cursor Backward (CUB) moves the cursor back (left) a specified number of
+      columns in the same line. The cursor stops at the left margin.
+
+      See: https://vt100.net/docs/vt510-rm/CUB.html
+    params:
+      - name: n
+        type: int
+        default: 1
+    format: "CSI {n} D"
+  - name: CursorDown
+    aliases: [CUD]
+    doc: |
+      Cursor Down (CUD) moves the cursor down a specified number of lines in the
+      same column. The cursor stops at the bottom margin. If the cursor is already
+      below the bottom margin, then the cursor stops at the bottom line.
+
+       CSI n B
+
+      See: https://vt100.net/docs/vt510-rm/CUD.html
+    params:
+      - name: n
+        type: int
+        default: 1
+    format: "CSI {n} B"
+    constants:
+      - name: CUD1
+        args: [1]
+        doc: "CUD1 moves the cursor down one cell."
+  - name: CursorForward
+    aliases: [CUF]
+    doc: |
+      Cursor Forward (CUF) moves the cursor forward (right) a specified number of
+      columns in the same line. The cursor stops at the right margin.
+
+      See: https://vt100.net/docs/vt510-rm/CUF.html
+    params:
+      - name: n
+        type: int
+        default: 1
+    format: "CSI {n} C"
+  - name: CursorHorizontalAbsolute
+    aliases: [CHA]
+    doc: |
+      Cursor Horizontal Absolute (CHA) moves the cursor to the specified column
+      in the current line.
+
+      See: https://vt100.net/docs/vt510-rm/CHA.html
+    params:
+      - name: n
+        type: int
+        default: 1
+    format: "CSI {n} G"
+  - name: CursorNextLine
+    aliases: [CNL]
+    doc: |
+      Cursor Next Line (CNL) moves the cursor to the first column of the next line,
+      n lines down.
+
+      See: https://vt100.net/docs/vt510-rm/CNL.html
+    params:
+      - name: n
+        type: int
+        default: 1
+    format: "CSI {n} E"
+  - name: CursorPosition
+    aliases: [CUP]
+    doc: |
+      Cursor Position (CUP) moves the cursor to the specified line and column.
+      The starting point for lines and columns depends on the setting of origin
+      mode (DECOM). CUP applies only to the current page.
+
+      Default is 1,1.
+
+       CSI n ; m H
+
+      See: https://vt100.net/docs/vt510-rm/CUP.html
+    params:
+      - name: row
+        type: int
+        default: 1
+      - name: col
+        type: int
+        default: 1
+    format: "CSI {row} ; {col} H"
+    constants:
+      - name: CursorHomePosition
+        args: [1, 1]
+        doc: "CursorHomePosition moves the cursor to the upper left corner."
+  - name: CursorPreviousLine
+    aliases: [CPL]
+    doc: |
+      Cursor Previous Line (CPL) moves the cursor to the first column of the
+      previous line, n lines up.
+
+      See: https://vt100.net/docs/vt510-rm/CPL.html
+    params:
+      - name: n
+        type: int
+        default: 1
+    format: "CSI {n} F"
+  - name: CursorUp
+    aliases: [CUU]
+    doc: |
+      Cursor Up (CUU) moves the cursor up a specified number of lines in the same
+      column. The cursor stops at the top margin. If the cursor is already above
+      the top margin, then the cursor stops at the top line.
+
+       CSI n A
+
+      See: https://vt100.net/docs/vt510-rm/CUU.html
+    params:
+      - name: n
+        type: int
+        default: 1
+    format: "CSI {n} A"
+    constants:
+      - name: CUU1
+        args: [1]
+        doc: "CUU1 moves the cursor up one cell."
+  - name: Index
+    aliases: []
+    doc: |
+      Index (IND) moves the cursor down one line in the same column.
+
+      If the cursor is at the bottom margin, the screen scrolls up.
+
+       ESC D
+
+      See: https://vt100.net/docs/vt510-rm/IND.html
+    params: []
+    format: "ESC D"
+  - name: RequestBackgroundColor
+    aliases: []
+    doc: |
+      Request Background Color requests the current default terminal background
+      color.
+
+       OSC 11 ; ? BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params: []
+    format: "OSC 11 ; ? BEL"
+  - name: RequestCursorColor
+    aliases: []
+    doc: |
+      Request Cursor Color requests the current terminal cursor color.
+
+       OSC 12 ; ? BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params: []
+    format: "OSC 12 ; ? BEL"
+  - name: RequestForegroundColor
+    aliases: []
+    doc: |
+      Request Foreground Color requests the current default terminal foreground
+      color.
+
+       OSC 10 ; ? BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params: []
+    format: "OSC 10 ; ? BEL"
+  - name: RequestNameVersion
+    aliases: [XTVERSION]
+    doc: |
+      Request Name Version (XTVERSION) requests the terminal's name and version.
+
+      The terminal responds with a DSR sequence identifying the terminal:
+
+       DCS > | text ST
+
+       CSI > 0 q
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-PC-Style-Function-Keys
+    params: []
+    format: "CSI > q"
+  - name: RequestPrimaryClipboard
+    aliases: []
+    doc: |
+      Request Primary Clipboard requests the primary clipboard.
+
+       OSC 52 ; p ; ? BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params: []
+    format: "OSC 52 ; p ; ? BEL"
+  - name: RequestPrimaryDeviceAttributes
+    aliases: [DA1]
+    doc: |
+      Request Primary Device Attributes (DA1) requests the terminal's primary
+      device attributes.
+
+      The terminal responds with:
+
+       CSI ? Ps ; ... c
+
+      Common attributes include:
+      - 1: 132 columns
+      - 2: Printer port
+      - 4: Sixel
+      - 6: Selective erase
+      - 7: Soft character set (DRCS)
+      - 8: User-defined keys (UDKs)
+      - 9: National replacement character sets (NRCS)
+      - 15: Technical character set
+      - 18: Windowing capability
+      - 21: Horizontal scrolling
+
+       CSI c
+
+      See: https://vt100.net/docs/vt510-rm/DA1.html
+    params: []
+    format: "CSI c"
+  - name: RequestSecondaryDeviceAttributes
+    aliases: [DA2]
+    doc: |
+      Request Secondary Device Attributes (DA2) requests the terminal's secondary
+      device attributes.
+
+      The terminal responds with:
+
+       CSI > Ps ; ... c
+
+       CSI > c
+
+      See: https://vt100.net/docs/vt510-rm/DA2.html
+    params: []
+    format: "CSI > c"
+  - name: RequestSystemClipboard
+    aliases: []
+    doc: |
+      Request System Clipboard requests the system clipboard.
+
+       OSC 52 ; c ; ? BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params: []
+    format: "OSC 52 ; c ; ? BEL"
+  - name: RequestTertiaryDeviceAttributes
+    aliases: [DA3]
+    doc: |
+      Request Tertiary Device Attributes (DA3) requests the terminal's tertiary
+      device attributes.
+
+      The terminal responds with:
+
+       DCS ! | Text ST
+
+      Where Text is the unit ID for the terminal.
+
+       CSI = c
+
+      See: https://vt100.net/docs/vt510-rm/DA3.html
+    params: []
+    format: "CSI = c"
+  - name: ResetBackgroundColor
+    aliases: []
+    doc: |
+      Reset Background Color resets the default terminal background color.
+
+       OSC 111 BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params: []
+    format: "OSC 111 BEL"
+  - name: ResetCursorColor
+    aliases: []
+    doc: |
+      Reset Cursor Color resets the terminal cursor color.
+
+       OSC 112 BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params: []
+    format: "OSC 112 BEL"
+  - name: ResetForegroundColor
+    aliases: []
+    doc: |
+      Reset Foreground Color resets the default terminal foreground color.
+
+       OSC 110 BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params: []
+    format: "OSC 110 BEL"
+  - name: ResetPrimaryClipboard
+    aliases: []
+    doc: |
+      Reset Primary Clipboard resets the primary clipboard.
+
+       OSC 52 ; p ; BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params: []
+    format: "OSC 52 ; p ; BEL"
+  - name: ResetSystemClipboard
+    aliases: []
+    doc: |
+      Reset System Clipboard resets the system clipboard.
+
+       OSC 52 ; c ; BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params: []
+    format: "OSC 52 ; c ; BEL"
+  - name: RestoreCursor
+    aliases: [DECRC]
+    doc: |
+      Restore Cursor (DECRC) restores the terminal to the state saved by the
+      save cursor (DECSC) function.
+
+      If nothing was saved by DECSC, it moves the cursor to the home position,
+      resets origin mode (DECOM), turns all character attributes off, and maps
+      the ASCII character set into GL and the DEC Supplemental Graphic set into GR.
+
+       ESC 8
+
+      See: https://vt100.net/docs/vt510-rm/DECRC.html
+    params: []
+    format: "ESC 8"
+  - name: RestoreCurrentCursorPosition
+    aliases: [SCORC]
+    doc: |
+      Restore Current Cursor Position (SCORC) moves the cursor to a previously
+      saved position within the current page.
+
+       CSI u
+
+      See: https://vt100.net/docs/vt510-rm/SCORC.html
+    params: []
+    format: "CSI u"
+  - name: ReverseIndex
+    aliases: []
+    doc: |
+      Reverse Index (RI) moves the cursor up one line in the same column.
+
+      If the cursor is at the top margin, the screen scrolls down.
+
+       ESC M
+
+      See: https://vt100.net/docs/vt510-rm/RI.html
+    params: []
+    format: "ESC M"
+  - name: SaveCursor
+    aliases: [DECSC]
+    doc: |
+      Save Cursor (DECSC) saves the cursor position and attributes.
+
+      DECSC saves the following items in the terminal's memory:
+      - Cursor position
+      - Character attributes set by the SGR command
+      - Character sets (G0, G1, G2, or G3) currently in GL and GR
+      - Wrap flag (autowrap or no autowrap)
+      - State of origin mode (DECOM)
+      - Selective erase attribute
+      - Any single shift 2 (SS2) or single shift 3 (SS3) functions sent
+
+       ESC 7
+
+      See: https://vt100.net/docs/vt510-rm/DECSC.html
+    params: []
+    format: "ESC 7"
+  - name: SaveCurrentCursorPosition
+    aliases: [SCOSC]
+    doc: |
+      Save Current Cursor Position (SCOSC) saves the current cursor position for
+      SCO console mode.
+
+      It functions identically to the DECSC command, with the exception that it
+      does not save the page number where the cursor is located.
+
+       CSI s
+
+      See: https://vt100.net/docs/vt510-rm/SCOSC.html
+    params: []
+    format: "CSI s"
+  - name: SelectCharacterSet
+    aliases: [SCS]
+    doc: |
+      Select Character Set (SCS) designates character sets to G-sets.
+
+      Where gset is the G-set character designator, and charset is the identifier.
+
+      For 94-character sets, the designator can be one of:
+      - ( G0
+      - ) G1
+      - * G2
+      - + G3
+
+      For 96-character sets, the designator can be one of:
+      - - G1
+      - . G2
+      - / G3
+
+      Some common 94-character sets are:
+      - 0 DEC Special Drawing Set
+      - A United Kingdom (UK)
+      - B United States (USASCII)
+
+       ESC Ps Pd
+
+      See: https://vt100.net/docs/vt510-rm/SCS.html
+    params:
+      - name: gset
+        type: byte
+      - name: charset
+        type: byte
+    format: "ESC {gset}{charset}"
+  - name: SetBackgroundColor
+    aliases: []
+    doc: |
+      Set Background Color sets the default terminal background color.
+
+      Where color is the encoded color number. Most terminals support hex,
+      XParseColor rgb: and rgba: strings.
+
+       OSC 11 ; color ST
+       OSC 11 ; color BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params:
+      - name: color
+        type: string
+        default: ""
+    format: "OSC 11 ; {color} BEL"
+  - name: SetCursorColor
+    aliases: []
+    doc: |
+      Set Cursor Color sets the terminal cursor color.
+
+      Where color is the encoded color number. Most terminals support hex,
+      XParseColor rgb: and rgba: strings.
+
+       OSC 12 ; color ST
+       OSC 12 ; color BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params:
+      - name: color
+        type: string
+        default: ""
+    format: "OSC 12 ; {color} BEL"
+  - name: SetCursorStyle
+    aliases: [DECSCUSR]
+    doc: |
+      Set Cursor Style (DECSCUSR) changes the cursor style.
+
+      Default is 0.
+
+       CSI Ps SP q
+
+      Where Ps is the cursor style:
+
+       0: Blinking block
+       1: Blinking block (default)
+       2: Steady block
+       3: Blinking underline
+       4: Steady underline
+       5: Blinking bar (xterm)
+       6: Steady bar (xterm)
+
+      See: https://vt100.net/docs/vt510-rm/DECSCUSR.html
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h4-Functions-using-CSI-_-ordered-by-the-final-character-lparen-s-rparen:CSI-Ps-SP-q.1D81
+    params:
+      - name: style
+        type: int
+        default: 0
+    format: "CSI {style} SP q"
+  - name: SetForegroundColor
+    aliases: []
+    doc: |
+      Set Foreground Color sets the default terminal foreground color.
+
+      Where color is the encoded color number. Most terminals support hex,
+      XParseColor rgb: and rgba: strings.
+
+       OSC 10 ; color ST
+       OSC 10 ; color BEL
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+    params:
+      - name: color
+        type: string
+        default: ""
+    format: "OSC 10 ; {color} BEL"
+  - name: SetPointerShape
+    aliases: []
+    doc: |
+      Set Pointer Shape changes the mouse pointer cursor shape.
+
+      Use "default" for the default pointer shape.
+
+       OSC 22 ; Pt ST
+       OSC 22 ; Pt BEL
+
+      Where Pt is the pointer shape name.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Operating-System-Commands
+    params:
+      - name: shape
+        type: string
+        default: ""
+    format: "OSC 22 ; {shape} BEL"
+  # Locking shifts
+  - name: LS1R
+    aliases: []
+    doc: |
+      Locking Shift 1 Right (LS1R) shifts G1 into GR character set.
+
+       ESC ~
+
+      See: https://vt100.net/docs/vt510-rm/LS1R.html
+    params: []
+    format: "ESC ~"
+  - name: LS2
+    aliases: []
+    doc: |
+      Locking Shift 2 (LS2) shifts G2 into GL character set.
+
+       ESC n
+
+      See: https://vt100.net/docs/vt510-rm/LS2.html
+    params: []
+    format: "ESC n"
+  - name: LS2R
+    aliases: []
+    doc: |
+      Locking Shift 2 Right (LS2R) shifts G2 into GR character set.
+
+       ESC }
+
+      See: https://vt100.net/docs/vt510-rm/LS2R.html
+    params: []
+    format: "ESC }"
+  - name: LS3
+    aliases: []
+    doc: |
+      Locking Shift 3 (LS3) shifts G3 into GL character set.
+
+       ESC o
+
+      See: https://vt100.net/docs/vt510-rm/LS3.html
+    params: []
+    format: "ESC o"
+  - name: LS3R
+    aliases: []
+    doc: |
+      Locking Shift 3 Right (LS3R) shifts G3 into GR character set.
+
+       ESC |
+
+      See: https://vt100.net/docs/vt510-rm/LS3R.html
+    params: []
+    format: "ESC |"
+
+modes:
+  - name: KeyboardAction
+    aliases:
+      - KAM
+    type: ansi
+    number: 2
+    doc: |
+      Keyboard Action Mode (KAM) is a mode that controls locking of the keyboard.
+      When the keyboard is locked, it cannot send data to the terminal.
+
+      See: https://vt100.net/docs/vt510-rm/KAM.html
+  - name: InsertReplace
+    aliases:
+      - IRM
+    type: ansi
+    number: 4
+    doc: |
+      Insert/Replace Mode (IRM) is a mode that determines whether characters are
+      inserted or replaced when typed.
+
+      When enabled, characters are inserted at the cursor position pushing the
+      characters to the right. When disabled, characters replace the character at
+      the cursor position.
+
+      See: https://vt100.net/docs/vt510-rm/IRM.html
+  - name: BiDirectionalSupport
+    aliases:
+      - BDSM
+    type: ansi
+    number: 8
+    doc: |
+      BiDirectional Support Mode (BDSM) is a mode that determines whether the
+      terminal supports bidirectional text. When enabled, the terminal supports
+      bidirectional text and is set to implicit bidirectional mode. When disabled,
+      the terminal does not support bidirectional text.
+
+      See ECMA-48 7.2.1.
+  - name: SendReceive
+    aliases:
+      - SRM
+      - LocalEcho
+    type: ansi
+    number: 12
+    doc: |
+      Send Receive Mode (SRM) or Local Echo Mode is a mode that determines whether
+      the terminal echoes characters back to the host. When enabled, the terminal
+      sends characters to the host as they are typed.
+
+      See: https://vt100.net/docs/vt510-rm/SRM.html
+  - name: LineFeedNewLine
+    aliases:
+      - LNM
+    type: ansi
+    number: 20
+    doc: |
+      Line Feed/New Line Mode (LNM) is a mode that determines whether the terminal
+      interprets the line feed character as a new line.
+
+      When enabled, the terminal interprets the line feed character as a new line.
+      When disabled, the terminal interprets the line feed character as a line feed.
+
+      A new line moves the cursor to the first position of the next line.
+      A line feed moves the cursor down one line without changing the column
+      scrolling the screen if necessary.
+
+      See: https://vt100.net/docs/vt510-rm/LNM.html
+  - name: CursorKeys
+    aliases:
+      - DECCKM
+    type: dec
+    number: 1
+    doc: |
+      Cursor Keys Mode (DECCKM) is a mode that determines whether the cursor keys
+      send ANSI cursor sequences or application sequences.
+
+      See: https://vt100.net/docs/vt510-rm/DECCKM.html
+  - name: Origin
+    aliases:
+      - DECOM
+    type: dec
+    number: 6
+    doc: |
+      Origin Mode (DECOM) is a mode that determines whether the cursor moves to the
+      home position or the margin position.
+
+      See: https://vt100.net/docs/vt510-rm/DECOM.html
+  - name: AutoWrap
+    aliases:
+      - DECAWM
+    type: dec
+    number: 7
+    doc: |
+      Auto Wrap Mode (DECAWM) is a mode that determines whether the cursor wraps
+      to the next line when it reaches the right margin.
+
+      See: https://vt100.net/docs/vt510-rm/DECAWM.html
+  - name: MouseX10
+    aliases: []
+    type: dec
+    number: 9
+    doc: |
+      X10 Mouse Mode is a mode that determines whether the mouse reports on button
+      presses.
+
+      The terminal responds with the following encoding:
+
+       CSI M CbCxCy
+
+      Where Cb is the button-1, where it can be 1, 2, or 3.
+      Cx and Cy are the x and y coordinates of the mouse event.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+  - name: TextCursorEnable
+    aliases:
+      - DECTCEM
+    type: dec
+    number: 25
+    doc: |
+      Text Cursor Enable Mode (DECTCEM) is a mode that shows/hides the cursor.
+
+      See: https://vt100.net/docs/vt510-rm/DECTCEM.html
+  - name: NumericKeypad
+    aliases:
+      - DECNKM
+    type: dec
+    number: 66
+    doc: |
+      Numeric Keypad Mode (DECNKM) is a mode that determines whether the keypad
+      sends application sequences or numeric sequences.
+
+      This works like DECKPAM and DECKPNM, but uses different sequences.
+
+      See: https://vt100.net/docs/vt510-rm/DECNKM.html
+  - name: BackarrowKey
+    aliases:
+      - DECBKM
+    type: dec
+    number: 67
+    doc: |
+      Backarrow Key Mode (DECBKM) is a mode that determines whether the backspace
+      key sends a backspace or delete character. Disabled by default.
+
+      See: https://vt100.net/docs/vt510-rm/DECBKM.html
+  - name: LeftRightMargin
+    aliases:
+      - DECLRMM
+    type: dec
+    number: 69
+    doc: |
+      Left Right Margin Mode (DECLRMM) is a mode that determines whether the left
+      and right margins can be set with DECSLRM.
+
+      See: https://vt100.net/docs/vt510-rm/DECLRMM.html
+  - name: MouseNormal
+    aliases: []
+    type: dec
+    number: 1000
+    doc: |
+      Normal Mouse Mode is a mode that determines whether the mouse reports on
+      button presses and releases. It will also report modifier keys, wheel
+      events, and extra buttons.
+
+      It uses the same encoding as ModeMouseX10 with a few differences.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+  - name: MouseHighlight
+    aliases: []
+    type: dec
+    number: 1001
+    doc: |
+      Highlight Mouse Tracking is a mode that determines whether the mouse reports
+      on button presses, releases, and highlighted cells.
+
+      It uses the same encoding as ModeMouseNormal with a few differences:
+
+      On highlight events, the terminal responds with the following encoding:
+
+       CSI t CxCy
+       CSI T CxCyCxCyCxCy
+
+      Where the parameters are startx, starty, endx, endy, mousex, and mousey.
+  - name: MouseButtonEvent
+    aliases: []
+    type: dec
+    number: 1002
+    doc: |
+      Button Event Mouse Tracking is essentially the same as ModeMouseNormal,
+      but it also reports button-motion events when a button is pressed.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+  - name: MouseAnyEvent
+    aliases: []
+    type: dec
+    number: 1003
+    doc: |
+      Any Event Mouse Tracking is the same as ModeMouseButtonEvent, except that
+      all motion events are reported even if no mouse buttons are pressed.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+  - name: FocusEvent
+    aliases: []
+    type: dec
+    number: 1004
+    doc: |
+      Focus Event Mode is a mode that determines whether the terminal reports focus
+      and blur events.
+
+      The terminal sends the following encoding:
+
+       CSI I // Focus In
+       CSI O // Focus Out
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Focus-Tracking
+  - name: MouseExtUtf8
+    aliases: []
+    type: dec
+    number: 1005
+    doc: |
+      UTF-8 Extended Mouse Mode is a mode that changes the mouse tracking encoding
+      to use UTF-8 parameters.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+  - name: MouseExtSgr
+    aliases: []
+    type: dec
+    number: 1006
+    doc: |
+      SGR Extended Mouse Mode is a mode that changes the mouse tracking encoding
+      to use SGR parameters.
+
+      The terminal responds with the following encoding:
+
+       CSI < Cb ; Cx ; Cy M
+
+      Where Cb is the same as ModeMouseNormal, and Cx and Cy are the x and y.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+  - name: MouseExtUrxvt
+    aliases: []
+    type: dec
+    number: 1015
+    doc: |
+      URXVT Extended Mouse Mode is a mode that changes the mouse tracking encoding
+      to use an alternate encoding.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+  - name: MouseExtSgrPixel
+    aliases: []
+    type: dec
+    number: 1016
+    doc: |
+      SGR Pixel Extended Mouse Mode is a mode that changes the mouse tracking
+      encoding to use SGR parameters with pixel coordinates.
+
+      This is similar to ModeMouseExtSgr, but also reports pixel coordinates.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Mouse-Tracking
+  - name: AltScreen
+    aliases: []
+    type: dec
+    number: 1047
+    doc: |
+      Alternate Screen Mode is a mode that determines whether the alternate screen
+      buffer is active. When this mode is enabled, the alternate screen buffer is
+      cleared.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+  - name: SaveCursor
+    aliases: []
+    type: dec
+    number: 1048
+    doc: |
+      Save Cursor Mode is a mode that saves the cursor position.
+      This is equivalent to SaveCursor and RestoreCursor.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+  - name: AltScreenSaveCursor
+    aliases: []
+    type: dec
+    number: 1049
+    doc: |
+      Alternate Screen Save Cursor Mode is a mode that saves the cursor position as in
+      ModeSaveCursor, switches to the alternate screen buffer as in ModeAltScreen,
+      and clears the screen on switch.
+
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-The-Alternate-Screen-Buffer
+  - name: BracketedPaste
+    aliases: []
+    type: dec
+    number: 2004
+    doc: |
+      Bracketed Paste Mode is a mode that determines whether pasted text is
+      bracketed with escape sequences.
+
+      See: https://cirw.in/blog/bracketed-paste
+      See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Bracketed-Paste-Mode
+  - name: SynchronizedOutput
+    aliases: []
+    type: dec
+    number: 2026
+    doc: |
+      Synchronized Output Mode is a mode that determines whether output is
+      synchronized with the terminal.
+
+      See: https://gist.github.com/christianparpart/d8a62cc1ab659194337d73e399004036
+  - name: UnicodeCore
+    aliases: []
+    type: dec
+    number: 2027
+    doc: |
+      Unicode Core Mode is a mode that determines whether the terminal should use
+      Unicode grapheme clustering to calculate the width of glyphs for each
+      terminal cell.
+
+      See: https://github.com/contour-terminal/terminal-unicode-core
+  - name: LightDark
+    aliases: []
+    type: dec
+    number: 2031
+    doc: |
+      Light/Dark Mode is a mode that enables reporting the operating system's color
+      scheme (light or dark) preference. It reports the color scheme as a DSR
+      and LightDarkReport escape sequences encoded as follows:
+
+       CSI ? 997 ; 1 n   for dark mode
+       CSI ? 997 ; 2 n   for light mode
+
+      The color preference can also be requested via the following DSR and
+      RequestLightDarkReport escape sequences:
+
+       CSI ? 996 n
+
+      See: https://contour-terminal.org/vt-extensions/color-palette-update-notifications/
+  - name: InBandResize
+    aliases: []
+    type: dec
+    number: 2048
+    doc: |
+      In-Band Resize Mode is a mode that reports terminal resize events as escape
+      sequences. This is useful for systems that do not support SIGWINCH like
+      Windows.
+
+      The terminal then sends the following encoding:
+
+       CSI 48 ; cellsHeight ; cellsWidth ; pixelHeight ; pixelWidth t
+
+      See: https://gist.github.com/rockorager/e695fb2924d36b2bcf1fff4a3704bd83
+  - name: Win32Input
+    aliases: []
+    type: dec
+    number: 9001
+    doc: |
+      Win32Input is a mode that determines whether input is processed by the
+      Win32 console and Conpty.
+
+      See: https://github.com/microsoft/terminal/blob/main/doc/specs/%234999%20-%20Improved%20keyboard%20handling%20in%20Conpty.md

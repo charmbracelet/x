@@ -3,6 +3,7 @@ package gen
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -59,6 +60,25 @@ func (g *Generator) Generate() error {
 		}
 	}
 
+	// Sort modes: ANSI modes first (by number), then DEC modes (by number)
+	sortedModes := make([]Mode, len(g.spec.Modes))
+	copy(sortedModes, g.spec.Modes)
+	sort.Slice(sortedModes, func(i, j int) bool {
+		// ANSI modes come before DEC modes
+		if sortedModes[i].Type != sortedModes[j].Type {
+			return sortedModes[i].Type == "ansi"
+		}
+		// Within same type, sort by number
+		return sortedModes[i].Number < sortedModes[j].Number
+	})
+
+	// Generate each mode
+	for _, mode := range sortedModes {
+		if err := g.generateMode(mode); err != nil {
+			return fmt.Errorf("generating mode %s: %w", mode.Name, err)
+		}
+	}
+
 	return nil
 }
 
@@ -79,7 +99,8 @@ import (
 }
 
 func (g *Generator) generateSequence(seq Sequence) error {
-	// For sequences with no parameters, generate constants
+	// For sequences with no parameters, generate only constants
+	// Users can use io.WriteString(w, ConstantName) directly
 	if len(seq.Params) == 0 {
 		// Generate main constant
 		if err := g.generateConstantSequence(seq.Name, seq, false); err != nil {
@@ -89,18 +110,6 @@ func (g *Generator) generateSequence(seq Sequence) error {
 		// Generate alias constants
 		for _, alias := range seq.Aliases {
 			if err := g.generateConstantSequence(alias, seq, true); err != nil {
-				return err
-			}
-		}
-
-		// Generate Write* function for main constant
-		if err := g.generateWriteFuncForConstant(seq.Name, seq, false); err != nil {
-			return err
-		}
-
-		// Generate Write* functions for alias constants
-		for _, alias := range seq.Aliases {
-			if err := g.generateWriteFuncForConstant(alias, seq, true); err != nil {
 				return err
 			}
 		}
@@ -603,32 +612,6 @@ func (g *Generator) generateConstantSequence(name string, seq Sequence, isAlias 
 	return err
 }
 
-func (g *Generator) generateWriteFuncForConstant(name string, seq Sequence, isAlias bool) error {
-	funcName := "Write" + name
-
-	// Write function documentation
-	doc := formatDoc(seq.Doc, funcName, isAlias, "Write"+seq.Name)
-	if _, err := fmt.Fprintf(g.w, "%s\n", doc); err != nil {
-		return err
-	}
-
-	// Write function signature
-	if _, err := fmt.Fprintf(g.w, "func %s(w io.Writer) (int, error) {\n", funcName); err != nil {
-		return err
-	}
-
-	// Write function body - just return io.WriteString with the constant
-	if _, err := fmt.Fprintf(g.w, "\treturn io.WriteString(w, %s)\n", name); err != nil {
-		return err
-	}
-
-	if _, err := fmt.Fprintf(g.w, "}\n\n"); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func formatConstantDoc(doc, name string) string {
 	if doc == "" {
 		return fmt.Sprintf("// %s is an ANSI escape sequence.", name)
@@ -678,6 +661,60 @@ func formatDoc(doc, name string, isAlias bool, mainName string) string {
 	}
 
 	return strings.Join(result, "\n")
+}
+
+// generateMode generates mode constants.
+func (g *Generator) generateMode(mode Mode) error {
+	// Write documentation
+	if mode.Doc != "" {
+		lines := strings.Split(strings.TrimSpace(mode.Doc), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" {
+				fmt.Fprintf(g.w, "//\n")
+			} else {
+				fmt.Fprintf(g.w, "// %s\n", line)
+			}
+		}
+	}
+	
+	// Write const block
+	fmt.Fprintf(g.w, "const (\n")
+	
+	// Write mode constant
+	modeType := "ANSIMode"
+	if mode.Type == "dec" {
+		modeType = "DECMode"
+	}
+	fmt.Fprintf(g.w, "\tMode%s = %s(%d)\n", mode.Name, modeType, mode.Number)
+	
+	// Write aliases
+	for _, alias := range mode.Aliases {
+		fmt.Fprintf(g.w, "\t%s = Mode%s\n", alias, mode.Name)
+	}
+	
+	fmt.Fprintf(g.w, "\n")
+	
+	// Write Set/Reset/Request constants
+	prefix := ""
+	if mode.Type == "dec" {
+		prefix = "?"
+	}
+	
+	fmt.Fprintf(g.w, "\tSetMode%s = \"\\x1b[%s%dh\"\n", mode.Name, prefix, mode.Number)
+	fmt.Fprintf(g.w, "\tResetMode%s = \"\\x1b[%s%dl\"\n", mode.Name, prefix, mode.Number)
+	fmt.Fprintf(g.w, "\tRequestMode%s = \"\\x1b[%s%d$p\"\n", mode.Name, prefix, mode.Number)
+	
+	// Write Set/Reset/Request aliases
+	for _, alias := range mode.Aliases {
+		fmt.Fprintf(g.w, "\tSetMode%s = SetMode%s\n", alias, mode.Name)
+		fmt.Fprintf(g.w, "\tResetMode%s = ResetMode%s\n", alias, mode.Name)
+		fmt.Fprintf(g.w, "\tRequestMode%s = RequestMode%s\n", alias, mode.Name)
+	}
+	
+	fmt.Fprintf(g.w, ")\n\n")
+	
+	return nil
 }
 
 func formatConstDoc(doc, name string) string {

@@ -4,6 +4,7 @@ package gen
 type Spec struct {
 	Constants map[string]string `yaml:"constants"`
 	Sequences []Sequence        `yaml:"sequences"`
+	Modes     []Mode            `yaml:"modes"`
 }
 
 // Sequence represents a single ANSI escape sequence definition.
@@ -28,4 +29,13 @@ type Constant struct {
 	Name string        `yaml:"name"`
 	Args []interface{} `yaml:"args"`
 	Doc  string        `yaml:"doc"`
+}
+
+// Mode represents a terminal mode definition.
+type Mode struct {
+	Name    string   `yaml:"name"`
+	Aliases []string `yaml:"aliases"`
+	Type    string   `yaml:"type"` // "ansi" or "dec"
+	Number  int      `yaml:"number"`
+	Doc     string   `yaml:"doc"`
 }
