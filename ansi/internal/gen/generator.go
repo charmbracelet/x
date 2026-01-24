@@ -79,27 +79,54 @@ import (
 }
 
 func (g *Generator) generateSequence(seq Sequence) error {
-	// Generate Write* function
-	if err := g.generateWriteFunc(seq.Name, seq, false); err != nil {
-		return err
-	}
-
-	// Generate Write* functions for aliases
-	for _, alias := range seq.Aliases {
-		if err := g.generateWriteFunc(alias, seq, true); err != nil {
+	// For sequences with no parameters, generate constants
+	if len(seq.Params) == 0 {
+		// Generate main constant
+		if err := g.generateConstantSequence(seq.Name, seq, false); err != nil {
 			return err
 		}
-	}
 
-	// Generate string function
-	if err := g.generateStringFunc(seq.Name, seq, false); err != nil {
-		return err
-	}
+		// Generate alias constants
+		for _, alias := range seq.Aliases {
+			if err := g.generateConstantSequence(alias, seq, true); err != nil {
+				return err
+			}
+		}
 
-	// Generate string functions for aliases
-	for _, alias := range seq.Aliases {
-		if err := g.generateStringFunc(alias, seq, true); err != nil {
+		// Generate Write* function for main constant
+		if err := g.generateWriteFuncForConstant(seq.Name, seq, false); err != nil {
 			return err
+		}
+
+		// Generate Write* functions for alias constants
+		for _, alias := range seq.Aliases {
+			if err := g.generateWriteFuncForConstant(alias, seq, true); err != nil {
+				return err
+			}
+		}
+	} else {
+		// Generate Write* function
+		if err := g.generateWriteFunc(seq.Name, seq, false); err != nil {
+			return err
+		}
+
+		// Generate Write* functions for aliases
+		for _, alias := range seq.Aliases {
+			if err := g.generateWriteFunc(alias, seq, true); err != nil {
+				return err
+			}
+		}
+
+		// Generate string function
+		if err := g.generateStringFunc(seq.Name, seq, false); err != nil {
+			return err
+		}
+
+		// Generate string functions for aliases
+		for _, alias := range seq.Aliases {
+			if err := g.generateStringFunc(alias, seq, true); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -118,8 +145,8 @@ func (g *Generator) generateWriteFunc(name string, seq Sequence, isAlias bool) e
 
 	// Build parameter list
 	paramList := "w io.Writer"
-	for _, param := range seq.Params {
-		paramList += fmt.Sprintf(", %s %s", param.Name, param.Type)
+	if params := buildParamList(seq.Params); params != "" {
+		paramList += ", " + params
 	}
 
 	// Write function documentation
@@ -147,17 +174,16 @@ func (g *Generator) generateWriteFunc(name string, seq Sequence, isAlias bool) e
 }
 
 func (g *Generator) generateWriteFuncBody(seq Sequence) error {
-	// Check if all params are at or below default
-	// Skip this check for string params
-	hasOnlyIntParams := true
+	// Check if all params have valid defaults and are not strings or bytes
+	canOptimize := len(seq.Params) > 0
 	for _, param := range seq.Params {
-		if param.Type == "string" {
-			hasOnlyIntParams = false
+		if param.Type == "string" || param.Type == "byte" || !hasValidDefault(param) {
+			canOptimize = false
 			break
 		}
 	}
 
-	if len(seq.Params) > 0 && hasOnlyIntParams {
+	if canOptimize {
 		conditions := []string{}
 		for _, param := range seq.Params {
 			defaultVal := formatDefaultValue(param.Default)
@@ -165,7 +191,7 @@ func (g *Generator) generateWriteFuncBody(seq Sequence) error {
 		}
 
 		// Generate the simple case (all params at or below default)
-		simpleOutput := g.formatOutput(seq.Format, seq.Params, true)
+		simpleOutput := g.formatOutput(seq.Format, seq.Params)
 		if _, err := fmt.Fprintf(g.w, "\tif %s {\n", strings.Join(conditions, " && ")); err != nil {
 			return err
 		}
@@ -188,7 +214,7 @@ func (g *Generator) generateWriteFuncBody(seq Sequence) error {
 func (g *Generator) generateParamCombinations(seq Sequence) error {
 	if len(seq.Params) == 0 {
 		// No params, just write the format
-		output := g.formatOutput(seq.Format, seq.Params, false)
+		output := g.formatOutput(seq.Format, seq.Params)
 		_, err := fmt.Fprintf(g.w, "\treturn io.WriteString(w, %q)\n", output)
 		return err
 	}
@@ -196,8 +222,8 @@ func (g *Generator) generateParamCombinations(seq Sequence) error {
 	// For single param, simple check
 	if len(seq.Params) == 1 {
 		param := seq.Params[0]
-		if param.Type == "string" {
-			// String params are always included
+		// Always include string, byte params, or params without valid defaults
+		if param.Type == "string" || param.Type == "byte" || !hasValidDefault(param) {
 			formatStr := g.buildFormatString(seq.Format, seq.Params, []bool{false})
 			args := g.buildFormatArgs(seq.Params, []bool{false})
 			_, err := fmt.Fprintf(g.w, "\treturn fmt.Fprintf(w, %q%s)\n", formatStr, args)
@@ -216,6 +242,23 @@ func (g *Generator) generateParamCombinations(seq Sequence) error {
 
 func (g *Generator) generateMultiParamLogic(seq Sequence) error {
 	numParams := len(seq.Params)
+
+	// Check if any params don't have valid defaults - if so, just generate simple code
+	canOptimize := true
+	for _, param := range seq.Params {
+		if param.Type == "string" || param.Type == "byte" || !hasValidDefault(param) {
+			canOptimize = false
+			break
+		}
+	}
+
+	if !canOptimize {
+		// Just generate simple fmt.Fprintf without conditionals
+		formatStr := g.buildFormatString(seq.Format, seq.Params, make([]bool, numParams))
+		args := g.buildFormatArgs(seq.Params, make([]bool, numParams))
+		_, err := fmt.Fprintf(g.w, "\treturn fmt.Fprintf(w, %q%s)\n", formatStr, args)
+		return err
+	}
 
 	// Generate if-else chain for different combinations
 	// Start with all params included
@@ -262,17 +305,14 @@ func (g *Generator) generateMultiParamLogic(seq Sequence) error {
 	}
 
 	// Fallback (shouldn't reach here)
-	output := g.formatOutput(seq.Format, seq.Params, false)
+	output := g.formatOutput(seq.Format, seq.Params)
 	_, err := fmt.Fprintf(g.w, "\treturn io.WriteString(w, %q)\n", output)
 	return err
 }
 
 func (g *Generator) buildFormatString(format string, params []Param, omitFlags []bool) string {
 	// Expand constants first
-	result := format
-	for k, v := range g.constants {
-		result = strings.ReplaceAll(result, k, v)
-	}
+	result := g.expandConstants(format)
 
 	// Replace parameter placeholders
 	for i, param := range params {
@@ -282,19 +322,73 @@ func (g *Generator) buildFormatString(format string, params []Param, omitFlags [
 			result = strings.ReplaceAll(result, placeholder, "")
 		} else {
 			// Include this param
-			if param.Type == "string" {
+			switch param.Type {
+			case "string":
 				result = strings.ReplaceAll(result, placeholder, "%s")
-			} else {
+			case "byte":
+				result = strings.ReplaceAll(result, placeholder, "%c")
+			default: // int
 				result = strings.ReplaceAll(result, placeholder, "%d")
 			}
 		}
 	}
 
-	// Clean up spacing
-	result = strings.ReplaceAll(result, " ; ", ";")
-	result = strings.ReplaceAll(result, " ", "")
+	// Clean up separators
+	result = cleanupSeparators(result)
 
 	return result
+}
+
+// cleanupSeparators removes orphaned semicolons (when all adjacent params are omitted)
+func cleanupSeparators(s string) string {
+	for {
+		before := s
+		// Remove leading semicolon after bracket
+		s = strings.ReplaceAll(s, "[;", "[")
+		// Remove trailing semicolon before letter (command char)
+		s = strings.ReplaceAll(s, ";H", "H")
+		s = strings.ReplaceAll(s, ";A", "A")
+		s = strings.ReplaceAll(s, ";B", "B")
+		s = strings.ReplaceAll(s, ";C", "C")
+		s = strings.ReplaceAll(s, ";D", "D")
+		s = strings.ReplaceAll(s, ";E", "E")
+		s = strings.ReplaceAll(s, ";F", "F")
+		s = strings.ReplaceAll(s, ";G", "G")
+		s = strings.ReplaceAll(s, ";I", "I")
+		s = strings.ReplaceAll(s, ";X", "X")
+		s = strings.ReplaceAll(s, ";Z", "Z")
+		s = strings.ReplaceAll(s, ";a", "a")
+		s = strings.ReplaceAll(s, ";c", "c")
+		s = strings.ReplaceAll(s, ";d", "d")
+		s = strings.ReplaceAll(s, ";e", "e")
+		s = strings.ReplaceAll(s, ";f", "f")
+		s = strings.ReplaceAll(s, ";n", "n")
+		s = strings.ReplaceAll(s, ";q", "q")
+		// Remove consecutive semicolons
+		s = strings.ReplaceAll(s, ";;", ";")
+		if s == before {
+			break
+		}
+	}
+	return s
+}
+
+// buildParamList builds a parameter list string for function signatures.
+func buildParamList(params []Param) string {
+	var parts []string
+	for _, param := range params {
+		parts = append(parts, fmt.Sprintf("%s %s", param.Name, param.Type))
+	}
+	return strings.Join(parts, ", ")
+}
+
+// buildParamNames builds a list of parameter names.
+func buildParamNames(params []Param) []string {
+	var names []string
+	for _, param := range params {
+		names = append(names, param.Name)
+	}
+	return names
 }
 
 func (g *Generator) buildFormatArgs(params []Param, omitFlags []bool) string {
@@ -312,42 +406,26 @@ func (g *Generator) buildFormatArgs(params []Param, omitFlags []bool) string {
 	return ", " + strings.Join(args, ", ")
 }
 
-func (g *Generator) formatOutput(format string, params []Param, omitAll bool) string {
+func (g *Generator) formatOutput(format string, params []Param) string {
 	// Expand constants first
-	result := format
-	for k, v := range g.constants {
-		result = strings.ReplaceAll(result, k, v)
-	}
+	result := g.expandConstants(format)
 
 	// Remove parameter placeholders
 	for _, param := range params {
 		placeholder := "{" + param.Name + "}"
-		if omitAll {
-			result = strings.ReplaceAll(result, placeholder, "")
-		} else {
-			// This shouldn't be used for params that need values
-			result = strings.ReplaceAll(result, placeholder, "")
-		}
+		result = strings.ReplaceAll(result, placeholder, "")
 	}
 
-	// Clean up spacing and separators
-	result = strings.ReplaceAll(result, " ; ", "")
-	result = strings.ReplaceAll(result, " ", "")
+	// Clean up separators
+	result = cleanupSeparators(result)
 
 	return result
 }
 
 func (g *Generator) generateStringFunc(name string, seq Sequence, isAlias bool) error {
 	// Build parameter list
-	paramList := ""
-	paramNames := []string{}
-	for i, param := range seq.Params {
-		if i > 0 {
-			paramList += ", "
-		}
-		paramList += fmt.Sprintf("%s %s", param.Name, param.Type)
-		paramNames = append(paramNames, param.Name)
-	}
+	paramList := buildParamList(seq.Params)
+	paramNames := buildParamNames(seq.Params)
 
 	// Write function documentation
 	doc := formatDoc(seq.Doc, name, isAlias, seq.Name)
@@ -361,20 +439,26 @@ func (g *Generator) generateStringFunc(name string, seq Sequence, isAlias bool) 
 	}
 
 	// Write function body
-	if _, err := fmt.Fprintf(g.w, "\tvar b strings.Builder\n"); err != nil {
-		return err
-	}
+	// For sequences with no parameters, return the constant directly without allocating
+	if len(seq.Params) == 0 {
+		output := g.formatOutput(seq.Format, seq.Params)
+		if _, err := fmt.Fprintf(g.w, "\treturn %q\n", output); err != nil {
+			return err
+		}
+	} else {
+		// For sequences with parameters, use strings.Builder
+		if _, err := fmt.Fprintf(g.w, "\tvar b strings.Builder\n"); err != nil {
+			return err
+		}
 
-	args := ""
-	if len(paramNames) > 0 {
-		args = ", " + strings.Join(paramNames, ", ")
-	}
-	if _, err := fmt.Fprintf(g.w, "\tWrite%s(&b%s)\n", name, args); err != nil {
-		return err
-	}
+		args := ", " + strings.Join(paramNames, ", ")
+		if _, err := fmt.Fprintf(g.w, "\tWrite%s(&b%s)\n", name, args); err != nil {
+			return err
+		}
 
-	if _, err := fmt.Fprintf(g.w, "\treturn b.String()\n"); err != nil {
-		return err
+		if _, err := fmt.Fprintf(g.w, "\treturn b.String()\n"); err != nil {
+			return err
+		}
 	}
 
 	if _, err := fmt.Fprintf(g.w, "}\n\n"); err != nil {
@@ -385,13 +469,25 @@ func (g *Generator) generateStringFunc(name string, seq Sequence, isAlias bool) 
 }
 
 func (g *Generator) generateConstant(seqName string, constant Constant) error {
-	// Build the function call to get the value
-	args := []string{}
-	for _, arg := range constant.Args {
-		args = append(args, formatArgValue(arg))
+	// We need to evaluate the constant value at generation time, not as a function call
+	// Find the sequence to get its format and params
+	var seq *Sequence
+	for i := range g.spec.Sequences {
+		if g.spec.Sequences[i].Name == seqName {
+			seq = &g.spec.Sequences[i]
+			break
+		}
 	}
 
-	funcCall := fmt.Sprintf("%s(%s)", seqName, strings.Join(args, ", "))
+	if seq == nil {
+		return fmt.Errorf("sequence %s not found for constant %s", seqName, constant.Name)
+	}
+
+	// Evaluate the constant's value
+	output, err := g.evaluateConstant(seq, constant.Args)
+	if err != nil {
+		return fmt.Errorf("evaluating constant %s: %w", constant.Name, err)
+	}
 
 	// Write documentation if present
 	if constant.Doc != "" {
@@ -401,9 +497,159 @@ func (g *Generator) generateConstant(seqName string, constant Constant) error {
 		}
 	}
 
-	// Write constant definition
-	_, err := fmt.Fprintf(g.w, "var %s = %s\n\n", constant.Name, funcCall)
+	// Write constant definition with the literal value
+	_, err = fmt.Fprintf(g.w, "const %s = %q\n\n", constant.Name, output)
 	return err
+}
+
+// evaluateConstant evaluates a constant by substituting args into the format
+func (g *Generator) evaluateConstant(seq *Sequence, args []interface{}) (string, error) {
+	output := g.expandConstants(seq.Format)
+
+	// Check which parameters should be omitted (when they match defaults)
+	omitFlags := make([]bool, len(seq.Params))
+	for i, param := range seq.Params {
+		if i >= len(args) {
+			return "", fmt.Errorf("not enough args (need %d, got %d)", len(seq.Params), len(args))
+		}
+
+		// Check if this arg matches the default and should be omitted
+		if hasValidDefault(param) {
+			switch v := param.Default.(type) {
+			case int:
+				if argInt, ok := args[i].(int); ok && argInt <= v {
+					omitFlags[i] = true
+					continue
+				}
+			case float64:
+				if argInt, ok := args[i].(int); ok && argInt <= int(v) {
+					omitFlags[i] = true
+					continue
+				}
+			}
+		}
+	}
+
+	// Replace parameter placeholders with the constant's args
+	for i, param := range seq.Params {
+		placeholder := "{" + param.Name + "}"
+
+		if omitFlags[i] {
+			// Omit this parameter
+			output = strings.ReplaceAll(output, placeholder, "")
+		} else {
+			// Format the arg value based on type
+			var argStr string
+			switch param.Type {
+			case "string":
+				argStr = fmt.Sprintf("%v", args[i])
+			case "byte":
+				argStr = string(byte(args[i].(int)))
+			default: // int
+				argStr = fmt.Sprintf("%d", args[i])
+			}
+
+			output = strings.ReplaceAll(output, placeholder, argStr)
+		}
+	}
+
+	// Clean up separators
+	output = cleanupSeparators(output)
+
+	return output, nil
+}
+
+// expandConstants expands constant placeholders in a format string
+// expandConstants expands constant placeholders in a format string.
+// It splits on spaces, expands each part, then joins without spaces.
+// This allows the SP constant to naturally create intentional spaces.
+func (g *Generator) expandConstants(format string) string {
+	// Split on spaces first
+	parts := strings.Split(format, " ")
+	var result []string
+
+	for _, part := range parts {
+		// Expand constants in this part
+		expanded := part
+		for i := 0; i < 10; i++ {
+			old := expanded
+			for k, v := range g.constants {
+				expanded = strings.ReplaceAll(expanded, k, v)
+			}
+			if expanded == old {
+				break
+			}
+		}
+		result = append(result, expanded)
+	}
+
+	// Join without spaces
+	return strings.Join(result, "")
+}
+
+func (g *Generator) generateConstantSequence(name string, seq Sequence, isAlias bool) error {
+	// Format the output
+	output := g.expandConstants(seq.Format)
+	output = cleanupSeparators(output)
+
+	// Write documentation
+	doc := formatConstantDoc(seq.Doc, name)
+	if _, err := fmt.Fprintf(g.w, "%s\n", doc); err != nil {
+		return err
+	}
+
+	// Write constant definition
+	_, err := fmt.Fprintf(g.w, "const %s = %q\n\n", name, output)
+	return err
+}
+
+func (g *Generator) generateWriteFuncForConstant(name string, seq Sequence, isAlias bool) error {
+	funcName := "Write" + name
+
+	// Write function documentation
+	doc := formatDoc(seq.Doc, funcName, isAlias, "Write"+seq.Name)
+	if _, err := fmt.Fprintf(g.w, "%s\n", doc); err != nil {
+		return err
+	}
+
+	// Write function signature
+	if _, err := fmt.Fprintf(g.w, "func %s(w io.Writer) (int, error) {\n", funcName); err != nil {
+		return err
+	}
+
+	// Write function body - just return io.WriteString with the constant
+	if _, err := fmt.Fprintf(g.w, "\treturn io.WriteString(w, %s)\n", name); err != nil {
+		return err
+	}
+
+	if _, err := fmt.Fprintf(g.w, "}\n\n"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func formatConstantDoc(doc, name string) string {
+	if doc == "" {
+		return fmt.Sprintf("// %s is an ANSI escape sequence.", name)
+	}
+
+	lines := strings.Split(strings.TrimSpace(doc), "\n")
+	result := []string{}
+
+	// For constants, just state what it is
+	result = append(result, fmt.Sprintf("// %s is an ANSI escape sequence.", name))
+	result = append(result, "//")
+
+	for _, line := range lines {
+		if line == "" {
+			result = append(result, "//")
+		} else {
+			result = append(result, "// "+line)
+		}
+	}
+
+	return strings.Join(result, "\n")
 }
 
 func formatDoc(doc, name string, isAlias bool, mainName string) string {
@@ -413,18 +659,14 @@ func formatDoc(doc, name string, isAlias bool, mainName string) string {
 
 	lines := strings.Split(strings.TrimSpace(doc), "\n")
 	result := []string{}
-	
-	// If this is an alias, add the alias line first
-	if isAlias {
-		result = append(result, fmt.Sprintf("// %s is an alias for [%s].", name, mainName))
+
+	// Add the first line based on function type
+	if strings.HasPrefix(name, "Write") {
+		result = append(result, fmt.Sprintf("// %s writes the sequence to the writer.", name))
 	} else {
-		// For main functions, add the appropriate prefix
-		if strings.HasPrefix(name, "Write") {
-			result = append(result, fmt.Sprintf("// %s formats and writes the sequence to the given writer.", name))
-		} else {
-			result = append(result, fmt.Sprintf("// %s returns a formatted string for this sequence.", name))
-		}
+		result = append(result, fmt.Sprintf("// %s formats the sequence into a string.", name))
 	}
+
 	result = append(result, "//")
 
 	for _, line := range lines {
@@ -468,6 +710,21 @@ func formatDefaultValue(val interface{}) string {
 		return fmt.Sprintf("%q", v)
 	default:
 		return fmt.Sprintf("%v", v)
+	}
+}
+
+func hasValidDefault(param Param) bool {
+	if param.Default == nil {
+		return false
+	}
+	// Check if it's a negative number
+	switch v := param.Default.(type) {
+	case int:
+		return v >= 0
+	case float64:
+		return v >= 0
+	default:
+		return true
 	}
 }
 
