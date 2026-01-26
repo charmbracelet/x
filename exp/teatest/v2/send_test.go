@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea/v2"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/exp/teatest/v2"
 )
 
@@ -82,6 +82,6 @@ func (m *connectedModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *connectedModel) View() string {
-	return "All pings:\n" + strings.Join(m.msgs, "\n")
+func (m *connectedModel) View() tea.View {
+	return tea.NewView("All pings:\n" + strings.Join(m.msgs, "\n"))
 }
