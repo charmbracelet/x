@@ -1,11 +1,11 @@
 github.com/bits-and-blooms/bitset v1.24.4 h1:95H15Og1clikBrKr/DuzMXkQzECs1M6hhoGXLwLQOZE=
 github.com/bits-and-blooms/bitset v1.24.4/go.mod h1:7hO7Gc7Pp1vODcmWvKMRA9BNmbv6a/7QIWpPxHddWR8=
-github.com/clipperhouse/displaywidth v0.7.0 h1:QNv1GYsnLX9QBrcWUtMlogpTXuM5FVnBwKWp1O5NwmE=
-github.com/clipperhouse/displaywidth v0.7.0/go.mod h1:R+kHuzaYWFkTm7xoMmK1lFydbci4X2CicfbGstSGg0o=
+github.com/clipperhouse/displaywidth v0.8.0 h1:/z8v+H+4XLluJKS7rAc7uHZTalT5Z+1430ld3lePSRI=
+github.com/clipperhouse/displaywidth v0.8.0/go.mod h1:UpOXiIKep+TohQYwvAAM/VDU8v3Z5rnWTxiwueR0XvQ=
 github.com/clipperhouse/stringish v0.1.1 h1:+NSqMOr3GR6k1FdRhhnXrLfztGzuG+VuFDfatpWHKCs=
 github.com/clipperhouse/stringish v0.1.1/go.mod h1:v/WhFtE1q0ovMta2+m+UbpZ+2/HEXNWYXQgCt4hdOzA=
-github.com/clipperhouse/uax29/v2 v2.3.1 h1:RjM8gnVbFbgI67SBekIC7ihFpyXwRPYWXn9BZActHbw=
-github.com/clipperhouse/uax29/v2 v2.3.1/go.mod h1:Wn1g7MK6OoeDT0vL+Q0SQLDz/KpfsVRgg6W7ihQeh4g=
+github.com/clipperhouse/uax29/v2 v2.4.0 h1:RXqE/l5EiAbA4u97giimKNlmpvkmz+GrBVTelsoXy9g=
+github.com/clipperhouse/uax29/v2 v2.4.0/go.mod h1:Wn1g7MK6OoeDT0vL+Q0SQLDz/KpfsVRgg6W7ihQeh4g=
 github.com/lucasb-eyer/go-colorful v1.3.0 h1:2/yBRLdWBZKrf7gB40FoiKfAWYQ0lqNcbuQwVHXptag=
 github.com/lucasb-eyer/go-colorful v1.3.0/go.mod h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=
 github.com/mattn/go-runewidth v0.0.19 h1:v++JhqYnZuu5jSKrk9RbgF5v4CGUjqRfBm05byFGLdw=
