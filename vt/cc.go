@@ -7,7 +7,7 @@ import (
 
 // handleControl handles a control character.
 func (e *Emulator) handleControl(r byte) {
-	e.flushGrapheme() // Flush any pending grapheme before handling control codes.
+	e.flushGrapheme(true) // Flush any pending grapheme before handling control codes.
 	if !e.handleCc(r) {
 		e.logf("unhandled sequence: ControlCode %q", r)
 	}
@@ -29,6 +29,9 @@ func (e *Emulator) index() {
 	// XXX: Handle scrollback whenever we add it.
 	if y == scroll.Max.Y-1 && x >= scroll.Min.X && x < scroll.Max.X {
 		e.scr.ScrollUp(1)
+		if e.cb.Damage != nil {
+			e.cb.Damage(ScrollDamage{Rectangle: e.scr.ScrollRegion(), Dy: -1})
+		}
 	} else if y < scroll.Max.Y-1 || !uv.Pos(x, y).In(scroll) {
 		e.scr.moveCursor(0, 1)
 	}
@@ -48,6 +51,9 @@ func (e *Emulator) reverseIndex() {
 	scroll := e.scr.ScrollRegion()
 	if y == scroll.Min.Y && x >= scroll.Min.X && x < scroll.Max.X {
 		e.scr.ScrollDown(1)
+		if e.cb.Damage != nil {
+			e.cb.Damage(ScrollDamage{Rectangle: e.scr.ScrollRegion(), Dy: 1})
+		}
 	} else {
 		e.scr.moveCursor(0, -1)
 	}
