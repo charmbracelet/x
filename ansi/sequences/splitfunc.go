@@ -27,6 +27,9 @@ type DataFunc[T stringish.Interface] = func(typ byte, data T, cancelled bool)
 // ExecFunc is a callback function for parsed control characters.
 type ExecFunc = func(b byte)
 
+// PrintFunc is a callback function for parsed grapheme clusters.
+type PrintFunc[T stringish.Interface] = func(data T, width int)
+
 // state holds the state for the [SplitFunc].
 type state[T stringish.Interface] struct {
 	state byte
@@ -42,6 +45,7 @@ type state[T stringish.Interface] struct {
 	cmdFunc   CmdFunc
 	dataFunc  DataFunc[T]
 	execFunc  ExecFunc
+	printFunc PrintFunc[T]
 }
 
 func newState[T stringish.Interface]() state[T] {
@@ -112,6 +116,9 @@ func (s *state[T]) splitFunc(data T, atEOF bool) (n int, token T, err error) {
 				token, s.width = ansi.FirstGraphemeCluster(data, ansi.GraphemeWidth)
 				i += len(token)
 				s.state = ansi.NormalState
+				if s.printFunc != nil {
+					s.printFunc(token, s.width)
+				}
 				return i, data[:i], nil
 			}
 

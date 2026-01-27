@@ -59,3 +59,9 @@ func (s *Scanner) Param(f ParamFunc) {
 func (s *Scanner) Data(f DataFunc[[]byte]) {
 	s.state.dataFunc = f
 }
+
+// Print sets the grapheme cluster callback function that is called when a
+// grapheme cluster is parsed.
+func (s *Scanner) Print(f PrintFunc[[]byte]) {
+	s.state.printFunc = f
+}
