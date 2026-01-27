@@ -10,4 +10,7 @@ require (
 	github.com/mattn/go-runewidth v0.0.19
 )
 
-require github.com/clipperhouse/stringish v0.1.1 // indirect
+require (
+	github.com/clipperhouse/stringish v0.1.1 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
+)
