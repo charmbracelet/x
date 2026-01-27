@@ -11,20 +11,21 @@ import (
 // token using the [Iterator.Width] method.
 type Iterator[T stringish.Interface] struct {
 	*iterators.Iterator[T]
+	state state[T]
 }
 
 // FromString returns an iterator for escape sequences and grapheme clusters
 // from the given string.
 func FromString(s string) Iterator[string] {
-	return Iterator[string]{
-		iterators.New(SplitFunc[string], s),
-	}
+	i := Iterator[string]{}
+	i.Iterator = iterators.New(i.state.splitFunc, s)
+	return i
 }
 
 // FromBytes returns an iterator for escape sequences and grapheme clusters
 // from the given byte slice.
 func FromBytes(b []byte) Iterator[[]byte] {
-	return Iterator[[]byte]{
-		iterators.New(SplitFunc[[]byte], b),
-	}
+	i := Iterator[[]byte]{}
+	i.Iterator = iterators.New(i.state.splitFunc, b)
+	return i
 }
