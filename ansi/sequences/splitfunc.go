@@ -59,7 +59,7 @@ func newState[T stringish.Interface]() state[T] {
 // sequences and grapheme clusters.
 func (s *state[T]) splitFunc(data T, atEOF bool) (n int, token T, err error) {
 	var empty T
-	if atEOF {
+	if atEOF && len(data) == 0 {
 		return 0, empty, nil
 	}
 
