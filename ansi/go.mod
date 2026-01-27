@@ -10,4 +10,4 @@ require (
 	github.com/mattn/go-runewidth v0.0.19
 )
 
-require github.com/clipperhouse/stringish v0.1.1 // indirect
+require github.com/clipperhouse/stringish v0.1.1
