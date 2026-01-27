@@ -4,28 +4,6 @@ import (
 	"strconv"
 )
 
-// SaveCursor (DECSC) is an escape sequence that saves the current cursor
-// position.
-//
-//	ESC 7
-//
-// See: https://vt100.net/docs/vt510-rm/DECSC.html
-const (
-	SaveCursor = "\x1b7"
-	DECSC      = SaveCursor
-)
-
-// RestoreCursor (DECRC) is an escape sequence that restores the cursor
-// position.
-//
-//	ESC 8
-//
-// See: https://vt100.net/docs/vt510-rm/DECRC.html
-const (
-	RestoreCursor = "\x1b8"
-	DECRC         = RestoreCursor
-)
-
 // RequestCursorPosition is an escape sequence that requests the current cursor
 // position.
 //
@@ -59,27 +37,6 @@ const RequestCursorPosition = "\x1b[6n"
 // Deprecated: use [RequestExtendedCursorPositionReport] instead.
 const RequestExtendedCursorPosition = "\x1b[?6n"
 
-// CursorUp (CUU) returns a sequence for moving the cursor up n cells.
-//
-//	CSI n A
-//
-// See: https://vt100.net/docs/vt510-rm/CUU.html
-func CursorUp(n int) string {
-	var s string
-	if n > 1 {
-		s = strconv.Itoa(n)
-	}
-	return "\x1b[" + s + "A"
-}
-
-// CUU is an alias for [CursorUp].
-func CUU(n int) string {
-	return CursorUp(n)
-}
-
-// CUU1 is a sequence for moving the cursor up one cell.
-const CUU1 = "\x1b[A"
-
 // CursorUp1 is a sequence for moving the cursor up one cell.
 //
 // This is equivalent to CursorUp(1).
@@ -87,51 +44,12 @@ const CUU1 = "\x1b[A"
 // Deprecated: use [CUU1] instead.
 const CursorUp1 = "\x1b[A"
 
-// CursorDown (CUD) returns a sequence for moving the cursor down n cells.
-//
-//	CSI n B
-//
-// See: https://vt100.net/docs/vt510-rm/CUD.html
-func CursorDown(n int) string {
-	var s string
-	if n > 1 {
-		s = strconv.Itoa(n)
-	}
-	return "\x1b[" + s + "B"
-}
-
-// CUD is an alias for [CursorDown].
-func CUD(n int) string {
-	return CursorDown(n)
-}
-
-// CUD1 is a sequence for moving the cursor down one cell.
-const CUD1 = "\x1b[B"
-
 // CursorDown1 is a sequence for moving the cursor down one cell.
 //
 // This is equivalent to CursorDown(1).
 //
 // Deprecated: use [CUD1] instead.
 const CursorDown1 = "\x1b[B"
-
-// CursorForward (CUF) returns a sequence for moving the cursor right n cells.
-//
-// # CSI n C
-//
-// See: https://vt100.net/docs/vt510-rm/CUF.html
-func CursorForward(n int) string {
-	var s string
-	if n > 1 {
-		s = strconv.Itoa(n)
-	}
-	return "\x1b[" + s + "C"
-}
-
-// CUF is an alias for [CursorForward].
-func CUF(n int) string {
-	return CursorForward(n)
-}
 
 // CUF1 is a sequence for moving the cursor right one cell.
 const CUF1 = "\x1b[C"
@@ -154,24 +72,6 @@ func CursorRight(n int) string {
 // Deprecated: use [CUF1] instead.
 const CursorRight1 = CUF1
 
-// CursorBackward (CUB) returns a sequence for moving the cursor left n cells.
-//
-// # CSI n D
-//
-// See: https://vt100.net/docs/vt510-rm/CUB.html
-func CursorBackward(n int) string {
-	var s string
-	if n > 1 {
-		s = strconv.Itoa(n)
-	}
-	return "\x1b[" + s + "D"
-}
-
-// CUB is an alias for [CursorBackward].
-func CUB(n int) string {
-	return CursorBackward(n)
-}
-
 // CUB1 is a sequence for moving the cursor left one cell.
 const CUB1 = "\x1b[D"
 
@@ -192,99 +92,6 @@ func CursorLeft(n int) string {
 //
 // Deprecated: use [CUB1] instead.
 const CursorLeft1 = CUB1
-
-// CursorNextLine (CNL) returns a sequence for moving the cursor to the
-// beginning of the next line n times.
-//
-//	CSI n E
-//
-// See: https://vt100.net/docs/vt510-rm/CNL.html
-func CursorNextLine(n int) string {
-	var s string
-	if n > 1 {
-		s = strconv.Itoa(n)
-	}
-	return "\x1b[" + s + "E"
-}
-
-// CNL is an alias for [CursorNextLine].
-func CNL(n int) string {
-	return CursorNextLine(n)
-}
-
-// CursorPreviousLine (CPL) returns a sequence for moving the cursor to the
-// beginning of the previous line n times.
-//
-//	CSI n F
-//
-// See: https://vt100.net/docs/vt510-rm/CPL.html
-func CursorPreviousLine(n int) string {
-	var s string
-	if n > 1 {
-		s = strconv.Itoa(n)
-	}
-	return "\x1b[" + s + "F"
-}
-
-// CPL is an alias for [CursorPreviousLine].
-func CPL(n int) string {
-	return CursorPreviousLine(n)
-}
-
-// CursorHorizontalAbsolute (CHA) returns a sequence for moving the cursor to
-// the given column.
-//
-// Default is 1.
-//
-//	CSI n G
-//
-// See: https://vt100.net/docs/vt510-rm/CHA.html
-func CursorHorizontalAbsolute(col int) string {
-	var s string
-	if col > 0 {
-		s = strconv.Itoa(col)
-	}
-	return "\x1b[" + s + "G"
-}
-
-// CHA is an alias for [CursorHorizontalAbsolute].
-func CHA(col int) string {
-	return CursorHorizontalAbsolute(col)
-}
-
-// CursorPosition (CUP) returns a sequence for setting the cursor to the
-// given row and column.
-//
-// Default is 1,1.
-//
-//	CSI n ; m H
-//
-// See: https://vt100.net/docs/vt510-rm/CUP.html
-func CursorPosition(col, row int) string {
-	if row <= 1 && col <= 1 {
-		return CursorHomePosition
-	}
-
-	var r, c string
-	if row > 0 {
-		r = strconv.Itoa(row)
-	}
-	if col > 0 {
-		c = strconv.Itoa(col)
-	}
-	return "\x1b[" + r + ";" + c + "H"
-}
-
-// CUP is an alias for [CursorPosition].
-func CUP(col, row int) string {
-	return CursorPosition(col, row)
-}
-
-// CursorHomePosition is a sequence for moving the cursor to the upper left
-// corner of the scrolling region.
-//
-// This is equivalent to [CursorPosition](1, 1).
-const CursorHomePosition = "\x1b[H"
 
 // SetCursorPosition (CUP) returns a sequence for setting the cursor to the
 // given row and column.
@@ -475,20 +282,6 @@ func HVP(col, row int) string {
 // `HorizontalVerticalPosition(1, 1)`.
 const HorizontalVerticalHomePosition = "\x1b[f"
 
-// SaveCurrentCursorPosition (SCOSC) is a sequence for saving the current cursor
-// position for SCO console mode.
-//
-//	CSI s
-//
-// This acts like [DECSC], except the page number where the cursor is located
-// is not saved.
-//
-// See: https://vt100.net/docs/vt510-rm/SCOSC.html
-const (
-	SaveCurrentCursorPosition = "\x1b[s"
-	SCOSC                     = SaveCurrentCursorPosition
-)
-
 // SaveCursorPosition (SCP or SCOSC) is a sequence for saving the cursor
 // position.
 //
@@ -502,20 +295,6 @@ const (
 // Deprecated: use [SaveCurrentCursorPosition] instead.
 const SaveCursorPosition = "\x1b[s"
 
-// RestoreCurrentCursorPosition (SCORC) is a sequence for restoring the current
-// cursor position for SCO console mode.
-//
-//	CSI u
-//
-// This acts like [DECRC], except the page number where the cursor was saved is
-// not restored.
-//
-// See: https://vt100.net/docs/vt510-rm/SCORC.html
-const (
-	RestoreCurrentCursorPosition = "\x1b[u"
-	SCORC                        = RestoreCurrentCursorPosition
-)
-
 // RestoreCursorPosition (RCP or SCORC) is a sequence for restoring the cursor
 // position.
 //
@@ -528,65 +307,6 @@ const (
 //
 // Deprecated: use [RestoreCurrentCursorPosition] instead.
 const RestoreCursorPosition = "\x1b[u"
-
-// SetCursorStyle (DECSCUSR) returns a sequence for changing the cursor style.
-//
-// Default is 1.
-//
-//	CSI Ps SP q
-//
-// Where Ps is the cursor style:
-//
-//	0: Blinking block
-//	1: Blinking block (default)
-//	2: Steady block
-//	3: Blinking underline
-//	4: Steady underline
-//	5: Blinking bar (xterm)
-//	6: Steady bar (xterm)
-//
-// See: https://vt100.net/docs/vt510-rm/DECSCUSR.html
-// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h4-Functions-using-CSI-_-ordered-by-the-final-character-lparen-s-rparen:CSI-Ps-SP-q.1D81
-func SetCursorStyle(style int) string {
-	if style < 0 {
-		style = 0
-	}
-	return "\x1b[" + strconv.Itoa(style) + " q"
-}
-
-// DECSCUSR is an alias for [SetCursorStyle].
-func DECSCUSR(style int) string {
-	return SetCursorStyle(style)
-}
-
-// SetPointerShape returns a sequence for changing the mouse pointer cursor
-// shape. Use "default" for the default pointer shape.
-//
-//	OSC 22 ; Pt ST
-//	OSC 22 ; Pt BEL
-//
-// Where Pt is the pointer shape name. The name can be anything that the
-// operating system can understand. Some common names are:
-//
-//   - copy
-//   - crosshair
-//   - default
-//   - ew-resize
-//   - n-resize
-//   - text
-//   - wait
-//
-// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h2-Operating-System-Commands
-func SetPointerShape(shape string) string {
-	return "\x1b]22;" + shape + "\x07"
-}
-
-// ReverseIndex (RI) is an escape sequence for moving the cursor up one line in
-// the same column. If the cursor is at the top margin, the screen scrolls
-// down.
-//
-// This has the same effect as [RI].
-const ReverseIndex = "\x1bM"
 
 // HorizontalPositionAbsolute (HPA) returns a sequence for moving the cursor to
 // the given column. This has the same effect as [CUP].
@@ -630,8 +350,3 @@ func HorizontalPositionRelative(n int) string {
 func HPR(n int) string {
 	return HorizontalPositionRelative(n)
 }
-
-// Index (IND) is an escape sequence for moving the cursor down one line in the
-// same column. If the cursor is at the bottom margin, the screen scrolls up.
-// This has the same effect as [IND].
-const Index = "\x1bD"

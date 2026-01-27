@@ -2,6 +2,7 @@ package ansi
 
 import (
 	"image/color"
+	"io"
 	"strconv"
 	"strings"
 )
@@ -37,6 +38,38 @@ func NewStyle(attrs ...Attr) Style {
 		}
 	}
 	return s
+}
+
+// WriteStyle writes the ANSI SGR (Select Graphic Rendition) style sequence for
+// the given style to the provided writer.
+func WriteStyle(w io.Writer, attrs ...Attr) (n int, err error) {
+	if len(attrs) == 0 {
+		return io.WriteString(w, ResetStyle)
+	}
+	m, err := io.WriteString(w, "\x1b[")
+	n += m
+	if err != nil {
+		return n, err
+	}
+	buf := make([]byte, 0, 16)
+	for i, a := range attrs {
+		if i > 0 {
+			m, err := io.WriteString(w, ";")
+			n += m
+			if err != nil {
+				return n, err
+			}
+		}
+		buf = strconv.AppendInt(buf[:0], int64(a), 10)
+		m, err := w.Write(buf)
+		n += m
+		if err != nil {
+			return n, err
+		}
+	}
+	m, err = io.WriteString(w, "m")
+	n += m
+	return n, err
 }
 
 // String returns the ANSI SGR (Select Graphic Rendition) style sequence for

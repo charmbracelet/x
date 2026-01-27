@@ -1,6 +1,7 @@
 package ansi_test
 
 import (
+	"io"
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
@@ -24,5 +25,17 @@ func TestHyperlinkReset(t *testing.T) {
 	h := ansi.SetHyperlink("")
 	if h != "\x1b]8;;\x07" {
 		t.Errorf("Unexpected hyperlink: %s", h)
+	}
+}
+
+func BenchmarkSetHyperlink(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		io.WriteString(io.Discard, ansi.SetHyperlink("https://example.com", "param1", "param2"))
+	}
+}
+
+func BenchmarkWriteSetHyperlink(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = ansi.WriteSetHyperlink(io.Discard, "https://example.com", "param1", "param2")
 	}
 }

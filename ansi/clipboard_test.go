@@ -1,6 +1,7 @@
 package ansi_test
 
 import (
+	"io"
 	"testing"
 
 	"github.com/charmbracelet/x/ansi"
@@ -37,5 +38,17 @@ func TestClipboardRequest(t *testing.T) {
 	cb := ansi.RequestClipboard(ansi.PrimaryClipboard)
 	if cb != "\x1b]52;p;?\x07" {
 		t.Errorf("Unexpected clipboard request: %q", cb)
+	}
+}
+
+func BenchmarkWriteSetClipboard(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, _ = ansi.WriteSetClipboard(io.Discard, ansi.SystemClipboard, "Benchmark Test Data")
+	}
+}
+
+func BenchmarkSetClipboard(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		io.WriteString(io.Discard, ansi.SetClipboard(ansi.SystemClipboard, "Benchmark Test Data"))
 	}
 }
