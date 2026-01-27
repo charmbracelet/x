@@ -1,4 +1,4 @@
-package gen
+package main
 
 import (
 	"fmt"
@@ -343,42 +343,28 @@ func (g *Generator) buildFormatString(format string, params []Param, omitFlags [
 	}
 
 	// Clean up separators
-	result = cleanupSeparators(result)
+	result = cleanupSeparators(result, params, omitFlags)
 
 	return result
 }
 
 // cleanupSeparators removes orphaned semicolons (when all adjacent params are omitted)
-func cleanupSeparators(s string) string {
-	for {
-		before := s
-		// Remove leading semicolon after bracket
-		s = strings.ReplaceAll(s, "[;", "[")
-		// Remove trailing semicolon before letter (command char)
-		s = strings.ReplaceAll(s, ";H", "H")
-		s = strings.ReplaceAll(s, ";A", "A")
-		s = strings.ReplaceAll(s, ";B", "B")
-		s = strings.ReplaceAll(s, ";C", "C")
-		s = strings.ReplaceAll(s, ";D", "D")
-		s = strings.ReplaceAll(s, ";E", "E")
-		s = strings.ReplaceAll(s, ";F", "F")
-		s = strings.ReplaceAll(s, ";G", "G")
-		s = strings.ReplaceAll(s, ";I", "I")
-		s = strings.ReplaceAll(s, ";X", "X")
-		s = strings.ReplaceAll(s, ";Z", "Z")
-		s = strings.ReplaceAll(s, ";a", "a")
-		s = strings.ReplaceAll(s, ";c", "c")
-		s = strings.ReplaceAll(s, ";d", "d")
-		s = strings.ReplaceAll(s, ";e", "e")
-		s = strings.ReplaceAll(s, ";f", "f")
-		s = strings.ReplaceAll(s, ";n", "n")
-		s = strings.ReplaceAll(s, ";q", "q")
-		// Remove consecutive semicolons
-		s = strings.ReplaceAll(s, ";;", ";")
-		if s == before {
-			break
+func cleanupSeparators(s string, params []Param, omitFlags []bool) string {
+	var shouldCleanup bool
+	if len(params) == len(omitFlags) {
+		for _, flag := range omitFlags {
+			if !flag {
+				shouldCleanup = true
+				break
+			}
 		}
 	}
+
+	if !shouldCleanup {
+		return s
+	}
+
+	s = strings.ReplaceAll(s, ";", "")
 	return s
 }
 
@@ -426,7 +412,11 @@ func (g *Generator) formatOutput(format string, params []Param) string {
 	}
 
 	// Clean up separators
-	result = cleanupSeparators(result)
+	omitFlags := make([]bool, len(params))
+	for i := range omitFlags {
+		omitFlags[i] = true
+	}
+	result = cleanupSeparators(result, params, omitFlags)
 
 	return result
 }
@@ -563,7 +553,7 @@ func (g *Generator) evaluateConstant(seq *Sequence, args []interface{}) (string,
 	}
 
 	// Clean up separators
-	output = cleanupSeparators(output)
+	output = cleanupSeparators(output, seq.Params, omitFlags)
 
 	return output, nil
 }
@@ -598,8 +588,12 @@ func (g *Generator) expandConstants(format string) string {
 
 func (g *Generator) generateConstantSequence(name string, seq Sequence, isAlias bool) error {
 	// Format the output
+	omitFlags := make([]bool, len(seq.Params))
+	for i := range omitFlags {
+		omitFlags[i] = true
+	}
 	output := g.expandConstants(seq.Format)
-	output = cleanupSeparators(output)
+	output = cleanupSeparators(output, seq.Params, omitFlags)
 
 	// Write documentation
 	doc := formatConstantDoc(seq.Doc, name)
@@ -677,43 +671,43 @@ func (g *Generator) generateMode(mode Mode) error {
 			}
 		}
 	}
-	
+
 	// Write const block
 	fmt.Fprintf(g.w, "const (\n")
-	
+
 	// Write mode constant
 	modeType := "ANSIMode"
 	if mode.Type == "dec" {
 		modeType = "DECMode"
 	}
 	fmt.Fprintf(g.w, "\tMode%s = %s(%d)\n", mode.Name, modeType, mode.Number)
-	
+
 	// Write aliases
 	for _, alias := range mode.Aliases {
 		fmt.Fprintf(g.w, "\t%s = Mode%s\n", alias, mode.Name)
 	}
-	
+
 	fmt.Fprintf(g.w, "\n")
-	
+
 	// Write Set/Reset/Request constants
 	prefix := ""
 	if mode.Type == "dec" {
 		prefix = "?"
 	}
-	
+
 	fmt.Fprintf(g.w, "\tSetMode%s = \"\\x1b[%s%dh\"\n", mode.Name, prefix, mode.Number)
 	fmt.Fprintf(g.w, "\tResetMode%s = \"\\x1b[%s%dl\"\n", mode.Name, prefix, mode.Number)
 	fmt.Fprintf(g.w, "\tRequestMode%s = \"\\x1b[%s%d$p\"\n", mode.Name, prefix, mode.Number)
-	
+
 	// Write Set/Reset/Request aliases
 	for _, alias := range mode.Aliases {
 		fmt.Fprintf(g.w, "\tSetMode%s = SetMode%s\n", alias, mode.Name)
 		fmt.Fprintf(g.w, "\tResetMode%s = ResetMode%s\n", alias, mode.Name)
 		fmt.Fprintf(g.w, "\tRequestMode%s = RequestMode%s\n", alias, mode.Name)
 	}
-	
+
 	fmt.Fprintf(g.w, ")\n\n")
-	
+
 	return nil
 }
 

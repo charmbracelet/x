@@ -1,4 +1,4 @@
-package gen
+package main
 
 // Spec represents the complete specification for generating ANSI sequences.
 type Spec struct {

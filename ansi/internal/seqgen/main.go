@@ -7,8 +7,7 @@ import (
 	"go/format"
 	"os"
 
-	"github.com/charmbracelet/x/ansi/internal/gen"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 func main() {
@@ -30,14 +29,14 @@ func run(configFile string, noFormat bool) error {
 	}
 
 	// Parse the spec
-	var spec gen.Spec
+	var spec Spec
 	if err := yaml.Unmarshal(data, &spec); err != nil {
 		return fmt.Errorf("parsing YAML: %w", err)
 	}
 
 	// Generate the code to a buffer
 	var buf bytes.Buffer
-	generator := gen.NewGenerator(&spec, &buf)
+	generator := NewGenerator(&spec, &buf)
 	if err := generator.Generate(); err != nil {
 		return fmt.Errorf("generating code: %w", err)
 	}
