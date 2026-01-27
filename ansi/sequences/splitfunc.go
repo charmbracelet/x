@@ -76,6 +76,7 @@ func (s *state[T]) splitFunc(data T, atEOF bool) (n int, token T, err error) {
 				s.paramIdx = 0
 				s.cmd = 0
 				s.state = ansi.EscapeState
+				s.typ = c
 				continue
 			case ansi.CSI, ansi.DCS:
 				s.prefix = 0
