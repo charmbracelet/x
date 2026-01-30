@@ -20,9 +20,11 @@ type CmdFunc = func(typ byte, prefix byte, intermed byte, final byte)
 
 // DataFunc is a callback function for parsed data in string sequences. The typ
 // represents the type of sequence ([ansi.OSC], [ansi.APC], [ansi.SOS], or
-// [ansi.PM]), data is the parsed data, and cancelled indicates if the sequence
-// was cancelled i.e. terminated with [ansi.CAN] or [ansi.SUB].
-type DataFunc[T stringish.Interface] = func(typ byte, data T, cancelled bool)
+// [ansi.PM]). The passed data represents the data collected in the sequence.
+// The terminator is the byte that terminated the sequence such as [ansi.BEL],
+// [ansi.ST], [ansi.CAN], [ansi.SUB], [ansi.ESC], or 0 [ansi.NUL] if the
+// sequence is not yet terminated.
+type DataFunc[T stringish.Interface] = func(typ byte, data T, teminator byte)
 
 // ExecFunc is a callback function for parsed control characters.
 type ExecFunc = func(b byte)
@@ -245,13 +247,13 @@ func (s *state[T]) splitFunc(data T, atEOF bool) (n int, token T, err error) {
 					s.state = ansi.NormalState
 					s.width = 0
 					if s.dataFunc != nil {
-						s.dataFunc(s.typ, data[s.dataIdx:i], false)
+						s.dataFunc(s.typ, data[s.dataIdx:i], c)
 					}
 					return i + 1, data[:i+1], nil
 				}
 			case ansi.CAN, ansi.SUB:
 				if s.dataFunc != nil {
-					s.dataFunc(s.typ, data[s.dataIdx:i], true)
+					s.dataFunc(s.typ, data[s.dataIdx:i], c)
 				}
 
 				// Cancel the sequence
@@ -260,7 +262,7 @@ func (s *state[T]) splitFunc(data T, atEOF bool) (n int, token T, err error) {
 				return i, data[:i], nil
 			case ansi.ST:
 				if s.dataFunc != nil {
-					s.dataFunc(s.typ, data[s.dataIdx:i], false)
+					s.dataFunc(s.typ, data[s.dataIdx:i], c)
 				}
 
 				s.state = ansi.NormalState
@@ -269,7 +271,7 @@ func (s *state[T]) splitFunc(data T, atEOF bool) (n int, token T, err error) {
 			case ansi.ESC:
 				if ansi.HasStPrefix(data[i:]) {
 					if s.dataFunc != nil {
-						s.dataFunc(s.typ, data[s.dataIdx:i], false)
+						s.dataFunc(s.typ, data[s.dataIdx:i], ansi.ST)
 					}
 
 					// End of string 7-bit (ST)
@@ -279,13 +281,17 @@ func (s *state[T]) splitFunc(data T, atEOF bool) (n int, token T, err error) {
 				}
 
 				if s.dataFunc != nil {
-					s.dataFunc(s.typ, data[s.dataIdx:i], true)
+					s.dataFunc(s.typ, data[s.dataIdx:i], c)
 				}
 
 				// Otherwise, cancel the sequence
 				s.state = ansi.NormalState
 				s.width = 0
 				return i, data[:i], nil
+			}
+
+			if i == len(data)-1 && s.dataFunc != nil {
+				s.dataFunc(s.typ, data[s.dataIdx:i], ansi.NUL)
 			}
 		}
 	}
