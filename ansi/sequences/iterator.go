@@ -1,31 +1,38 @@
 package sequences
 
 import (
-	"github.com/charmbracelet/x/ansi/internal/iterators"
-	"github.com/clipperhouse/stringish"
+	"fmt"
+	"iter"
 )
-
-// Iterator is an iterator over ANSI escape sequences and grapheme clusters.
-//
-// Iterate using the [Iterator.Next] method, and get the width of the current
-// token using the [Iterator.Width] method.
-type Iterator[T stringish.Interface] struct {
-	*iterators.Iterator[T]
-	state state[T]
-}
 
 // FromString returns an iterator for escape sequences and grapheme clusters
 // from the given string.
-func FromString(s string) Iterator[string] {
-	i := Iterator[string]{}
-	i.Iterator = iterators.New(i.state.splitFunc, s)
-	return i
+func FromString(s string) iter.Seq[string] {
+	var state state[string]
+	return func(yield func(string) bool) {
+		n, tok, err := state.splitFunc(s, len(s) == 0)
+		if err != nil {
+			panic(fmt.Sprintf("error in split function: %v", err))
+		}
+		if !yield(tok) {
+			return
+		}
+		s = s[n:]
+	}
 }
 
 // FromBytes returns an iterator for escape sequences and grapheme clusters
 // from the given byte slice.
-func FromBytes(b []byte) Iterator[[]byte] {
-	i := Iterator[[]byte]{}
-	i.Iterator = iterators.New(i.state.splitFunc, b)
-	return i
+func FromBytes(b []byte) iter.Seq[[]byte] {
+	var state state[[]byte]
+	return func(yield func([]byte) bool) {
+		n, tok, err := state.splitFunc(b, len(b) == 0)
+		if err != nil {
+			panic(fmt.Sprintf("error in split function: %v", err))
+		}
+		if !yield(tok) {
+			return
+		}
+		b = b[n:]
+	}
 }
