@@ -67,7 +67,7 @@ const (
 //	}
 //
 // This function treats the text as a sequence of grapheme clusters.
-func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
+func DecodeSequence[T ~string | ~[]byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
 	return decodeSequence(GraphemeWidth, b, state, p)
 }
 
@@ -117,11 +117,11 @@ func DecodeSequence[T string | []byte](b T, state byte, p *Parser) (seq T, width
 //	}
 //
 // This function treats the text as a sequence of wide characters and runes.
-func DecodeSequenceWc[T string | []byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
+func DecodeSequenceWc[T ~string | ~[]byte](b T, state byte, p *Parser) (seq T, width int, n int, newState byte) {
 	return decodeSequence(WcWidth, b, state, p)
 }
 
-func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (seq T, width int, n int, newState byte) {
+func decodeSequence[T ~string | ~[]byte](m Method, b T, state State, p *Parser) (seq T, width int, n int, newState byte) {
 	for i := 0; i < len(b); i++ {
 		c := b[i]
 
@@ -369,70 +369,70 @@ func parseOscCmd(p *Parser) {
 }
 
 // Equal returns true if the given byte slices are equal.
-func Equal[T string | []byte](a, b T) bool {
+func Equal[T ~string | ~[]byte](a, b T) bool {
 	return string(a) == string(b)
 }
 
 // HasPrefix returns true if the given byte slice has prefix.
-func HasPrefix[T string | []byte](b, prefix T) bool {
+func HasPrefix[T ~string | ~[]byte](b, prefix T) bool {
 	return len(b) >= len(prefix) && Equal(b[0:len(prefix)], prefix)
 }
 
 // HasSuffix returns true if the given byte slice has suffix.
-func HasSuffix[T string | []byte](b, suffix T) bool {
+func HasSuffix[T ~string | ~[]byte](b, suffix T) bool {
 	return len(b) >= len(suffix) && Equal(b[len(b)-len(suffix):], suffix)
 }
 
 // HasCsiPrefix returns true if the given byte slice has a CSI prefix.
-func HasCsiPrefix[T string | []byte](b T) bool {
+func HasCsiPrefix[T ~string | ~[]byte](b T) bool {
 	return (len(b) > 0 && b[0] == CSI) ||
 		(len(b) > 1 && b[0] == ESC && b[1] == '[')
 }
 
 // HasOscPrefix returns true if the given byte slice has an OSC prefix.
-func HasOscPrefix[T string | []byte](b T) bool {
+func HasOscPrefix[T ~string | ~[]byte](b T) bool {
 	return (len(b) > 0 && b[0] == OSC) ||
 		(len(b) > 1 && b[0] == ESC && b[1] == ']')
 }
 
 // HasApcPrefix returns true if the given byte slice has an APC prefix.
-func HasApcPrefix[T string | []byte](b T) bool {
+func HasApcPrefix[T ~string | ~[]byte](b T) bool {
 	return (len(b) > 0 && b[0] == APC) ||
 		(len(b) > 1 && b[0] == ESC && b[1] == '_')
 }
 
 // HasDcsPrefix returns true if the given byte slice has a DCS prefix.
-func HasDcsPrefix[T string | []byte](b T) bool {
+func HasDcsPrefix[T ~string | ~[]byte](b T) bool {
 	return (len(b) > 0 && b[0] == DCS) ||
 		(len(b) > 1 && b[0] == ESC && b[1] == 'P')
 }
 
 // HasSosPrefix returns true if the given byte slice has a SOS prefix.
-func HasSosPrefix[T string | []byte](b T) bool {
+func HasSosPrefix[T ~string | ~[]byte](b T) bool {
 	return (len(b) > 0 && b[0] == SOS) ||
 		(len(b) > 1 && b[0] == ESC && b[1] == 'X')
 }
 
 // HasPmPrefix returns true if the given byte slice has a PM prefix.
-func HasPmPrefix[T string | []byte](b T) bool {
+func HasPmPrefix[T ~string | ~[]byte](b T) bool {
 	return (len(b) > 0 && b[0] == PM) ||
 		(len(b) > 1 && b[0] == ESC && b[1] == '^')
 }
 
 // HasStPrefix returns true if the given byte slice has a ST prefix.
-func HasStPrefix[T string | []byte](b T) bool {
+func HasStPrefix[T ~string | ~[]byte](b T) bool {
 	return (len(b) > 0 && b[0] == ST) ||
 		(len(b) > 1 && b[0] == ESC && b[1] == '\\')
 }
 
 // HasEscPrefix returns true if the given byte slice has an ESC prefix.
-func HasEscPrefix[T string | []byte](b T) bool {
+func HasEscPrefix[T ~string | ~[]byte](b T) bool {
 	return len(b) > 0 && b[0] == ESC
 }
 
 // FirstGraphemeCluster returns the first grapheme cluster in the given string
 // or byte slice, and its monospace display width.
-func FirstGraphemeCluster[T string | []byte](b T, m Method) (T, int) {
+func FirstGraphemeCluster[T ~string | ~[]byte](b T, m Method) (T, int) {
 	switch b := any(b).(type) {
 	case string:
 		cluster := graphemes.FromString(b).First()
