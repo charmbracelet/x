@@ -12,7 +12,7 @@ import (
 
 // handleOsc handles an OSC escape sequence.
 func (e *Emulator) handleOsc(cmd int, data []byte) {
-	e.flushGrapheme() // Flush any pending grapheme before handling OSC sequences.
+	e.flushGrapheme(true) // Flush any pending grapheme before handling OSC sequences.
 	if !e.handlers.handleOsc(cmd, data) {
 		e.logf("unhandled sequence: OSC %q", data)
 	}
