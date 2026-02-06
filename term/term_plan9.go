@@ -52,6 +52,10 @@ func makeRaw(fd uintptr) (*State, error) {
 	return &State{state: state{termName: t, raw: true, ctl: ctl}}, nil
 }
 
+func makeRawOutput(fd uintptr) (*State, error) {
+	return makeRaw(fd)
+}
+
 func getState(fd uintptr) (*State, error) {
 	t, err := termName(fd)
 	if err != nil {
