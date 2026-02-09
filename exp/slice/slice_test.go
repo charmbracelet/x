@@ -2,6 +2,7 @@ package slice_test
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/charmbracelet/x/exp/slice"
@@ -485,5 +486,17 @@ func TestIsSubsetWithInts(t *testing.T) {
 				t.Errorf("Test %d: Expected %v, got %v", i, tt.expected, actual)
 			}
 		})
+	}
+}
+
+func TestMapStringToInt(t *testing.T) {
+	seq := slices.Values([]string{"a", "ab", "abc", "abcd"})
+	mapped := slice.Map(seq, func(s string) int { return len(s) })
+	expected := []int{1, 2, 3, 4}
+
+	result := slices.Collect(mapped)
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("Expected %v, got %v", expected, result)
 	}
 }
