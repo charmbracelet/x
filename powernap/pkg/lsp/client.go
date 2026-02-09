@@ -78,9 +78,12 @@ func NewClient(config ClientConfig) (*Client, error) {
 	return client, nil
 }
 
+// Kill cancels the connection context.
+func (c *Client) Kill() { c.cancel() }
+
 // Initialize sends the initialize request to the language server.
 func (c *Client) Initialize(ctx context.Context, enableSnippets bool) error {
-	if c.initialized {
+	if c.initialized.Load() {
 		return fmt.Errorf("client already initialized")
 	}
 
@@ -142,7 +145,7 @@ func (c *Client) Initialize(ctx context.Context, enableSnippets bool) error {
 		return fmt.Errorf("initialized notification failed: %w", err)
 	}
 
-	c.initialized = true
+	c.initialized.Store(true)
 
 	// For gopls, send workspace/didChangeConfiguration to ensure it's ready
 	// This helps gopls properly set up its workspace views
@@ -172,7 +175,7 @@ func (c *Client) Initialize(ctx context.Context, enableSnippets bool) error {
 
 // Shutdown sends a shutdown request to the language server.
 func (c *Client) Shutdown(ctx context.Context) error {
-	if c.shutdown {
+	if c.shutdown.Load() {
 		return nil
 	}
 
@@ -181,7 +184,7 @@ func (c *Client) Shutdown(ctx context.Context) error {
 		return fmt.Errorf("shutdown request failed: %w", err)
 	}
 
-	c.shutdown = true
+	c.shutdown.Store(true)
 	return nil
 }
 
@@ -203,12 +206,12 @@ func (c *Client) GetCapabilities() protocol.ServerCapabilities {
 
 // IsInitialized returns whether the client has been initialized.
 func (c *Client) IsInitialized() bool {
-	return c.initialized
+	return c.initialized.Load()
 }
 
 // IsRunning returns whether the client connection is still active.
 func (c *Client) IsRunning() bool {
-	return c.conn != nil && c.conn.IsConnected() && c.initialized && !c.shutdown
+	return c.conn != nil && c.conn.IsConnected() && c.initialized.Load() && !c.shutdown.Load()
 }
 
 // RegisterNotificationHandler registers a handler for server-initiated notifications.
@@ -227,7 +230,7 @@ func (c *Client) RegisterHandler(method string, handler transport.Handler) {
 
 // NotifyDidOpenTextDocument notifies the server that a document was opened.
 func (c *Client) NotifyDidOpenTextDocument(ctx context.Context, uri string, languageID string, version int, text string) error {
-	if !c.initialized {
+	if !c.initialized.Load() {
 		return fmt.Errorf("client not initialized")
 	}
 
@@ -252,7 +255,7 @@ func (c *Client) NotifyDidOpenTextDocument(ctx context.Context, uri string, lang
 
 // NotifyDidCloseTextDocument notifies the server that a document was closeed.
 func (c *Client) NotifyDidCloseTextDocument(ctx context.Context, uri string) error {
-	if !c.initialized {
+	if !c.initialized.Load() {
 		return fmt.Errorf("client not initialized")
 	}
 
@@ -267,7 +270,7 @@ func (c *Client) NotifyDidCloseTextDocument(ctx context.Context, uri string) err
 
 // NotifyDidChangeTextDocument notifies the server that a document was changed.
 func (c *Client) NotifyDidChangeTextDocument(ctx context.Context, uri string, version int, changes []protocol.TextDocumentContentChangeEvent) error {
-	if !c.initialized {
+	if !c.initialized.Load() {
 		return fmt.Errorf("client not initialized")
 	}
 
@@ -287,7 +290,7 @@ func (c *Client) NotifyDidChangeTextDocument(ctx context.Context, uri string, ve
 // NotifyDidChangeWatchedFiles notifies the server that watched files have
 // changed.
 func (c *Client) NotifyDidChangeWatchedFiles(ctx context.Context, changes []protocol.FileEvent) error {
-	if !c.initialized {
+	if !c.initialized.Load() {
 		return fmt.Errorf("client not initialized")
 	}
 
@@ -300,7 +303,7 @@ func (c *Client) NotifyDidChangeWatchedFiles(ctx context.Context, changes []prot
 
 // NotifyWorkspaceDidChangeConfiguration notifies the server that the workspace configuration has changed.
 func (c *Client) NotifyWorkspaceDidChangeConfiguration(ctx context.Context, settings any) error {
-	if !c.initialized {
+	if !c.initialized.Load() {
 		return fmt.Errorf("client not initialized")
 	}
 
@@ -313,7 +316,7 @@ func (c *Client) NotifyWorkspaceDidChangeConfiguration(ctx context.Context, sett
 
 // RequestCompletion requests completion items at the given position.
 func (c *Client) RequestCompletion(ctx context.Context, uri string, position protocol.Position) (*protocol.CompletionList, error) {
-	if !c.initialized {
+	if !c.initialized.Load() {
 		return nil, fmt.Errorf("client not initialized")
 	}
 
@@ -367,7 +370,7 @@ func (c *Client) RequestCompletion(ctx context.Context, uri string, position pro
 
 // RequestHover requests hover information at the given position.
 func (c *Client) RequestHover(ctx context.Context, uri string, position protocol.Position) (*protocol.Hover, error) {
-	if !c.initialized {
+	if !c.initialized.Load() {
 		return nil, fmt.Errorf("client not initialized")
 	}
 
@@ -658,10 +661,11 @@ func (c *processCloser) Close() error {
 			done <- c.cmd.Wait()
 		}()
 
+		timeout := time.After(5 * time.Second)
 		select {
 		case err := <-done:
 			errs = append(errs, err)
-		case <-time.After(5 * time.Second):
+		case <-timeout:
 			errs = append(errs, c.cmd.Process.Kill())
 			<-done
 		}

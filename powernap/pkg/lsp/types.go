@@ -2,6 +2,7 @@ package lsp
 
 import (
 	"context"
+	"sync/atomic"
 	"time"
 
 	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
@@ -27,8 +28,8 @@ type Client struct {
 	conn             *transport.Connection
 	ctx              context.Context
 	cancel           context.CancelFunc
-	initialized      bool
-	shutdown         bool
+	initialized      atomic.Bool
+	shutdown         atomic.Bool
 	capabilities     protocol.ServerCapabilities
 	offsetEncoding   OffsetEncoding
 	rootURI          string
