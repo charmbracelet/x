@@ -2,6 +2,7 @@
 package slice
 
 import (
+	"iter"
 	"slices"
 )
 
@@ -134,4 +135,14 @@ func IsSubset[T comparable](a, b []T) bool {
 		}
 	}
 	return true
+}
+
+// Map takes an iterator of type E and a mapping function, and returns an
+// iterator of type F.
+func Map[E any, F any](seq iter.Seq[E], fn func(e E) F) iter.Seq[F] {
+	return func(yield func(F) bool) {
+		for e := range seq {
+			yield(fn(e))
+		}
+	}
 }
