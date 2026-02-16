@@ -9,7 +9,7 @@ require (
 	github.com/charmbracelet/x/xpty v0.1.3
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/image v0.35.0
+	golang.org/x/image v0.36.0
 )
 
 require (
