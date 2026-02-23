@@ -245,7 +245,6 @@
   "regols": {"command": "regols", "filetypes": ["rego"]},
   "remark_ls": {"args": ["--stdio"], "command": "remark-language-server", "filetypes": ["markdown"], "root_markers": [".remarkrc", ".remarkrc.json", ".remarkrc.js", ".remarkrc.cjs", ".remarkrc.mjs", ".remarkrc.yml", ".remarkrc.yaml", ".remarkignore"]},
   "rescriptls": {"args": ["--stdio"], "command": "rescript-language-server", "filetypes": ["rescript"], "init_options": {"extensionConfiguration": {"allowBuiltInFormatter": true, "askToStartBuild": false, "cache": {"projectConfig": {"enabled": true}}, "codeLens": true, "incrementalTypechecking": {"acrossFiles": true, "enabled": true}, "inlayHints": {"enable": true}}}, "root_markers": ["bsconfig.json", "rescript.json", ".git"]},
-  "rls": {"command": "rls", "filetypes": ["rust"], "root_markers": ["Cargo.toml"]},
   "rnix": {"command": "rnix-lsp", "filetypes": ["nix"], "root_markers": [".git"]},
   "robotcode": {"args": ["language-server"], "command": "robotcode", "filetypes": ["robot", "resource"], "root_markers": ["robot.toml", "pyproject.toml", "Pipfile", ".git"]},
   "robotframework_ls": {"command": "robotframework_ls", "filetypes": ["robot"], "root_markers": ["robotidy.toml", "pyproject.toml", "conda.yaml", "robot.yaml", ".git"]},

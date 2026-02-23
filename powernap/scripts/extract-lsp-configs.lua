@@ -211,6 +211,9 @@ local function extract(cfg, source)
     return r
 end
 
+-- LSPs to ignore
+local ignored_lsps = { "rls" }
+
 -- Main
 local configs, names = {}, {}
 local handle = io.popen('ls "' .. lsp_dir .. '"/*.lua 2>/dev/null')
@@ -227,8 +230,15 @@ if handle then
             if chunk then
                 local ok, result = pcall(chunk)
                 if ok and type(result) == "table" then
-                    local cfg = extract(result.default_config or result, source)
-                    if cfg then configs[name] = cfg; names[#names+1] = name end
+                    -- Skip ignored LSPs
+                    local is_ignored = false
+                    for _, ignored in ipairs(ignored_lsps) do
+                        if name == ignored then is_ignored = true break end
+                    end
+                    if not is_ignored then
+                        local cfg = extract(result.default_config or result, source)
+                        if cfg then configs[name] = cfg; names[#names+1] = name end
+                    end
                 end
             end
         end
