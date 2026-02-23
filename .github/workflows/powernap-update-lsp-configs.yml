@@ -16,6 +16,8 @@ jobs:
         working-directory: ./powernap
     steps:
       - uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
 
       - name: Install Lua
         run: sudo apt-get update && sudo apt-get install -y lua5.4
@@ -25,8 +27,9 @@ jobs:
 
       - uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "chore(powernap): update LSP configs from nvim-lspconfig"
+          commit_message: "chore(powernap): update lsp configs from nvim-lspconfig"
           branch: main
-          commit_user_name: actions-user
-          commit_user_email: actions@github.com
+          commit_user_name: Charm
+          commit_user_email: 124303983+charmcli@users.noreply.github.com
+          commit_author: Charm <124303983+charmcli@users.noreply.github.com>
           file_pattern: powernap/pkg/config/lsps.json
