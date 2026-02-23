@@ -6,7 +6,7 @@ require (
 	github.com/charmbracelet/colorprofile v0.4.2
 	github.com/charmbracelet/x/ansi v0.11.6
 	github.com/charmbracelet/x/term v0.2.2
-	github.com/mattn/go-runewidth v0.0.19
+	github.com/mattn/go-runewidth v0.0.20
 	github.com/rivo/uniseg v0.4.7
 )
 
