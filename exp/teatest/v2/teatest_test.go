@@ -7,7 +7,7 @@ import (
 	"testing/iotest"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea/v2"
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestWaitForErrorReader(t *testing.T) {
@@ -38,7 +38,9 @@ type m string
 
 func (m m) Init() tea.Cmd                       { return nil }
 func (m m) Update(tea.Msg) (tea.Model, tea.Cmd) { return m, nil }
-func (m m) View() string                        { return string(m) }
+func (m m) View() tea.View {
+	return tea.NewView(string(m))
+}
 
 func TestWaitFinishedWithTimeoutFn(t *testing.T) {
 	tm := NewTestModel(t, m("a"))
