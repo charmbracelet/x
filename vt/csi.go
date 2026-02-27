@@ -9,7 +9,7 @@ import (
 )
 
 func (e *Emulator) handleCsi(cmd ansi.Cmd, params ansi.Params) {
-	e.flushGrapheme() // Flush any pending grapheme before handling CSI sequences.
+	e.flushGrapheme(true) // Flush any pending grapheme before handling CSI sequences.
 	if !e.handlers.handleCsi(cmd, params) {
 		e.logf("unhandled sequence: CSI %q", paramsString(cmd, params))
 	}
