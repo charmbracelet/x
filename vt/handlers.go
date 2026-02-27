@@ -555,10 +555,9 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 			rect := uv.Rect(0, 0, width, y+1)
 			e.scr.FillArea(e.scr.blankCell(), rect)
 		case 2: // erase screen
-			fallthrough
-		case 3: // erase display
-			//nolint:godox
-			// TODO: Scrollback buffer support?
+			e.scr.Clear()
+		case 3: // erase display including scrollback
+			e.scr.ClearScrollback()
 			e.scr.Clear()
 		default:
 			return false

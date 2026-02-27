@@ -159,6 +159,33 @@ func (e *Emulator) SetCell(x, y int, c *uv.Cell) {
 	e.scr.SetCell(x, y, c)
 }
 
+// Scrollback returns the scrollback buffer of the main screen.
+// Note: The alternate screen does not maintain scrollback.
+func (e *Emulator) Scrollback() *Scrollback {
+	return e.scrs[0].Scrollback()
+}
+
+// ClearScrollback clears the scrollback buffer of the main screen.
+func (e *Emulator) ClearScrollback() {
+	e.scrs[0].ClearScrollback()
+}
+
+// ScrollbackLen returns the number of lines in the scrollback buffer.
+func (e *Emulator) ScrollbackLen() int {
+	return e.scrs[0].ScrollbackLen()
+}
+
+// ScrollbackLine returns a line from the scrollback buffer at the given index.
+// Index 0 is the oldest line. Returns nil if index is out of bounds.
+func (e *Emulator) ScrollbackLine(index int) []uv.Cell {
+	return e.scrs[0].ScrollbackLine(index)
+}
+
+// SetScrollbackMaxLines sets the maximum number of lines for the scrollback buffer.
+func (e *Emulator) SetScrollbackMaxLines(maxLines int) {
+	e.scrs[0].SetScrollbackMaxLines(maxLines)
+}
+
 // WidthMethod returns the width method used by the terminal.
 func (e *Emulator) WidthMethod() uv.WidthMethod {
 	if e.isModeSet(ansi.ModeUnicodeCore) {
