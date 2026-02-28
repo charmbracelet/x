@@ -75,6 +75,12 @@ func TestPositionToByteOffset(t *testing.T) {
 			utf16Char: 2,
 			expected:  4,
 		},
+		{
+			name:      "Surrogate pair middle UTF-16 unit",
+			lineText:  "𐐷hello",
+			utf16Char: 1,
+			expected:  0,
+		},
 	}
 
 	for _, tt := range tests {

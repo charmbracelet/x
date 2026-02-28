@@ -406,7 +406,6 @@ func (c *Client) FindReferences(ctx context.Context, filepath string, line, char
 	return result, nil
 }
 
-// setupHandlers registers handlers for server-initiated requests.
 func parseEncoding(encoding string) (OffsetEncoding, bool) {
 	switch encoding {
 	case "utf-8":
@@ -436,6 +435,7 @@ func parseOffsetEncoding(positionEncoding *protocol.PositionEncodingKind, offset
 	return UTF16
 }
 
+// setupHandlers registers handlers for server-initiated requests.
 func (c *Client) setupHandlers() {
 	// Handle workspace/configuration requests
 	c.conn.RegisterHandler(MethodWorkspaceConfiguration, func(_ context.Context, _ string, params json.RawMessage) (any, error) {

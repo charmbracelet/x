@@ -49,11 +49,16 @@ func PositionToByteOffset(lineText string, utf16Char uint32) int {
 		}
 		// Characters outside BMP (U+10000+) are represented as
 		// surrogate pairs in UTF-16, counting as 2 code units.
+		var width uint32 = 1
 		if r >= 0x10000 {
-			utf16Count += 2
-		} else {
-			utf16Count++
+			width = 2
 		}
+		// If the desired UTF-16 offset falls within this rune's UTF-16 width
+		// (i.e., in the middle of a surrogate pair), clamp to the start.
+		if utf16Char < utf16Count+width {
+			return byteOffset
+		}
+		utf16Count += width
 	}
 	return len(lineText)
 }
