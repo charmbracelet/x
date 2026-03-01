@@ -65,6 +65,7 @@ var wwCases = []struct {
 	{"space_breakpoint", "foo --bar", 9, "-", "foo --bar"},
 	{"simple", "foo bars foobars", 4, "", "foo\nbars\nfoobars"},
 	{"limit", "foo bar", 5, "", "foo\nbar"},
+	{"breakpoint_limit", "foo bar, fo", len("foo bar"), ",", "foo\nbar, fo"},
 	{"remove white spaces", "foo    \nb   ar   ", 4, "", "foo\nb\nar"},
 	{"white space trail width", "foo\nb\t a\n bar", 4, "", "foo\nb\t a\n bar"},
 	{"explicit_line_break", "foo bar foo\n", 4, "", "foo\nbar\nfoo\n"},
@@ -95,10 +96,11 @@ func TestWrapWordwrap(t *testing.T) {
 }
 
 var wrapCases = []struct {
-	name     string
-	input    string
-	expected string
-	width    int
+	name        string
+	input       string
+	expected    string
+	width       int
+	breakpoints string
 }{
 	{
 		name:     "simple",
@@ -203,33 +205,34 @@ var wrapCases = []struct {
 			"C\u3000D",
 		width: 7,
 	},
-	{"hyphen break", "foo-bar", "foo-\nbar", 5},
-	{"double space", "f  bar foobaz", "f  bar\nfoobaz", 6},
-	{"passthrough", "foobar\n ", "foobar\n ", 0},
-	{"pass", "foo", "foo", 3},
-	{"toolong", "foobarfoo", "foob\narfo\no", 4},
-	{"white space", "foo bar foo", "foo\nbar\nfoo", 4},
-	{"broken_at_spaces", "foo bars foobars", "foo\nbars\nfoob\nars", 4},
-	{"hyphen", "foob-foobar", "foob\n-foo\nbar", 4},
-	{"wide_emoji_breakpoint", "foo🫧 foobar", "foo\n🫧\nfoob\nar", 4},
-	{"space_breakpoint", "foo --bar", "foo --bar", 9},
-	{"simple", "foo bars foobars", "foo\nbars\nfoob\nars", 4},
-	{"limit", "foo bar", "foo\nbar", 5},
-	{"remove white spaces", "foo    \nb   ar   ", "foo\nb\nar", 4},
-	{"white space trail width", "foo\nb\t a\n bar", "foo\nb\t a\n bar", 4},
-	{"explicit_line_break", "foo bar foo\n", "foo\nbar\nfoo\n", 4},
-	{"explicit_breaks", "\nfoo bar\n\n\nfoo\n", "\nfoo\nbar\n\n\nfoo\n", 4},
-	{"example", " This is a list: \n\n\t* foo\n\t* bar\n\n\n\t* foo  \nbar    ", " This\nis a\nlist: \n\n\t* foo\n\t* bar\n\n\n\t* foo\nbar", 6},
-	{"style_code_dont_affect_length", "\x1B[38;2;249;38;114mfoo\x1B[0m\x1B[38;2;248;248;242m \x1B[0m\x1B[38;2;230;219;116mbar\x1B[0m", "\x1B[38;2;249;38;114mfoo\x1B[0m\x1B[38;2;248;248;242m \x1B[0m\x1B[38;2;230;219;116mbar\x1B[0m", 7},
-	{"style_code_dont_get_wrapped", "\x1B[38;2;249;38;114m(\x1B[0m\x1B[38;2;248;248;242mjust another test\x1B[38;2;249;38;114m)\x1B[0m", "\x1b[38;2;249;38;114m(\x1b[0m\x1b[38;2;248;248;242mjust\nanother\ntest\x1b[38;2;249;38;114m)\x1b[0m", 7},
-	{"osc8_wrap", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\ สวัสดีสวัสดี\x1b]8;;\x1b\\", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\\nสวัสดีสวัสดี\x1b]8;;\x1b\\", 8},
-	{"tab", "foo\tbar", "foo\nbar", 3},
-	{"Narrow NBSP", "0\u202f1\u202f2\u202f3\u202f4", "0\u202f1\u202f2\u202f3\n4", 7},
-	// Paragraph Separator usually takes one character width
-	// while printing it on terminal, but ansi considers this zero width.
-	{"Paragraph Separator", "0\u20291\u20292\u20293\u20294", "0\u20291\u20292\u20293\u20294", 7},
-	{"Medium Mathematical Space", "0\u205f1\u205f2\u205f3\u205f4", "0\u205f1\u205f2\u205f3\n4", 7},
-	{"Ideagraphic space", "0\u30001\u30002\u30003\u3000", "0\u30001\u30002\n3\u3000", 7},
+	{"hyphen break", "foo-bar", "foo-\nbar", 5, ""},
+	{"double space", "f  bar foobaz", "f  bar\nfoobaz", 6, ""},
+	{"passthrough", "foobar\n ", "foobar\n ", 0, ""},
+	{"pass", "foo", "foo", 3, ""},
+	{"toolong", "foobarfoo", "foob\narfo\no", 4, ""},
+	{"white space", "foo bar foo", "foo\nbar\nfoo", 4, ""},
+	{"broken_at_spaces", "foo bars foobars", "foo\nbars\nfoob\nars", 4, ""},
+	{"hyphen", "foob-foobar", "foob\n-foo\nbar", 4, ""},
+	{"wide_emoji_breakpoint", "foo🫧 foobar", "foo\n🫧\nfoob\nar", 4, ""},
+	{"space_breakpoint", "foo --bar", "foo --bar", 9, ""},
+	{"simple", "foo bars foobars", "foo\nbars\nfoob\nars", 4, ""},
+	{"limit", "foo bar", "foo\nbar", 5, ""},
+	{"breakpoint_limit", "foo bar, fo", "foo\nbar, fo", len("foo bar"), ","},
+	{"remove white spaces", "foo    \nb   ar   ", "foo\nb\nar", 4, ""},
+	{"white space trail width", "foo\nb\t a\n bar", "foo\nb\t a\n bar", 4, ""},
+	{"explicit_line_break", "foo bar foo\n", "foo\nbar\nfoo\n", 4, ""},
+	{"explicit_breaks", "\nfoo bar\n\n\nfoo\n", "\nfoo\nbar\n\n\nfoo\n", 4, ""},
+	{"example", " This is a list: \n\n\t* foo\n\t* bar\n\n\n\t* foo  \nbar    ", " This\nis a\nlist: \n\n\t* foo\n\t* bar\n\n\n\t* foo\nbar", 6, ""},
+	{"style_code_dont_affect_length", "\x1B[38;2;249;38;114mfoo\x1B[0m\x1B[38;2;248;248;242m \x1B[0m\x1B[38;2;230;219;116mbar\x1B[0m", "\x1B[38;2;249;38;114mfoo\x1B[0m\x1B[38;2;248;248;242m \x1B[0m\x1B[38;2;230;219;116mbar\x1B[0m", 7, ""},
+	{"style_code_dont_get_wrapped", "\x1B[38;2;249;38;114m(\x1B[0m\x1B[38;2;248;248;242mjust another test\x1B[38;2;249;38;114m)\x1B[0m", "\x1b[38;2;249;38;114m(\x1b[0m\x1b[38;2;248;248;242mjust\nanother\ntest\x1b[38;2;249;38;114m)\x1b[0m", 7, ""},
+	{"osc8_wrap", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\ สวัสดีสวัสดี\x1b]8;;\x1b\\", "สวัสดีสวัสดี\x1b]8;;https://example.com\x1b\\\nสวัสดีสวัสดี\x1b]8;;\x1b\\", 8, ""},
+	{"tab", "foo\tbar", "foo\nbar", 3, ""},
+	{"Narrow NBSP", "0\u202f1\u202f2\u202f3\u202f4", "0\u202f1\u202f2\u202f3\n4", 7, ""},
+	// Paragraph Separator usually takes one character wid, "th
+	// while printing it on terminal, but ansi considers this zero widt, "h.
+	{"Paragraph Separator", "0\u20291\u20292\u20293\u20294", "0\u20291\u20292\u20293\u20294", 7, ""},
+	{"Medium Mathematical Space", "0\u205f1\u205f2\u205f3\u205f4", "0\u205f1\u205f2\u205f3\n4", 7, ""},
+	{"Ideagraphic space", "0\u30001\u30002\u30003\u3000", "0\u30001\u30002\n3\u3000", 7, ""},
 	{
 		name: "japanese with white spaces narrow",
 		input: `耐許ヱヨカハ調出あゆ監件び理別よン國給災レホチ権輝モエフ会割もフ響3現エツ文時しだびほ経機ムイメフ敗文ヨク現義なさド請情ゆじょて憶主管州けでふく。排ゃわつげ美刊ヱミ出見ツ南者オ抜豆ハトロネ論索モネニイ任償スヲ話破リヤヨ秒止口イセソス止央のさ食周健でてつだ官送ト読聴遊容ひるべ。際ぐドらづ市居ネムヤ研校35岩6繹ごわク報拐イ革深52球ゃレスご究東スラ衝3間ラ録占たス。
@@ -336,7 +339,7 @@ func TestWrap(t *testing.T) {
 			}) {
 				format = strings.ReplaceAll(format, "%s", "%q")
 			}
-			output := ansi.Wrap(tc.input, tc.width, "")
+			output := ansi.Wrap(tc.input, tc.width, tc.breakpoints)
 			if output != tc.expected {
 				t.Errorf(format, i+1, tc.input, tc.expected, output)
 			}
