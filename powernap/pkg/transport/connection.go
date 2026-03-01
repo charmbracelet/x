@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"sync"
 	"sync/atomic"
@@ -37,11 +38,20 @@ func NewConnection(ctx context.Context, stream io.ReadWriteCloser, logger *slog.
 		requests: make(map[jsonrpc2.ID]chan *Message),
 	}
 
+	// Suppress or redirect jsonrpc2 log messages to our logger.
+	// Otherwise, jsonrpc2 might print to stderr and mess with the application
+	// view if any.
+	stdLogger := log.New(io.Discard, "", 0)
+	if logger != nil {
+		stdLogger = slog.NewLogLogger(logger.Handler(), slog.LevelDebug)
+	}
+
 	// Create JSON-RPC connection
 	conn := jsonrpc2.NewConn(
 		ctx,
 		jsonrpc2.NewBufferedStream(stream, jsonrpc2.VSCodeObjectCodec{}),
 		jsonrpc2.HandlerWithError(c.handleRequest),
+		jsonrpc2.SetLogger(stdLogger),
 	)
 
 	c.conn = conn
