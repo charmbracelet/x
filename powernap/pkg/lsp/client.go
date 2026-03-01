@@ -127,17 +127,7 @@ func (c *Client) Initialize(ctx context.Context, enableSnippets bool) error {
 	// Store server capabilities
 	c.capabilities = result.Capabilities
 
-	// Handle offset encoding
-	if result.OffsetEncoding != "" {
-		switch result.OffsetEncoding {
-		case "utf-8":
-			c.offsetEncoding = UTF8
-		case "utf-16":
-			c.offsetEncoding = UTF16
-		case "utf-32":
-			c.offsetEncoding = UTF32
-		}
-	}
+	c.offsetEncoding = parseOffsetEncoding(result.Capabilities.PositionEncoding, result.OffsetEncoding)
 
 	// Send initialized notification
 	err = c.conn.Notify(ctx, MethodInitialized, map[string]any{})
@@ -416,6 +406,35 @@ func (c *Client) FindReferences(ctx context.Context, filepath string, line, char
 	return result, nil
 }
 
+func parseEncoding(encoding string) (OffsetEncoding, bool) {
+	switch encoding {
+	case "utf-8":
+		return UTF8, true
+	case "utf-16":
+		return UTF16, true
+	case "utf-32":
+		return UTF32, true
+	default:
+		return UTF16, false
+	}
+}
+
+func parseOffsetEncoding(positionEncoding *protocol.PositionEncodingKind, offsetEncoding string) OffsetEncoding {
+	if positionEncoding != nil {
+		if encoding, ok := parseEncoding(string(*positionEncoding)); ok {
+			return encoding
+		}
+		slog.Warn("Unknown positionEncoding from language server; falling back", "positionEncoding", string(*positionEncoding))
+	}
+	if encoding, ok := parseEncoding(offsetEncoding); ok {
+		return encoding
+	}
+	if offsetEncoding != "" {
+		slog.Warn("Unknown offsetEncoding from language server; using UTF-16 default", "offsetEncoding", offsetEncoding)
+	}
+	return UTF16
+}
+
 // setupHandlers registers handlers for server-initiated requests.
 func (c *Client) setupHandlers() {
 	// Handle workspace/configuration requests
@@ -573,7 +592,7 @@ func (c *Client) makeClientCapabilities(enableSnippets bool) map[string]any {
 				"parser":  "marked",
 				"version": "1.1.0",
 			},
-			"positionEncodings": []string{"utf-16"},
+			"positionEncodings": []string{"utf-8", "utf-16"},
 		},
 	}
 }
