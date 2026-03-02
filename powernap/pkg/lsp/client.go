@@ -35,6 +35,7 @@ const (
 	MethodTextDocumentReferences             = "textDocument/references"
 	MethodTextDocumentDiagnostic             = "textDocument/publishDiagnostics"
 	MethodWorkspaceConfiguration             = "workspace/configuration"
+	MethodWorkspaceWorkspaceFolders          = "workspace/workspaceFolders"
 	MethodWorkspaceDidChangeConfiguration    = "workspace/didChangeConfiguration"
 	MethodWorkspaceDidChangeWorkspaceFolders = "workspace/didChangeWorkspaceFolders"
 	MethodWorkspaceDidChangeWatchedFiles     = "workspace/didChangeWatchedFiles"
@@ -432,6 +433,16 @@ func (c *Client) setupHandlers() {
 		}
 
 		return result, nil
+	})
+
+	// Handle workspace/workspaceFolders requests
+	c.conn.RegisterHandler(MethodWorkspaceWorkspaceFolders, func(_ context.Context, _ string, _ json.RawMessage) (any, error) {
+		// Return configured workspace folders or empty array
+		folders := c.workspaceFolders
+		if folders == nil {
+			folders = []protocol.WorkspaceFolder{}
+		}
+		return folders, nil
 	})
 
 	// Handle other common server requests
