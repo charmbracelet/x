@@ -10,7 +10,7 @@ type Screen struct {
 	// cb is the callbacks struct to use.
 	cb *Callbacks
 	// The buffer of the screen.
-	buf uv.Buffer
+	buf *uv.RenderBuffer
 	// The cur of the screen.
 	cur, saved Cursor
 	// scroll is the scroll region.
@@ -19,8 +19,10 @@ type Screen struct {
 
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
-	s := Screen{}
-	s.Resize(w, h)
+	s := Screen{
+		buf: uv.NewRenderBuffer(w, h),
+	}
+	s.scroll = s.buf.Bounds()
 	return &s
 }
 
@@ -32,6 +34,7 @@ func (s *Screen) Reset() {
 	s.cur = Cursor{}
 	s.saved = Cursor{}
 	s.scroll = s.buf.Bounds()
+	s.buf.Touched = nil
 }
 
 // Bounds returns the bounds of the screen.
@@ -42,6 +45,11 @@ func (s *Screen) Bounds() uv.Rectangle {
 // Touched returns touched lines in the screen buffer.
 func (s *Screen) Touched() []*uv.LineData {
 	return s.buf.Touched
+}
+
+// ClearTouched clears the touched state.
+func (s *Screen) ClearTouched() {
+	s.buf.Touched = nil
 }
 
 // CellAt returns the cell at the given x, y position.
@@ -61,7 +69,12 @@ func (s *Screen) Height() int {
 
 // Resize resizes the screen.
 func (s *Screen) Resize(width int, height int) {
-	s.buf.Resize(width, height)
+	if s.buf == nil {
+		s.buf = uv.NewRenderBuffer(width, height)
+	} else {
+		s.buf.Resize(width, height)
+		s.buf.Touched = nil
+	}
 	s.scroll = s.buf.Bounds()
 }
 
@@ -78,6 +91,7 @@ func (s *Screen) Clear() {
 // ClearArea clears the given area.
 func (s *Screen) ClearArea(area uv.Rectangle) {
 	s.buf.ClearArea(area)
+	s.touchArea(area)
 }
 
 // Fill fills the screen or part of it.
@@ -88,6 +102,7 @@ func (s *Screen) Fill(c *uv.Cell) {
 // FillArea fills the given area with the given cell.
 func (s *Screen) FillArea(c *uv.Cell, area uv.Rectangle) {
 	s.buf.FillArea(c, area)
+	s.touchArea(area)
 }
 
 // setHorizontalMargins sets the horizontal margins.
@@ -326,4 +341,11 @@ func (s *Screen) blankCell() *uv.Cell {
 	c := uv.EmptyCell
 	c.Style.Bg = s.cur.Pen.Bg
 	return &c
+}
+
+// touchArea marks all lines in the given area as touched.
+func (s *Screen) touchArea(area uv.Rectangle) {
+	for y := area.Min.Y; y < area.Max.Y; y++ {
+		s.buf.TouchLine(area.Min.X, y, area.Max.X-area.Min.X)
+	}
 }
