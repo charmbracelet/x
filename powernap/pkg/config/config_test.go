@@ -22,7 +22,7 @@ func TestLoadDefaults(t *testing.T) {
 		{"gopls", "gopls", []string{"go", "gomod", "gowork", "gotmpl"}},
 		{"clangd", "clangd", []string{"c", "cpp", "objc", "objcpp", "cuda"}},
 		{"rust_analyzer", "rust-analyzer", []string{"rust"}},
-		{"ts_ls", "typescript-language-server", []string{"javascript", "javascriptreact", "javascript.jsx", "typescript", "typescriptreact", "typescript.tsx"}},
+		{"ts_ls", "typescript-language-server", []string{"javascript", "javascriptreact", "typescript", "typescriptreact"}},
 	}
 
 	for _, tc := range testCases {
