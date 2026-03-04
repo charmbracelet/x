@@ -10,19 +10,20 @@ type Screen struct {
 	// cb is the callbacks struct to use.
 	cb *Callbacks
 	// The buffer of the screen.
-	buf uv.Buffer
+	buf *uv.RenderBuffer
 	// The cur of the screen.
 	cur, saved Cursor
 	// scroll is the scroll region.
 	scroll uv.Rectangle
-	// touched tracks which lines have been modified.
-	touched []*uv.LineData
 }
 
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
-	s := Screen{}
-	s.Resize(w, h)
+	s := Screen{
+		buf: uv.NewRenderBuffer(w, h),
+	}
+	s.scroll = s.buf.Bounds()
+	s.touchAll()
 	return &s
 }
 
@@ -44,12 +45,12 @@ func (s *Screen) Bounds() uv.Rectangle {
 
 // Touched returns touched lines in the screen buffer.
 func (s *Screen) Touched() []*uv.LineData {
-	return s.touched
+	return s.buf.Touched
 }
 
 // ClearTouched clears the touched state.
 func (s *Screen) ClearTouched() {
-	s.touched = make([]*uv.LineData, s.buf.Height())
+	s.buf.Touched = make([]*uv.LineData, s.buf.Height())
 }
 
 // CellAt returns the cell at the given x, y position.
@@ -60,7 +61,6 @@ func (s *Screen) CellAt(x int, y int) *uv.Cell {
 // SetCell sets the cell at the given x, y position.
 func (s *Screen) SetCell(x, y int, c *uv.Cell) {
 	s.buf.SetCell(x, y, c)
-	s.touchLine(x, y, 1)
 }
 
 // Height returns the height of the screen.
@@ -70,9 +70,13 @@ func (s *Screen) Height() int {
 
 // Resize resizes the screen.
 func (s *Screen) Resize(width int, height int) {
-	s.buf.Resize(width, height)
+	if s.buf == nil {
+		s.buf = uv.NewRenderBuffer(width, height)
+	} else {
+		s.buf.Resize(width, height)
+		s.buf.Touched = make([]*uv.LineData, height)
+	}
 	s.scroll = s.buf.Bounds()
-	s.touched = make([]*uv.LineData, height)
 	s.touchAll()
 }
 
@@ -250,7 +254,6 @@ func (s *Screen) InsertCell(n int) {
 
 	x, y := s.cur.X, s.cur.Y
 	s.buf.InsertCellArea(x, y, n, s.blankCell(), s.scroll)
-	s.touchLine(x, y, s.scroll.Max.X-x)
 }
 
 // DeleteCell deletes n cells at the cursor position moving cells to the left.
@@ -262,7 +265,6 @@ func (s *Screen) DeleteCell(n int) {
 
 	x, y := s.cur.X, s.cur.Y
 	s.buf.DeleteCellArea(x, y, n, s.blankCell(), s.scroll)
-	s.touchLine(x, y, s.scroll.Max.X-x)
 }
 
 // ScrollUp scrolls the content up n lines within the given region. Lines
@@ -303,7 +305,6 @@ func (s *Screen) InsertLine(n int) bool {
 	}
 
 	s.buf.InsertLineArea(y, n, s.blankCell(), s.scroll)
-	s.touchArea(uv.Rect(s.scroll.Min.X, y, s.scroll.Max.X, s.scroll.Max.Y))
 
 	return true
 }
@@ -327,7 +328,6 @@ func (s *Screen) DeleteLine(n int) bool {
 	}
 
 	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
-	s.touchArea(uv.Rect(scroll.Min.X, y, scroll.Max.X, scroll.Max.Y))
 
 	return true
 }
@@ -345,37 +345,14 @@ func (s *Screen) blankCell() *uv.Cell {
 	return &c
 }
 
-// touchLine marks a line as touched at the given x position for n cells.
-func (s *Screen) touchLine(x, y, n int) {
-	if y < 0 || y >= len(s.touched) {
-		return
-	}
-	if s.touched[y] == nil {
-		s.touched[y] = &uv.LineData{FirstCell: x, LastCell: x + n}
-		return
-	}
-	if x < s.touched[y].FirstCell {
-		s.touched[y].FirstCell = x
-	}
-	if x+n > s.touched[y].LastCell {
-		s.touched[y].LastCell = x + n
-	}
-}
-
 // touchAll marks all lines as touched.
 func (s *Screen) touchAll() {
-	w := s.buf.Width()
-	for i := range s.touched {
-		s.touched[i] = &uv.LineData{FirstCell: 0, LastCell: w}
-	}
+	s.touchArea(s.buf.Bounds())
 }
 
 // touchArea marks all lines in the given area as touched.
 func (s *Screen) touchArea(area uv.Rectangle) {
-	for y := area.Min.Y; y < area.Max.Y && y < len(s.touched); y++ {
-		if y < 0 {
-			continue
-		}
-		s.touchLine(area.Min.X, y, area.Max.X-area.Min.X)
+	for y := area.Min.Y; y < area.Max.Y; y++ {
+		s.buf.TouchLine(area.Min.X, y, area.Max.X-area.Min.X)
 	}
 }
