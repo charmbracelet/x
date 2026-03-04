@@ -78,8 +78,12 @@ func NewClient(config ClientConfig) (*Client, error) {
 	return client, nil
 }
 
-// Kill cancels the connection context.
-func (c *Client) Kill() { c.cancel() }
+// Kill forcefully terminates the client by canceling the context and closing
+// the connection. This ensures any blocked I/O operations are interrupted.
+func (c *Client) Kill() {
+	c.cancel()
+	_ = c.conn.Close()
+}
 
 // Initialize sends the initialize request to the language server.
 func (c *Client) Initialize(ctx context.Context, enableSnippets bool) error {
