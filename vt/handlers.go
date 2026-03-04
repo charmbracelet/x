@@ -461,6 +461,11 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		// Insert Character [ansi.ICH]
 		n, _, _ := params.Param(0, 1)
 		e.scr.InsertCell(n)
+		if e.cb.Damage != nil {
+			x, y := e.scr.CursorPosition()
+			rect := uv.Rect(x, y, n, 1)
+			e.cb.Damage(RectDamage(rect))
+		}
 		return true
 	})
 
@@ -551,14 +556,27 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 			rect2 := uv.Rect(0, y+1, width, height-y-1) // next line onwards
 			e.scr.FillArea(e.scr.blankCell(), rect1)
 			e.scr.FillArea(e.scr.blankCell(), rect2)
+			if e.cb.Damage != nil {
+				e.cb.Damage(RectDamage(rect1))
+				e.cb.Damage(RectDamage(rect2))
+			}
 		case 1: // Erase screen above (including cursor)
 			rect := uv.Rect(0, 0, width, y+1)
 			e.scr.FillArea(e.scr.blankCell(), rect)
+			if e.cb.Damage != nil {
+				e.cb.Damage(RectDamage(rect))
+			}
 		case 2: // erase screen
+			if e.cb.Damage != nil {
+				e.cb.Damage(ScreenDamage{Width: width, Height: height})
+			}
 			fallthrough
 		case 3: // erase display
 			//nolint:godox
 			// TODO: Scrollback buffer support?
+			if e.cb.Damage != nil {
+				e.cb.Damage(ScreenDamage{Width: width, Height: height})
+			}
 			e.scr.Clear()
 		default:
 			return false
@@ -577,12 +595,22 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		switch n {
 		case 0: // Erase from cursor to end of line
 			e.eraseCharacter(w - x)
+			if e.cb.Damage != nil {
+				rect := uv.Rect(x, y, w-x, 1)
+				e.cb.Damage(RectDamage(rect))
+			}
 		case 1: // Erase from start of line to cursor
 			rect := uv.Rect(0, y, x+1, 1)
 			e.scr.FillArea(e.scr.blankCell(), rect)
+			if e.cb.Damage != nil {
+				e.cb.Damage(RectDamage(rect))
+			}
 		case 2: // Erase entire line
 			rect := uv.Rect(0, y, w, 1)
 			e.scr.FillArea(e.scr.blankCell(), rect)
+			if e.cb.Damage != nil {
+				e.cb.Damage(RectDamage(rect))
+			}
 		default:
 			return false
 		}
@@ -595,6 +623,13 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		if e.scr.InsertLine(n) {
 			// Move the cursor to the left margin.
 			e.scr.setCursorX(0, true)
+			if e.cb.Damage != nil {
+				width := e.scr.Width()
+				height := e.scr.Height()
+				_, y := e.scr.CursorPosition()
+				rect := uv.Rect(0, y, width, height-y)
+				e.cb.Damage(RectDamage(rect))
+			}
 		}
 		return true
 	})
@@ -607,6 +642,13 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 			// left.
 			// Move the cursor to the left margin.
 			e.scr.setCursorX(0, true)
+			if e.cb.Damage != nil {
+				width := e.scr.Width()
+				height := e.scr.Height()
+				_, y := e.scr.CursorPosition()
+				rect := uv.Rect(0, y, width, height-y)
+				e.cb.Damage(RectDamage(rect))
+			}
 		}
 		return true
 	})
@@ -615,20 +657,35 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		// Delete Character [ansi.DCH]
 		n, _, _ := params.Param(0, 1)
 		e.scr.DeleteCell(n)
+		if e.cb.Damage != nil {
+			x, y := e.scr.CursorPosition()
+			rect := uv.Rect(x, y, n, 1)
+			e.cb.Damage(RectDamage(rect))
+		}
 		return true
 	})
 
 	e.RegisterCsiHandler('S', func(params ansi.Params) bool {
 		// Scroll Up [ansi.SU]
 		n, _, _ := params.Param(0, 1)
-		e.scr.ScrollUp(n)
+		if e.scr.ScrollUp(n) {
+			if e.cb.Damage != nil {
+				rect := e.scr.ScrollRegion()
+				e.cb.Damage(ScrollDamage{Rectangle: rect, Dy: -n})
+			}
+		}
 		return true
 	})
 
 	e.RegisterCsiHandler('T', func(params ansi.Params) bool {
 		// Scroll Down [ansi.SD]
 		n, _, _ := params.Param(0, 1)
-		e.scr.ScrollDown(n)
+		if e.scr.ScrollDown(n) {
+			if e.cb.Damage != nil {
+				rect := e.scr.ScrollRegion()
+				e.cb.Damage(ScrollDamage{Rectangle: rect, Dy: n})
+			}
+		}
 		return true
 	})
 
@@ -645,6 +702,11 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		// Erase Character [ansi.ECH]
 		n, _, _ := params.Param(0, 1)
 		e.eraseCharacter(n)
+		if e.cb.Damage != nil {
+			x, y := e.scr.CursorPosition()
+			rect := uv.Rect(x, y, n, 1)
+			e.cb.Damage(RectDamage(rect))
+		}
 		return true
 	})
 
@@ -677,6 +739,11 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		// Repeat Previous Character [ansi.REP]
 		n, _, _ := params.Param(0, 1)
 		e.repeatPreviousCharacter(n)
+		if e.cb.Damage != nil {
+			x, y := e.scr.CursorPosition()
+			rect := uv.Rect(x, y, n, 1)
+			e.cb.Damage(RectDamage(rect))
+		}
 		return true
 	})
 
