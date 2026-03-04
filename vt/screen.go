@@ -23,7 +23,6 @@ func NewScreen(w, h int) *Screen {
 		buf: uv.NewRenderBuffer(w, h),
 	}
 	s.scroll = s.buf.Bounds()
-	s.touchAll()
 	return &s
 }
 
@@ -35,7 +34,7 @@ func (s *Screen) Reset() {
 	s.cur = Cursor{}
 	s.saved = Cursor{}
 	s.scroll = s.buf.Bounds()
-	s.touchAll()
+	s.buf.Touched = nil
 }
 
 // Bounds returns the bounds of the screen.
@@ -50,7 +49,7 @@ func (s *Screen) Touched() []*uv.LineData {
 
 // ClearTouched clears the touched state.
 func (s *Screen) ClearTouched() {
-	s.buf.Touched = make([]*uv.LineData, s.buf.Height())
+	s.buf.Touched = nil
 }
 
 // CellAt returns the cell at the given x, y position.
@@ -74,10 +73,9 @@ func (s *Screen) Resize(width int, height int) {
 		s.buf = uv.NewRenderBuffer(width, height)
 	} else {
 		s.buf.Resize(width, height)
-		s.buf.Touched = make([]*uv.LineData, height)
+		s.buf.Touched = nil
 	}
 	s.scroll = s.buf.Bounds()
-	s.touchAll()
 }
 
 // Width returns the width of the screen.
@@ -343,11 +341,6 @@ func (s *Screen) blankCell() *uv.Cell {
 	c := uv.EmptyCell
 	c.Style.Bg = s.cur.Pen.Bg
 	return &c
-}
-
-// touchAll marks all lines as touched.
-func (s *Screen) touchAll() {
-	s.touchArea(s.buf.Bounds())
 }
 
 // touchArea marks all lines in the given area as touched.
