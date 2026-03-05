@@ -31,11 +31,24 @@ func (s *Scrollback) Push(line uv.Line) {
 		return
 	}
 
-	// Clone the line to avoid aliasing issues
-	cloned := make(uv.Line, len(line))
-	for i, cell := range line {
+	// Find last non-empty cell to trim trailing empty cells.
+	// This helps with wrapping and window resizing.
+	lastNonEmpty := -1
+	for i := len(line) - 1; i >= 0; i-- {
+		c := &line[i]
+		if !c.IsZero() && !c.Equal(&uv.EmptyCell) {
+			lastNonEmpty = i
+			break
+		}
+	}
+
+	// Clone the line content up to and including the last non-empty cell
+	cloned := make(uv.Line, lastNonEmpty+1)
+	for i := 0; i <= lastNonEmpty; i++ {
+		cell := &line[i]
 		if cell.IsZero() {
-			cloned[i] = uv.EmptyCell
+			// Zero cells are wide cell placeholders, preserve them
+			cloned[i] = uv.Cell{}
 		} else {
 			cloned[i] = *cell.Clone()
 		}
