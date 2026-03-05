@@ -100,7 +100,8 @@ func (s *Screen) ClearWithScrollback() {
 		for y := 0; y < s.buf.Height(); y++ {
 			line := s.buf.Line(y)
 			if line != nil && !s.isLineEmpty(line) {
-				s.scrollback.Push(line)
+				// Lines from clear screen are not wrapped (they're complete)
+				s.scrollback.Push(line, false)
 			}
 		}
 	}
@@ -391,6 +392,16 @@ func (s *Screen) touchArea(area uv.Rectangle) {
 	}
 }
 
+// setSoftWrapped sets the soft-wrapped state for the given line.
+func (s *Screen) setSoftWrapped(y int, wrapped bool) {
+	s.buf.SetSoftWrapped(y, wrapped)
+}
+
+// isSoftWrapped returns whether the given line is soft-wrapped.
+func (s *Screen) isSoftWrapped(y int) bool {
+	return s.buf.IsSoftWrapped(y)
+}
+
 // Scrollback returns the screen's scrollback buffer.
 func (s *Screen) Scrollback() *Scrollback {
 	return s.scrollback
@@ -409,4 +420,190 @@ func (s *Screen) SetScrollbackSize(maxLines int) {
 	} else {
 		s.scrollback.SetMaxLines(maxLines)
 	}
+}
+
+// ReflowResult contains the results of a reflow operation.
+type ReflowResult struct {
+	// CursorX is the new cursor X position after reflow.
+	CursorX int
+	// CursorY is the new cursor Y position after reflow.
+	CursorY int
+}
+
+// Reflow reflows the screen content to a new width, properly handling
+// soft-wrapped lines. This should be called during resize when the width
+// changes and autowrap mode is enabled. The cursor position is tracked
+// through the reflow and returned.
+func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
+	oldWidth := s.buf.Width()
+	oldHeight := s.buf.Height()
+
+	// If width didn't change, just resize without reflow
+	if oldWidth == newWidth {
+		s.Resize(newWidth, newHeight)
+		// Clamp cursor to new bounds
+		if curY >= newHeight {
+			curY = newHeight - 1
+		}
+		if curX >= newWidth {
+			curX = newWidth - 1
+		}
+		return ReflowResult{CursorX: curX, CursorY: curY}
+	}
+
+	// Collect all logical lines from screen (joining wrapped physical lines)
+	type logicalLine struct {
+		cells uv.Line
+	}
+	var logicalLines []logicalLine
+
+	// Track cursor position as offset within logical lines
+	cursorLogicalLine := -1
+	cursorLogicalOffset := 0
+
+	// Process screen lines
+	var current uv.Line
+	var currentStartY int
+	for y := 0; y < oldHeight; y++ {
+		line := s.buf.Line(y)
+		if line == nil {
+			line = uv.NewLine(oldWidth)
+		}
+
+		// Track cursor position
+		if y == curY {
+			cursorLogicalLine = len(logicalLines)
+			cursorLogicalOffset = len(current) + curX
+		}
+
+		// Trim trailing empty cells from non-wrapped lines
+		trimmed := line
+		if !s.isSoftWrapped(y) {
+			trimmed = trimTrailingEmpty(line)
+		}
+		current = append(current, trimmed...)
+
+		if !s.isSoftWrapped(y) {
+			// End of logical line
+			logicalLines = append(logicalLines, logicalLine{cells: current})
+			current = nil
+			currentStartY = y + 1
+		}
+	}
+	// Handle trailing wrapped line
+	if len(current) > 0 {
+		logicalLines = append(logicalLines, logicalLine{cells: current})
+	}
+	_ = currentStartY // silence unused warning
+
+	// Create new buffer with new dimensions
+	newBuf := uv.NewRenderBuffer(newWidth, newHeight)
+
+	// Find the last logical line that has content or contains the cursor
+	lastUsedLine := -1
+	for i, logical := range logicalLines {
+		if len(logical.cells) > 0 || i == cursorLogicalLine {
+			lastUsedLine = i
+		}
+	}
+
+	// Re-wrap logical lines to new width and write to new buffer
+	newCursorX, newCursorY := curX, curY
+	writeY := 0
+	for logIdx := 0; logIdx <= lastUsedLine && writeY < newHeight; logIdx++ {
+		logical := logicalLines[logIdx]
+
+		// Handle cursor on empty line
+		if logIdx == cursorLogicalLine && len(logical.cells) == 0 {
+			newCursorX = 0
+			newCursorY = writeY
+			cursorLogicalLine = -1 // Mark as found
+			writeY++
+			continue
+		}
+
+		if len(logical.cells) == 0 {
+			// Empty logical line (but not cursor line)
+			writeY++
+			continue
+		}
+
+		cells := logical.cells
+		for len(cells) > 0 && writeY < newHeight {
+			// Take up to newWidth cells
+			chunk := cells
+			if len(chunk) > newWidth {
+				chunk = cells[:newWidth]
+				cells = cells[newWidth:]
+				// Mark this line as wrapped
+				newBuf.SetSoftWrapped(writeY, true)
+			} else {
+				cells = nil
+			}
+
+			// Write chunk to new buffer
+			for x, cell := range chunk {
+				newBuf.SetCell(x, writeY, &cell)
+			}
+
+			// Track cursor position
+			if logIdx == cursorLogicalLine {
+				// Cursor is in this logical line
+				// Use <= to handle cursor at end of chunk (e.g., after last char)
+				if cursorLogicalOffset <= len(chunk) {
+					newCursorX = cursorLogicalOffset
+					newCursorY = writeY
+					cursorLogicalLine = -1 // Mark as found
+				} else {
+					cursorLogicalOffset -= len(chunk)
+				}
+			}
+
+			writeY++
+		}
+	}
+
+	// If cursor wasn't found (was past end of content), put at end
+	if cursorLogicalLine >= 0 {
+		newCursorY = max(0, writeY-1)
+		newCursorX = min(cursorLogicalOffset, newWidth-1)
+	}
+
+	// Clamp cursor to valid bounds
+	if newCursorY >= newHeight {
+		newCursorY = newHeight - 1
+	}
+	if newCursorX >= newWidth {
+		newCursorX = newWidth - 1
+	}
+	if newCursorX < 0 {
+		newCursorX = 0
+	}
+	if newCursorY < 0 {
+		newCursorY = 0
+	}
+
+	// Replace buffer
+	s.buf = newBuf
+	s.scroll = s.buf.Bounds()
+
+	// Reflow scrollback if present
+	if s.scrollback != nil {
+		s.scrollback.Reflow(newWidth)
+	}
+
+	return ReflowResult{CursorX: newCursorX, CursorY: newCursorY}
+}
+
+// trimTrailingEmpty removes trailing empty cells from a line.
+func trimTrailingEmpty(line uv.Line) uv.Line {
+	lastNonEmpty := -1
+	for i := len(line) - 1; i >= 0; i-- {
+		c := &line[i]
+		if !c.IsZero() && !c.Equal(&uv.EmptyCell) {
+			lastNonEmpty = i
+			break
+		}
+	}
+	return line[:lastNonEmpty+1]
 }

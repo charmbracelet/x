@@ -9,9 +9,19 @@ import (
 // DefaultScrollbackSize is the default maximum number of lines in the scrollback buffer.
 const DefaultScrollbackSize = 10000
 
+// ScrollbackLine represents a line in the scrollback buffer with metadata.
+type ScrollbackLine struct {
+	// Cells contains the cell data for this line.
+	Cells uv.Line
+	// SoftWrapped indicates this line was soft-wrapped (continued on next line
+	// due to terminal width, not an explicit newline). This enables proper
+	// reflow on terminal resize.
+	SoftWrapped bool
+}
+
 // Scrollback represents a scrollback buffer that stores lines scrolled off the screen.
 type Scrollback struct {
-	lines    []uv.Line
+	lines    []ScrollbackLine
 	maxLines int
 }
 
@@ -21,14 +31,15 @@ func NewScrollback(maxLines int) *Scrollback {
 		maxLines = DefaultScrollbackSize
 	}
 	return &Scrollback{
-		lines:    make([]uv.Line, 0, min(maxLines, 1000)), // Pre-allocate reasonable capacity
+		lines:    make([]ScrollbackLine, 0, min(maxLines, 1000)), // Pre-allocate reasonable capacity
 		maxLines: maxLines,
 	}
 }
 
 // Push adds a line to the scrollback buffer.
 // If the buffer is full, the oldest line is removed.
-func (s *Scrollback) Push(line uv.Line) {
+// The wrapped parameter indicates if this line was soft-wrapped (no explicit newline).
+func (s *Scrollback) Push(line uv.Line, wrapped bool) {
 	if s == nil || s.maxLines <= 0 {
 		return
 	}
@@ -47,23 +58,34 @@ func (s *Scrollback) Push(line uv.Line) {
 	// Clone the line content up to and including the last non-empty cell
 	cloned := slices.Clone(line[:lastNonEmpty+1])
 
+	entry := ScrollbackLine{
+		Cells:       cloned,
+		SoftWrapped: wrapped,
+	}
+
 	if len(s.lines) >= s.maxLines {
 		// Remove oldest line and append new one
 		s.lines = slices.Delete(s.lines, 0, 1)
 	}
-	s.lines = append(s.lines, cloned)
+	s.lines = append(s.lines, entry)
 }
 
 // PushN adds n lines from the buffer starting at line y to the scrollback.
+// Lines are marked as wrapped based on the buffer's wrap state for each line.
 func (s *Scrollback) PushN(buf *uv.RenderBuffer, y, n int) {
 	if s == nil || buf == nil || n <= 0 {
 		return
 	}
 
 	for i := range min(n, buf.Height()-y) {
-		if line := buf.Line(y + i); line != nil {
-			s.Push(line)
+		line := buf.Line(y + i)
+		if line == nil {
+			continue
 		}
+
+		// Use the buffer's tracked wrap state for this line
+		wrapped := buf.IsSoftWrapped(y + i)
+		s.Push(line, wrapped)
 	}
 }
 
@@ -97,23 +119,37 @@ func (s *Scrollback) SetMaxLines(maxLines int) {
 	}
 }
 
-// Line returns the line at the given index.
+// Line returns the line cells at the given index.
 // Index 0 is the oldest line, Len()-1 is the most recent.
 // Returns nil if index is out of bounds.
 func (s *Scrollback) Line(index int) uv.Line {
 	if s == nil || index < 0 || index >= len(s.lines) {
 		return nil
 	}
-	return s.lines[index]
+	return s.lines[index].Cells
 }
 
-// Lines returns all lines in the scrollback buffer.
+// LineEntry returns the full ScrollbackLine at the given index.
+// Index 0 is the oldest line, Len()-1 is the most recent.
+// Returns nil if index is out of bounds.
+func (s *Scrollback) LineEntry(index int) *ScrollbackLine {
+	if s == nil || index < 0 || index >= len(s.lines) {
+		return nil
+	}
+	return &s.lines[index]
+}
+
+// Lines returns all line cells in the scrollback buffer.
 // Index 0 is the oldest line.
 func (s *Scrollback) Lines() []uv.Line {
 	if s == nil {
 		return nil
 	}
-	return s.lines
+	result := make([]uv.Line, len(s.lines))
+	for i, entry := range s.lines {
+		result[i] = entry.Cells
+	}
+	return result
 }
 
 // Clear removes all lines from the scrollback buffer.
@@ -133,4 +169,59 @@ func (s *Scrollback) CellAt(x, y int) *uv.Cell {
 		return nil
 	}
 	return &line[x]
+}
+
+// Reflow reflows the scrollback buffer for a new terminal width.
+// Lines that were soft-wrapped are joined and re-wrapped to the new width.
+// This should be called when the terminal is resized.
+func (s *Scrollback) Reflow(newWidth int) {
+	if s == nil || len(s.lines) == 0 || newWidth <= 0 {
+		return
+	}
+
+	// Collect all logical lines (joining wrapped physical lines)
+	var logicalLines []uv.Line
+	var current uv.Line
+
+	for _, entry := range s.lines {
+		current = append(current, entry.Cells...)
+		if !entry.SoftWrapped {
+			// End of logical line
+			logicalLines = append(logicalLines, current)
+			current = nil
+		}
+	}
+	// Handle trailing wrapped line
+	if len(current) > 0 {
+		logicalLines = append(logicalLines, current)
+	}
+
+	// Re-wrap logical lines to new width
+	s.lines = s.lines[:0]
+	for _, logical := range logicalLines {
+		if len(logical) == 0 {
+			s.lines = append(s.lines, ScrollbackLine{Cells: nil, SoftWrapped: false})
+			continue
+		}
+
+		// Split into chunks of newWidth
+		for len(logical) > newWidth {
+			chunk := slices.Clone(logical[:newWidth])
+			s.lines = append(s.lines, ScrollbackLine{Cells: chunk, SoftWrapped: true})
+			logical = logical[newWidth:]
+
+			// Enforce max lines
+			if len(s.lines) >= s.maxLines {
+				s.lines = slices.Delete(s.lines, 0, 1)
+			}
+		}
+
+		// Final chunk (not wrapped)
+		if len(logical) > 0 {
+			s.lines = append(s.lines, ScrollbackLine{Cells: slices.Clone(logical), SoftWrapped: false})
+			if len(s.lines) >= s.maxLines {
+				s.lines = slices.Delete(s.lines, 0, 1)
+			}
+		}
+	}
 }
