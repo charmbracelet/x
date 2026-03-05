@@ -444,3 +444,49 @@ func (e *Emulator) logf(format string, v ...any) {
 		e.logger.Printf(format, v...)
 	}
 }
+
+// Scrollback returns the scrollback buffer for the main screen.
+// Returns nil if the terminal is in alternate screen mode, as the alternate
+// screen typically doesn't use scrollback.
+func (e *Emulator) Scrollback() *Scrollback {
+	// Return main screen's scrollback only
+	return e.scrs[0].Scrollback()
+}
+
+// ScrollbackLen returns the number of lines in the scrollback buffer.
+func (e *Emulator) ScrollbackLen() int {
+	sb := e.Scrollback()
+	if sb == nil {
+		return 0
+	}
+	return sb.Len()
+}
+
+// ScrollbackCellAt returns the cell at the given position in the scrollback buffer.
+// x is the column, y is the line index (0 = oldest line in scrollback).
+// Returns nil if position is out of bounds.
+func (e *Emulator) ScrollbackCellAt(x, y int) *uv.Cell {
+	sb := e.Scrollback()
+	if sb == nil {
+		return nil
+	}
+	return sb.CellAt(x, y)
+}
+
+// SetScrollbackSize sets the maximum number of lines in the scrollback buffer.
+func (e *Emulator) SetScrollbackSize(maxLines int) {
+	e.scrs[0].SetScrollbackSize(maxLines)
+}
+
+// ClearScrollback clears the scrollback buffer.
+func (e *Emulator) ClearScrollback() {
+	sb := e.Scrollback()
+	if sb != nil {
+		sb.Clear()
+	}
+}
+
+// IsAltScreen returns whether the terminal is in alternate screen mode.
+func (e *Emulator) IsAltScreen() bool {
+	return e.scr == &e.scrs[1]
+}

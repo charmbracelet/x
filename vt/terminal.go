@@ -13,6 +13,7 @@ type Terminal interface {
 	Blur()
 	Bounds() uv.Rectangle
 	CellAt(x int, y int) *uv.Cell
+	ClearScrollback()
 	Close() error
 	CursorColor() color.Color
 	CursorPosition() uv.Position
@@ -22,6 +23,7 @@ type Terminal interface {
 	Height() int
 	IndexedColor(i int) color.Color
 	InputPipe() io.Writer
+	IsAltScreen() bool
 	Paste(text string)
 	Read(p []byte) (n int, err error)
 	RegisterApcHandler(handler ApcHandler)
@@ -33,6 +35,9 @@ type Terminal interface {
 	RegisterSosHandler(handler SosHandler)
 	Render() string
 	Resize(width int, height int)
+	Scrollback() *Scrollback
+	ScrollbackCellAt(x, y int) *uv.Cell
+	ScrollbackLen() int
 	SendKey(k uv.KeyEvent)
 	SendKeys(keys ...uv.KeyEvent)
 	SendMouse(m Mouse)
@@ -47,6 +52,7 @@ type Terminal interface {
 	SetForegroundColor(c color.Color)
 	SetIndexedColor(i int, c color.Color)
 	SetLogger(l Logger)
+	SetScrollbackSize(maxLines int)
 	String() string
 	Touched() []*uv.LineData
 	Width() int

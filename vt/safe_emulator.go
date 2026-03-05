@@ -180,3 +180,45 @@ func (se *SafeEmulator) Draw(s uv.Screen, a uv.Rectangle) {
 	defer se.mu.RUnlock()
 	se.Emulator.Draw(s, a)
 }
+
+// Scrollback returns the scrollback buffer in a concurrency-safe manner.
+func (se *SafeEmulator) Scrollback() *Scrollback {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.Scrollback()
+}
+
+// ScrollbackLen returns the number of lines in the scrollback buffer in a concurrency-safe manner.
+func (se *SafeEmulator) ScrollbackLen() int {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.ScrollbackLen()
+}
+
+// ScrollbackCellAt returns a cell from the scrollback buffer in a concurrency-safe manner.
+func (se *SafeEmulator) ScrollbackCellAt(x, y int) *uv.Cell {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.ScrollbackCellAt(x, y)
+}
+
+// SetScrollbackSize sets the scrollback buffer size in a concurrency-safe manner.
+func (se *SafeEmulator) SetScrollbackSize(maxLines int) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.SetScrollbackSize(maxLines)
+}
+
+// ClearScrollback clears the scrollback buffer in a concurrency-safe manner.
+func (se *SafeEmulator) ClearScrollback() {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.ClearScrollback()
+}
+
+// IsAltScreen returns whether in alternate screen mode in a concurrency-safe manner.
+func (se *SafeEmulator) IsAltScreen() bool {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.IsAltScreen()
+}

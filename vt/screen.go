@@ -15,12 +15,15 @@ type Screen struct {
 	cur, saved Cursor
 	// scroll is the scroll region.
 	scroll uv.Rectangle
+	// scrollback is the scrollback buffer for lines scrolled off the top.
+	scrollback *Scrollback
 }
 
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
 	s := Screen{
-		buf: uv.NewRenderBuffer(w, h),
+		buf:        uv.NewRenderBuffer(w, h),
+		scrollback: NewScrollback(DefaultScrollbackSize),
 	}
 	s.scroll = s.buf.Bounds()
 	return &s
@@ -86,6 +89,32 @@ func (s *Screen) Width() int {
 // Clear clears the screen with blank cells.
 func (s *Screen) Clear() {
 	s.ClearArea(s.Bounds())
+}
+
+// ClearWithScrollback saves all non-empty lines to scrollback before clearing.
+// This is used for operations like ED 2 (erase screen) where content should
+// be preserved in history.
+func (s *Screen) ClearWithScrollback() {
+	if s.scrollback != nil {
+		// Save all lines that have content before clearing
+		for y := 0; y < s.buf.Height(); y++ {
+			line := s.buf.Line(y)
+			if line != nil && !s.isLineEmpty(line) {
+				s.scrollback.Push(line)
+			}
+		}
+	}
+	s.Clear()
+}
+
+// isLineEmpty returns true if the line contains only empty/space cells.
+func (s *Screen) isLineEmpty(line uv.Line) bool {
+	for _, cell := range line {
+		if cell.Content != "" && cell.Content != " " {
+			return false
+		}
+	}
+	return true
 }
 
 // ClearArea clears the given area.
@@ -310,6 +339,8 @@ func (s *Screen) InsertLine(n int) bool {
 // DeleteLine deletes n lines at the cursor position Y coordinate.
 // Only operates if cursor is within scroll region. Lines below cursor Y
 // are moved up, with blank lines inserted at the bottom of scroll region.
+// If scrollback is enabled and cursor is at top of scroll region, lines
+// are saved to the scrollback buffer before deletion.
 // It returns true if the operation was successful.
 func (s *Screen) DeleteLine(n int) bool {
 	if n <= 0 {
@@ -323,6 +354,16 @@ func (s *Screen) DeleteLine(n int) bool {
 	if y < scroll.Min.Y || y >= scroll.Max.Y ||
 		x < scroll.Min.X || x >= scroll.Max.X {
 		return false
+	}
+
+	// Save lines to scrollback if we're at the top of the scroll region
+	// and the scroll region uses the full width (typical terminal scroll).
+	// This captures lines that would be lost during scroll up operations.
+	if s.scrollback != nil && y == scroll.Min.Y &&
+		scroll.Min.X == 0 && scroll.Max.X == s.buf.Width() {
+		// Save lines that will be deleted
+		linesToSave := min(n, scroll.Max.Y-y)
+		s.scrollback.PushN(s.buf, y, linesToSave)
 	}
 
 	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
@@ -347,5 +388,25 @@ func (s *Screen) blankCell() *uv.Cell {
 func (s *Screen) touchArea(area uv.Rectangle) {
 	for y := area.Min.Y; y < area.Max.Y; y++ {
 		s.buf.TouchLine(area.Min.X, y, area.Max.X-area.Min.X)
+	}
+}
+
+// Scrollback returns the screen's scrollback buffer.
+func (s *Screen) Scrollback() *Scrollback {
+	return s.scrollback
+}
+
+// SetScrollback sets the screen's scrollback buffer.
+// Pass nil to disable scrollback.
+func (s *Screen) SetScrollback(sb *Scrollback) {
+	s.scrollback = sb
+}
+
+// SetScrollbackSize sets the maximum number of lines in the scrollback buffer.
+func (s *Screen) SetScrollbackSize(maxLines int) {
+	if s.scrollback == nil {
+		s.scrollback = NewScrollback(maxLines)
+	} else {
+		s.scrollback.SetMaxLines(maxLines)
 	}
 }
