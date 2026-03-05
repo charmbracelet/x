@@ -1,6 +1,8 @@
 package vt
 
 import (
+	"slices"
+
 	uv "github.com/charmbracelet/ultraviolet"
 )
 
@@ -43,24 +45,13 @@ func (s *Scrollback) Push(line uv.Line) {
 	}
 
 	// Clone the line content up to and including the last non-empty cell
-	cloned := make(uv.Line, lastNonEmpty+1)
-	for i := 0; i <= lastNonEmpty; i++ {
-		cell := &line[i]
-		if cell.IsZero() {
-			// Zero cells are wide cell placeholders, preserve them
-			cloned[i] = uv.Cell{}
-		} else {
-			cloned[i] = *cell.Clone()
-		}
-	}
+	cloned := slices.Clone(line[:lastNonEmpty+1])
 
 	if len(s.lines) >= s.maxLines {
-		// Remove oldest line (shift left)
-		copy(s.lines, s.lines[1:])
-		s.lines[len(s.lines)-1] = cloned
-	} else {
-		s.lines = append(s.lines, cloned)
+		// Remove oldest line and append new one
+		s.lines = slices.Delete(s.lines, 0, 1)
 	}
+	s.lines = append(s.lines, cloned)
 }
 
 // PushN adds n lines from the buffer starting at line y to the scrollback.
@@ -69,9 +60,8 @@ func (s *Scrollback) PushN(buf *uv.RenderBuffer, y, n int) {
 		return
 	}
 
-	for i := 0; i < n && y+i < buf.Height(); i++ {
-		line := buf.Line(y + i)
-		if line != nil {
+	for i := range min(n, buf.Height()-y) {
+		if line := buf.Line(y + i); line != nil {
 			s.Push(line)
 		}
 	}
