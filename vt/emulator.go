@@ -263,7 +263,7 @@ func (e *Emulator) Close() error {
 	}
 
 	e.closed = true
-	return e.pw.CloseWithError(io.EOF)
+	return e.pw.CloseWithError(io.EOF) //nolint:wrapcheck
 }
 
 // Write writes data to the terminal output buffer.
@@ -289,7 +289,7 @@ func (e *Emulator) Write(p []byte) (n int, err error) {
 
 // WriteString writes a string to the terminal output buffer.
 func (e *Emulator) WriteString(s string) (n int, err error) {
-	return e.Write([]byte(s)) //nolint:wrapcheck
+	return e.Write([]byte(s))
 }
 
 // InputPipe returns the terminal's input pipe.
