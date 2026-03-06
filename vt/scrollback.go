@@ -71,8 +71,8 @@ func (s *Scrollback) Push(line uv.Line, wrapped bool) {
 }
 
 // PushN adds n lines from the buffer starting at line y to the scrollback.
-// Lines are marked as wrapped based on the buffer's wrap state for each line.
-func (s *Scrollback) PushN(buf *uv.RenderBuffer, y, n int) {
+// The softWrapped slice indicates which lines are soft-wrapped.
+func (s *Scrollback) PushN(buf *uv.RenderBuffer, y, n int, softWrapped []bool) {
 	if s == nil || buf == nil || n <= 0 {
 		return
 	}
@@ -83,8 +83,11 @@ func (s *Scrollback) PushN(buf *uv.RenderBuffer, y, n int) {
 			continue
 		}
 
-		// Use the buffer's tracked wrap state for this line
-		wrapped := buf.IsSoftWrapped(y + i)
+		// Check if this line is soft-wrapped
+		wrapped := false
+		if lineIdx := y + i; lineIdx >= 0 && lineIdx < len(softWrapped) {
+			wrapped = softWrapped[lineIdx]
+		}
 		s.Push(line, wrapped)
 	}
 }

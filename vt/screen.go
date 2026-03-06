@@ -17,13 +17,17 @@ type Screen struct {
 	scroll uv.Rectangle
 	// scrollback is the scrollback buffer for lines scrolled off the top.
 	scrollback *Scrollback
+	// softWrapped tracks which lines are soft-wrapped (continued on next line
+	// due to terminal width). This enables proper reflow on resize.
+	softWrapped []bool
 }
 
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
 	s := Screen{
-		buf:        uv.NewRenderBuffer(w, h),
-		scrollback: NewScrollback(DefaultScrollbackSize),
+		buf:         uv.NewRenderBuffer(w, h),
+		scrollback:  NewScrollback(DefaultScrollbackSize),
+		softWrapped: make([]bool, h),
 	}
 	s.scroll = s.buf.Bounds()
 	return &s
@@ -38,6 +42,7 @@ func (s *Screen) Reset() {
 	s.saved = Cursor{}
 	s.scroll = s.buf.Bounds()
 	s.buf.Touched = nil
+	clear(s.softWrapped)
 }
 
 // Bounds returns the bounds of the screen.
@@ -74,9 +79,16 @@ func (s *Screen) Height() int {
 func (s *Screen) Resize(width int, height int) {
 	if s.buf == nil {
 		s.buf = uv.NewRenderBuffer(width, height)
+		s.softWrapped = make([]bool, height)
 	} else {
 		s.buf.Resize(width, height)
 		s.buf.Touched = nil
+		// Resize softWrapped slice
+		if height > len(s.softWrapped) {
+			s.softWrapped = append(s.softWrapped, make([]bool, height-len(s.softWrapped))...)
+		} else if height < len(s.softWrapped) {
+			s.softWrapped = s.softWrapped[:height]
+		}
 	}
 	s.scroll = s.buf.Bounds()
 }
@@ -334,6 +346,17 @@ func (s *Screen) InsertLine(n int) bool {
 
 	s.buf.InsertLineArea(y, n, s.blankCell(), s.scroll)
 
+	// Shift softWrapped state down within the scroll region
+	if y >= 0 && y < len(s.softWrapped) {
+		for i := min(s.scroll.Max.Y-1, len(s.softWrapped)-1); i >= y+n; i-- {
+			s.softWrapped[i] = s.softWrapped[i-n]
+		}
+		// Clear the newly inserted lines' wrap state
+		for i := y; i < y+n && i < len(s.softWrapped); i++ {
+			s.softWrapped[i] = false
+		}
+	}
+
 	return true
 }
 
@@ -364,10 +387,21 @@ func (s *Screen) DeleteLine(n int) bool {
 		scroll.Min.X == 0 && scroll.Max.X == s.buf.Width() {
 		// Save lines that will be deleted
 		linesToSave := min(n, scroll.Max.Y-y)
-		s.scrollback.PushN(s.buf, y, linesToSave)
+		s.scrollback.PushN(s.buf, y, linesToSave, s.softWrapped)
 	}
 
 	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
+
+	// Shift softWrapped state up within the scroll region
+	if y >= 0 && y < len(s.softWrapped) {
+		for i := y; i < scroll.Max.Y-n && i+n < len(s.softWrapped); i++ {
+			s.softWrapped[i] = s.softWrapped[i+n]
+		}
+		// Clear the newly created lines at the bottom
+		for i := max(y, scroll.Max.Y-n); i < scroll.Max.Y && i < len(s.softWrapped); i++ {
+			s.softWrapped[i] = false
+		}
+	}
 
 	return true
 }
@@ -394,12 +428,17 @@ func (s *Screen) touchArea(area uv.Rectangle) {
 
 // setSoftWrapped sets the soft-wrapped state for the given line.
 func (s *Screen) setSoftWrapped(y int, wrapped bool) {
-	s.buf.SetSoftWrapped(y, wrapped)
+	if y >= 0 && y < len(s.softWrapped) {
+		s.softWrapped[y] = wrapped
+	}
 }
 
 // isSoftWrapped returns whether the given line is soft-wrapped.
 func (s *Screen) isSoftWrapped(y int) bool {
-	return s.buf.IsSoftWrapped(y)
+	if y >= 0 && y < len(s.softWrapped) {
+		return s.softWrapped[y]
+	}
+	return false
 }
 
 // Scrollback returns the screen's scrollback buffer.
@@ -498,6 +537,7 @@ func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
 
 	// Create new buffer with new dimensions
 	newBuf := uv.NewRenderBuffer(newWidth, newHeight)
+	newSoftWrapped := make([]bool, newHeight)
 
 	// Find the last logical line that has content or contains the cursor
 	lastUsedLine := -1
@@ -536,7 +576,7 @@ func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
 				chunk = cells[:newWidth]
 				cells = cells[newWidth:]
 				// Mark this line as wrapped
-				newBuf.SetSoftWrapped(writeY, true)
+				newSoftWrapped[writeY] = true
 			} else {
 				cells = nil
 			}
@@ -583,8 +623,9 @@ func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
 		newCursorY = 0
 	}
 
-	// Replace buffer
+	// Replace buffer and softWrapped
 	s.buf = newBuf
+	s.softWrapped = newSoftWrapped
 	s.scroll = s.buf.Bounds()
 
 	// Reflow scrollback if present
