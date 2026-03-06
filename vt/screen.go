@@ -465,8 +465,9 @@ func (s *Screen) reflowScrollback(newWidth int) {
 		return
 	}
 
-	entries := s.scrollback.entries()
-	if len(entries) == 0 || newWidth <= 0 {
+	sb := s.scrollback
+	n := sb.Len()
+	if n == 0 || newWidth <= 0 {
 		return
 	}
 
@@ -474,9 +475,9 @@ func (s *Screen) reflowScrollback(newWidth int) {
 	var logicalLines []uv.Line
 	var current uv.Line
 
-	for _, entry := range entries {
-		current = append(current, entry.Cells...)
-		if !entry.SoftWrapped {
+	for i := range n {
+		current = append(current, sb.lines[i]...)
+		if !sb.wrapped[i] {
 			// End of logical line
 			logicalLines = append(logicalLines, current)
 			current = nil
@@ -488,36 +489,44 @@ func (s *Screen) reflowScrollback(newWidth int) {
 	}
 
 	// Re-wrap logical lines to new width
-	maxLines := s.scrollback.MaxLines()
-	var newLines []ScrollbackLine
+	maxLines := sb.MaxLines()
+	newLines := make([]uv.Line, 0, n)
+	newWrapped := make([]bool, 0, n)
+
 	for _, logical := range logicalLines {
 		if len(logical) == 0 {
-			newLines = append(newLines, ScrollbackLine{Cells: nil, SoftWrapped: false})
+			newLines = append(newLines, nil)
+			newWrapped = append(newWrapped, false)
 			continue
 		}
 
 		// Split into chunks of newWidth
 		for len(logical) > newWidth {
 			chunk := slices.Clone(logical[:newWidth])
-			newLines = append(newLines, ScrollbackLine{Cells: chunk, SoftWrapped: true})
+			newLines = append(newLines, chunk)
+			newWrapped = append(newWrapped, true)
 			logical = logical[newWidth:]
 
 			// Enforce max lines
 			if len(newLines) >= maxLines {
 				newLines = slices.Delete(newLines, 0, 1)
+				newWrapped = slices.Delete(newWrapped, 0, 1)
 			}
 		}
 
 		// Final chunk (not wrapped)
 		if len(logical) > 0 {
-			newLines = append(newLines, ScrollbackLine{Cells: slices.Clone(logical), SoftWrapped: false})
+			newLines = append(newLines, slices.Clone(logical))
+			newWrapped = append(newWrapped, false)
 			if len(newLines) >= maxLines {
 				newLines = slices.Delete(newLines, 0, 1)
+				newWrapped = slices.Delete(newWrapped, 0, 1)
 			}
 		}
 	}
 
-	s.scrollback.replaceLines(newLines)
+	sb.lines = newLines
+	sb.wrapped = newWrapped
 }
 
 // Scrollback returns the screen's scrollback buffer.

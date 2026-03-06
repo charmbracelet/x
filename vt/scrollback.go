@@ -9,19 +9,10 @@ import (
 // DefaultScrollbackSize is the default maximum number of lines in the scrollback buffer.
 const DefaultScrollbackSize = 10000
 
-// ScrollbackLine represents a line in the scrollback buffer with metadata.
-type ScrollbackLine struct {
-	// Cells contains the cell data for this line.
-	Cells uv.Line
-	// SoftWrapped indicates this line was soft-wrapped (continued on next line
-	// due to terminal width, not an explicit newline). This enables proper
-	// reflow on terminal resize.
-	SoftWrapped bool
-}
-
 // Scrollback represents a scrollback buffer that stores lines scrolled off the screen.
 type Scrollback struct {
-	lines    []ScrollbackLine
+	lines    []uv.Line
+	wrapped  []bool
 	maxLines int
 }
 
@@ -30,16 +21,18 @@ func NewScrollback(maxLines int) *Scrollback {
 	if maxLines <= 0 {
 		maxLines = DefaultScrollbackSize
 	}
+	cap := min(maxLines, 1000) // Pre-allocate reasonable capacity
 	return &Scrollback{
-		lines:    make([]ScrollbackLine, 0, min(maxLines, 1000)), // Pre-allocate reasonable capacity
+		lines:    make([]uv.Line, 0, cap),
+		wrapped:  make([]bool, 0, cap),
 		maxLines: maxLines,
 	}
 }
 
 // Push adds a line to the scrollback buffer.
 // If the buffer is full, the oldest line is removed.
-// The wrapped parameter indicates if this line was soft-wrapped (no explicit newline).
-func (s *Scrollback) Push(line uv.Line, wrapped bool) {
+// The softWrapped parameter indicates if this line was soft-wrapped (no explicit newline).
+func (s *Scrollback) Push(line uv.Line, softWrapped bool) {
 	if s == nil || s.maxLines <= 0 {
 		return
 	}
@@ -58,16 +51,13 @@ func (s *Scrollback) Push(line uv.Line, wrapped bool) {
 	// Clone the line content up to and including the last non-empty cell
 	cloned := slices.Clone(line[:lastNonEmpty+1])
 
-	entry := ScrollbackLine{
-		Cells:       cloned,
-		SoftWrapped: wrapped,
-	}
-
 	if len(s.lines) >= s.maxLines {
 		// Remove oldest line and append new one
 		s.lines = slices.Delete(s.lines, 0, 1)
+		s.wrapped = slices.Delete(s.wrapped, 0, 1)
 	}
-	s.lines = append(s.lines, entry)
+	s.lines = append(s.lines, cloned)
+	s.wrapped = append(s.wrapped, softWrapped)
 }
 
 // Len returns the number of lines in the scrollback buffer.
@@ -97,6 +87,7 @@ func (s *Scrollback) SetMaxLines(maxLines int) {
 	if len(s.lines) > maxLines {
 		// Remove oldest lines
 		s.lines = s.lines[len(s.lines)-maxLines:]
+		s.wrapped = s.wrapped[len(s.wrapped)-maxLines:]
 	}
 }
 
@@ -107,17 +98,7 @@ func (s *Scrollback) Line(index int) uv.Line {
 	if s == nil || index < 0 || index >= len(s.lines) {
 		return nil
 	}
-	return s.lines[index].Cells
-}
-
-// LineEntry returns the full ScrollbackLine at the given index.
-// Index 0 is the oldest line, Len()-1 is the most recent.
-// Returns nil if index is out of bounds.
-func (s *Scrollback) LineEntry(index int) *ScrollbackLine {
-	if s == nil || index < 0 || index >= len(s.lines) {
-		return nil
-	}
-	return &s.lines[index]
+	return s.lines[index]
 }
 
 // Lines returns all line cells in the scrollback buffer.
@@ -126,11 +107,7 @@ func (s *Scrollback) Lines() []uv.Line {
 	if s == nil {
 		return nil
 	}
-	result := make([]uv.Line, len(s.lines))
-	for i, entry := range s.lines {
-		result[i] = entry.Cells
-	}
-	return result
+	return slices.Clone(s.lines)
 }
 
 // Clear removes all lines from the scrollback buffer.
@@ -139,6 +116,7 @@ func (s *Scrollback) Clear() {
 		return
 	}
 	s.lines = s.lines[:0]
+	s.wrapped = s.wrapped[:0]
 }
 
 // CellAt returns the cell at the given position in the scrollback buffer.
@@ -150,20 +128,4 @@ func (s *Scrollback) CellAt(x, y int) *uv.Cell {
 		return nil
 	}
 	return &line[x]
-}
-
-// entries returns the raw slice of scrollback entries for iteration.
-func (s *Scrollback) entries() []ScrollbackLine {
-	if s == nil {
-		return nil
-	}
-	return s.lines
-}
-
-// replaceLines replaces all lines in the scrollback buffer.
-func (s *Scrollback) replaceLines(lines []ScrollbackLine) {
-	if s == nil {
-		return
-	}
-	s.lines = lines
 }
