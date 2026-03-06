@@ -387,7 +387,7 @@ func (s *Screen) DeleteLine(n int) bool {
 		scroll.Min.X == 0 && scroll.Max.X == s.buf.Width() {
 		// Save lines that will be deleted
 		linesToSave := min(n, scroll.Max.Y-y)
-		s.scrollback.PushN(s.buf, y, linesToSave, s.softWrapped)
+		s.pushLinesToScrollback(y, linesToSave)
 	}
 
 	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
@@ -441,6 +441,29 @@ func (s *Screen) isSoftWrapped(y int) bool {
 	return false
 }
 
+// pushLinesToScrollback pushes n lines starting at y to the scrollback buffer.
+func (s *Screen) pushLinesToScrollback(y, n int) {
+	if s.scrollback == nil || n <= 0 {
+		return
+	}
+	for i := range min(n, s.buf.Height()-y) {
+		line := s.buf.Line(y + i)
+		if line == nil {
+			continue
+		}
+		wrapped := s.isSoftWrapped(y + i)
+		s.scrollback.Push(line, wrapped)
+	}
+}
+
+// reflowScrollback reflows the scrollback buffer for a new terminal width.
+func (s *Screen) reflowScrollback(newWidth int) {
+	if s.scrollback == nil {
+		return
+	}
+	s.scrollback.Reflow(newWidth)
+}
+
 // Scrollback returns the screen's scrollback buffer.
 func (s *Screen) Scrollback() *Scrollback {
 	return s.scrollback
@@ -491,10 +514,7 @@ func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
 	}
 
 	// Collect all logical lines from screen (joining wrapped physical lines)
-	type logicalLine struct {
-		cells uv.Line
-	}
-	var logicalLines []logicalLine
+	var logicalLines []uv.Line
 
 	// Track cursor position as offset within logical lines
 	cursorLogicalLine := -1
@@ -502,7 +522,6 @@ func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
 
 	// Process screen lines
 	var current uv.Line
-	var currentStartY int
 	for y := 0; y < oldHeight; y++ {
 		line := s.buf.Line(y)
 		if line == nil {
@@ -524,16 +543,14 @@ func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
 
 		if !s.isSoftWrapped(y) {
 			// End of logical line
-			logicalLines = append(logicalLines, logicalLine{cells: current})
+			logicalLines = append(logicalLines, current)
 			current = nil
-			currentStartY = y + 1
 		}
 	}
 	// Handle trailing wrapped line
 	if len(current) > 0 {
-		logicalLines = append(logicalLines, logicalLine{cells: current})
+		logicalLines = append(logicalLines, current)
 	}
-	_ = currentStartY // silence unused warning
 
 	// Create new buffer with new dimensions
 	newBuf := uv.NewRenderBuffer(newWidth, newHeight)
@@ -542,7 +559,7 @@ func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
 	// Find the last logical line that has content or contains the cursor
 	lastUsedLine := -1
 	for i, logical := range logicalLines {
-		if len(logical.cells) > 0 || i == cursorLogicalLine {
+		if len(logical) > 0 || i == cursorLogicalLine {
 			lastUsedLine = i
 		}
 	}
@@ -554,7 +571,7 @@ func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
 		logical := logicalLines[logIdx]
 
 		// Handle cursor on empty line
-		if logIdx == cursorLogicalLine && len(logical.cells) == 0 {
+		if logIdx == cursorLogicalLine && len(logical) == 0 {
 			newCursorX = 0
 			newCursorY = writeY
 			cursorLogicalLine = -1 // Mark as found
@@ -562,13 +579,13 @@ func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
 			continue
 		}
 
-		if len(logical.cells) == 0 {
+		if len(logical) == 0 {
 			// Empty logical line (but not cursor line)
 			writeY++
 			continue
 		}
 
-		cells := logical.cells
+		cells := logical
 		for len(cells) > 0 && writeY < newHeight {
 			// Take up to newWidth cells
 			chunk := cells
@@ -629,9 +646,7 @@ func (s *Screen) Reflow(newWidth, newHeight int, curX, curY int) ReflowResult {
 	s.scroll = s.buf.Bounds()
 
 	// Reflow scrollback if present
-	if s.scrollback != nil {
-		s.scrollback.Reflow(newWidth)
-	}
+	s.reflowScrollback(newWidth)
 
 	return ReflowResult{CursorX: newCursorX, CursorY: newCursorY}
 }
