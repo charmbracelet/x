@@ -420,7 +420,7 @@ func (e *Emulator) IndexedColor(i int) color.Color {
 	c := e.colors[i]
 	if c == nil {
 		// Return the default color.
-		return ansi.IndexedColor(i)
+		return ansi.IndexedColor(uint8(i)) // #nosec G115 -- i is bounds-checked above (0-255)
 	}
 
 	return c
