@@ -1,6 +1,8 @@
 package vt
 
 import (
+	"slices"
+
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/exp/ordered"
 )
@@ -457,11 +459,65 @@ func (s *Screen) pushLinesToScrollback(y, n int) {
 }
 
 // reflowScrollback reflows the scrollback buffer for a new terminal width.
+// Lines that were soft-wrapped are joined and re-wrapped to the new width.
 func (s *Screen) reflowScrollback(newWidth int) {
 	if s.scrollback == nil {
 		return
 	}
-	s.scrollback.Reflow(newWidth)
+
+	entries := s.scrollback.entries()
+	if len(entries) == 0 || newWidth <= 0 {
+		return
+	}
+
+	// Collect all logical lines (joining wrapped physical lines)
+	var logicalLines []uv.Line
+	var current uv.Line
+
+	for _, entry := range entries {
+		current = append(current, entry.Cells...)
+		if !entry.SoftWrapped {
+			// End of logical line
+			logicalLines = append(logicalLines, current)
+			current = nil
+		}
+	}
+	// Handle trailing wrapped line
+	if len(current) > 0 {
+		logicalLines = append(logicalLines, current)
+	}
+
+	// Re-wrap logical lines to new width
+	maxLines := s.scrollback.MaxLines()
+	var newLines []ScrollbackLine
+	for _, logical := range logicalLines {
+		if len(logical) == 0 {
+			newLines = append(newLines, ScrollbackLine{Cells: nil, SoftWrapped: false})
+			continue
+		}
+
+		// Split into chunks of newWidth
+		for len(logical) > newWidth {
+			chunk := slices.Clone(logical[:newWidth])
+			newLines = append(newLines, ScrollbackLine{Cells: chunk, SoftWrapped: true})
+			logical = logical[newWidth:]
+
+			// Enforce max lines
+			if len(newLines) >= maxLines {
+				newLines = slices.Delete(newLines, 0, 1)
+			}
+		}
+
+		// Final chunk (not wrapped)
+		if len(logical) > 0 {
+			newLines = append(newLines, ScrollbackLine{Cells: slices.Clone(logical), SoftWrapped: false})
+			if len(newLines) >= maxLines {
+				newLines = slices.Delete(newLines, 0, 1)
+			}
+		}
+	}
+
+	s.scrollback.replaceLines(newLines)
 }
 
 // Scrollback returns the screen's scrollback buffer.

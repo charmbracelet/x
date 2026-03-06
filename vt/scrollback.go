@@ -152,57 +152,18 @@ func (s *Scrollback) CellAt(x, y int) *uv.Cell {
 	return &line[x]
 }
 
-// Reflow reflows the scrollback buffer for a new terminal width.
-// Lines that were soft-wrapped are joined and re-wrapped to the new width.
-// This should be called when the terminal is resized.
-func (s *Scrollback) Reflow(newWidth int) {
-	if s == nil || len(s.lines) == 0 || newWidth <= 0 {
+// entries returns the raw slice of scrollback entries for iteration.
+func (s *Scrollback) entries() []ScrollbackLine {
+	if s == nil {
+		return nil
+	}
+	return s.lines
+}
+
+// replaceLines replaces all lines in the scrollback buffer.
+func (s *Scrollback) replaceLines(lines []ScrollbackLine) {
+	if s == nil {
 		return
 	}
-
-	// Collect all logical lines (joining wrapped physical lines)
-	var logicalLines []uv.Line
-	var current uv.Line
-
-	for _, entry := range s.lines {
-		current = append(current, entry.Cells...)
-		if !entry.SoftWrapped {
-			// End of logical line
-			logicalLines = append(logicalLines, current)
-			current = nil
-		}
-	}
-	// Handle trailing wrapped line
-	if len(current) > 0 {
-		logicalLines = append(logicalLines, current)
-	}
-
-	// Re-wrap logical lines to new width
-	s.lines = s.lines[:0]
-	for _, logical := range logicalLines {
-		if len(logical) == 0 {
-			s.lines = append(s.lines, ScrollbackLine{Cells: nil, SoftWrapped: false})
-			continue
-		}
-
-		// Split into chunks of newWidth
-		for len(logical) > newWidth {
-			chunk := slices.Clone(logical[:newWidth])
-			s.lines = append(s.lines, ScrollbackLine{Cells: chunk, SoftWrapped: true})
-			logical = logical[newWidth:]
-
-			// Enforce max lines
-			if len(s.lines) >= s.maxLines {
-				s.lines = slices.Delete(s.lines, 0, 1)
-			}
-		}
-
-		// Final chunk (not wrapped)
-		if len(logical) > 0 {
-			s.lines = append(s.lines, ScrollbackLine{Cells: slices.Clone(logical), SoftWrapped: false})
-			if len(s.lines) >= s.maxLines {
-				s.lines = slices.Delete(s.lines, 0, 1)
-			}
-		}
-	}
+	s.lines = lines
 }

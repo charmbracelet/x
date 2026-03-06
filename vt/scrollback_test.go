@@ -254,7 +254,11 @@ func TestReflow(t *testing.T) {
 	})
 
 	t.Run("scrollback reflow", func(t *testing.T) {
+		// Create a screen with scrollback to test reflow
+		// Start with width 10 (same as line1 length) so we can reflow to 20
+		scr := NewScreen(10, 10)
 		sb := NewScrollback(100)
+		scr.SetScrollback(sb)
 
 		// Push lines that represent soft-wrapped content
 		line1 := make([]byte, 10)
@@ -283,8 +287,8 @@ func TestReflow(t *testing.T) {
 			t.Errorf("expected 2 lines, got %d", sb.Len())
 		}
 
-		// Reflow to wider width (20) - should unwrap into 1 line
-		sb.Reflow(20)
+		// Reflow via screen resize (width change triggers reflow)
+		scr.Reflow(20, 10, 0, 0)
 
 		if sb.Len() != 1 {
 			t.Errorf("after reflow to 20: expected 1 line, got %d", sb.Len())
