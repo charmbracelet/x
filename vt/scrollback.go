@@ -21,10 +21,10 @@ func NewScrollback(maxLines int) *Scrollback {
 	if maxLines <= 0 {
 		maxLines = DefaultScrollbackSize
 	}
-	cap := min(maxLines, 1000) // Pre-allocate reasonable capacity
+	capacity := min(maxLines, 1000) // Pre-allocate reasonable capacity
 	return &Scrollback{
-		lines:    make([]uv.Line, 0, cap),
-		wrapped:  make([]bool, 0, cap),
+		lines:    make([]uv.Line, 0, capacity),
+		wrapped:  make([]bool, 0, capacity),
 		maxLines: maxLines,
 	}
 }
