@@ -60,4 +60,12 @@ type Callbacks struct {
 	// DisableMode callback. When set, this function is called when a mode is
 	// disabled.
 	DisableMode func(mode ansi.Mode)
+
+	// ScrollbackPush callback. When set, this function is called when rows are
+	// pushed into scrollback. Width is the screen width at push time.
+	ScrollbackPush func(count, width int)
+
+	// ScrollbackClear callback. When set, this function is called when the
+	// scrollback buffer is cleared.
+	ScrollbackClear func()
 }

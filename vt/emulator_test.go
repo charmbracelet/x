@@ -1787,8 +1787,13 @@ var cases = []struct {
 
 // TestTerminal tests the terminal.
 func TestTerminal(t *testing.T) {
+	t.Parallel()
+
 	for _, tt := range cases {
+		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
 			term := newTestTerminal(t, tt.w, tt.h)
 			for _, in := range tt.input {
 				term.Write([]byte(in))

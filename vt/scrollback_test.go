@@ -5,6 +5,8 @@ import (
 )
 
 func TestScrollback(t *testing.T) {
+	t.Parallel()
+
 	t.Run("basic push and len", func(t *testing.T) {
 		sb := NewScrollback(100)
 		if sb.Len() != 0 {

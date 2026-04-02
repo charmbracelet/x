@@ -15,6 +15,7 @@ type Terminal interface {
 	CellAt(x int, y int) *uv.Cell
 	ClearScrollback()
 	Close() error
+	Cursor() Cursor
 	CursorColor() color.Color
 	CursorPosition() uv.Position
 	Draw(scr uv.Screen, area uv.Rectangle)

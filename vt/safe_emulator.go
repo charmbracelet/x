@@ -62,6 +62,13 @@ func (se *SafeEmulator) CellAt(x, y int) *uv.Cell {
 	return se.Emulator.CellAt(x, y)
 }
 
+// Cursor returns the cursor in a concurrency-safe manner.
+func (se *SafeEmulator) Cursor() Cursor {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.Cursor()
+}
+
 // SendKey sends a key event to the emulator in a concurrency-safe manner.
 func (se *SafeEmulator) SendKey(key uv.KeyEvent) {
 	se.mu.Lock()

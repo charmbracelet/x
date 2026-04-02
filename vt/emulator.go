@@ -3,6 +3,7 @@ package vt
 import (
 	"image/color"
 	"io"
+	"sync/atomic"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/ultraviolet/screen"
@@ -68,7 +69,7 @@ type Emulator struct {
 	gsingle int // temporarily select GL or GR
 
 	// Indicates if the terminal is closed.
-	closed bool
+	closed atomic.Bool
 
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
@@ -213,8 +214,27 @@ func (e *Emulator) CursorPosition() uv.Position {
 	return uv.Pos(x, y)
 }
 
+// Cursor returns the terminal's current cursor metadata.
+func (e *Emulator) Cursor() Cursor {
+	return e.scr.Cursor()
+}
+
 // Resize resizes the terminal.
 func (e *Emulator) Resize(width int, height int) {
+	oldWidth := e.Width()
+	if width > oldWidth {
+		for i := range e.scrs {
+			// cursorPhantom only applies to the active screen tracked by e.scr.
+			e.scrs[i].resizeWider(width, height, e.scr == &e.scrs[i] && e.atPhantom)
+		}
+		e.tabstops = uv.DefaultTabStops(width)
+		e.atPhantom = false
+		if e.isModeSet(ansi.ModeInBandResize) {
+			_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
+		}
+		return
+	}
+
 	x, y := e.scr.CursorPosition()
 	if e.atPhantom {
 		if x < width-1 {
@@ -249,7 +269,7 @@ func (e *Emulator) Resize(width int, height int) {
 
 // Read reads data from the terminal input buffer.
 func (e *Emulator) Read(p []byte) (n int, err error) {
-	if e.closed {
+	if e.closed.Load() {
 		return 0, io.EOF
 	}
 
@@ -258,17 +278,16 @@ func (e *Emulator) Read(p []byte) (n int, err error) {
 
 // Close closes the terminal.
 func (e *Emulator) Close() error {
-	if e.closed {
+	if !e.closed.CompareAndSwap(false, true) {
 		return nil
 	}
 
-	e.closed = true
 	return e.pw.CloseWithError(io.EOF) //nolint:wrapcheck
 }
 
 // Write writes data to the terminal output buffer.
 func (e *Emulator) Write(p []byte) (n int, err error) {
-	if e.closed {
+	if e.closed.Load() {
 		return 0, io.ErrClosedPipe
 	}
 
@@ -483,6 +502,9 @@ func (e *Emulator) ClearScrollback() {
 	sb := e.Scrollback()
 	if sb != nil {
 		sb.Clear()
+		if e.cb.ScrollbackClear != nil {
+			e.cb.ScrollbackClear()
+		}
 	}
 }
 

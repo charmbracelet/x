@@ -96,12 +96,17 @@ func (s *Screen) Clear() {
 // be preserved in history.
 func (s *Screen) ClearWithScrollback() {
 	if s.scrollback != nil {
+		count := 0
 		// Save all lines that have content before clearing
 		for y := 0; y < s.buf.Height(); y++ {
 			line := s.buf.Line(y)
 			if line != nil && !s.isLineEmpty(line) {
 				s.scrollback.Push(line)
+				count++
 			}
+		}
+		if count > 0 && s.cb != nil && s.cb.ScrollbackPush != nil {
+			s.cb.ScrollbackPush(count, s.buf.Width())
 		}
 	}
 	s.Clear()
@@ -136,12 +141,26 @@ func (s *Screen) FillArea(c *uv.Cell, area uv.Rectangle) {
 
 // setHorizontalMargins sets the horizontal margins.
 func (s *Screen) setHorizontalMargins(left, right int) {
+	if s.buf == nil || s.buf.Width() <= 0 {
+		s.scroll.Min.X = 0
+		s.scroll.Max.X = 0
+		return
+	}
+	left = ordered.Clamp(left, 0, s.buf.Width()-1)
+	right = ordered.Clamp(right, left+1, s.buf.Width())
 	s.scroll.Min.X = left
 	s.scroll.Max.X = right
 }
 
 // setVerticalMargins sets the vertical margins.
 func (s *Screen) setVerticalMargins(top, bottom int) {
+	if s.buf == nil || s.buf.Height() <= 0 {
+		s.scroll.Min.Y = 0
+		s.scroll.Max.Y = 0
+		return
+	}
+	top = ordered.Clamp(top, 0, s.buf.Height()-1)
+	bottom = ordered.Clamp(bottom, top+1, s.buf.Height())
 	s.scroll.Min.Y = top
 	s.scroll.Max.Y = bottom
 }
@@ -364,6 +383,9 @@ func (s *Screen) DeleteLine(n int) bool {
 		// Save lines that will be deleted
 		linesToSave := min(n, scroll.Max.Y-y)
 		s.scrollback.PushN(s.buf, y, linesToSave)
+		if linesToSave > 0 && s.cb != nil && s.cb.ScrollbackPush != nil {
+			s.cb.ScrollbackPush(linesToSave, s.buf.Width())
+		}
 	}
 
 	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
