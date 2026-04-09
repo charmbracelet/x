@@ -145,7 +145,7 @@ var wrapCases = []struct {
 	{
 		name:     "longer asian",
 		input:    "猴 猴 猴猴 猴猴猴猴猴猴猴猴猴 猴猴猴 猴猴 猴’ 猴猴 猴.",
-		expected: "猴 猴 猴猴 猴猴\n猴猴猴猴猴猴猴 \n猴猴猴 猴猴 猴’ \n猴猴 猴.",
+		expected: "猴 猴 猴猴 猴猴\n猴猴猴猴猴猴猴\n猴猴猴 猴猴 猴’\n猴猴 猴.",
 		width:    16,
 	},
 	{

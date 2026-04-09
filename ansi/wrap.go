@@ -204,9 +204,10 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 				// Wide characters (CJK ideographs, fullwidth chars, etc.)
 				// are breakable between any two characters.
 				addWord()
-				addSpace()
-				if curWidth+width > limit {
+				if curWidth+space.Len()+width > limit {
 					addNewline()
+				} else {
+					addSpace()
 				}
 				buf.Write(cluster)
 				curWidth += width
@@ -374,9 +375,10 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 					// Wide characters (CJK ideographs, fullwidth chars, etc.)
 					// are breakable between any two characters.
 					addWord()
-					addSpace()
-					if curWidth+width > limit {
+					if curWidth+spaceWidth+width > limit {
 						addNewline()
+					} else {
+						addSpace()
 					}
 					buf.WriteString(cluster)
 					curWidth += width
