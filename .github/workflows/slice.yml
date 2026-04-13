@@ -31,7 +31,7 @@ jobs:
       - run: go build -v ./...
       - run: |
           go test -race -covermode=atomic -coverprofile='coverage.txt' ./...
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v6
         with:
           file: ./coverage.txt
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -45,7 +45,7 @@ jobs:
     if: ${{ github.actor == 'dependabot[bot]' && github.event_name == 'pull_request'}}
     steps:
       - id: metadata
-        uses: dependabot/fetch-metadata@v2
+        uses: dependabot/fetch-metadata@v3
         with:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
       - run: |
