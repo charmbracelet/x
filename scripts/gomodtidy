@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+# shellcheck disable=SC2016
+root=$PWD
+find . -type f -name go.mod | while read -r mod; do
+  echo "Running go mod tidy in $(dirname "$mod")"
+  cd "$(dirname "$mod")" && go mod tidy
+  cd "$root" || exit 1
+done
