@@ -34,6 +34,7 @@ var cases = []struct {
 	{"unclosed_ansi", "Hey, \x1b[7m\n猴", "Hey, \n猴", 7, 7},
 	{"double_asian_runes", " 你\x1b[8m好.", " 你好.", 6, 6},
 	{"flag", "🇸🇦", "🇸🇦", 2, 1},
+	{"half width and ascii", "(ﾟ", "(ﾟ", 1, 1},
 }
 
 func TestStrip(t *testing.T) {
