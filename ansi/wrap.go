@@ -200,6 +200,17 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 				addWord()
 				buf.Write(cluster)
 				curWidth++
+			} else if width > 1 {
+				// Wide characters (CJK ideographs, fullwidth chars, etc.)
+				// are breakable between any two characters.
+				addWord()
+				if curWidth+space.Len()+width > limit {
+					addNewline()
+				} else {
+					addSpace()
+				}
+				buf.Write(cluster)
+				curWidth += width
 			} else {
 				word.Write(cluster)
 				wordLen += width
@@ -360,21 +371,34 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 					curWidth += width
 				}
 			default:
-				if wordLen+width > limit {
-					// Hardwrap the word if it's too long
+				if width > 1 {
+					// Wide characters (CJK ideographs, fullwidth chars, etc.)
+					// are breakable between any two characters.
 					addWord()
-				}
+					if curWidth+spaceWidth+width > limit {
+						addNewline()
+					} else {
+						addSpace()
+					}
+					buf.WriteString(cluster)
+					curWidth += width
+				} else {
+					if wordLen+width > limit {
+						// Hardwrap the word if it's too long
+						addWord()
+					}
 
-				word.WriteString(cluster)
-				wordLen += width
+					word.WriteString(cluster)
+					wordLen += width
 
-				if curWidth+wordLen+spaceWidth > limit {
-					addNewline()
-				}
+					if curWidth+wordLen+spaceWidth > limit {
+						addNewline()
+					}
 
-				if wordLen == limit {
-					// Hardwrap the word if it's too long
-					addWord()
+					if wordLen == limit {
+						// Hardwrap the word if it's too long
+						addWord()
+					}
 				}
 			}
 
