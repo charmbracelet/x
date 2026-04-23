@@ -5,7 +5,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/charmbracelet/x/pony.svg)](https://pkg.go.dev/github.com/charmbracelet/x/pony)
 [![Build Status](https://github.com/charmbracelet/x/actions/workflows/pony.yml/badge.svg)](https://github.com/charmbracelet/x/actions/workflows/pony.yml)
 
-A declarative, type-safe markup language for building terminal user interfaces with [Ultraviolet](../ultraviolet) as the rendering engine.
+A declarative, type-safe markup language for building terminal user interfaces with [Ultraviolet](https://github.com/charmbracelet/ultraviolet) as the rendering engine.
 
 ```go
 type ViewData struct {
