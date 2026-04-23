@@ -2,6 +2,8 @@ package vt
 
 import (
 	"testing"
+
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 func TestScrollback(t *testing.T) {
@@ -58,7 +60,7 @@ func TestScrollback(t *testing.T) {
 
 		// Push more lines than max
 		for i := 0; i < 10; i++ {
-			sb.Push(nil)
+			sb.Push(nil, false)
 		}
 
 		if sb.Len() != 5 {
@@ -161,6 +163,141 @@ func TestScrollback(t *testing.T) {
 
 		if e.ScrollbackLen() != 0 {
 			t.Errorf("expected empty scrollback after ED 3, got %d", e.ScrollbackLen())
+		}
+	})
+}
+
+func TestReflow(t *testing.T) {
+	t.Run("basic reflow shrink", func(t *testing.T) {
+		// Create terminal with 20 cols
+		e := NewEmulator(20, 5)
+
+		// Write a line that will wrap when shrunk to 10 cols
+		e.WriteString("12345678901234567890")
+
+		// Resize to 10 cols - should reflow
+		e.Resize(10, 5)
+
+		// First row should have "1234567890"
+		var line0 string
+		for x := 0; x < 10; x++ {
+			cell := e.CellAt(x, 0)
+			if cell != nil && cell.Content != "" && cell.Content != " " {
+				line0 += cell.Content
+			}
+		}
+
+		// Second row should have "1234567890"
+		var line1 string
+		for x := 0; x < 10; x++ {
+			cell := e.CellAt(x, 1)
+			if cell != nil && cell.Content != "" && cell.Content != " " {
+				line1 += cell.Content
+			}
+		}
+
+		if line0 != "1234567890" {
+			t.Errorf("line 0: expected '1234567890', got %q", line0)
+		}
+		if line1 != "1234567890" {
+			t.Errorf("line 1: expected '1234567890', got %q", line1)
+		}
+	})
+
+	t.Run("reflow grow unwraps", func(t *testing.T) {
+		// Create terminal with 10 cols
+		e := NewEmulator(10, 5)
+
+		// Write text that wraps
+		e.WriteString("1234567890ABCDEFGHIJ")
+
+		// Resize to 20 cols - should unwrap
+		e.Resize(20, 5)
+
+		// First row should now have all 20 chars
+		var line0 string
+		for x := 0; x < 20; x++ {
+			cell := e.CellAt(x, 0)
+			if cell != nil && cell.Content != "" && cell.Content != " " {
+				line0 += cell.Content
+			}
+		}
+
+		if line0 != "1234567890ABCDEFGHIJ" {
+			t.Errorf("expected '1234567890ABCDEFGHIJ', got %q", line0)
+		}
+	})
+
+	t.Run("reflow cursor tracking", func(t *testing.T) {
+		// Create terminal with 20 cols
+		e := NewEmulator(20, 5)
+
+		// Write some text and move cursor
+		e.WriteString("Hello, World!")
+		// Cursor should be at position 13 (after the !)
+
+		pos := e.CursorPosition()
+		if pos.X != 13 || pos.Y != 0 {
+			t.Errorf("initial cursor: expected (13,0), got (%d,%d)", pos.X, pos.Y)
+		}
+
+		// Resize - cursor should stay at same logical position
+		e.Resize(10, 5)
+
+		pos = e.CursorPosition()
+		// "Hello, Wor" on line 0 (10 chars)
+		// "ld!" on line 1 (3 chars)
+		// Cursor was at offset 13, which is now (3, 1)
+		if pos.X != 3 || pos.Y != 1 {
+			t.Errorf("after resize: expected (3,1), got (%d,%d)", pos.X, pos.Y)
+		}
+	})
+
+	t.Run("scrollback reflow", func(t *testing.T) {
+		// Create a screen with scrollback to test reflow
+		// Start with width 10 (same as line1 length) so we can reflow to 20
+		scr := NewScreen(10, 10)
+		sb := NewScrollback(100)
+		scr.SetScrollback(sb)
+
+		// Push lines that represent soft-wrapped content
+		line1 := make([]byte, 10)
+		for i := range line1 {
+			line1[i] = byte('A' + i)
+		}
+		// Convert to uv.Line manually
+		uvLine1 := make([]uv.Cell, 10)
+		for i, b := range line1 {
+			uvLine1[i] = uv.Cell{Content: string(b), Width: 1}
+		}
+		sb.Push(uvLine1, true) // soft-wrapped
+
+		line2 := make([]byte, 5)
+		for i := range line2 {
+			line2[i] = byte('K' + i)
+		}
+		uvLine2 := make([]uv.Cell, 5)
+		for i, b := range line2 {
+			uvLine2[i] = uv.Cell{Content: string(b), Width: 1}
+		}
+		sb.Push(uvLine2, false) // not soft-wrapped
+
+		// Should have 2 lines
+		if sb.Len() != 2 {
+			t.Errorf("expected 2 lines, got %d", sb.Len())
+		}
+
+		// Reflow via screen resize (width change triggers reflow)
+		scr.Reflow(20, 10, 0, 0)
+
+		if sb.Len() != 1 {
+			t.Errorf("after reflow to 20: expected 1 line, got %d", sb.Len())
+		}
+
+		// Check content
+		resultLine := sb.Line(0)
+		if len(resultLine) != 15 {
+			t.Errorf("expected 15 cells, got %d", len(resultLine))
 		}
 	})
 }
