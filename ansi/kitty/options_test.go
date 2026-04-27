@@ -151,6 +151,51 @@ func TestOptions_Options(t *testing.T) {
 	}
 }
 
+func TestOptions_QuiteDeprecation(t *testing.T) {
+	tests := []struct {
+		name    string
+		options Options
+		want    []string
+	}{
+		{
+			name:    "Quiet only",
+			options: Options{Quiet: 1},
+			want:    []string{"q=1"},
+		},
+		{
+			name:    "deprecated Quite only",
+			options: Options{Quite: 2},
+			want:    []string{"q=2"},
+		},
+		{
+			name:    "Quite overrides Quiet when non-zero",
+			options: Options{Quiet: 1, Quite: 2},
+			want:    []string{"q=2"},
+		},
+		{
+			name:    "Quite=0 does not override Quiet",
+			options: Options{Quiet: 1, Quite: 0},
+			want:    []string{"q=1"},
+		},
+		{
+			name:    "both zero emits no q= option",
+			options: Options{},
+			want:    []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.options.Options()
+			sortStrings(got)
+			sortStrings(tt.want)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("Options.Options() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestOptions_Validation(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -320,6 +365,13 @@ func TestOptions_UnmarshalText(t *testing.T) {
 			name: "unmarshal with invalid number",
 			text: []byte("i=abc"),
 			want: Options{},
+		},
+		{
+			name: "unmarshal q= populates Quiet only, not deprecated Quite",
+			text: []byte("q=1"),
+			want: Options{
+				Quiet: 1,
+			},
 		},
 		{
 			name: "unmarshal with delete resources",

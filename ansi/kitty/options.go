@@ -23,6 +23,12 @@ type Options struct {
 	// [Animate], [Compose].
 	Action byte
 
+	// Quite is the kitty graphics quiet mode.
+	//
+	// Deprecated: misspelled field, use [Options.Quiet] instead. Any non-zero
+	// Quite overrides Quiet.
+	Quite byte
+
 	// Quiet mode (q=0) is the quiet mode. Can be either zero, one, or two
 	// where zero is the default, 1 suppresses OK responses, and 2 suppresses
 	// both OK and error responses.
@@ -173,8 +179,13 @@ func (o *Options) Options() (opts []string) {
 		opts = append(opts, fmt.Sprintf("f=%d", o.Format))
 	}
 
-	if o.Quiet > 0 {
-		opts = append(opts, fmt.Sprintf("q=%d", o.Quiet))
+	quiet := o.Quiet
+	if o.Quite > 0 {
+		// handle deprecated Quite field.
+		quiet = o.Quite
+	}
+	if quiet > 0 {
+		opts = append(opts, fmt.Sprintf("q=%d", quiet))
 	}
 
 	if o.ID > 0 {
