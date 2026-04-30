@@ -2,6 +2,7 @@ package vt
 
 import (
 	"image/color"
+	"io"
 	"sync"
 
 	uv "github.com/charmbracelet/ultraviolet"
@@ -31,7 +32,21 @@ func (se *SafeEmulator) Write(data []byte) (int, error) {
 
 // Read reads data from the emulator in a concurrency-safe manner.
 func (se *SafeEmulator) Read(p []byte) (int, error) {
-	return se.Emulator.Read(p)
+	se.mu.RLock()
+	if se.closed {
+		se.mu.RUnlock()
+		return 0, io.EOF
+	}
+	pr := se.pr
+	se.mu.RUnlock()
+	return pr.Read(p) //nolint:wrapcheck
+}
+
+// Close closes the terminal in a concurrency-safe manner.
+func (se *SafeEmulator) Close() error {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	return se.Emulator.Close()
 }
 
 // Resize resizes the emulator in a concurrency-safe manner.
