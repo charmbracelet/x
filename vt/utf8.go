@@ -52,6 +52,9 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 
 	x, y := e.scr.CursorPosition()
 	if e.atPhantom && awm {
+		// Mark current line as soft-wrapped before moving to next line.
+		// This enables proper reflow on resize.
+		e.scr.setSoftWrapped(y, true)
 		// moves cursor down similar to [Terminal.linefeed] except it doesn't
 		// respects [ansi.LNM] mode.
 		// This will reset the phantom state i.e. pending wrap state.
