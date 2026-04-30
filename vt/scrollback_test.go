@@ -221,6 +221,14 @@ func TestScrollback(t *testing.T) {
 		if sb.Len() > 1 && !strings.Contains(got, "\n") {
 			t.Errorf("expected newline separator between lines, got %q", got)
 		}
+		// Pin the LF-only-no-CR contract: callers (terminal
+		// multiplexers like ai-beacon) substitute LF -> CRLF when
+		// targeting receivers without an `onlcr` translation. A
+		// future change that emits CR here would silently double-CR
+		// downstream.
+		if strings.Contains(got, "\r") {
+			t.Errorf("expected no CR in render output (LF-only contract), got %q", got)
+		}
 	})
 
 	t.Run("ED 3 clears scrollback", func(t *testing.T) {
