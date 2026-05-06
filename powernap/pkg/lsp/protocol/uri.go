@@ -114,10 +114,13 @@ slow:
 	if u.Scheme != fileScheme {
 		return "", fmt.Errorf("only file URIs are supported, got %q from %q", u.Scheme, uri)
 	}
-	// If the URI is a Windows URI, we trim the leading "/" and uppercase
-	// the drive letter, which will never be case sensitive.
-	if isWindowsDrivePath(u.Path) {
-		u.Path = strings.ToUpper(string(u.Path[1])) + u.Path[2:]
+	// If the URI is a Windows URI, trim the leading "/" and uppercase
+	// the drive letter (which is never case sensitive). url.URL.Path
+	// stores Windows file URIs in /C:/foo form, with a leading slash
+	// that hides the drive letter from isWindowsDrivePath; trim it
+	// before consulting the helper.
+	if trimmed := strings.TrimPrefix(u.Path, "/"); isWindowsDrivePath(trimmed) {
+		u.Path = strings.ToUpper(string(trimmed[0])) + trimmed[1:]
 	}
 
 	return u.Path, nil
