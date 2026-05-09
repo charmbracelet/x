@@ -22,7 +22,10 @@ func TestLoadDefaults(t *testing.T) {
 		{"gopls", "gopls", []string{"go", "gomod", "gowork", "gotmpl"}},
 		{"clangd", "clangd", []string{"c", "cpp", "objc", "objcpp", "cuda"}},
 		{"rust_analyzer", "rust-analyzer", []string{"rust"}},
-		{"ts_ls", "typescript-language-server", []string{"javascript", "javascriptreact", "typescript", "typescriptreact"}},
+		// nvim-lspconfig dropped ts_ls in favor of vtsls upstream
+		// (see also: ts_ls remnants in pkg/config/overrides.go that
+		// are now no-ops and could be cleaned up in a follow-up).
+		{"vtsls", "vtsls", []string{"javascript", "javascriptreact", "typescript", "typescriptreact"}},
 	}
 
 	for _, tc := range testCases {

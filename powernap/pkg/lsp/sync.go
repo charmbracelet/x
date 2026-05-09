@@ -109,8 +109,8 @@ func (m *TextDocumentSyncManager) Close(uri string) error {
 
 	// Send didClose notification
 	params := map[string]any{
-		"textDocument": map[string]any{
-			"uri": uri,
+		fieldTextDocument: map[string]any{
+			fieldURI: uri,
 		},
 	}
 
@@ -125,8 +125,8 @@ func (m *TextDocumentSyncManager) Save(uri string, includeText bool) error {
 	}
 
 	params := map[string]any{
-		"textDocument": map[string]any{
-			"uri": uri,
+		fieldTextDocument: map[string]any{
+			fieldURI: uri,
 		},
 	}
 

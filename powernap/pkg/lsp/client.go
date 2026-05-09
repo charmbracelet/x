@@ -40,6 +40,23 @@ const (
 	MethodWorkspaceDidChangeWatchedFiles     = "workspace/didChangeWatchedFiles"
 )
 
+// Repeated JSON field names used both as LSP/JSON-RPC keys (in
+// map[string]any literals such as makeClientCapabilities) and as
+// slog field labels. Centralized here so goconst doesn't flag the
+// legitimate repetition; refactoring these literals to typed
+// protocol structs would be a much bigger change.
+const (
+	fieldURI                 = "uri"
+	fieldVersion             = "version"
+	fieldTextDocument        = "textDocument"
+	fieldDynamicRegistration = "dynamicRegistration"
+	fieldValueSet            = "valueSet"
+	// markupKindMarkdown is the LSP MarkupKind value "markdown",
+	// used in documentationFormat / contentFormat arrays and as a
+	// nested key under "general".
+	markupKindMarkdown = "markdown"
+)
+
 // NewClient creates a new LSP client with the given configuration.
 func NewClient(config ClientConfig) (*Client, error) {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -106,8 +123,8 @@ func (c *Client) Initialize(ctx context.Context, enableSnippets bool) error {
 	initParams := map[string]any{
 		"processId": os.Getpid(),
 		"clientInfo": map[string]any{
-			"name":    "powernap",
-			"version": "0.1.0",
+			"name":       "powernap",
+			fieldVersion: "0.1.0",
 		},
 		"locale":                "en-us",
 		"rootPath":              rootPath, // Deprecated but some servers still use it
@@ -155,8 +172,8 @@ func (c *Client) Initialize(ctx context.Context, enableSnippets bool) error {
 			changesParams := map[string]any{
 				"changes": []map[string]any{
 					{
-						"uri":  c.rootURI,
-						"type": 1, // Created
+						fieldURI: c.rootURI,
+						"type":   1, // Created
 					},
 				},
 			}
@@ -239,9 +256,9 @@ func (c *Client) NotifyDidOpenTextDocument(ctx context.Context, uri string, lang
 
 	// Log what we're sending for debugging
 	slog.Debug("Sending textDocument/didOpen",
-		"uri", uri,
+		fieldURI, uri,
 		"languageId", languageID,
-		"version", version,
+		fieldVersion, version,
 		"textLength", len(text))
 
 	return c.conn.Notify(ctx, MethodTextDocumentDidOpen, params) //nolint:wrapcheck
@@ -369,8 +386,8 @@ func (c *Client) RequestHover(ctx context.Context, uri string, position protocol
 	}
 
 	params := map[string]any{
-		"textDocument": map[string]any{
-			"uri": uri,
+		fieldTextDocument: map[string]any{
+			fieldURI: uri,
 		},
 		"position": position,
 	}
@@ -464,24 +481,24 @@ func (c *Client) setupHandlers() {
 // makeClientCapabilities creates the client capabilities for initialization.
 func (c *Client) makeClientCapabilities(enableSnippets bool) map[string]any {
 	return map[string]any{
-		"textDocument": map[string]any{
+		fieldTextDocument: map[string]any{
 			"synchronization": map[string]any{
-				"dynamicRegistration": true,
-				"willSave":            true,
-				"willSaveWaitUntil":   true,
-				"didSave":             true,
+				fieldDynamicRegistration: true,
+				"willSave":               true,
+				"willSaveWaitUntil":      true,
+				"didSave":                true,
 			},
 			"completion": map[string]any{
-				"dynamicRegistration": true,
+				fieldDynamicRegistration: true,
 				"completionItem": map[string]any{
 					"snippetSupport":          enableSnippets,
 					"commitCharactersSupport": true,
-					"documentationFormat":     []string{"markdown", "plaintext"},
+					"documentationFormat":     []string{markupKindMarkdown, "plaintext"},
 					"deprecatedSupport":       true,
 					"preselectSupport":        true,
 					"insertReplaceSupport":    true,
 					"tagSupport": map[string]any{
-						"valueSet": []int{1}, // Deprecated
+						fieldValueSet: []int{1}, // Deprecated
 					},
 					"resolveSupport": map[string]any{
 						"properties": []string{"documentation", "detail", "additionalTextEdits"},
@@ -490,45 +507,45 @@ func (c *Client) makeClientCapabilities(enableSnippets bool) map[string]any {
 				"contextSupport": true,
 			},
 			"hover": map[string]any{
-				"dynamicRegistration": true,
-				"contentFormat":       []string{"markdown", "plaintext"},
+				fieldDynamicRegistration: true,
+				"contentFormat":          []string{markupKindMarkdown, "plaintext"},
 			},
 			"definition": map[string]any{
-				"dynamicRegistration": true,
-				"linkSupport":         true,
+				fieldDynamicRegistration: true,
+				"linkSupport":            true,
 			},
 			"references": map[string]any{
-				"dynamicRegistration": true,
+				fieldDynamicRegistration: true,
 			},
 			"documentHighlight": map[string]any{
-				"dynamicRegistration": true,
+				fieldDynamicRegistration: true,
 			},
 			"documentSymbol": map[string]any{
-				"dynamicRegistration":               true,
+				fieldDynamicRegistration:            true,
 				"hierarchicalDocumentSymbolSupport": true,
 			},
 			"formatting": map[string]any{
-				"dynamicRegistration": true,
+				fieldDynamicRegistration: true,
 			},
 			"rangeFormatting": map[string]any{
-				"dynamicRegistration": true,
+				fieldDynamicRegistration: true,
 			},
 			"rename": map[string]any{
-				"dynamicRegistration": true,
-				"prepareSupport":      true,
+				fieldDynamicRegistration: true,
+				"prepareSupport":         true,
 			},
 			"publishDiagnostics": map[string]any{
 				"relatedInformation":     true,
 				"versionSupport":         true,
-				"tagSupport":             map[string]any{"valueSet": []int{1, 2}},
+				"tagSupport":             map[string]any{fieldValueSet: []int{1, 2}},
 				"codeDescriptionSupport": true,
 				"dataSupport":            true,
 			},
 			"codeAction": map[string]any{
-				"dynamicRegistration": true,
+				fieldDynamicRegistration: true,
 				"codeActionLiteralSupport": map[string]any{
 					"codeActionKind": map[string]any{
-						"valueSet": []string{
+						fieldValueSet: []string{
 							"quickfix",
 							"refactor",
 							"refactor.extract",
@@ -555,25 +572,25 @@ func (c *Client) makeClientCapabilities(enableSnippets bool) map[string]any {
 				"normalizesLineEndings": true,
 			},
 			"didChangeConfiguration": map[string]any{
-				"dynamicRegistration": true,
+				fieldDynamicRegistration: true,
 			},
 			"didChangeWatchedFiles": map[string]any{
-				"dynamicRegistration":    true,
+				fieldDynamicRegistration: true,
 				"relativePatternSupport": true,
 			},
 			"symbol": map[string]any{
-				"dynamicRegistration": true,
+				fieldDynamicRegistration: true,
 			},
 			"configuration":    true,
 			"workspaceFolders": true,
 			"fileOperations": map[string]any{
-				"dynamicRegistration": true,
-				"didCreate":           true,
-				"willCreate":          true,
-				"didRename":           true,
-				"willRename":          true,
-				"didDelete":           true,
-				"willDelete":          true,
+				fieldDynamicRegistration: true,
+				"didCreate":              true,
+				"willCreate":             true,
+				"didRename":              true,
+				"willRename":             true,
+				"didDelete":              true,
+				"willDelete":             true,
 			},
 		},
 		"window": map[string]any{
@@ -589,12 +606,12 @@ func (c *Client) makeClientCapabilities(enableSnippets bool) map[string]any {
 		},
 		"general": map[string]any{
 			"regularExpressions": map[string]any{
-				"engine":  "ECMAScript",
-				"version": "ES2020",
+				"engine":     "ECMAScript",
+				fieldVersion: "ES2020",
 			},
-			"markdown": map[string]any{
-				"parser":  "marked",
-				"version": "1.1.0",
+			markupKindMarkdown: map[string]any{
+				"parser":     "marked",
+				fieldVersion: "1.1.0",
 			},
 			"positionEncodings": []string{"utf-8", "utf-16"},
 		},
