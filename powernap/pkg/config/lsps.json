@@ -205,6 +205,7 @@
   "openscad_lsp": {"args": ["--stdio"], "command": "openscad-lsp", "filetypes": ["openscad"], "root_markers": [".git"]},
   "oso": {"args": ["lsp"], "command": "oso-cloud", "filetypes": ["polar"]},
   "pact_ls": {"command": "pact-lsp", "filetypes": ["pact"], "root_markers": [".git"]},
+  "panache": {"args": ["lsp"], "command": "panache", "filetypes": ["markdown", "quarto", "rmd"], "root_markers": [".panache.toml", "panache.toml", "_quarto.yml", "_bookdown.yml", ".git"]},
   "pasls": {"command": "pasls", "filetypes": ["pascal"], "root_markers": ["*.lpi", "*.lpk", ".git"]},
   "pbls": {"command": "pbls", "filetypes": ["proto"], "root_markers": [".pbls.toml", ".git"]},
   "perlls": {"args": ["-MPerl::LanguageServer", "-e", "Perl::LanguageServer::run", "--", "--port 13603", "--nostdio 0"], "command": "perl", "filetypes": ["perl"], "root_markers": [".git"], "settings": {"perl": {"fileFilter": [".pm", ".pl"], "ignoreDirs": ".git", "perlCmd": "perl", "perlInc": " "}}},
