@@ -62,6 +62,12 @@ func Strip(s string) string {
 // codes are ignored and wide characters (such as East Asians and emojis) are
 // accounted for.
 // This treats the text as a sequence of grapheme clusters.
+//
+// C0 control characters (including tab '\t', newline '\n', and other bytes
+// below 0x20) have an undefined display width and are counted as 0. If your
+// input may contain tabs, expand them yourself before measuring, e.g.
+//
+//	w := ansi.StringWidth(strings.ReplaceAll(s, "\t", "    "))
 func StringWidth(s string) int {
 	return stringWidth(GraphemeWidth, s)
 }
@@ -71,6 +77,9 @@ func StringWidth(s string) int {
 // codes are ignored and wide characters (such as East Asians and emojis) are
 // accounted for.
 // This treats the text as a sequence of wide characters and runes.
+//
+// See [StringWidth] for the same caveat about tabs and other C0 control
+// characters being counted as zero-width.
 func StringWidthWc(s string) int {
 	return stringWidth(WcWidth, s)
 }
