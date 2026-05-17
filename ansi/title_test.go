@@ -23,3 +23,17 @@ func TestSetWindowTitle(t *testing.T) {
 		t.Errorf("expected: %q, got: %q", "\x1b]2;hello\x07", ansi.SetWindowTitle("hello"))
 	}
 }
+
+func TestDECSWT(t *testing.T) {
+	want := "\x1b]21;hello\x1b\\"
+	if got := ansi.DECSWT("hello"); got != want {
+		t.Errorf("expected: %q, got: %q", want, got)
+	}
+}
+
+func TestDECSIN(t *testing.T) {
+	want := "\x1b]2L;hello\x1b\\"
+	if got := ansi.DECSIN("hello"); got != want {
+		t.Errorf("expected: %q, got: %q", want, got)
+	}
+}
