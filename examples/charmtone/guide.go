@@ -25,12 +25,12 @@ func renderGuide() {
 	hasDarkBG := lipgloss.HasDarkBackground(os.Stdin, os.Stdout)
 	lightDark := lipgloss.LightDark(hasDarkBG)
 	logo := lipgloss.NewStyle().
-		Foreground(charmtone.Ash).
+		Foreground(charmtone.Sash).
 		Background(charmtone.Charple).
 		Padding(0, 1).
 		SetString("Charm™")
 	title := lipgloss.NewStyle().
-		Foreground(lightDark(charmtone.Charcoal, charmtone.Smoke))
+		Foreground(lightDark(charmtone.Char, charmtone.Smoke))
 	subdued := lipgloss.NewStyle().
 		Foreground(lightDark(charmtone.Squid, charmtone.Oyster))
 	fg := lipgloss.NewStyle().
@@ -40,19 +40,16 @@ func renderGuide() {
 	bg := lipgloss.NewStyle().
 		Width(8)
 	hex := lipgloss.NewStyle().
-		Foreground(lightDark(charmtone.Smoke, charmtone.Charcoal))
+		Foreground(lightDark(charmtone.Smoke, charmtone.Char))
 	legend := subdued.
 		BorderStyle(lipgloss.RoundedBorder()).
-		BorderForeground(charmtone.Charcoal).
+		BorderForeground(charmtone.Char).
 		Padding(0, 2).
 		MarginLeft(2)
 	primaryMark := lipgloss.NewStyle().
 		Foreground(lightDark(charmtone.Squid, charmtone.Smoke)).
 		SetString(blackCircle)
 	secondaryMark := primaryMark.
-		Foreground(lightDark(charmtone.Squid, charmtone.Oyster)).
-		SetString(blackCircle)
-	tertiaryMark := primaryMark.
 		Foreground(lightDark(charmtone.Squid, charmtone.Oyster)).
 		SetString(whiteCircle)
 	rightArrowMark := lipgloss.NewStyle().
@@ -79,8 +76,6 @@ func renderGuide() {
 			mark = primaryMark.String()
 		case k.IsSecondary():
 			mark = secondaryMark.String()
-		case k.IsTertiary():
-			mark = tertiaryMark.String()
 		}
 		_, _ = fmt.Fprintf(w,
 			"%s %s %s %s",
@@ -91,9 +86,8 @@ func renderGuide() {
 		)
 	}
 
-	// Render main color block.
-	for i := charmtone.Cumin; i < charmtone.Pepper; i++ {
-		k := charmtone.Keys()[i]
+	// Render the main spectrum block in rows of three.
+	for i, k := range charmtone.Spectrum() {
 		renderSwatch(&b, k)
 		if i%3 == 2 {
 			b.WriteRune('\n')
@@ -101,6 +95,11 @@ func renderGuide() {
 			b.WriteRune(' ')
 		}
 	}
+
+	// Butter is an orphan in the palette. It's rendered below alongside the
+	// grayscale and gradient blocks so the gradients can start on its row.
+	var butter strings.Builder
+	renderSwatch(&butter, charmtone.Butter)
 
 	// Get total block width so far.
 	var totalWidth int
@@ -112,10 +111,10 @@ func renderGuide() {
 
 	// Grayscale block.
 	var grays strings.Builder
-	for i := charmtone.Pepper; i <= charmtone.Butter; i++ {
+	for i := charmtone.Pepper; i <= charmtone.White; i++ {
 		k := charmtone.Keys()[i]
 		renderSwatch(&grays, k)
-		if i < charmtone.Butter {
+		if i < charmtone.White {
 			grays.WriteRune('\n')
 		}
 	}
@@ -135,7 +134,6 @@ func renderGuide() {
 		strings.Join([]string{
 			primaryMark.String() + subdued.Render(" Primary"),
 			secondaryMark.String() + subdued.Render(" Secondary"),
-			tertiaryMark.String() + subdued.Render(" Tertiary"),
 		}, "  "),
 	)
 
@@ -162,7 +160,7 @@ func renderGuide() {
 		left += "\n" + block.Render(s.Render("Hazy")+rightArrowMark.String()+s.Render("Blush"))
 		right := blendKeys(halfWidth, charmtone.Bok, charmtone.Zest)
 		right += "\n" + block.Render(s.Render("Bok")+rightArrowMark.String()+s.Render("Zest"))
-		fmt.Fprint(&grads, "\n", lipgloss.JoinHorizontal(lipgloss.Top, gap, left, right))
+		fmt.Fprint(&grads, "\n\n", lipgloss.JoinHorizontal(lipgloss.Top, gap, left, right))
 
 		// Gradient:
 		// Uni -> Coral -> Tuna -> Violet -> Malibu -> Turtle
@@ -185,8 +183,10 @@ func renderGuide() {
 		fmt.Fprint(&grads, "\n\n", lipgloss.JoinHorizontal(lipgloss.Top, gap, buf.String()))
 	}
 
-	// Join Greys and legend.
-	fmt.Fprint(&b, lipgloss.JoinHorizontal(lipgloss.Top, grays.String(), " ", grads.String()))
+	// Stack Butter atop the grayscale column, then join with the gradient
+	// column so the first gradient row sits next to Butter.
+	leftCol := butter.String() + "\n\n" + grays.String()
+	fmt.Fprint(&b, lipgloss.JoinHorizontal(lipgloss.Top, leftCol, " ", grads.String()))
 
 	fmt.Fprint(&b, "\n\n", legendBlock, "\n\n")
 

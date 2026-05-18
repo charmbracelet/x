@@ -290,8 +290,7 @@ func (k Key) Hex() string {
 }
 
 // Keys returns a slice of all CharmTone color keys, in iota order: the main
-// spectrum (ending with Butter), followed by neutrals, charples, additions,
-// and deletions.
+// spectrum, Butter, then neutrals, charples, additions, and deletions.
 func Keys() []Key {
 	keys := make([]Key, 0, len(colors))
 	for k := Cumin; k <= Toast; k++ {
@@ -300,12 +299,12 @@ func Keys() []Key {
 	return keys
 }
 
-// Spectrum returns the main CharmTone palette, from Cumin through Butter.
-// Neutrals and meta-group colors (charples, additions, deletions) are not
-// included.
+// Spectrum returns the main CharmTone palette, from Cumin through Zest.
+// Butter, neutrals, and meta-group colors (charples, additions, deletions)
+// are not included.
 func Spectrum() []Key {
-	keys := make([]Key, 0, int(Butter-Cumin)+1)
-	for k := Cumin; k <= Butter; k++ {
+	keys := make([]Key, 0, int(Zest-Cumin)+1)
+	for k := Cumin; k <= Zest; k++ {
 		keys = append(keys, k)
 	}
 	return keys
@@ -365,9 +364,9 @@ func Deletions() []Key {
 }
 
 // IsSpectrum reports whether k is part of the main spectrum palette
-// (Cumin through Butter).
+// (Cumin through Zest). Butter is intentionally excluded.
 func (k Key) IsSpectrum() bool {
-	return k >= Cumin && k <= Butter
+	return k >= Cumin && k <= Zest
 }
 
 // IsNeutral reports whether k is one of the neutral colors.
@@ -419,7 +418,13 @@ func (k Key) IsSecondary() bool {
 // IsTertiary indicates which colors are part of the tertiary palette.
 //
 // Deprecated: the CharmTone formula guide no longer defines a tertiary
-// palette. Use IsSecondary instead.
+// palette. Use [Key.IsSecondary] instead.
 func (k Key) IsTertiary() bool {
 	return k.IsSecondary()
 }
+
+// Deprecated: Charcoal has been renamed to [Char].
+const Charcoal = Char
+
+// Deprecated: Ash has been renamed to [Sash].
+const Ash = Sash
