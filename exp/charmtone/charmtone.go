@@ -13,7 +13,7 @@ var _ color.Color = Key(0)
 // Key is a type for color keys.
 type Key int
 
-// Available colors.
+// Spectrum: the main CharmTone palette.
 const (
 	Cumin Key = iota
 	Tang
@@ -63,32 +63,41 @@ const (
 	Mustard
 	Citron
 	Zest
+
+	// Butter is part of the main palette but is no longer tied to any
+	// meta-group.
+	Butter
+
+	// Neutrals.
 	Pepper
 	BBQ
-	Charcoal
+	Char
 	Iron
 	Oyster
 	Squid
+	Steam
 	Smoke
-	Ash
+	Steep
+	Sash
 	Salt
-	Butter
+	White
 
-	// Diffs: additions. The brightest color in this set is Julep, defined
-	// above.
+	// Charples: additional shades for the Charple ramp. The other Charples
+	// (Jelly, Charple, Hazy) live in the main spectrum above.
+	Darple
+	Larple
+
+	// Diffs: additions. The brightest color in this group, Julep, lives in
+	// the main spectrum above.
 	Pickle
 	Gator
 	Spinach
 
-	// Diffs: deletions. The brightest color in this set is Cherry, defined
-	// above.
+	// Diffs: deletions. The brightest color in this group, Cherry, lives in
+	// the main spectrum above.
 	Pom
 	Steak
 	Toast
-
-	// Provisional.
-	NeueGuac
-	NeueZinc
 )
 
 // RGBA returns the red, green, blue, and alpha values of the color. It
@@ -121,7 +130,7 @@ var names = map[Key]string{
 	Dolly:    "Dolly",
 	Blush:    "Blush",
 	Urchin:   "Urchin",
-	Mochi:    "Crystal",
+	Mochi:    "Mochi",
 	Lilac:    "Lilac",
 	Prince:   "Prince",
 	Violet:   "Violet",
@@ -150,16 +159,25 @@ var names = map[Key]string{
 	Mustard:  "Mustard",
 	Citron:   "Citron",
 	Zest:     "Zest",
-	Pepper:   "Pepper",
-	BBQ:      "BBQ",
-	Charcoal: "Charcoal",
-	Iron:     "Iron",
-	Oyster:   "Oyster",
-	Squid:    "Squid",
-	Smoke:    "Smoke",
-	Salt:     "Salt",
-	Ash:      "Ash",
 	Butter:   "Butter",
+
+	// Neutrals.
+	Pepper: "Pepper",
+	BBQ:    "BBQ",
+	Char:   "Char",
+	Iron:   "Iron",
+	Oyster: "Oyster",
+	Squid:  "Squid",
+	Steam:  "Steam",
+	Smoke:  "Smoke",
+	Steep:  "Steep",
+	Sash:   "Sash",
+	Salt:   "Salt",
+	White:  "White",
+
+	// Charples.
+	Darple: "Darple",
+	Larple: "Larple",
 
 	// Diffs: additions.
 	Pickle:  "Pickle",
@@ -170,10 +188,6 @@ var names = map[Key]string{
 	Pom:   "Pom",
 	Steak: "Steak",
 	Toast: "Toast",
-
-	// Provisional.
-	NeueGuac: "Neue Guac",
-	NeueZinc: "Neue Zinc",
 }
 
 // String returns the official CharmTone name of the color. It satisfies the
@@ -235,16 +249,25 @@ var colors = map[Key]color.RGBA{
 	Mustard:  {R: 0xF5, G: 0xEF, B: 0x34, A: 0xFF}, // "#F5EF34"
 	Citron:   {R: 0xE8, G: 0xFF, B: 0x27, A: 0xFF}, // "#E8FF27"
 	Zest:     {R: 0xE8, G: 0xFE, B: 0x96, A: 0xFF}, // "#E8FE96"
-	Pepper:   {R: 0x20, G: 0x1F, B: 0x26, A: 0xFF}, // "#201F26"
-	BBQ:      {R: 0x2d, G: 0x2c, B: 0x35, A: 0xFF}, // "#2d2c35"
-	Charcoal: {R: 0x3A, G: 0x39, B: 0x43, A: 0xFF}, // "#3A3943"
-	Iron:     {R: 0x4D, G: 0x4C, B: 0x57, A: 0xFF}, // "#4D4C57"
-	Oyster:   {R: 0x60, G: 0x5F, B: 0x6B, A: 0xFF}, // "#605F6B"
-	Squid:    {R: 0x85, G: 0x83, B: 0x92, A: 0xFF}, // "#858392"
-	Smoke:    {R: 0xBF, G: 0xBC, B: 0xC8, A: 0xFF}, // "#BFBCC8"
-	Ash:      {R: 0xDF, G: 0xDB, B: 0xDD, A: 0xFF}, // "#DFDBDD"
-	Salt:     {R: 0xF1, G: 0xEF, B: 0xEF, A: 0xFF}, // "#F1EFEF"
 	Butter:   {R: 0xFF, G: 0xFA, B: 0xF1, A: 0xFF}, // "#FFFAF1"
+
+	// Neutrals.
+	Pepper: {R: 0x20, G: 0x1F, B: 0x26, A: 0xFF}, // "#201F26"
+	BBQ:    {R: 0x2D, G: 0x2C, B: 0x36, A: 0xFF}, // "#2D2C36"
+	Char:   {R: 0x3A, G: 0x39, B: 0x43, A: 0xFF}, // "#3A3943"
+	Iron:   {R: 0x4D, G: 0x4C, B: 0x57, A: 0xFF}, // "#4D4C57"
+	Oyster: {R: 0x60, G: 0x5F, B: 0x6B, A: 0xFF}, // "#605F6B"
+	Squid:  {R: 0x85, G: 0x83, B: 0x92, A: 0xFF}, // "#858392"
+	Steam:  {R: 0xA2, G: 0xA0, B: 0xAD, A: 0xFF}, // "#A2A0AD"
+	Smoke:  {R: 0xBF, G: 0xBC, B: 0xC8, A: 0xFF}, // "#BFBCC8"
+	Steep:  {R: 0xD6, G: 0xD3, B: 0xDC, A: 0xFF}, // "#D6D3DC"
+	Sash:   {R: 0xEC, G: 0xEB, B: 0xF0, A: 0xFF}, // "#ECEBF0"
+	Salt:   {R: 0xF7, G: 0xF6, B: 0xFB, A: 0xFF}, // "#F7F6FB"
+	White:  {R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}, // "#FFFFFF"
+
+	// Charples.
+	Darple: {R: 0x5B, G: 0x40, B: 0xEC, A: 0xFF}, // "#5B40EC"
+	Larple: {R: 0x7B, G: 0x62, B: 0xFF, A: 0xFF}, // "#7B62FF"
 
 	// Diffs: additions.
 	Pickle:  {R: 0x00, G: 0xA4, B: 0x75, A: 0xFF}, // "#00A475"
@@ -255,10 +278,6 @@ var colors = map[Key]color.RGBA{
 	Pom:   {R: 0xAB, G: 0x24, B: 0x54, A: 0xFF}, // "#AB2454"
 	Steak: {R: 0x58, G: 0x22, B: 0x38, A: 0xFF}, // "#582238"
 	Toast: {R: 0x41, G: 0x21, B: 0x30, A: 0xFF}, // "#412130"
-
-	// Provisional.
-	NeueGuac: {R: 0x00, G: 0xb8, B: 0x75, A: 0xFF}, // "#00b875"
-	NeueZinc: {R: 0x0e, G: 0x99, B: 0x96, A: 0xFF}, // "#0e9996"
 }
 
 // Hex returns the hex value of the color.
@@ -270,70 +289,105 @@ func (k Key) Hex() string {
 	return fmt.Sprintf("#%02X%02X%02X", c.R, c.G, c.B)
 }
 
-// Keys returns a slice of all CharmTone color keys.
+// Keys returns a slice of all CharmTone color keys, in iota order: the main
+// spectrum (ending with Butter), followed by neutrals, charples, additions,
+// and deletions.
 func Keys() []Key {
+	keys := make([]Key, 0, len(colors))
+	for k := Cumin; k <= Toast; k++ {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// Spectrum returns the main CharmTone palette, from Cumin through Butter.
+// Neutrals and meta-group colors (charples, additions, deletions) are not
+// included.
+func Spectrum() []Key {
+	keys := make([]Key, 0, int(Butter-Cumin)+1)
+	for k := Cumin; k <= Butter; k++ {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// Neutrals returns the neutral colors, from Pepper through White.
+func Neutrals() []Key {
 	return []Key{
-		Cumin,
-		Tang,
-		Yam,
-		Paprika,
-		Bengal,
-		Uni,
-		Sriracha,
-		Coral,
-		Salmon,
-		Chili,
-		Cherry,
-		Tuna,
-		Macaron,
-		Pony,
-		Cheeky,
-		Flamingo,
-		Dolly,
-		Blush,
-		Urchin,
-		Mochi,
-		Lilac,
-		Prince,
-		Violet,
-		Mauve,
-		Grape,
-		Plum,
-		Orchid,
-		Jelly,
-		Charple,
-		Hazy,
-		Ox,
-		Sapphire,
-		Guppy,
-		Oceania,
-		Thunder,
-		Anchovy,
-		Damson,
-		Malibu,
-		Sardine,
-		Zinc,
-		Turtle,
-		Lichen,
-		Guac,
-		Julep,
-		Bok,
-		Mustard,
-		Citron,
-		Zest,
 		Pepper,
 		BBQ,
-		Charcoal,
+		Char,
 		Iron,
 		Oyster,
 		Squid,
+		Steam,
 		Smoke,
-		Ash,
+		Steep,
+		Sash,
 		Salt,
-		Butter,
-
-		// XXX: additions and deletions are not included, yet.
+		White,
 	}
+}
+
+// Charples returns the Charple ramp: shades from darkest to lightest. This
+// includes colors that are also part of the main spectrum (Jelly, Charple,
+// Hazy) alongside the Charple-only Darple and Larple.
+func Charples() []Key {
+	return []Key{
+		Jelly,
+		Darple,
+		Charple,
+		Larple,
+		Hazy,
+	}
+}
+
+// Additions returns the colors used to indicate diff additions, from darkest
+// to brightest. The brightest, Julep, is also part of the main spectrum.
+func Additions() []Key {
+	return []Key{
+		Spinach,
+		Gator,
+		Pickle,
+		Julep,
+	}
+}
+
+// Deletions returns the colors used to indicate diff deletions, from darkest
+// to brightest. The brightest, Cherry, is also part of the main spectrum.
+func Deletions() []Key {
+	return []Key{
+		Toast,
+		Steak,
+		Pom,
+		Cherry,
+	}
+}
+
+// IsSpectrum reports whether k is part of the main spectrum palette
+// (Cumin through Butter).
+func (k Key) IsSpectrum() bool {
+	return k >= Cumin && k <= Butter
+}
+
+// IsNeutral reports whether k is one of the neutral colors.
+func (k Key) IsNeutral() bool {
+	return k >= Pepper && k <= White
+}
+
+// IsCharple reports whether k is part of the Charple ramp.
+func (k Key) IsCharple() bool {
+	return slices.Contains(Charples(), k)
+}
+
+// IsAddition reports whether k is one of the diff-addition colors.
+func (k Key) IsAddition() bool {
+	return slices.Contains(Additions(), k)
+}
+
+// IsDeletion reports whether k is one of the diff-deletion colors.
+func (k Key) IsDeletion() bool {
+	return slices.Contains(Deletions(), k)
 }
 
 // IsPrimary indicates which colors are part of the core palette.
@@ -343,6 +397,9 @@ func (k Key) IsPrimary() bool {
 		Dolly,
 		Julep,
 		Zest,
+		Hazy,
+		Blush,
+		Bok,
 		Butter,
 	}, k)
 }
@@ -350,20 +407,19 @@ func (k Key) IsPrimary() bool {
 // IsSecondary indicates which colors are part of the secondary palette.
 func (k Key) IsSecondary() bool {
 	return slices.Contains([]Key{
-		Hazy,
-		Blush,
-		Bok,
+		Uni,
+		Coral,
+		Tuna,
+		Violet,
+		Malibu,
+		Turtle,
 	}, k)
 }
 
 // IsTertiary indicates which colors are part of the tertiary palette.
+//
+// Deprecated: the CharmTone formula guide no longer defines a tertiary
+// palette. Use IsSecondary instead.
 func (k Key) IsTertiary() bool {
-	return slices.Contains([]Key{
-		Turtle,
-		Malibu,
-		Violet,
-		Tuna,
-		Coral,
-		Uni,
-	}, k)
+	return k.IsSecondary()
 }
