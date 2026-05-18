@@ -80,7 +80,7 @@ const (
 	Steep
 	Sash
 	Salt
-	White
+	Soda
 
 	// Charples: additional shades for the Charple ramp. The other Charples
 	// (Jelly, Charple, Hazy) live in the main spectrum above.
@@ -98,6 +98,9 @@ const (
 	Pom
 	Steak
 	Toast
+
+	// Ice is a secondary color that lives outside the main spectrum.
+	Ice
 )
 
 // RGBA returns the red, green, blue, and alpha values of the color. It
@@ -173,7 +176,7 @@ var names = map[Key]string{
 	Steep:  "Steep",
 	Sash:   "Sash",
 	Salt:   "Salt",
-	White:  "White",
+	Soda:   "Soda",
 
 	// Charples.
 	Darple: "Darple",
@@ -188,6 +191,9 @@ var names = map[Key]string{
 	Pom:   "Pom",
 	Steak: "Steak",
 	Toast: "Toast",
+
+	// Secondary, outside the spectrum.
+	Ice: "Ice",
 }
 
 // String returns the official CharmTone name of the color. It satisfies the
@@ -263,7 +269,7 @@ var colors = map[Key]color.RGBA{
 	Steep:  {R: 0xD6, G: 0xD3, B: 0xDC, A: 0xFF}, // "#D6D3DC"
 	Sash:   {R: 0xEC, G: 0xEB, B: 0xF0, A: 0xFF}, // "#ECEBF0"
 	Salt:   {R: 0xF7, G: 0xF6, B: 0xFB, A: 0xFF}, // "#F7F6FB"
-	White:  {R: 0xFF, G: 0xFF, B: 0xFF, A: 0xFF}, // "#FFFFFF"
+	Soda:   {R: 0xFB, G: 0xFB, B: 0xFB, A: 0xFF}, // "#FBFBFB"
 
 	// Charples.
 	Darple: {R: 0x5B, G: 0x40, B: 0xEC, A: 0xFF}, // "#5B40EC"
@@ -278,6 +284,9 @@ var colors = map[Key]color.RGBA{
 	Pom:   {R: 0xAB, G: 0x24, B: 0x54, A: 0xFF}, // "#AB2454"
 	Steak: {R: 0x58, G: 0x22, B: 0x38, A: 0xFF}, // "#582238"
 	Toast: {R: 0x41, G: 0x21, B: 0x30, A: 0xFF}, // "#412130"
+
+	// Secondary, outside the spectrum.
+	Ice: {R: 0x00, G: 0xFF, B: 0xFC, A: 0xFF}, // "#00FFFC"
 }
 
 // Hex returns the hex value of the color.
@@ -290,10 +299,11 @@ func (k Key) Hex() string {
 }
 
 // Keys returns a slice of all CharmTone color keys, in iota order: the main
-// spectrum, Butter, then neutrals, charples, additions, and deletions.
+// spectrum, Butter, then neutrals, charples, additions, deletions, and
+// out-of-spectrum secondaries.
 func Keys() []Key {
 	keys := make([]Key, 0, len(colors))
-	for k := Cumin; k <= Toast; k++ {
+	for k := Cumin; k <= Ice; k++ {
 		keys = append(keys, k)
 	}
 	return keys
@@ -310,7 +320,7 @@ func Spectrum() []Key {
 	return keys
 }
 
-// Neutrals returns the neutral colors, from Pepper through White.
+// Neutrals returns the neutral colors, from Pepper through Soda.
 func Neutrals() []Key {
 	return []Key{
 		Pepper,
@@ -324,7 +334,7 @@ func Neutrals() []Key {
 		Steep,
 		Sash,
 		Salt,
-		White,
+		Soda,
 	}
 }
 
@@ -371,7 +381,7 @@ func (k Key) IsSpectrum() bool {
 
 // IsNeutral reports whether k is one of the neutral colors.
 func (k Key) IsNeutral() bool {
-	return k >= Pepper && k <= White
+	return k >= Pepper && k <= Soda
 }
 
 // IsCharple reports whether k is part of the Charple ramp.
@@ -412,6 +422,7 @@ func (k Key) IsSecondary() bool {
 		Violet,
 		Malibu,
 		Turtle,
+		Ice,
 	}, k)
 }
 
@@ -423,8 +434,10 @@ func (k Key) IsTertiary() bool {
 	return k.IsSecondary()
 }
 
+// Charcoal is an alias for Char.
 // Deprecated: Charcoal has been renamed to [Char].
 const Charcoal = Char
 
+// Ash is an alias for Sash.
 // Deprecated: Ash has been renamed to [Sash].
 const Ash = Sash
