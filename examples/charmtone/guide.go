@@ -77,7 +77,8 @@ func renderGuide() {
 		case k.IsSecondary():
 			mark = secondaryMark.String()
 		}
-		_, _ = fmt.Fprintf(w,
+		_, _ = fmt.Fprintf(
+			w,
 			"%s %s %s %s",
 			fg.Foreground(k).Render(k.String()),
 			mark,
@@ -96,11 +97,6 @@ func renderGuide() {
 		}
 	}
 
-	// Butter is an orphan in the palette. It's rendered below alongside the
-	// grayscale and gradient blocks so the gradients can start on its row.
-	var butter strings.Builder
-	renderSwatch(&butter, charmtone.Butter)
-
 	// Get total block width so far.
 	var totalWidth int
 	for l := range SplitSeq(b.String(), "\n") {
@@ -111,10 +107,10 @@ func renderGuide() {
 
 	// Grayscale block.
 	var grays strings.Builder
-	for i := charmtone.Pepper; i <= charmtone.White; i++ {
+	for i := charmtone.Pepper; i <= charmtone.Soda; i++ {
 		k := charmtone.Keys()[i]
 		renderSwatch(&grays, k)
-		if i < charmtone.White {
+		if i < charmtone.Soda {
 			grays.WriteRune('\n')
 		}
 	}
@@ -160,17 +156,19 @@ func renderGuide() {
 		left += "\n" + block.Render(s.Render("Hazy")+rightArrowMark.String()+s.Render("Blush"))
 		right := blendKeys(halfWidth, charmtone.Bok, charmtone.Zest)
 		right += "\n" + block.Render(s.Render("Bok")+rightArrowMark.String()+s.Render("Zest"))
-		fmt.Fprint(&grads, "\n\n", lipgloss.JoinHorizontal(lipgloss.Top, gap, left, right))
+		fmt.Fprint(&grads, "\n", lipgloss.JoinHorizontal(lipgloss.Top, gap, left, right))
 
 		// Gradient:
 		// Uni -> Coral -> Tuna -> Violet -> Malibu -> Turtle
 		block = block.Width(fullWidth)
 		buf := strings.Builder{}
-		fmt.Fprint(&buf, blendKeys(fullWidth, charmtone.Uni,
+		fmt.Fprint(&buf, blendKeys(
+			fullWidth, charmtone.Uni,
 			charmtone.Coral, charmtone.Tuna, charmtone.Violet,
 			charmtone.Malibu, charmtone.Turtle,
 		))
-		fmt.Fprint(&buf, "\n",
+		fmt.Fprint(
+			&buf, "\n",
 			block.Render(
 				s.Render("Uni")+rightArrowMark.String()+
 					s.Render("Coral")+rightArrowMark.String()+
@@ -183,10 +181,29 @@ func renderGuide() {
 		fmt.Fprint(&grads, "\n\n", lipgloss.JoinHorizontal(lipgloss.Top, gap, buf.String()))
 	}
 
-	// Stack Butter atop the grayscale column, then join with the gradient
-	// column so the first gradient row sits next to Butter.
-	leftCol := butter.String() + "\n\n" + grays.String()
-	fmt.Fprint(&b, lipgloss.JoinHorizontal(lipgloss.Top, leftCol, " ", grads.String()))
+	// Charples block: render below the gradients in the middle column,
+	// starting on the same row as Smoke in the grayscale column. Charple
+	// appears here a second time and is marked as a brand primary. Butter
+	// and Ice live in a third column to the right, next to Jelly and Darple
+	// respectively; both are outside the spectrum.
+	var charples strings.Builder
+	charpleKeys := charmtone.Charples()
+	for i, k := range charpleKeys {
+		renderSwatch(&charples, k)
+		if i < len(charpleKeys)-1 {
+			charples.WriteRune('\n')
+		}
+	}
+	var ends strings.Builder
+	renderSwatch(&ends, charmtone.Butter)
+	ends.WriteRune('\n')
+	renderSwatch(&ends, charmtone.Ice)
+	charplesRow := lipgloss.JoinHorizontal(lipgloss.Top, charples.String(), " ", ends.String())
+	fmt.Fprint(&grads, "\n\n", charplesRow)
+
+	// Join the grayscale column with the gradient/charples column so the
+	// first gradient row sits at the top of the grayscale ramp.
+	fmt.Fprint(&b, lipgloss.JoinHorizontal(lipgloss.Top, grays.String(), " ", grads.String()))
 
 	fmt.Fprint(&b, "\n\n", legendBlock, "\n\n")
 
