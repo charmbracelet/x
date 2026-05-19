@@ -81,7 +81,7 @@ func csiString(cmd ansi.Cmd, params ansi.Params) string {
 		s.WriteByte(mark)
 	}
 	params.ForEach(-1, func(i, p int, more bool) {
-		s.WriteString(fmt.Sprint(p))
+		fmt.Fprint(&s, p)
 		if i < len(params)-1 {
 			if more {
 				s.WriteByte(':')
