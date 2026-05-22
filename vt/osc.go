@@ -131,8 +131,6 @@ func (e *Emulator) handleHyperlink(cmd int, data []byte) {
 		return
 	}
 
-	// OSC 8 wire format is ESC ] 8 ; <params> ; <uri> ST.
-	// After splitting on ';' the slots are: [cmd='8', params, uri].
 	e.scr.cur.Link.Params = string(parts[1])
 	e.scr.cur.Link.URL = string(parts[2])
 }
