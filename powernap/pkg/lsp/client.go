@@ -34,6 +34,8 @@ const (
 	MethodTextDocumentDefinition             = "textDocument/definition"
 	MethodTextDocumentReferences             = "textDocument/references"
 	MethodTextDocumentDiagnostic             = "textDocument/publishDiagnostics"
+	MethodTextDocumentRename                 = "textDocument/rename"
+	MethodTextDocumentDocumentSymbol         = "textDocument/documentSymbol"
 	MethodWorkspaceConfiguration             = "workspace/configuration"
 	MethodWorkspaceDidChangeConfiguration    = "workspace/didChangeConfiguration"
 	MethodWorkspaceDidChangeWorkspaceFolders = "workspace/didChangeWorkspaceFolders"
@@ -425,6 +427,97 @@ func (c *Client) FindReferences(ctx context.Context, filepath string, line, char
 		return nil, fmt.Errorf("find references request failed: %w", err)
 	}
 	return result, nil
+}
+
+// RequestRename requests a rename of the symbol at the given position.
+func (c *Client) RequestRename(ctx context.Context, filepath string, line, character int, newName string) (*protocol.WorkspaceEdit, error) {
+	if !c.initialized.Load() {
+		return nil, fmt.Errorf("client not initialized")
+	}
+
+	uri := string(protocol.URIFromPath(filepath))
+	params := protocol.RenameParams{
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: protocol.DocumentURI(uri),
+		},
+		Position: protocol.Position{
+			Line:      uint32(line),      //nolint:gosec
+			Character: uint32(character), //nolint:gosec
+		},
+		NewName: newName,
+	}
+
+	var result protocol.WorkspaceEdit
+	err := c.conn.Call(ctx, MethodTextDocumentRename, params, &result)
+	if err != nil {
+		return nil, fmt.Errorf("rename request failed: %w", err)
+	}
+	return &result, nil
+}
+
+// RequestDocumentSymbols requests the document symbols for the given file.
+func (c *Client) RequestDocumentSymbols(ctx context.Context, filepath string) ([]protocol.DocumentSymbolResult, error) {
+	if !c.initialized.Load() {
+		return nil, fmt.Errorf("client not initialized")
+	}
+
+	uri := string(protocol.URIFromPath(filepath))
+	params := protocol.DocumentSymbolParams{
+		TextDocument: protocol.TextDocumentIdentifier{
+			URI: protocol.DocumentURI(uri),
+		},
+	}
+
+	var result protocol.Or_Result_textDocument_documentSymbol
+	err := c.conn.Call(ctx, MethodTextDocumentDocumentSymbol, params, &result)
+	if err != nil {
+		return nil, fmt.Errorf("document symbol request failed: %w", err)
+	}
+	return result.Results() //nolint:wrapcheck
+}
+
+// RequestDefinition requests the definition of the symbol at the given position.
+func (c *Client) RequestDefinition(ctx context.Context, filepath string, line, character int) ([]protocol.Location, error) {
+	if !c.initialized.Load() {
+		return nil, fmt.Errorf("client not initialized")
+	}
+
+	uri := string(protocol.URIFromPath(filepath))
+	params := protocol.DefinitionParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{
+				URI: protocol.DocumentURI(uri),
+			},
+			Position: protocol.Position{
+				Line:      uint32(line),      //nolint:gosec
+				Character: uint32(character), //nolint:gosec
+			},
+		},
+	}
+
+	var result json.RawMessage
+	err := c.conn.Call(ctx, MethodTextDocumentDefinition, params, &result)
+	if err != nil {
+		return nil, fmt.Errorf("definition request failed: %w", err)
+	}
+
+	if string(result) == "null" {
+		return nil, nil
+	}
+
+	// Try []Location first (most common response from gopls).
+	var locs []protocol.Location
+	if err := json.Unmarshal(result, &locs); err == nil && len(locs) > 0 {
+		return locs, nil
+	}
+
+	// Try single Location.
+	var loc protocol.Location
+	if err := json.Unmarshal(result, &loc); err == nil && loc.URI != "" {
+		return []protocol.Location{loc}, nil
+	}
+
+	return nil, nil
 }
 
 func parseEncoding(encoding string) (OffsetEncoding, bool) {
