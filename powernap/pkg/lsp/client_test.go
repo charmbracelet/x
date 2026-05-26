@@ -112,7 +112,7 @@ func TestParseOffsetEncoding(t *testing.T) {
 			expected:       UTF8,
 		},
 		{
-			name:           "uses positionEncoding when provided",
+			name: "uses positionEncoding when provided",
 			positionEncoding: func() *protocol.PositionEncodingKind {
 				v := protocol.UTF8
 				return &v
@@ -121,7 +121,7 @@ func TestParseOffsetEncoding(t *testing.T) {
 			expected:       UTF8,
 		},
 		{
-			name:           "falls back to legacy offsetEncoding when positionEncoding unknown",
+			name: "falls back to legacy offsetEncoding when positionEncoding unknown",
 			positionEncoding: func() *protocol.PositionEncodingKind {
 				v := protocol.PositionEncodingKind("unknown")
 				return &v
@@ -130,7 +130,7 @@ func TestParseOffsetEncoding(t *testing.T) {
 			expected:       UTF32,
 		},
 		{
-			name:           "defaults to UTF16 when both encodings unknown",
+			name: "defaults to UTF16 when both encodings unknown",
 			positionEncoding: func() *protocol.PositionEncodingKind {
 				v := protocol.PositionEncodingKind("unknown")
 				return &v
