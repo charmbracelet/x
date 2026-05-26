@@ -36,6 +36,9 @@ const (
 	MethodTextDocumentDiagnostic             = "textDocument/publishDiagnostics"
 	MethodTextDocumentRename                 = "textDocument/rename"
 	MethodTextDocumentDocumentSymbol         = "textDocument/documentSymbol"
+	MethodTextDocumentPrepareCallHierarchy   = "textDocument/prepareCallHierarchy"
+	MethodCallHierarchyIncomingCalls         = "callHierarchy/incomingCalls"
+	MethodCallHierarchyOutgoingCalls         = "callHierarchy/outgoingCalls"
 	MethodWorkspaceConfiguration             = "workspace/configuration"
 	MethodWorkspaceDidChangeConfiguration    = "workspace/didChangeConfiguration"
 	MethodWorkspaceDidChangeWorkspaceFolders = "workspace/didChangeWorkspaceFolders"
@@ -518,6 +521,69 @@ func (c *Client) RequestDefinition(ctx context.Context, filepath string, line, c
 	}
 
 	return nil, nil
+}
+
+// PrepareCallHierarchy prepares a call hierarchy item at the given position.
+func (c *Client) PrepareCallHierarchy(ctx context.Context, filepath string, line, character int) ([]protocol.CallHierarchyItem, error) {
+	if !c.initialized.Load() {
+		return nil, fmt.Errorf("client not initialized")
+	}
+
+	uri := string(protocol.URIFromPath(filepath))
+	params := protocol.CallHierarchyPrepareParams{
+		TextDocumentPositionParams: protocol.TextDocumentPositionParams{
+			TextDocument: protocol.TextDocumentIdentifier{
+				URI: protocol.DocumentURI(uri),
+			},
+			Position: protocol.Position{
+				Line:      uint32(line),      //nolint:gosec
+				Character: uint32(character), //nolint:gosec
+			},
+		},
+	}
+
+	var result []protocol.CallHierarchyItem
+	err := c.conn.Call(ctx, MethodTextDocumentPrepareCallHierarchy, params, &result)
+	if err != nil {
+		return nil, fmt.Errorf("prepare call hierarchy request failed: %w", err)
+	}
+	return result, nil
+}
+
+// IncomingCalls returns all callers of the given call hierarchy item.
+func (c *Client) IncomingCalls(ctx context.Context, item protocol.CallHierarchyItem) ([]protocol.CallHierarchyIncomingCall, error) {
+	if !c.initialized.Load() {
+		return nil, fmt.Errorf("client not initialized")
+	}
+
+	params := protocol.CallHierarchyIncomingCallsParams{
+		Item: item,
+	}
+
+	var result []protocol.CallHierarchyIncomingCall
+	err := c.conn.Call(ctx, MethodCallHierarchyIncomingCalls, params, &result)
+	if err != nil {
+		return nil, fmt.Errorf("incoming calls request failed: %w", err)
+	}
+	return result, nil
+}
+
+// OutgoingCalls returns all callees of the given call hierarchy item.
+func (c *Client) OutgoingCalls(ctx context.Context, item protocol.CallHierarchyItem) ([]protocol.CallHierarchyOutgoingCall, error) {
+	if !c.initialized.Load() {
+		return nil, fmt.Errorf("client not initialized")
+	}
+
+	params := protocol.CallHierarchyOutgoingCallsParams{
+		Item: item,
+	}
+
+	var result []protocol.CallHierarchyOutgoingCall
+	err := c.conn.Call(ctx, MethodCallHierarchyOutgoingCalls, params, &result)
+	if err != nil {
+		return nil, fmt.Errorf("outgoing calls request failed: %w", err)
+	}
+	return result, nil
 }
 
 func parseEncoding(encoding string) (OffsetEncoding, bool) {
