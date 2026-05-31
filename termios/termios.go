@@ -1,5 +1,5 @@
-//go:build darwin || netbsd || freebsd || openbsd || linux || dragonfly || solaris
-// +build darwin netbsd freebsd openbsd linux dragonfly solaris
+//go:build darwin || netbsd || freebsd || openbsd || linux || dragonfly || solaris || aix
+// +build darwin netbsd freebsd openbsd linux dragonfly solaris aix
 
 // Package termios provides a unified interface for getting and setting Termios
 // settings for Unix and Unix-like systems.
@@ -123,20 +123,18 @@ const (
 
 // https://www.man7.org/linux/man-pages/man3/termios.3.html
 var allCcOpts = map[CC]int{
-	INTR:    syscall.VINTR,
-	QUIT:    syscall.VQUIT,
-	ERASE:   syscall.VERASE,
-	KILL:    syscall.VQUIT,
-	EOF:     syscall.VEOF,
-	EOL:     syscall.VEOL,
-	EOL2:    syscall.VEOL2,
-	START:   syscall.VSTART,
-	STOP:    syscall.VSTOP,
-	SUSP:    syscall.VSUSP,
-	WERASE:  syscall.VWERASE,
-	RPRNT:   syscall.VREPRINT,
-	LNEXT:   syscall.VLNEXT,
-	DISCARD: syscall.VDISCARD,
+	INTR:  syscall.VINTR,
+	QUIT:  syscall.VQUIT,
+	ERASE: syscall.VERASE,
+	KILL:  syscall.VQUIT,
+	EOF:   syscall.VEOF,
+	EOL:   syscall.VEOL,
+	EOL2:  syscall.VEOL2,
+	START: syscall.VSTART,
+	STOP:  syscall.VSTOP,
+	SUSP:  syscall.VSUSP,
+	RPRNT: syscall.VREPRINT,
+	LNEXT: syscall.VLNEXT,
 
 	// XXX: these syscalls don't exist for any OS
 	// FLUSH:  syscall.VFLUSH,
