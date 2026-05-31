@@ -6,6 +6,9 @@ import (
 	"image/color"
 	"slices"
 	"strconv"
+	"strings"
+	"sync"
+	"unicode/utf8"
 )
 
 var _ color.Color = Key(0)
@@ -441,3 +444,36 @@ const Charcoal = Char
 // Ash is an alias for Sash.
 // Deprecated: Ash has been renamed to [Sash].
 const Ash = Sash
+
+// hexToName maps uppercase hex values (e.g. "#6B50FF") to their canonical
+// CharmTone name. Built lazily on first use.
+var (
+	hexToName     map[string]string
+	hexToNameOnce sync.Once
+)
+
+func getHexToName() map[string]string {
+	hexToNameOnce.Do(func() {
+		hexToName = make(map[string]string, len(colors))
+		for _, k := range Keys() {
+			hexToName[k.Hex()] = k.String()
+		}
+	})
+	return hexToName
+}
+
+// NameFromHex returns the canonical CharmTone name for the given hex
+// color string, or empty string if no match. The lookup is
+// case-insensitive and accepts "#rrggbb" format.
+func NameFromHex(hex string) string {
+	r, size := utf8.DecodeRuneInString(hex)
+	if r != '#' || size == 0 {
+		return ""
+	}
+	rest := hex[size:]
+	if len(rest) != 6 {
+		return ""
+	}
+	upper := "#" + strings.ToUpper(rest)
+	return getHexToName()[upper]
+}
