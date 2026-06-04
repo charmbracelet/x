@@ -23,25 +23,31 @@ func TestDcsSequence(t *testing.T) {
 			},
 		},
 		{
+			// Trailing 0x9C (8-bit C1 ST) is no longer recognized as a
+			// terminator; use 7-bit ST (ESC \\) instead — same shape as
+			// `max_params` above, so the trailing \\ is dispatched too.
 			name:  "reset",
-			input: "\x1b[3;1\x1bP1$tx\x9c",
+			input: "\x1b[3;1\x1bP1$tx\x1b\\",
 			expected: []any{
 				dcsSequence{
 					Cmd:    't' | '$'<<parser.IntermedShift,
 					Params: Params{1},
 					Data:   []byte{'x'},
 				},
+				Cmd('\\'),
 			},
 		},
 		{
+			// Trailing 0x9C → 7-bit ST (ESC \\), see comment on `reset`.
 			name:  "parse",
-			input: "\x1bP0;1|17/ab\x9c",
+			input: "\x1bP0;1|17/ab\x1b\\",
 			expected: []any{
 				dcsSequence{
 					Cmd:    '|',
 					Params: Params{0, 1},
 					Data:   []byte("17/ab"),
 				},
+				Cmd('\\'),
 			},
 		},
 		{
