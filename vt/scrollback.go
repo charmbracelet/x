@@ -87,6 +87,34 @@ func (s *Scrollback) PushN(buf *uv.RenderBuffer, y, n int) {
 	}
 }
 
+// Pop removes and returns the most-recently-pushed (newest) line, or
+// nil if the buffer is empty. It's the inverse of Push: a grow-taller
+// resize uses it to pull history back down onto the screen so existing
+// content stays anchored to the bottom (see Screen.resizeReflow). This
+// is a cold path (resize only), so when the ring has wrapped it
+// linearizes the remaining lines rather than tracking a tail index.
+func (s *Scrollback) Pop() uv.Line {
+	if s == nil || len(s.lines) == 0 {
+		return nil
+	}
+	n := len(s.lines)
+	idx := (s.head + n - 1) % n // ring position of the newest line
+	line := s.lines[idx]
+	if s.head == 0 {
+		// Not wrapped: the newest line is the last slice element.
+		s.lines = s.lines[:n-1]
+	} else {
+		// Wrapped ring: drop the newest and re-linearize so head == 0.
+		out := make([]uv.Line, 0, n-1)
+		for i := 0; i < n-1; i++ {
+			out = append(out, s.lines[(s.head+i)%n])
+		}
+		s.lines = out
+		s.head = 0
+	}
+	return line
+}
+
 // Len returns the number of lines in the scrollback buffer.
 func (s *Scrollback) Len() int {
 	if s == nil {

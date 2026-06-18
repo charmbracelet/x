@@ -215,6 +215,16 @@ func (e *Emulator) CursorPosition() uv.Position {
 
 // Resize resizes the terminal.
 func (e *Emulator) Resize(width int, height int) {
+	// Primary screen resizes the xterm way: grow pulls history back down
+	// so content stays bottom-anchored, shrink pushes the displaced top
+	// rows into scrollback. resizeReflow moves scrs[0]'s own cursor row
+	// to follow the content, so the cursor is read back AFTER the resize.
+	// The alt screen has no scrollback and is owned by a full-screen app
+	// that repaints on SIGWINCH, so it keeps the plain pad/cut.
+	e.scrs[0].resizeReflow(width, height)
+	e.scrs[1].Resize(width, height)
+	e.tabstops = uv.DefaultTabStops(width)
+
 	x, y := e.scr.CursorPosition()
 	if e.atPhantom {
 		if x < width-1 {
@@ -235,10 +245,6 @@ func (e *Emulator) Resize(width int, height int) {
 	if x >= width {
 		x = width - 1
 	}
-
-	e.scrs[0].Resize(width, height)
-	e.scrs[1].Resize(width, height)
-	e.tabstops = uv.DefaultTabStops(width)
 
 	e.setCursor(x, y)
 
