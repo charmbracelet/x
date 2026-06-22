@@ -97,6 +97,12 @@ func truncate(m Method, s string, length int, tail string) string {
 			i += len(cluster)
 			curWidth += width
 
+			// A grapheme cluster always leaves us back in the ground state,
+			// even when we skip it below. Reset it here so a following byte
+			// isn't mistaken for the continuation of a preceding escape
+			// sequence that this cluster interrupted.
+			pstate = parser.GroundState
+
 			// Are we ignoring? Skip to the next byte
 			if ignoring {
 				continue
@@ -115,8 +121,6 @@ func truncate(m Method, s string, length int, tail string) string {
 
 			buf.WriteString(cluster)
 
-			// Done collecting, now we're back in the ground state.
-			pstate = parser.GroundState
 			continue
 		}
 
