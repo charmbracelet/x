@@ -38,7 +38,7 @@
   "cds_lsp": {"args": ["--stdio"], "command": "cds-lsp", "filetypes": ["cds"], "root_markers": ["package.json", "db", "srv"], "settings": {"cds": {"validate": true}}},
   "cir_lsp_server": {"command": "cir-lsp-server", "filetypes": ["cir"], "root_markers": [".git"]},
   "circom-lsp": {"command": "circom-lsp", "filetypes": ["circom"], "root_markers": [".git"]},
-  "clangd": {"command": "clangd", "filetypes": ["c", "cpp", "objc", "objcpp", "cuda"], "root_markers": [".clangd", ".clang-tidy", ".clang-format", "compile_commands.json", "compile_flags.txt", "configure.ac", ".git"]},
+  "clangd": {"command": "clangd", "filetypes": ["c", "c.doxygen", "cpp", "cpp.doxygen", "objc", "objcpp", "cuda"], "root_markers": [".clangd", ".clang-tidy", ".clang-format", "compile_commands.json", "compile_flags.txt", "configure.ac", ".git"]},
   "clarinet": {"args": ["lsp"], "command": "clarinet", "filetypes": ["clar", "clarity"], "root_markers": ["Clarinet.toml"]},
   "clojure_lsp": {"command": "clojure-lsp", "filetypes": ["clojure", "edn"], "root_markers": ["project.clj", "deps.edn", "build.boot", "shadow-cljs.edn", ".git", "bb.edn"]},
   "cmake": {"command": "cmake-language-server", "filetypes": ["cmake"], "init_options": {"buildDirectory": "build"}, "root_markers": ["CMakePresets.json", "CTestConfig.cmake", ".git", "build", "cmake"]},
