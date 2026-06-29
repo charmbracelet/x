@@ -126,12 +126,19 @@ var tcases = []struct {
 		"\x1b]8;;https://charm.sh\x1b\\bracelet 🫧\x1b]8;;\x1b\\",
 	},
 	{
+		// The 8-bit OSC start (0x9D) is unaffected by this change and is
+		// kept as-is — that's what makes this case still meaningfully
+		// "_8bit": it exercises the 8-bit OSC start path. What changed is
+		// the terminator: 8-bit C1 ST (0x9C) is no longer recognized
+		// because it collides with UTF-8 continuation bytes, so the
+		// terminator is now the 7-bit form (ESC \\). Both expected
+		// truncated forms mirror that.
 		"osc8_8bit",
-		"\x9d8;;https://charm.sh\x9cCharmbracelet 🫧\x9d8;;\x9c",
+		"\x9d8;;https://charm.sh\x1b\\Charmbracelet 🫧\x9d8;;\x1b\\",
 		"",
 		5,
-		"\x9d8;;https://charm.sh\x9cCharm\x9d8;;\x9c",
-		"\x9d8;;https://charm.sh\x9cbracelet 🫧\x9d8;;\x9c",
+		"\x9d8;;https://charm.sh\x1b\\Charm\x9d8;;\x1b\\",
+		"\x9d8;;https://charm.sh\x1b\\bracelet 🫧\x9d8;;\x1b\\",
 	},
 	{
 		"style_tail",

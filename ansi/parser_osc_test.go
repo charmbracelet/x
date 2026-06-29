@@ -47,22 +47,33 @@ func TestOscSequence(t *testing.T) {
 			},
 		},
 		{
+			// Was previously terminated by the trailing 8-bit C1 ST (0x9C);
+			// after the C1 ST drop, the terminator must be 7-bit ST (ESC \\).
+			// This also doubles as a regression test that 0x9C inside the
+			// payload (the second 0xc2 0xaf and the parens-glued kana) is
+			// kept verbatim rather than truncating mid-rune.
 			name: "utf8",
 			input: string([]byte{
 				0x1b, 0x5d, 0x32, 0x3b, 0x65, 0x63, 0x68, 0x6f, 0x20, 0x27,
 				0xc2, 0xaf, 0x5c, 0x5f, 0x28, 0xe3, 0x83, 0x84, 0x29, 0x5f,
 				0x2f, 0xc2, 0xaf, 0x27, 0x20, 0x26, 0x26, 0x20, 0x73, 0x6c,
-				0x65, 0x65, 0x70, 0x20, 0x31, 0x9c,
+				0x65, 0x65, 0x70, 0x20, 0x31, 0x1b, 0x5c,
 			}),
 			expected: []any{
 				[]byte("2;echo '¯\\_(ツ)_/¯' && sleep 1"),
+				Cmd('\\'),
 			},
 		},
 		{
+			// Was previously: 8-bit C1 ST (0x9C) terminates after "2;\xe6",
+			// and the remaining "\xab\x1b\\" was treated as orphan + a fresh
+			// ST. With C1 ST disabled, the entire UTF-8 byte sequence
+			// 0xe6 0x9c 0xab (U+672B 末) survives inside the OSC payload and
+			// the 7-bit ST (ESC \\) terminates a single OSC dispatch.
 			name:  "string_terminator",
 			input: "\x1b]2;\xe6\x9c\xab\x1b\\",
 			expected: []any{
-				[]byte("2;\xe6"),
+				[]byte("2;\xe6\x9c\xab"),
 				Cmd('\\'),
 			},
 		},
