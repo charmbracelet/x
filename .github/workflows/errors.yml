@@ -20,7 +20,7 @@ jobs:
       run:
         working-directory: ./errors
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           lfs: true
       - uses: actions/setup-go@v6
@@ -31,7 +31,7 @@ jobs:
       - run: go build -v ./...
       - run: |
           go test -race -covermode=atomic -coverprofile='coverage.txt' ./...
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         with:
           file: ./coverage.txt
           token: ${{ secrets.CODECOV_TOKEN }}
