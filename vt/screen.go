@@ -134,14 +134,31 @@ func (s *Screen) FillArea(c *uv.Cell, area uv.Rectangle) {
 	s.touchArea(area)
 }
 
-// setHorizontalMargins sets the horizontal margins.
+// setHorizontalMargins sets the horizontal margins. The margins are clamped
+// to the buffer bounds so the scroll region can never address cells outside
+// the buffer: a terminal application may compute margins from a stale size
+// while a resize races through the PTY, and an out-of-bounds scroll region
+// later corrupts scroll operations. A region that degenerates after
+// clamping is ignored, matching how DECSLRM treats left >= right.
 func (s *Screen) setHorizontalMargins(left, right int) {
+	left = max(0, left)
+	right = min(right, s.buf.Width())
+	if left >= right {
+		return
+	}
 	s.scroll.Min.X = left
 	s.scroll.Max.X = right
 }
 
-// setVerticalMargins sets the vertical margins.
+// setVerticalMargins sets the vertical margins. The margins are clamped to
+// the buffer bounds; see setHorizontalMargins. A region that degenerates
+// after clamping is ignored, matching how DECSTBM treats top >= bottom.
 func (s *Screen) setVerticalMargins(top, bottom int) {
+	top = max(0, top)
+	bottom = min(bottom, s.buf.Height())
+	if top >= bottom {
+		return
+	}
 	s.scroll.Min.Y = top
 	s.scroll.Max.Y = bottom
 }
@@ -405,7 +422,7 @@ func (s *Screen) SetScrollback(sb *Scrollback) {
 // SetScrollbackSize sets the maximum number of lines in the scrollback buffer.
 func (s *Screen) SetScrollbackSize(maxLines int) {
 	if s.scrollback == nil {
-		s.scrollback = NewScrollback(maxLines)
+		scrollback = NewScrollback(maxLines)
 	} else {
 		s.scrollback.SetMaxLines(maxLines)
 	}
