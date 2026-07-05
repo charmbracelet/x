@@ -300,7 +300,6 @@
   "stylua": {"args": ["--lsp"], "command": "stylua", "filetypes": ["lua"], "root_markers": [".stylua.toml", "stylua.toml", ".editorconfig"]},
   "stylua3p_ls": {"command": "stylua-3p-language-server", "filetypes": ["lua"], "root_markers": [".stylua.toml", "stylua.toml"]},
   "superhtml": {"args": ["lsp"], "command": "superhtml", "filetypes": ["superhtml", "html"], "root_markers": [".git"]},
-  "svelte": {"args": ["--stdio"], "command": "svelteserver", "filetypes": ["svelte"], "settings": {"typescript": {"inlayHints": {"enumMemberValues": {"enabled": true}, "functionLikeReturnTypes": {"enabled": true}, "parameterNames": {"enabled": "literals", "suppressWhenArgumentMatchesName": true}, "parameterTypes": {"enabled": true}, "propertyDeclarationTypes": {"enabled": true}, "variableTypes": {"enabled": true}}}}},
   "svlangserver": {"command": "svlangserver", "filetypes": ["verilog", "systemverilog"], "root_markers": [".svlangserver", ".git"], "settings": {"systemverilog": {"includeIndexing": ["*.{v,vh,sv,svh}", "**/*.{v,vh,sv,svh}"]}}},
   "svls": {"command": "svls", "filetypes": ["verilog", "systemverilog"], "root_markers": [".git"]},
   "swift_mesonls": {"args": ["--lsp"], "command": "Swift-MesonLSP", "filetypes": ["meson"], "root_markers": ["meson.build", "meson_options.txt", "meson.options", ".git"]},
