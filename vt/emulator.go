@@ -215,7 +215,9 @@ func (e *Emulator) CursorPosition() uv.Position {
 
 // Resize resizes the terminal.
 func (e *Emulator) Resize(width int, height int) {
+	oldWidth := e.scr.Width()
 	x, y := e.scr.CursorPosition()
+
 	if e.atPhantom {
 		if x < width-1 {
 			e.atPhantom = false
@@ -223,23 +225,23 @@ func (e *Emulator) Resize(width int, height int) {
 		}
 	}
 
-	if y < 0 {
-		y = 0
-	}
-	if y >= height {
-		y = height - 1
-	}
-	if x < 0 {
-		x = 0
-	}
-	if x >= width {
-		x = width - 1
+	// If width changed and autowrap is enabled, use reflow for primary screen
+	if oldWidth != width && e.isModeSet(ansi.ModeAutoWrap) {
+		// Reflow primary screen with cursor tracking
+		result := e.scrs[0].Reflow(width, height, x, y)
+		x, y = result.CursorX, result.CursorY
+
+		// Alternate screen doesn't reflow (same as ghostty)
+		e.scrs[1].Resize(width, height)
+	} else {
+		// No reflow needed, just resize and clamp cursor
+		x = max(0, min(x, width-1))
+		y = max(0, min(y, height-1))
+		e.scrs[0].Resize(width, height)
+		e.scrs[1].Resize(width, height)
 	}
 
-	e.scrs[0].Resize(width, height)
-	e.scrs[1].Resize(width, height)
 	e.tabstops = uv.DefaultTabStops(width)
-
 	e.setCursor(x, y)
 
 	if e.isModeSet(ansi.ModeInBandResize) {
@@ -418,7 +420,7 @@ func (e *Emulator) IndexedColor(i int) color.Color {
 	c := e.colors[i]
 	if c == nil {
 		// Return the default color.
-		return ansi.IndexedColor(i) //nolint:gosec
+		return ansi.IndexedColor(uint8(i)) // #nosec G115 -- i is bounds-checked above (0-255)
 	}
 
 	return c
