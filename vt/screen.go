@@ -11,6 +11,9 @@ type Screen struct {
 	cb *Callbacks
 	// The buffer of the screen.
 	buf *uv.RenderBuffer
+	// wrapped records whether each physical row continues a terminal
+	// autowrap from the previous row. It is kept parallel to buf rows.
+	wrapped []bool
 	// The cur of the screen.
 	cur, saved Cursor
 	// scroll is the scroll region.
@@ -23,6 +26,7 @@ type Screen struct {
 func NewScreen(w, h int) *Screen {
 	s := Screen{
 		buf:        uv.NewRenderBuffer(w, h),
+		wrapped:    make([]bool, h),
 		scrollback: NewScrollback(DefaultScrollbackSize),
 	}
 	s.scroll = s.buf.Bounds()
@@ -34,6 +38,7 @@ func NewScreen(w, h int) *Screen {
 // cursor styles, and resets the scroll region.
 func (s *Screen) Reset() {
 	s.buf.Clear()
+	clear(s.wrapped)
 	s.cur = Cursor{}
 	s.saved = Cursor{}
 	s.scroll = s.buf.Bounds()
@@ -74,9 +79,9 @@ func (s *Screen) Height() int {
 func (s *Screen) Resize(width int, height int) {
 	if s.buf == nil {
 		s.buf = uv.NewRenderBuffer(width, height)
+		s.wrapped = make([]bool, height)
 	} else {
-		s.buf.Resize(width, height)
-		s.buf.Touched = nil
+		s.resizeReflow(width, height)
 	}
 	s.scroll = s.buf.Bounds()
 }
@@ -89,6 +94,7 @@ func (s *Screen) Width() int {
 // Clear clears the screen with blank cells.
 func (s *Screen) Clear() {
 	s.ClearArea(s.Bounds())
+	clear(s.wrapped)
 }
 
 // ClearWithScrollback saves all non-empty lines to scrollback before clearing.
@@ -100,7 +106,7 @@ func (s *Screen) ClearWithScrollback() {
 		for y := 0; y < s.buf.Height(); y++ {
 			line := s.buf.Line(y)
 			if line != nil && !s.isLineEmpty(line) {
-				s.scrollback.Push(line)
+				s.scrollback.PushWrapped(line, s.rowWrapped(y))
 			}
 		}
 	}
@@ -332,6 +338,7 @@ func (s *Screen) InsertLine(n int) bool {
 	}
 
 	s.buf.InsertLineArea(y, n, s.blankCell(), s.scroll)
+	s.insertWrappedRows(y, n, s.scroll)
 
 	return true
 }
@@ -363,10 +370,11 @@ func (s *Screen) DeleteLine(n int) bool {
 		scroll.Min.X == 0 && scroll.Max.X == s.buf.Width() {
 		// Save lines that will be deleted
 		linesToSave := min(n, scroll.Max.Y-y)
-		s.scrollback.PushN(s.buf, y, linesToSave)
+		s.scrollback.PushN(s.buf, s.wrapped, y, linesToSave)
 	}
 
 	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
+	s.deleteWrappedRows(y, n, scroll)
 
 	return true
 }
@@ -409,4 +417,45 @@ func (s *Screen) SetScrollbackSize(maxLines int) {
 	} else {
 		s.scrollback.SetMaxLines(maxLines)
 	}
+}
+
+// setCurrentRowWrapped records whether the cursor row begins as an autowrap
+// continuation. Explicit line transitions call this with false.
+func (s *Screen) setCurrentRowWrapped(wrapped bool) {
+	_, y := s.CursorPosition()
+	if y >= 0 && y < len(s.wrapped) {
+		s.wrapped[y] = wrapped
+	}
+}
+
+func (s *Screen) rowWrapped(y int) bool {
+	return y >= 0 && y < len(s.wrapped) && s.wrapped[y]
+}
+
+func (s *Screen) insertWrappedRows(y, n int, area uv.Rectangle) {
+	maxY := min(area.Max.Y, len(s.wrapped))
+	n = min(n, maxY-y)
+	if n <= 0 || y < 0 || y >= maxY {
+		return
+	}
+	if area.Min.X != 0 || area.Max.X != s.buf.Width() {
+		clear(s.wrapped[y:maxY])
+		return
+	}
+	copy(s.wrapped[y+n:maxY], s.wrapped[y:maxY-n])
+	clear(s.wrapped[y : y+n])
+}
+
+func (s *Screen) deleteWrappedRows(y, n int, area uv.Rectangle) {
+	maxY := min(area.Max.Y, len(s.wrapped))
+	n = min(n, maxY-y)
+	if n <= 0 || y < 0 || y >= maxY {
+		return
+	}
+	if area.Min.X != 0 || area.Max.X != s.buf.Width() {
+		clear(s.wrapped[y:maxY])
+		return
+	}
+	copy(s.wrapped[y:maxY-n], s.wrapped[y+n:maxY])
+	clear(s.wrapped[maxY-n : maxY])
 }

@@ -215,32 +215,21 @@ func (e *Emulator) CursorPosition() uv.Position {
 
 // Resize resizes the terminal.
 func (e *Emulator) Resize(width int, height int) {
-	x, y := e.scr.CursorPosition()
+	wasPhantom := e.atPhantom
 	if e.atPhantom {
-		if x < width-1 {
-			e.atPhantom = false
-			x++
-		}
-	}
-
-	if y < 0 {
-		y = 0
-	}
-	if y >= height {
-		y = height - 1
-	}
-	if x < 0 {
-		x = 0
-	}
-	if x >= width {
-		x = width - 1
+		// The cursor is logically one column after the final cell while the
+		// terminal is in pending-wrap state. Expose that offset to semantic
+		// reflow; Screen.resizeReflow maps it to the new physical row.
+		e.scr.cur.X++
 	}
 
 	e.scrs[0].Resize(width, height)
 	e.scrs[1].Resize(width, height)
 	e.tabstops = uv.DefaultTabStops(width)
 
+	x, y := e.scr.CursorPosition()
 	e.setCursor(x, y)
+	e.atPhantom = wasPhantom && x >= width-1
 
 	if e.isModeSet(ansi.ModeInBandResize) {
 		_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
