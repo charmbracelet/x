@@ -18,12 +18,18 @@ var cases = []struct {
 	{"combining", "a\u0300", "à", 1, 1},
 	{"control", "\x1b[31mhello\x1b[0m", "hello", 5, 5},
 	{"csi8", "\x9b38;5;1mhello\x9bm", "hello", 5, 5},
-	{"osc", "\x9d2;charmbracelet: ~/Source/bubbletea\x9c", "", 0, 0},
+	// 7-bit ST equivalent of \x9d ... \x9c. 8-bit C1 ST (0x9C) is no longer
+	// recognized because it collides with UTF-8 continuation bytes.
+	{"osc", "\x9d2;charmbracelet: ~/Source/bubbletea\x1b\\", "", 0, 0},
 	{"controlemoji", "\x1b[31m👋\x1b[0m", "👋", 2, 2},
 	{"oscwideemoji", "\x1b]2;title👨‍👩‍👦\x07", "", 0, 0},
 	{"oscwideemoji", "\x1b[31m👨‍👩‍👦\x1b[m", "👨\u200d👩\u200d👦", 2, 2},
 	{"multiemojicsi", "👨‍👩‍👦\x9b38;5;1mhello\x9bm", "👨‍👩‍👦hello", 7, 7},
-	{"osc8eastasianlink", "\x9d8;id=1;https://example.com/\x9c打豆豆\x9d8;id=1;\x07", "打豆豆", 6, 6},
+	// 7-bit ST equivalent of the original \x9d ... \x9c ... \x9d ... \x07
+	// sequence. 8-bit C1 ST (0x9C) is no longer recognized because it
+	// collides with UTF-8 continuation bytes; OSC 8 hyperlinks must use 7-bit
+	// ST (ESC \\) or BEL as the terminator.
+	{"osc8eastasianlink", "\x9d8;id=1;https://example.com/\x1b\\打豆豆\x9d8;id=1;\x07", "打豆豆", 6, 6},
 	{"dcsarabic", "\x1bP?123$pسلام\x1b\\اهلا", "اهلا", 4, 4},
 	{"newline", "hello\nworld", "hello\nworld", 10, 10},
 	{"tab", "hello\tworld", "hello\tworld", 10, 10},

@@ -70,15 +70,9 @@ func TestDecodeSequence(t *testing.T) {
 				{seq: []byte("\x1bP1;2+xa\x7fb\x1b\\"), n: 12, params: []int{1, 2}, data: []byte{'a', DEL, 'b'}, cmd: 'x' | '+'<<16},
 			},
 		},
-		{
-			name:  "ST in the middle of DCS",
-			input: []byte("\x1bP1;2+xa\x9cb\x1b\\"),
-			expected: []expectedSequence{
-				{seq: []byte("\x1bP1;2+xa\x9c"), n: 9, params: []int{1, 2}, data: []byte{'a'}, cmd: 'x' | '+'<<16},
-				{seq: []byte{'b'}, n: 1, width: 1},
-				{seq: []byte("\x1b\\"), n: 2, cmd: '\\'},
-			},
-		},
+		// (removed) "ST in the middle of DCS": this exercised 8-bit C1 ST
+		// (0x9C) as a DCS terminator, which is no longer recognized because
+		// 0x9C is also a valid UTF-8 continuation byte. Use ESC \\ for ST.
 		{
 			name:     "CSI style sequence",
 			input:    []byte("\x1b[1;2;3m"),
@@ -101,17 +95,10 @@ func TestDecodeSequence(t *testing.T) {
 			input:    []byte("\x1b]11;ff/00/ff\x1b\\"),
 			expected: []expectedSequence{{seq: []byte("\x1b]11;ff/00/ff\x1b\\"), n: 15, cmd: 11, data: []byte("11;ff/00/ff")}},
 		},
-		{
-			name:  "set background OSC sequence with ST 8-bit terminator",
-			input: []byte("\x1b]11;ff/00/ff\x9c\x1baa\x8fa"),
-			expected: []expectedSequence{
-				{seq: []byte("\x1b]11;ff/00/ff\x9c"), n: 14, cmd: 11, data: []byte("11;ff/00/ff")},
-				{seq: []byte{ESC, 'a'}, n: 2, cmd: 'a'},
-				{seq: []byte{'a'}, n: 1, width: 1},
-				{seq: []byte{SS3}, n: 1},
-				{seq: []byte{'a'}, n: 1, width: 1},
-			},
-		},
+		// (removed) "set background OSC sequence with ST 8-bit terminator":
+		// this exercised 8-bit C1 ST (0x9C) as an OSC terminator, which is
+		// no longer recognized because 0x9C is also a valid UTF-8
+		// continuation byte. Use ESC \\ or BEL for ST.
 		{
 			name:  "set background OSC sequence followed by ESC sequence",
 			input: []byte("\x1b]11;ff/00/ff\x1b[1;2;3m"),
