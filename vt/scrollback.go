@@ -9,20 +9,11 @@ import (
 // DefaultScrollbackSize is the default maximum number of lines in the scrollback buffer.
 const DefaultScrollbackSize = 10000
 
-// Scrollback represents a scrollback buffer that stores lines scrolled off the screen.
+// Scrollback stores retained semantic rows. Its public read API returns value
+// projections so callers cannot mutate retained terminal state through aliases.
 type Scrollback struct {
-	rows     []ScrollbackRow
+	rows     []semanticRow
 	maxLines int
-}
-
-// ScrollbackRow is a physical terminal row plus the semantic boundary that
-// precedes it. Wrapped is true only when the row continues a terminal
-// autowrap from the previous retained row. HeadTruncated marks a retained
-// fragment whose preceding soft-wrapped rows were evicted by the cap.
-type ScrollbackRow struct {
-	Line          uv.Line
-	Wrapped       bool
-	HeadTruncated bool
 }
 
 // NewScrollback creates a new scrollback buffer with the given maximum number of lines.
@@ -31,65 +22,69 @@ func NewScrollback(maxLines int) *Scrollback {
 		maxLines = DefaultScrollbackSize
 	}
 	return &Scrollback{
-		rows:     make([]ScrollbackRow, 0, min(maxLines, 1000)), // Pre-allocate reasonable capacity
+		rows:     make([]semanticRow, 0, min(maxLines, 1000)),
 		maxLines: maxLines,
 	}
 }
 
-// Push adds a line to the scrollback buffer.
-// If the buffer is full, the oldest line is removed.
+// Push adds a hard-boundary line to the scrollback buffer.
 func (s *Scrollback) Push(line uv.Line) {
-	s.PushWrapped(line, false)
+	s.pushSemanticRow(semanticRow{line: line, boundary: boundaryHard})
 }
 
-// PushWrapped adds a row while preserving whether it is a soft-wrap
-// continuation of the previous physical row.
-func (s *Scrollback) PushWrapped(line uv.Line, wrapped bool) {
+// PushN adds n hard-boundary lines from the buffer starting at line y.
+// Semantic screen transfers use pushSemanticRows so boundary provenance stays
+// inside the owning package rather than widening this established API.
+func (s *Scrollback) PushN(buf *uv.RenderBuffer, y, n int) {
+	if s == nil || buf == nil || n <= 0 || y < 0 || y >= buf.Height() {
+		return
+	}
+	for i := range min(n, buf.Height()-y) {
+		if line := buf.Line(y + i); line != nil {
+			s.Push(line)
+		}
+	}
+}
+
+func (s *Scrollback) pushSemanticRows(rows []semanticRow) {
+	for _, row := range rows {
+		s.pushSemanticRow(row)
+	}
+}
+
+func (s *Scrollback) pushSemanticRow(row semanticRow) {
 	if s == nil || s.maxLines <= 0 {
 		return
 	}
+	row.line = trimAndCloneLine(row.line)
+	if !row.boundary.valid() {
+		row.boundary = boundaryHard
+	}
+	if len(s.rows) == 0 && row.boundary == boundarySoft {
+		row.boundary = boundaryTruncatedHead
+	}
+	s.rows = append(s.rows, row)
+	if len(s.rows) > s.maxLines {
+		s.rows = slices.Delete(s.rows, 0, len(s.rows)-s.maxLines)
+		s.normalizeHead()
+	}
+}
 
-	// Find last non-empty cell to trim trailing empty cells.
-	// This helps with wrapping and window resizing.
+func trimAndCloneLine(line uv.Line) uv.Line {
 	lastNonEmpty := -1
 	for i := len(line) - 1; i >= 0; i-- {
-		c := &line[i]
-		if !c.IsZero() && !c.Equal(&uv.EmptyCell) {
+		cell := &line[i]
+		if !cell.IsZero() && !cell.Equal(&uv.EmptyCell) {
 			lastNonEmpty = i
 			break
 		}
 	}
-
-	// Clone the line content up to and including the last non-empty cell
-	cloned := slices.Clone(line[:lastNonEmpty+1])
-
-	evicted := len(s.rows) >= s.maxLines
-	if evicted {
-		// Remove oldest line and append new one
-		s.rows = slices.Delete(s.rows, 0, 1)
-		if len(s.rows) > 0 && s.rows[0].Wrapped {
-			s.rows[0].Wrapped = false
-			s.rows[0].HeadTruncated = true
-		}
-	}
-	s.rows = append(s.rows, ScrollbackRow{Line: cloned, Wrapped: wrapped})
-	if evicted && len(s.rows) > 0 && s.rows[0].Wrapped {
-		s.rows[0].Wrapped = false
-		s.rows[0].HeadTruncated = true
-	}
+	return slices.Clone(line[:lastNonEmpty+1])
 }
 
-// PushN adds n lines from the buffer starting at line y to the scrollback.
-func (s *Scrollback) PushN(buf *uv.RenderBuffer, wrapped []bool, y, n int) {
-	if s == nil || buf == nil || n <= 0 {
-		return
-	}
-
-	for i := range min(n, buf.Height()-y) {
-		if line := buf.Line(y + i); line != nil {
-			isWrapped := y+i < len(wrapped) && wrapped[y+i]
-			s.PushWrapped(line, isWrapped)
-		}
+func (s *Scrollback) normalizeHead() {
+	if len(s.rows) > 0 && s.rows[0].boundary == boundarySoft {
+		s.rows[0].boundary = boundaryTruncatedHead
 	}
 }
 
@@ -110,84 +105,73 @@ func (s *Scrollback) MaxLines() int {
 }
 
 // SetMaxLines sets the maximum number of lines in the scrollback buffer.
-// If the current number of lines exceeds the new maximum, oldest lines are removed.
 func (s *Scrollback) SetMaxLines(maxLines int) {
 	if s == nil || maxLines <= 0 {
 		return
 	}
-
 	s.maxLines = maxLines
 	if len(s.rows) > maxLines {
-		// Remove oldest lines
-		s.rows = s.rows[len(s.rows)-maxLines:]
-		if len(s.rows) > 0 && s.rows[0].Wrapped {
-			s.rows[0].Wrapped = false
-			s.rows[0].HeadTruncated = true
-		}
+		s.rows = slices.Clone(s.rows[len(s.rows)-maxLines:])
+		s.normalizeHead()
 	}
 }
 
-// Line returns the line at the given index.
-// Index 0 is the oldest line, Len()-1 is the most recent.
-// Returns nil if index is out of bounds.
+// Line returns a defensive copy of the line at the given index.
 func (s *Scrollback) Line(index int) uv.Line {
 	if s == nil || index < 0 || index >= len(s.rows) {
 		return nil
 	}
-	return s.rows[index].Line
+	return slices.Clone(s.rows[index].line)
 }
 
-// Lines returns all lines in the scrollback buffer.
-// Index 0 is the oldest line.
+// Lines returns defensive copies of all retained lines, oldest first.
 func (s *Scrollback) Lines() []uv.Line {
 	if s == nil {
 		return nil
 	}
 	lines := make([]uv.Line, len(s.rows))
 	for i := range s.rows {
-		lines[i] = s.rows[i].Line
+		lines[i] = slices.Clone(s.rows[i].line)
 	}
 	return lines
 }
 
-// Rows returns the retained rows and their boundary provenance.
-func (s *Scrollback) Rows() []ScrollbackRow {
+func (s *Scrollback) semanticRows() []semanticRow {
 	if s == nil {
 		return nil
 	}
-	return s.rows
+	rows := make([]semanticRow, len(s.rows))
+	for i, row := range s.rows {
+		rows[i] = cloneSemanticRow(row)
+	}
+	return rows
 }
 
-// ReplaceRows atomically replaces retained history after a semantic reflow.
-func (s *Scrollback) ReplaceRows(rows []ScrollbackRow) {
+func (s *Scrollback) replaceSemanticRows(rows []semanticRow) {
 	if s == nil {
 		return
 	}
 	if len(rows) > s.maxLines {
 		rows = rows[len(rows)-s.maxLines:]
-		if len(rows) > 0 && rows[0].Wrapped {
-			rows[0].Wrapped = false
-			rows[0].HeadTruncated = true
-		}
 	}
-	s.rows = slices.Clone(rows)
+	s.rows = make([]semanticRow, len(rows))
+	for i, row := range rows {
+		s.rows[i] = cloneSemanticRow(row)
+	}
+	s.normalizeHead()
 }
 
 // Clear removes all lines from the scrollback buffer.
 func (s *Scrollback) Clear() {
-	if s == nil {
-		return
+	if s != nil {
+		s.rows = s.rows[:0]
 	}
-	s.rows = s.rows[:0]
 }
 
-// CellAt returns the cell at the given position in the scrollback buffer.
-// x is the column, y is the line index (0 = oldest).
-// Returns nil if position is out of bounds.
+// CellAt returns a defensive copy of a cell in the scrollback buffer.
 func (s *Scrollback) CellAt(x, y int) *uv.Cell {
-	line := s.Line(y)
-	if line == nil || x < 0 || x >= len(line) {
+	if s == nil || y < 0 || y >= len(s.rows) || x < 0 || x >= len(s.rows[y].line) {
 		return nil
 	}
-	return &line[x]
+	return s.rows[y].line[x].Clone()
 }

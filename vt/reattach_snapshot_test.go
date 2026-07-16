@@ -5,12 +5,21 @@ import (
 	"testing"
 )
 
+func snapshotString(t *testing.T, e *Emulator) string {
+	t.Helper()
+	snapshot, err := e.ReattachSnapshot()
+	if err != nil {
+		t.Fatalf("ReattachSnapshot() error = %v", err)
+	}
+	return string(snapshot)
+}
+
 func TestReattachSnapshotPreservesSoftAndHardBoundaries(t *testing.T) {
 	t.Run("terminal autowrap stays soft", func(t *testing.T) {
 		e := NewEmulator(5, 3)
 		e.WriteString("abcdefghij")
 
-		got := string(e.ReattachSnapshot())
+		got := snapshotString(t, e)
 		if !strings.Contains(got, "abcdefghij") {
 			t.Fatalf("snapshot = %q, want contiguous soft-wrapped text", got)
 		}
@@ -23,7 +32,7 @@ func TestReattachSnapshotPreservesSoftAndHardBoundaries(t *testing.T) {
 		e := NewEmulator(5, 3)
 		e.WriteString("abcde\r\nfghij")
 
-		got := string(e.ReattachSnapshot())
+		got := snapshotString(t, e)
 		if !strings.Contains(got, "abcde\r\nfghij") {
 			t.Fatalf("snapshot = %q, want application newline to remain hard", got)
 		}
@@ -51,7 +60,7 @@ func TestResizeReflowsPrimaryHistoryAndCursor(t *testing.T) {
 	}
 
 	e.Resize(5, 3)
-	got := string(e.ReattachSnapshot())
+	got := snapshotString(t, e)
 	if !strings.Contains(got, "abcdefghijk") {
 		t.Fatalf("snapshot after shrink = %q, want logical text preserved", got)
 	}
@@ -62,13 +71,13 @@ func TestResizePreservesHardBoundariesAndUnicodeCells(t *testing.T) {
 	e.WriteString("ab界e\u0301z\r\nsecond")
 
 	e.Resize(12, 3)
-	got := string(e.ReattachSnapshot())
+	got := snapshotString(t, e)
 	if !strings.Contains(got, "ab界e\u0301z\r\nsecond") {
 		t.Fatalf("snapshot after widening = %q, want Unicode cells and hard newline preserved", got)
 	}
 
 	e.Resize(4, 4)
-	got = string(e.ReattachSnapshot())
+	got = snapshotString(t, e)
 	if !strings.Contains(got, "ab界e\u0301z") {
 		t.Fatalf("snapshot after narrowing = %q, want Unicode logical row preserved", got)
 	}
@@ -82,14 +91,14 @@ func TestScrollbackCapMarksTruncatedSoftWrapHead(t *testing.T) {
 	e.SetScrollbackSize(1)
 	e.WriteString("abcdefghijk")
 
-	rows := e.scr.scrollback.Rows()
+	rows := e.scr.scrollback.semanticRows()
 	if len(rows) != 1 {
 		t.Fatalf("scrollback rows = %d, want 1", len(rows))
 	}
-	if rows[0].Wrapped || !rows[0].HeadTruncated {
-		t.Fatalf("retained head boundary = {Wrapped:%v HeadTruncated:%v}, want hard truncated head", rows[0].Wrapped, rows[0].HeadTruncated)
+	if rows[0].boundary != boundaryTruncatedHead {
+		t.Fatalf("retained head boundary = %v, want truncated head", rows[0].boundary)
 	}
-	got := string(e.ReattachSnapshot())
+	got := snapshotString(t, e)
 	if strings.Contains(got, "abcde") || !strings.Contains(got, "fghijk") {
 		t.Fatalf("snapshot = %q, want only retained logical suffix", got)
 	}
@@ -101,7 +110,7 @@ func TestResizePreservesExactColumnPendingWrap(t *testing.T) {
 	e.Resize(10, 2)
 	e.WriteString("k")
 
-	if got := string(e.ReattachSnapshot()); !strings.Contains(got, "abcdefghijk") {
+	if got := snapshotString(t, e); !strings.Contains(got, "abcdefghijk") {
 		t.Fatalf("snapshot = %q, want pending-wrap continuation after widening", got)
 	}
 	if got := e.CursorPosition(); got.X != 1 || got.Y != 1 {
