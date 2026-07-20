@@ -3,7 +3,7 @@ module github.com/charmbracelet/x/ansi
 go 1.24.2
 
 require (
-	github.com/bits-and-blooms/bitset v1.24.5
+	github.com/bits-and-blooms/bitset v1.24.6
 	github.com/clipperhouse/displaywidth v0.11.0
 	github.com/clipperhouse/uax29/v2 v2.7.0
 	github.com/lucasb-eyer/go-colorful v1.4.0
