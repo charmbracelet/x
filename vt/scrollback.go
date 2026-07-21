@@ -1,7 +1,7 @@
 package vt
 
 import (
-	"slices"
+	"sync"
 
 	uv "github.com/charmbracelet/ultraviolet"
 )
@@ -13,6 +13,7 @@ const DefaultScrollbackSize = 10000
 type Scrollback struct {
 	lines    []uv.Line
 	maxLines int
+	linePool sync.Pool
 }
 
 // NewScrollback creates a new scrollback buffer with the given maximum number of lines.
@@ -44,14 +45,19 @@ func (s *Scrollback) Push(line uv.Line) {
 		}
 	}
 
-	// Clone the line content up to and including the last non-empty cell
-	cloned := slices.Clone(line[:lastNonEmpty+1])
-
+	trimmed := line[:lastNonEmpty+1]
+	var recycled uv.Line
 	if len(s.lines) >= s.maxLines {
-		// Remove oldest line and append new one
-		s.lines = slices.Delete(s.lines, 0, 1)
+		// Reuse the evicted line buffer when possible to avoid a fresh
+		// allocation for every push once scrollback is full.
+		recycled = s.lines[0]
+		copy(s.lines, s.lines[1:])
+		s.lines = s.lines[:len(s.lines)-1]
 	}
-	s.lines = append(s.lines, cloned)
+
+	dst := s.acquireLine(len(trimmed), recycled)
+	copy(dst, trimmed)
+	s.lines = append(s.lines, dst)
 }
 
 // PushN adds n lines from the buffer starting at line y to the scrollback.
@@ -92,7 +98,10 @@ func (s *Scrollback) SetMaxLines(maxLines int) {
 
 	s.maxLines = maxLines
 	if len(s.lines) > maxLines {
-		// Remove oldest lines
+		trimmed := s.lines[:len(s.lines)-maxLines]
+		for _, line := range trimmed {
+			s.releaseLine(line)
+		}
 		s.lines = s.lines[len(s.lines)-maxLines:]
 	}
 }
@@ -121,7 +130,34 @@ func (s *Scrollback) Clear() {
 	if s == nil {
 		return
 	}
+	for _, line := range s.lines {
+		s.releaseLine(line)
+	}
 	s.lines = s.lines[:0]
+}
+
+func (s *Scrollback) acquireLine(size int, recycled uv.Line) uv.Line {
+	if cap(recycled) >= size {
+		return recycled[:size]
+	}
+	if recycled != nil {
+		s.releaseLine(recycled)
+	}
+	if v := s.linePool.Get(); v != nil {
+		pooled := v.(uv.Line)
+		if cap(pooled) >= size {
+			return pooled[:size]
+		}
+		s.releaseLine(pooled)
+	}
+	return make(uv.Line, size)
+}
+
+func (s *Scrollback) releaseLine(line uv.Line) {
+	if cap(line) == 0 {
+		return
+	}
+	s.linePool.Put(line[:0])
 }
 
 // CellAt returns the cell at the given position in the scrollback buffer.
