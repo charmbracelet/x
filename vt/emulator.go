@@ -82,6 +82,7 @@ func NewEmulator(w, h int) *Emulator {
 	t := new(Emulator)
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
+	t.scrs[1].SetScrollback(nil)
 	t.scr = &t.scrs[0]
 	t.scrs[0].cb = &t.cb
 	t.scrs[1].cb = &t.cb
@@ -131,14 +132,14 @@ func (e *Emulator) Touched() []*uv.LineData {
 
 // String returns a string representation of the underlying screen buffer.
 func (e *Emulator) String() string {
-	s := e.scr.buf.String()
+	s := e.scr.buf.string()
 	return uv.TrimSpace(s)
 }
 
 // Render renders a snapshot of the terminal screen as a string with styles and
 // links encoded as ANSI escape codes.
 func (e *Emulator) Render() string {
-	return e.scr.buf.Render()
+	return e.scr.buf.render()
 }
 
 var _ uv.Screen = (*Emulator)(nil)
@@ -215,32 +216,21 @@ func (e *Emulator) CursorPosition() uv.Position {
 
 // Resize resizes the terminal.
 func (e *Emulator) Resize(width int, height int) {
-	x, y := e.scr.CursorPosition()
+	wasPhantom := e.atPhantom
 	if e.atPhantom {
-		if x < width-1 {
-			e.atPhantom = false
-			x++
-		}
-	}
-
-	if y < 0 {
-		y = 0
-	}
-	if y >= height {
-		y = height - 1
-	}
-	if x < 0 {
-		x = 0
-	}
-	if x >= width {
-		x = width - 1
+		// The cursor is logically one column after the final cell while the
+		// terminal is in pending-wrap state. Expose that offset to semantic
+		// reflow; Screen.resizeReflow maps it to the new physical row.
+		e.scr.cur.X++
 	}
 
 	e.scrs[0].Resize(width, height)
-	e.scrs[1].Resize(width, height)
-	e.tabstops = uv.DefaultTabStops(width)
+	e.scrs[1].resizePhysical(width, height)
+	e.tabstops.Resize(width)
 
+	x, y := e.scr.CursorPosition()
 	e.setCursor(x, y)
+	e.atPhantom = wasPhantom && x >= width-1
 
 	if e.isModeSet(ansi.ModeInBandResize) {
 		_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
