@@ -1753,6 +1753,38 @@ var cases = []struct {
 		pos: uv.Pos(0, 0),
 	},
 
+	// Save Cursor [ansi.DECSC] and Restore Cursor [ansi.DECRC]
+	{
+		name: "DECSC DECRC Restore Cursor Position",
+		w:    10, h: 1,
+		input: []string{
+			"\x1b[1;1H", // move to top-left
+			"\x1b[2J",   // clear screen
+			"\x1b7",     // save cursor position
+			"AAAA",
+			"\x1b8", // restore cursor position
+			"BB",
+		},
+		want: []string{"BBAA      "},
+		pos:  uv.Pos(2, 0),
+	},
+
+	// Save Current Cursor Position [ansi.SCOSC] and Restore Current Cursor Position [ansi.SCORC]
+	{
+		name: "SCOSC SCORC Restore Cursor Position",
+		w:    10, h: 1,
+		input: []string{
+			"\x1b[1;1H", // move to top-left
+			"\x1b[2J",   // clear screen
+			"\x1b[s",    // save cursor position (SCO)
+			"AAAA",
+			"\x1b[u", // restore cursor position (SCO)
+			"BB",
+		},
+		want: []string{"BBAA      "},
+		pos:  uv.Pos(2, 0),
+	},
+
 	// Tab Clear [ansi.TBC]
 	{
 		name: "TBC Clear Single Tab Stop",
