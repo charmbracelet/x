@@ -1,6 +1,7 @@
 {
   "ada_ls": {"command": "ada_language_server", "filetypes": ["ada"], "root_markers": ["Makefile", ".git", "alire.toml", "*.gpr", "*.adc"]},
   "agda_ls": {"command": "als", "filetypes": ["agda"], "root_markers": [".git", "*.agda-lib"]},
+  "agentscript": {"args": ["--stdio"], "command": "agentscript-lsp", "filetypes": ["agentscript"], "root_markers": ["package.json", ".git"]},
   "aiken": {"args": ["lsp"], "command": "aiken", "filetypes": ["aiken"], "root_markers": ["aiken.toml", ".git"]},
   "air": {"args": ["language-server"], "command": "air", "filetypes": ["r"], "root_markers": ["air.toml", ".air.toml", ".git"]},
   "alloy_ls": {"args": ["lsp"], "command": "alloy", "filetypes": ["alloy"], "root_markers": [".git"]},
