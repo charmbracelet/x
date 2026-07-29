@@ -1,9 +1,11 @@
 package kitty
 
 import (
+	"math"
 	"reflect"
 	"slices"
 	"sort"
+	"strconv"
 	"testing"
 )
 
@@ -133,6 +135,21 @@ func TestOptions_Options(t *testing.T) {
 				Delete: 0,
 			},
 			expected: []string{}, // Should use defaults and not generate options
+		},
+		{
+			name:     "positive z-index",
+			options:  Options{Z: 1},
+			expected: []string{"z=1"},
+		},
+		{
+			name:     "negative z-index",
+			options:  Options{Z: -1},
+			expected: []string{"z=-1"},
+		},
+		{
+			name:     "very negative z-index",
+			options:  Options{Z: math.MinInt32},
+			expected: []string{"z=" + strconv.Itoa(math.MinInt32)},
 		},
 	}
 

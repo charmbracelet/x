@@ -248,7 +248,7 @@ func (o *Options) Options() (opts []string) {
 		opts = append(opts, fmt.Sprintf("y=%d", o.Y))
 	}
 
-	if o.Z > 0 {
+	if o.Z != 0 {
 		opts = append(opts, fmt.Sprintf("z=%d", o.Z))
 	}
 
