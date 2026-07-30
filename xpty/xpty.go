@@ -76,6 +76,11 @@ func NewPty(width, height int, opts ...PtyOption) (Pty, error) {
 // WaitProcess waits for the process to exit.
 // This exists because on Windows, cmd.Wait() doesn't work with ConPty.
 // When the OS is not windows, it'll simply fall back to cmd.Wait().
+//
+// If ctx is canceled, the process is killed, WaitProcess waits for it to be
+// reaped, and the returned error reports the cancellation: ctx.Err() on a
+// successful kill, or an error joining ctx.Err() and the kill error if the
+// kill itself failed.
 func WaitProcess(ctx context.Context, cmd *exec.Cmd) (err error) {
 	if runtime.GOOS != "windows" {
 		return cmd.Wait() //nolint:wrapcheck
@@ -98,10 +103,25 @@ func WaitProcess(ctx context.Context, cmd *exec.Cmd) (err error) {
 
 	select {
 	case <-ctx.Done():
-		err = cmd.Process.Kill()
+		killErr := cmd.Process.Kill()
+		// Reap the process so it doesn't linger as a zombie.
+		r := <-donec
+		cmd.ProcessState = r.ProcessState
+		if killErr != nil {
+			return errors.Join(ctx.Err(), killErr)
+		}
+		return ctx.Err() //nolint:wrapcheck // sentinel; callers use errors.Is
 	case r := <-donec:
 		cmd.ProcessState = r.ProcessState
 		err = r.error
+	}
+
+	// On Windows, os.Process.Wait returns nil even when the process exits
+	// with a non-zero code; the *exec.ExitError that exec.Cmd.Wait would
+	// return never materializes. Synthesize it so callers get the same
+	// error shape as exec.Cmd.Wait on any platform.
+	if err == nil && cmd.ProcessState != nil && !cmd.ProcessState.Success() {
+		err = &exec.ExitError{ProcessState: cmd.ProcessState}
 	}
 
 	return err
