@@ -3,6 +3,7 @@ package vt
 import (
 	"image/color"
 	"io"
+	"sync/atomic"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/ultraviolet/screen"
@@ -67,8 +68,9 @@ type Emulator struct {
 	gl, gr  int
 	gsingle int // temporarily select GL or GR
 
-	// Indicates if the terminal is closed.
-	closed bool
+	// Indicates if the terminal is closed. Atomic because Close is the only
+	// way to unblock a parked Read, so the two necessarily run concurrently.
+	closed atomic.Bool
 
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
@@ -249,7 +251,7 @@ func (e *Emulator) Resize(width int, height int) {
 
 // Read reads data from the terminal input buffer.
 func (e *Emulator) Read(p []byte) (n int, err error) {
-	if e.closed {
+	if e.closed.Load() {
 		return 0, io.EOF
 	}
 
@@ -258,17 +260,16 @@ func (e *Emulator) Read(p []byte) (n int, err error) {
 
 // Close closes the terminal.
 func (e *Emulator) Close() error {
-	if e.closed {
+	if !e.closed.CompareAndSwap(false, true) {
 		return nil
 	}
 
-	e.closed = true
 	return e.pw.CloseWithError(io.EOF) //nolint:wrapcheck
 }
 
 // Write writes data to the terminal output buffer.
 func (e *Emulator) Write(p []byte) (n int, err error) {
-	if e.closed {
+	if e.closed.Load() {
 		return 0, io.ErrClosedPipe
 	}
 
