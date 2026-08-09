@@ -5,7 +5,6 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -42,8 +41,7 @@ func RequireEqual[T []byte | string](tb testing.TB, out T) {
 		tb.Fatal(err)
 	}
 
-	goldenStr := normalizeWindowsLineBreaks(string(goldenBts))
-	goldenStr = escapeSeqs(goldenStr)
+	goldenStr := escapeSeqs(string(goldenBts))
 	outStr := escapeSeqs(string(out))
 
 	diff := udiff.Unified("golden", "run", goldenStr, outStr)
@@ -71,13 +69,4 @@ func escapeSeqs(in string) string {
 		s[i] = q
 	}
 	return strings.Join(s, "\n")
-}
-
-// normalizeWindowsLineBreaks replaces all \r\n with \n.
-// This is needed because Git for Windows checks out with \r\n by default.
-func normalizeWindowsLineBreaks(str string) string {
-	if runtime.GOOS == "windows" {
-		return strings.ReplaceAll(str, "\r\n", "\n")
-	}
-	return str
 }
