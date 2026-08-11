@@ -136,7 +136,7 @@ func (s *sixelBuilder) SetColor(x int, y int, color color.Color) {
 	paletteIndex := s.SixelPalette.ColorIndex(sixelConvertColor(color))
 
 	bit := s.BandHeight()*s.imageWidth*6*paletteIndex + bandY*s.imageWidth*6 + (x * 6) + (y % 6)
-	s.pixelBands.Set(uint(bit)) //nolint:gosec
+	s.pixelBands.Set(uint(bit))
 }
 
 // GeneratePixels is used to write the pixel data to the internal imageData string builder.
@@ -166,8 +166,8 @@ func (s *sixelBuilder) GeneratePixels() string {
 				continue
 			}
 
-			firstColorBit := uint(s.BandHeight()*s.imageWidth*6*paletteIndex + bandY*s.imageWidth*6) //nolint:gosec
-			nextColorBit := firstColorBit + uint(s.imageWidth*6)                                     //nolint:gosec
+			firstColorBit := uint(s.BandHeight()*s.imageWidth*6*paletteIndex + bandY*s.imageWidth*6)
+			nextColorBit := firstColorBit + uint(s.imageWidth*6)
 
 			firstSetBitInBand, anySet := s.pixelBands.NextSet(firstColorBit)
 			if !anySet || firstSetBitInBand >= nextColorBit {
@@ -183,7 +183,7 @@ func (s *sixelBuilder) GeneratePixels() string {
 			s.writeControlRune(ColorIntroducer)
 			s.imageData.WriteString(strconv.Itoa(paletteIndex))
 			for x := 0; x < s.imageWidth; x += 4 {
-				bit := firstColorBit + uint(x*6) //nolint:gosec
+				bit := firstColorBit + uint(x*6)
 				word := s.pixelBands.GetWord64AtBit(bit)
 
 				pixel1 := byte((word & 63) + '?')

@@ -189,7 +189,7 @@ func (p *sixelPalette) quantize(uniqueColors []sixelColor, pixelCounts map[sixel
 		// Then can delete palette_sort.go
 		sortFunc(uniqueColors[cubeToSplit.startIndex:cubeToSplit.startIndex+cubeToSplit.length],
 			func(left sixelColor, right sixelColor) int {
-				switch cubeToSplit.sliceChannel { //nolint:exhaustive // alpha channel not used
+				switch cubeToSplit.sliceChannel { // alpha channel not used
 				case quantizationRed:
 					return compare(left.Red, right.Red)
 				case quantizationGreen:

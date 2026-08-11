@@ -12,6 +12,8 @@ var (
 	_ encoding.TextUnmarshaler = &Options{}
 )
 
+// Stringish is a type constraint for types that are either a string or a
+// byte slice.
 type Stringish interface{ string | []byte }
 
 // Options represents a Kitty Graphics Protocol options.
@@ -335,7 +337,7 @@ func (o *Options) UnmarshalText(text []byte) error {
 			case "i":
 				o.ID = v
 			case "q":
-				o.Quiet = byte(v)
+				o.Quiet = byte(v) //nolint:gosec
 			case "p":
 				o.PlacementID = v
 			case "I":
