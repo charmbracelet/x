@@ -157,14 +157,23 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddOne(']', EscapeState, StartAction, OscStringState)
 
 	// Sos_pm_apc_string
+	//
+	// String payload extends to 0xFF so that the C1 ST (0x9C) and UTF-8 lead
+	// bytes installed by the Anywhere block above are overwritten with
+	// PutAction here — otherwise 0x9C would terminate the sequence (which
+	// collides with the 0x9C continuation byte of multi-byte UTF-8 chars such
+	// as U+2733 ✳ = 0xE2 0x9C 0xB3), and 0xC2..0xF4 would transition into
+	// Utf8State and return to GroundState mid-string. ESC \\ (7-bit ST) and
+	// CAN/SUB are kept as terminators below; the 8-bit C1 ST is intentionally
+	// dropped (callers must use ESC \\).
 	for _, state := range r(SosStringState, ApcStringState) {
 		table.AddRange(0x00, 0x17, state, PutAction, state)
 		table.AddOne(0x19, state, PutAction, state)
 		table.AddRange(0x1C, 0x1F, state, PutAction, state)
-		table.AddRange(0x20, 0x7F, state, PutAction, state)
-		// ESC, ST, CAN, and SUB terminate the sequence
+		table.AddRange(0x20, 0xFF, state, PutAction, state)
+		// ESC, CAN, and SUB terminate the sequence (8-bit C1 ST 0x9C is no
+		// longer recognized; see block comment above).
 		table.AddOne(0x1B, state, DispatchAction, EscapeState)
-		table.AddOne(0x9C, state, DispatchAction, GroundState)
 		table.AddMany([]byte{0x18, 0x1A}, state, IgnoreAction, GroundState)
 	}
 
@@ -214,10 +223,12 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x1C, 0x1F, DcsStringState, PutAction, DcsStringState)
 	table.AddRange(0x20, 0x7E, DcsStringState, PutAction, DcsStringState)
 	table.AddOne(0x7F, DcsStringState, PutAction, DcsStringState)
-	table.AddRange(0x80, 0xFF, DcsStringState, PutAction, DcsStringState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF
-	// ST, CAN, SUB, and ESC terminate the sequence
+	table.AddRange(0x80, 0xFF, DcsStringState, PutAction, DcsStringState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF; this also overrides the Anywhere C1 ST (0x9C) and UTF-8 lead-byte entries so they no longer break the DCS string.
+	// ESC, CAN, and SUB terminate the sequence (8-bit C1 ST 0x9C is no
+	// longer recognized here; UTF-8 continuation bytes happen to equal 0x9C —
+	// e.g. U+2733 ✳ = 0xE2 0x9C 0xB3 — and would otherwise truncate the DCS
+	// payload mid-character. Callers must use ESC \\ for ST termination).
 	table.AddOne(0x1B, DcsStringState, DispatchAction, EscapeState)
-	table.AddOne(0x9C, DcsStringState, DispatchAction, GroundState)
 	table.AddMany([]byte{0x18, 0x1A}, DcsStringState, IgnoreAction, GroundState)
 
 	// Csi_param
@@ -257,16 +268,27 @@ func GenerateTransitionTable() TransitionTable {
 	table.AddRange(0x3C, 0x3F, CsiEntryState, PrefixAction, CsiParamState)
 
 	// Osc_string
+	//
+	// String payload extends to 0xFF so that the C1 ST (0x9C) and UTF-8 lead
+	// bytes installed by the Anywhere block above are overwritten with
+	// PutAction here — otherwise 0x9C would terminate the OSC (which collides
+	// with the 0x9C continuation byte of multi-byte UTF-8 chars such as
+	// U+2733 ✳ = 0xE2 0x9C 0xB3, splitting OSC titles in half), and
+	// 0xC2..0xF4 would transition into Utf8State and return to GroundState
+	// mid-string. ESC \\ (7-bit ST) and BEL are kept as terminators below;
+	// the 8-bit C1 ST is intentionally dropped (callers must use ESC \\ or
+	// BEL). NB: line below is intentionally a single AddRange covering 0x9C
+	// and the UTF-8 lead range; do not also re-add AddOne(0x9C, …) — that
+	// reads as "this fixes the bug" but is a no-op against the same AddRange.
 	table.AddRange(0x00, 0x06, OscStringState, IgnoreAction, OscStringState)
 	table.AddRange(0x08, 0x17, OscStringState, IgnoreAction, OscStringState)
 	table.AddOne(0x19, OscStringState, IgnoreAction, OscStringState)
 	table.AddRange(0x1C, 0x1F, OscStringState, IgnoreAction, OscStringState)
-	table.AddRange(0x20, 0xFF, OscStringState, PutAction, OscStringState) // Allow Utf8 characters by extending the printable range from 0x7F to 0xFF
-
-	// ST, CAN, SUB, ESC, and BEL terminate the sequence
+	table.AddRange(0x20, 0xFF, OscStringState, PutAction, OscStringState)
+	// ESC, BEL, CAN, and SUB terminate the sequence (8-bit C1 ST 0x9C is no
+	// longer recognized; see block comment above).
 	table.AddOne(0x1B, OscStringState, DispatchAction, EscapeState)
 	table.AddOne(0x07, OscStringState, DispatchAction, GroundState)
-	table.AddOne(0x9C, OscStringState, DispatchAction, GroundState)
 	table.AddMany([]byte{0x18, 0x1A}, OscStringState, IgnoreAction, GroundState)
 
 	return table

@@ -314,13 +314,11 @@ func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (s
 
 				// Cancel the sequence
 				return b[:i], 0, i, NormalState
-			case ST:
-				if HasOscPrefix(b) {
-					// Ensure we parse the OSC command number
-					parseOscCmd(p)
-				}
-
-				return b[:i+1], 0, i + 1, NormalState
+			// NB: 8-bit C1 ST (0x9C) is intentionally NOT handled as a
+			// terminator. UTF-8 continuation bytes happen to equal 0x9C
+			// (e.g. U+2733 ✳ = 0xE2 0x9C 0xB3), so treating it as ST splits
+			// UTF-8 string payloads (OSC titles, DCS data, …) mid-character.
+			// Use 7-bit ST (ESC \\) or BEL to terminate strings.
 			case ESC:
 				if HasStPrefix(b[i:]) {
 					if HasOscPrefix(b) {
