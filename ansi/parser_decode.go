@@ -437,13 +437,13 @@ func FirstGraphemeCluster[T string | []byte](b T, m Method) (T, int) {
 	case string:
 		cluster := graphemes.FromString(b).First()
 		if m == WcWidth {
-			return T(cluster), wcOptions.StringWidth(cluster)
+			return T(cluster), wcClusterWidth(cluster)
 		}
 		return T(cluster), dwOptions.String(cluster)
 	case []byte:
 		cluster := graphemes.FromBytes(b).First()
 		if m == WcWidth {
-			return T(cluster), wcOptions.StringWidth(string(cluster))
+			return T(cluster), wcClusterWidth(cluster)
 		}
 		return T(cluster), dwOptions.Bytes(cluster)
 	}
