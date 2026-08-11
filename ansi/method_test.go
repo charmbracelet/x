@@ -19,8 +19,25 @@ func TestMethod_StringWidth(t *testing.T) {
 		{"wide chars grapheme width", GraphemeWidth, "コンニチハ", 10},
 		{"emoji wcwidth", WcWidth, "😀", 2},
 		{"emoji grapheme width", GraphemeWidth, "😀", 2},
-		{"flag emoji wcwidth", WcWidth, "🏳️‍🌈", 1},
+		// Wcwidth measures per codepoint, so a ZWJ sequence is as wide as the
+		// emoji it joins: a white flag, a zero-width VS16 and ZWJ, and a
+		// rainbow. Grapheme width measures the cluster as the one glyph a
+		// terminal in Unicode core mode draws.
+		{"flag emoji wcwidth", WcWidth, "🏳️‍🌈", 3},
 		{"flag emoji grapheme width", GraphemeWidth, "🏳️‍🌈", 2},
+		// Unicode 15.1 merged Indic conjuncts into single clusters, but a
+		// terminal without Unicode core mode still advances once per
+		// consonant.
+		{"devanagari wcwidth", WcWidth, "नमस्ते", 4},
+		{"devanagari grapheme width", GraphemeWidth, "नमस्ते", 3},
+		{"zwj family wcwidth", WcWidth, "👨‍👩‍👧‍👦", 8},
+		{"zwj family grapheme width", GraphemeWidth, "👨‍👩‍👧‍👦", 2},
+		{"skin tone wcwidth", WcWidth, "👍🏽", 4},
+		{"skin tone grapheme width", GraphemeWidth, "👍🏽", 2},
+		{"combining mark wcwidth", WcWidth, "é", 1},
+		{"combining mark grapheme width", GraphemeWidth, "é", 1},
+		{"vs16 wcwidth", WcWidth, "⚠️", 1},
+		{"vs16 grapheme width", GraphemeWidth, "⚠️", 2},
 	}
 	for _, tt := range tests {
 		if got := tt.m.StringWidth(tt.in); got != tt.want {
