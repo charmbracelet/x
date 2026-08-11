@@ -76,7 +76,7 @@ func ReadStyle(params ansi.Params, pen *Style) {
 		case 29: // Not crossed out
 			pen.Strikethrough(false)
 		case 30, 31, 32, 33, 34, 35, 36, 37: // Set foreground
-			pen.Foreground(ansi.Black + ansi.BasicColor(param-30)) //nolint:gosec
+			pen.Foreground(ansi.Black + ansi.BasicColor(param-30))
 		case 38: // Set foreground 256 or truecolor
 			var c color.Color
 			n := ReadStyleColor(params[i:], &c)
@@ -87,7 +87,7 @@ func ReadStyle(params ansi.Params, pen *Style) {
 		case 39: // Default foreground
 			pen.Foreground(nil)
 		case 40, 41, 42, 43, 44, 45, 46, 47: // Set background
-			pen.Background(ansi.Black + ansi.BasicColor(param-40)) //nolint:gosec
+			pen.Background(ansi.Black + ansi.BasicColor(param-40))
 		case 48: // Set background 256 or truecolor
 			var c color.Color
 			n := ReadStyleColor(params[i:], &c)
@@ -107,9 +107,9 @@ func ReadStyle(params ansi.Params, pen *Style) {
 		case 59: // Default underline color
 			pen.UnderlineColor(nil)
 		case 90, 91, 92, 93, 94, 95, 96, 97: // Set bright foreground
-			pen.Foreground(ansi.BrightBlack + ansi.BasicColor(param-90)) //nolint:gosec
+			pen.Foreground(ansi.BrightBlack + ansi.BasicColor(param-90))
 		case 100, 101, 102, 103, 104, 105, 106, 107: // Set bright background
-			pen.Background(ansi.BrightBlack + ansi.BasicColor(param-100)) //nolint:gosec
+			pen.Background(ansi.BrightBlack + ansi.BasicColor(param-100))
 		}
 	}
 }
