@@ -160,16 +160,16 @@ func (a AttrMask) Contains(attr AttrMask) bool {
 }
 
 // UnderlineStyle is the style of underline to use for text.
-type UnderlineStyle = ansi.UnderlineStyle
+type UnderlineStyle = ansi.Underline
 
 // These are the available underline styles.
 const (
-	NoUnderline     = ansi.UnderlineStyleNone
-	SingleUnderline = ansi.UnderlineStyleSingle
-	DoubleUnderline = ansi.UnderlineStyleDouble
-	CurlyUnderline  = ansi.UnderlineStyleCurly
-	DottedUnderline = ansi.UnderlineStyleDotted
-	DashedUnderline = ansi.UnderlineStyleDashed
+	NoUnderline     = ansi.UnderlineNone
+	SingleUnderline = ansi.UnderlineSingle
+	DoubleUnderline = ansi.UnderlineDouble
+	CurlyUnderline  = ansi.UnderlineCurly
+	DottedUnderline = ansi.UnderlineDotted
+	DashedUnderline = ansi.UnderlineDashed
 )
 
 // Style represents the Style of a cell.
