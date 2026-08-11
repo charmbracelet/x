@@ -74,7 +74,7 @@ func (r *xorshift) Next() uint64 {
 }
 
 func nextPowerOfTwo(length int) uint {
-	return 1 << bits.Len(uint(length)) //nolint:gosec
+	return 1 << bits.Len(uint(length))
 }
 
 // insertionSortCmpFunc sorts data[a:b] using insertion sort.
@@ -315,7 +315,7 @@ func breakPatternsCmpFunc[E any](data []E, a, b int) {
 		modulus := nextPowerOfTwo(length)
 
 		for idx := a + (length/4)*2 - 1; idx <= a+(length/4)*2+1; idx++ {
-			other := int(uint(random.Next()) & (modulus - 1)) //nolint:gosec
+			other := int(uint(random.Next()) & (modulus - 1))
 			if other >= length {
 				other -= length
 			}
