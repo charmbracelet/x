@@ -29,7 +29,8 @@ func init() {
 			}
 		}
 		for _, r := range t.R32 {
-			for c := rune(r.Lo); c <= rune(r.Hi); c += rune(r.Stride) {
+			// R32 range bounds are always valid runes.
+			for c := rune(r.Lo); c <= rune(r.Hi); c += rune(r.Stride) { //nolint:gosec
 				zeroWidthHigh = append(zeroWidthHigh, c)
 			}
 		}
