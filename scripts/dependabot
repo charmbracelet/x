@@ -8,10 +8,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -27,10 +24,7 @@ find . -type f -name go.mod | cut -f2- -d'/' | sort | while read -r mod; do
   - package-ecosystem: "gomod"
     directory: "/'"$(dirname "$mod")"'"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:

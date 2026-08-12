@@ -6,10 +6,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -23,10 +20,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/ansi"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -40,10 +34,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/cellbuf"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -57,10 +48,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/colors"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -74,10 +62,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/conpty"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -91,10 +76,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/editor"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -108,10 +90,35 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/errors"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/etag"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
+    directory: "/examples/charmtone"
+    schedule:
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -125,10 +132,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/examples"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -142,10 +146,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/charmtone"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -159,10 +160,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/golden"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -176,10 +174,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/higherorder"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -193,10 +188,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/maps"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -210,10 +202,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/open"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -227,10 +216,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/ordered"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -244,10 +230,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/slice"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -261,10 +244,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/strings"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -278,10 +258,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/teatest"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -295,10 +272,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/teatest/v2"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -312,10 +286,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/exp/toner"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -329,10 +300,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/gitignore"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -346,10 +314,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/input"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -363,10 +328,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/json"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -380,10 +342,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/mosaic"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -397,10 +356,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/powernap"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -414,10 +370,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/sshkey"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -431,10 +384,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/term"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -448,10 +398,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/termios"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -465,10 +412,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/vcr"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -482,10 +426,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/vt"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -499,10 +440,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/vttest"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -516,10 +454,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/wcwidth"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -533,10 +468,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/windows"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
@@ -550,10 +482,7 @@ updates:
   - package-ecosystem: "gomod"
     directory: "/xpty"
     schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "05:00"
-      timezone: "America/New_York"
+      interval: "monthly"
     labels:
       - "dependencies"
     commit-message:
