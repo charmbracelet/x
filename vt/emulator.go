@@ -3,6 +3,7 @@ package vt
 import (
 	"image/color"
 	"io"
+	"sync/atomic"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/ultraviolet/screen"
@@ -59,16 +60,17 @@ type Emulator struct {
 	// tabstop is the list of tab stops.
 	tabstops *uv.TabStops
 
-	// I/O pipes.
-	pr *io.PipeReader
-	pw *io.PipeWriter
+	// replies carries what the emulator says back to its driver.
+	replies *replyBuffer
 
 	// The GL and GR character set identifiers.
 	gl, gr  int
 	gsingle int // temporarily select GL or GR
 
 	// Indicates if the terminal is closed.
-	closed bool
+	// closed is atomic because Close is the only way to wake a reader parked in
+	// Read, so it is read from one goroutine while another closes.
+	closed atomic.Bool
 
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
@@ -99,7 +101,7 @@ func NewEmulator(w, h int) *Emulator {
 		HandlePm:  t.handlePm,
 		HandleSos: t.handleSos,
 	})
-	t.pr, t.pw = io.Pipe()
+	t.replies = newReplyBuffer()
 	t.resetModes()
 	t.tabstops = uv.DefaultTabStops(w)
 	t.registerDefaultHandlers()
@@ -243,32 +245,31 @@ func (e *Emulator) Resize(width int, height int) {
 	e.setCursor(x, y)
 
 	if e.isModeSet(ansi.ModeInBandResize) {
-		_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
+		_, _ = io.WriteString(e.replies, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
 	}
 }
 
 // Read reads data from the terminal input buffer.
 func (e *Emulator) Read(p []byte) (n int, err error) {
-	if e.closed {
+	if e.closed.Load() {
 		return 0, io.EOF
 	}
 
-	return e.pr.Read(p) //nolint:wrapcheck
+	return e.replies.Read(p)
 }
 
 // Close closes the terminal.
 func (e *Emulator) Close() error {
-	if e.closed {
+	if e.closed.Swap(true) {
 		return nil
 	}
 
-	e.closed = true
-	return e.pw.CloseWithError(io.EOF) //nolint:wrapcheck
+	return e.replies.Close()
 }
 
 // Write writes data to the terminal output buffer.
 func (e *Emulator) Write(p []byte) (n int, err error) {
-	if e.closed {
+	if e.closed.Load() {
 		return 0, io.ErrClosedPipe
 	}
 
@@ -295,7 +296,7 @@ func (e *Emulator) WriteString(s string) (n int, err error) {
 // InputPipe returns the terminal's input pipe.
 // This can be used to send input to the terminal.
 func (e *Emulator) InputPipe() io.Writer {
-	return e.pw
+	return e.replies
 }
 
 // Paste pastes text into the terminal.
@@ -303,16 +304,16 @@ func (e *Emulator) InputPipe() io.Writer {
 // appropriate escape sequences.
 func (e *Emulator) Paste(text string) {
 	if e.isModeSet(ansi.ModeBracketedPaste) {
-		_, _ = io.WriteString(e.pw, ansi.BracketedPasteStart)
-		defer io.WriteString(e.pw, ansi.BracketedPasteEnd) //nolint:errcheck
+		_, _ = io.WriteString(e.replies, ansi.BracketedPasteStart)
+		defer io.WriteString(e.replies, ansi.BracketedPasteEnd) //nolint:errcheck
 	}
 
-	_, _ = io.WriteString(e.pw, text)
+	_, _ = io.WriteString(e.replies, text)
 }
 
 // SendText sends arbitrary text to the terminal.
 func (e *Emulator) SendText(text string) {
-	_, _ = io.WriteString(e.pw, text)
+	_, _ = io.WriteString(e.replies, text)
 }
 
 // SendKeys sends multiple keys to the terminal.

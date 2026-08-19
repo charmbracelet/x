@@ -297,7 +297,7 @@ func (e *Emulator) SendKey(k uv.KeyEvent) {
 			}
 		}
 
-		io.WriteString(e.pw, seq) //nolint:errcheck,gosec
+		io.WriteString(e.replies, seq) //nolint:errcheck,gosec
 	}
 }
 
