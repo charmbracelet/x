@@ -85,6 +85,15 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 		e.lastChar, _ = utf8.DecodeRuneInString(content)
 	}
 
+	// IRM: while insert mode is set, a printed grapheme opens a gap at the
+	// cursor and pushes the rest of the line right instead of overwriting it,
+	// which is the same effect as an [ansi.ICH] of one immediately before the
+	// character. The gap is as wide as the grapheme, so a wide character does
+	// not come to rest on half of the cell it displaced.
+	if e.isModeSet(ansi.ModeInsertReplace) {
+		e.scr.insertCellsInRow(x, y, cell.Width)
+	}
+
 	e.scr.SetCell(x, y, &cell)
 
 	// Handle phantom state at the end of the line
