@@ -40,8 +40,133 @@ func (e *Emulator) flushGrapheme() {
 	e.grapheme = e.grapheme[:0] // Reset the grapheme buffer.
 }
 
+// firstCombining is the lowest rune that can continue a grapheme cluster on its
+// own account: everything below it starts a new one. Latin-1 and ASCII text
+// therefore never reaches the expensive test.
+const firstCombining = 0x0300
+
+// maxClusterBytes bounds how much one cell may accumulate by merging. The
+// longest clusters in real text are subdivision flags and long emoji ZWJ
+// sequences, tens of bytes; without a bound a stream delivering joiners one
+// rune per write grows a single cell without limit, and each continuation
+// rescans everything already there.
+const maxClusterBytes = 256
+
+// continuesCluster reports whether content could extend the cluster before it,
+// rather than starting one of its own. It is only a cheap gate on the exact
+// test in [Emulator.mergeIntoPrevious], which is the authority: an allowlist of
+// continuation classes cannot be built from the unicode tables, because they
+// and the grapheme-break data do not agree on every rune, so this keeps only
+// ASCII and Latin-1 away and defers everything else.
+func continuesCluster(content string) bool {
+	r, _ := utf8.DecodeRuneInString(content)
+	return r >= firstCombining
+}
+
+// mergeIntoPrevious folds content into the grapheme written just before it
+// when the two are one cluster, and reports whether it did.
+//
+// The emulator cannot wait to find out whether a cluster is finished: that is
+// only known once the rune after it arrives, so the base is written as soon as
+// it is seen and a continuation has to be applied to it after the fact.
+// Without this a cluster split across two [Emulator.Write] calls — which a
+// pipe, socket, PTY or tmux control client may do at any byte — lands as two
+// cells, and a combining mark following an ASCII base never attaches at all,
+// because the ASCII fast path in [Emulator.handlePrint] has already committed
+// it.
+//
+// The base is tracked rather than inferred from the cursor. At the last column
+// the cursor stops advancing — pending wrap with autowrap on, clamped without
+// it — so "the cell before the cursor" is not the cell just written, and
+// inferring it there merges into the wrong one.
+func (e *Emulator) mergeIntoPrevious(content string) bool {
+	if e.lastGrapheme == "" || !continuesCluster(content) {
+		return false
+	}
+
+	baseX, baseY := e.lastGraphemeX, e.lastGraphemeY
+	prev := e.scr.CellAt(baseX, baseY)
+	if prev == nil || prev.Content != e.lastGrapheme {
+		return false // something has overwritten it since
+	}
+	if len(prev.Content)+len(content) > maxClusterBytes {
+		return false
+	}
+
+	// The cursor has to be where writing that grapheme left it, or the base is
+	// no longer what this continuation belongs to. A pending wrap leaves it on
+	// the base instead of past it.
+	x, y := e.scr.CursorPosition()
+	wantX := baseX + prev.Width
+	if e.atPhantom {
+		wantX = baseX
+	}
+	// The cursor never leaves the screen: a cell reaching the last column
+	// leaves it there rather than one past the end.
+	if maxX := e.scr.Width() - 1; wantX > maxX {
+		wantX = maxX
+	}
+	if x != wantX || y != baseY {
+		return false
+	}
+
+	// Built in a buffer the emulator keeps: every character above Latin-1 comes
+	// through here, and concatenating a fresh string for each would allocate
+	// once per cell just to ask the question.
+	e.mergeBuf = append(e.mergeBuf[:0], prev.Content...)
+	e.mergeBuf = append(e.mergeBuf, content...)
+	cluster, width := ansi.FirstGraphemeCluster(e.mergeBuf, ansi.GraphemeWidth)
+	// Nothing of content belongs to the cluster prev ends.
+	if len(cluster) <= len(prev.Content) {
+		return false
+	}
+	// Some of it does but not all, as when a write starts with the tail of one
+	// flag and continues into the next: keep the part that belongs and let the
+	// rest be placed normally.
+	rest := string(e.mergeBuf[len(cluster):])
+	// Growing the cell must not push it off the line; leave that to be written
+	// as its own cell rather than reflowing what is already placed.
+	if baseX+width > e.scr.Width() {
+		return false
+	}
+
+	merged := *prev
+	merged.Content = string(cluster)
+	merged.Width = width
+	e.scr.SetCell(baseX, baseY, &merged)
+	e.lastGrapheme = merged.Content
+
+	// Leave the cursor exactly as writing this cell from scratch would have,
+	// so the screen cannot depend on where the writer split its input.
+	newX := baseX
+	e.atPhantom = e.isModeSet(ansi.ModeAutoWrap) && baseX >= e.scr.Width()-1
+	if !e.atPhantom {
+		newX = baseX + width
+	}
+	e.scr.setCursor(newX, baseY, false)
+
+	if rest != "" {
+		e.handleGrapheme(rest, ansi.StringWidth(rest))
+	}
+
+	return true
+}
+
+// endCluster ends any cluster in progress, both the runes still buffered and
+// the one already on the screen. Anything that is not a printable character
+// breaks a grapheme cluster, and it may also move the cursor or rewrite the
+// cell the merge anchor points at, so the anchor cannot outlive it.
+func (e *Emulator) endCluster() {
+	e.flushGrapheme()
+	e.lastGrapheme = ""
+}
+
 // handleGrapheme handles UTF-8 graphemes.
 func (e *Emulator) handleGrapheme(content string, width int) {
+	if e.mergeIntoPrevious(content) {
+		return
+	}
+
 	awm := e.isModeSet(ansi.ModeAutoWrap)
 	cell := uv.Cell{
 		Content: content,
@@ -86,6 +211,7 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 	}
 
 	e.scr.SetCell(x, y, &cell)
+	e.lastGrapheme, e.lastGraphemeX, e.lastGraphemeY = cell.Content, x, y
 
 	// Handle phantom state at the end of the line
 	e.atPhantom = awm && x >= e.scr.Width()-1

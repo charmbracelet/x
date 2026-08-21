@@ -44,6 +44,14 @@ type Emulator struct {
 	// A slice of runes to compose a grapheme.
 	grapheme []rune
 
+	// The last grapheme written to the screen and where it went, so a
+	// continuation arriving afterwards can be folded into it.
+	lastGrapheme                 string
+	lastGraphemeX, lastGraphemeY int
+	// Scratch for testing whether a continuation joins lastGrapheme, reused so
+	// the test costs no allocation.
+	mergeBuf []byte
+
 	// The ANSI parser to use.
 	parser *ansi.Parser
 	// The last parser state.
