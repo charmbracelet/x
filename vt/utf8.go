@@ -51,14 +51,6 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 	}
 
 	x, y := e.scr.CursorPosition()
-	if e.atPhantom && awm {
-		// moves cursor down similar to [Terminal.linefeed] except it doesn't
-		// respects [ansi.LNM] mode.
-		// This will reset the phantom state i.e. pending wrap state.
-		e.index()
-		_, y = e.scr.CursorPosition()
-		x = 0
-	}
 
 	// Handle character set mappings
 	if len(content) == 1 { //nolint:nestif
@@ -85,11 +77,35 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 		e.lastChar, _ = utf8.DecodeRuneInString(content)
 	}
 
+	// Wrap once the cell is final, since the character set mapping above may
+	// have changed its width. Either a wrap is already pending, or the cell is
+	// wider than the room left on the line — a two-column character with one
+	// column to go belongs on the next line whole, not written over the edge.
+	// A cell too wide for the screen itself is placed regardless; no line
+	// would hold it and looking for one would only lose it.
+	scrWidth := e.scr.Width()
+	if awm && (e.atPhantom || (x+cell.Width > scrWidth && cell.Width <= scrWidth)) {
+		// moves cursor down similar to [Terminal.linefeed] except it doesn't
+		// respects [ansi.LNM] mode.
+		// This will reset the phantom state i.e. pending wrap state.
+		e.index()
+		_, y = e.scr.CursorPosition()
+		x = 0
+	}
+
 	e.scr.SetCell(x, y, &cell)
 
-	// Handle phantom state at the end of the line
-	e.atPhantom = awm && x >= e.scr.Width()-1
-	if !e.atPhantom {
+	// Handle phantom state at the end of the line. The cell occupies the
+	// columns from x to x+Width, so it is the far edge of a wide one that
+	// decides whether the line is full, not the column it starts in.
+	e.atPhantom = awm && x+cell.Width >= scrWidth
+	if e.atPhantom {
+		// Pending wrap leaves the cursor on the cell, and for a wide one that
+		// is its last column, not its first: everything that reads the cursor
+		// back — a resize, a backspace, a cursor report — expects the column
+		// the character reached.
+		x += cell.Width - 1
+	} else {
 		x += cell.Width
 	}
 
