@@ -48,6 +48,13 @@ func (se *SafeEmulator) Render() string {
 	return se.Emulator.Render()
 }
 
+// ReattachSnapshot observes and serializes one lock-protected emulator state.
+func (se *SafeEmulator) ReattachSnapshot() ([]byte, error) {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.ReattachSnapshot()
+}
+
 // SetCell sets a cell in the emulator in a concurrency-safe manner.
 func (se *SafeEmulator) SetCell(x, y int, cell *uv.Cell) {
 	se.mu.Lock()
