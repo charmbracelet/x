@@ -235,6 +235,7 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 			case r == '-':
 				fallthrough
 			case runeContainsAny(r, breakpoints):
+				// TODO fix breakpoint handling
 				addSpace()
 				addWord()
 				buf.WriteByte(b[i])
@@ -406,13 +407,23 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 			case r == '-':
 				fallthrough
 			case runeContainsAny(r, breakpoints):
-				addSpace()
-				if curWidth+wordLen >= limit {
+				if spaceWidth+curWidth+wordLen >= limit {
 					// We can't fit the breakpoint in the current line, treat
 					// it as part of the word.
 					word.WriteRune(r)
 					wordLen++
+
+					if wordLen == limit {
+						// Hardwrap the word if it's too long
+						addSpace()
+						addWord()
+					}
+
+					if curWidth+wordLen+spaceWidth > limit {
+						addNewline()
+					}
 				} else {
+					addSpace()
 					addWord()
 					buf.WriteRune(r)
 					curWidth++
