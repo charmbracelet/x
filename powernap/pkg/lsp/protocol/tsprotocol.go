@@ -5926,7 +5926,7 @@ type WorkDoneProgressOptions struct {
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#workDoneProgressParams
 type WorkDoneProgressParams struct {
 	// An optional token that a server can use to report work done progress.
-	WorkDoneToken ProgressToken `json:"workDoneToken,omitempty"`
+	WorkDoneToken *ProgressToken `json:"workDoneToken,omitempty"`
 }
 
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#workDoneProgressReport
