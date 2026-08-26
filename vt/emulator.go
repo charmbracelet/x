@@ -82,6 +82,9 @@ func NewEmulator(w, h int) *Emulator {
 	t := new(Emulator)
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
+	// Alternate screens do not have scrollback. Disable the hidden buffer
+	// allocated by NewScreen so it cannot retain scrolled rows.
+	t.scrs[1].SetScrollback(nil)
 	t.scr = &t.scrs[0]
 	t.scrs[0].cb = &t.cb
 	t.scrs[1].cb = &t.cb
