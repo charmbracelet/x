@@ -48,10 +48,7 @@ type Emulator struct {
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
-	// The last parser state.
-	lastState parser.State
-
-	cb Callbacks
+	cb     Callbacks
 
 	// The terminal's icon name and title.
 	iconName, title string
@@ -276,7 +273,6 @@ func (e *Emulator) Write(p []byte) (n int, err error) {
 
 	for i := range p {
 		e.parser.Advance(p[i])
-		state := e.parser.State()
 		// Flush the last cluster once the whole slice is written. Every
 		// sequence handler flushes on its own way in, so a cluster only has to
 		// survive until either the next printable character extends it or the
@@ -284,7 +280,6 @@ func (e *Emulator) Write(p []byte) (n int, err error) {
 		if len(e.grapheme) > 0 && i == len(p)-1 {
 			e.flushGrapheme()
 		}
-		e.lastState = state
 	}
 	return len(p), nil
 }

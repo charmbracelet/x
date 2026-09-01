@@ -24,40 +24,27 @@ func printableASCII(r rune) bool {
 // leaves the mark to become a zero-width cell of its own, which the next write
 // or erase then destroys.
 func (e *Emulator) handlePrint(r rune) {
-	// Two printable ASCII characters always have a boundary between them, so
-	// the held character can go out with no segmentation. This is the common
-	// case by a wide margin and the reason it is worth special-casing.
-	if printableASCII(r) && len(e.grapheme) == 1 && printableASCII(rune(e.grapheme[0])) {
-		e.handleGrapheme(string(e.grapheme[0]), 1)
-		e.grapheme = utf8.AppendRune(e.grapheme[:0], r)
-		return
+	// No ASCII character can extend the cluster before it: none of them is
+	// Extend, ZWJ, SpacingMark, Prepend, a regional indicator, or part of an
+	// Indic conjunct. So an ASCII character arriving is proof that whatever is
+	// buffered is finished, and the buffer can go out.
+	//
+	// This is also what keeps the buffer from being re-segmented as it grows.
+	// Asking where the clusters are on every character costs the length of the
+	// buffer each time, which is quadratic over a long run of combining marks
+	// that never resolves into more than one cluster.
+	if printableASCII(r) {
+		// Two printable ASCII characters in a row is the common case by a wide
+		// margin, and needs no segmenting at all.
+		if len(e.grapheme) == 1 && printableASCII(rune(e.grapheme[0])) {
+			e.handleGrapheme(string(e.grapheme[0]), 1)
+			e.grapheme = utf8.AppendRune(e.grapheme[:0], r)
+			return
+		}
+		e.flushGrapheme()
 	}
 
 	e.grapheme = utf8.AppendRune(e.grapheme, r)
-	e.emitFinishedGraphemes()
-}
-
-// emitFinishedGraphemes prints every cluster in the buffer that is known to be
-// finished, which is every cluster but the last. Any character still to come
-// could be a combining mark that extends it, so the last one waits for either
-// the next character or a flush.
-func (e *Emulator) emitFinishedGraphemes() {
-	for len(e.grapheme) > 0 {
-		cluster, width := ansi.FirstGraphemeCluster(e.grapheme, ansi.GraphemeWidth)
-		if len(cluster) == 0 {
-			// Not reachable for well-formed input, but this loop runs over
-			// bytes an application did not choose, so refuse to spin.
-			return
-		}
-		if len(cluster) >= len(e.grapheme) {
-			// Only one cluster so far, and it may still grow.
-			return
-		}
-		e.handleGrapheme(string(cluster), width)
-		// Compact rather than reslice, so the buffer keeps reusing the space
-		// it already has instead of walking off the end of its array.
-		e.grapheme = e.grapheme[:copy(e.grapheme, e.grapheme[len(cluster):])]
-	}
 }
 
 // flushGrapheme flushes the current grapheme buffer, if any, and handles the
@@ -103,13 +90,18 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 		x = 0
 	}
 
+	// A single shift applies to the next character, whatever that character
+	// turns out to be. Take it now, so it cannot leak onto the one after this
+	// when this is a cluster no charset has a mapping for.
+	single := e.gsingle
+	e.gsingle = 0
+
 	// Handle character set mappings
 	if len(content) == 1 { //nolint:nestif
 		var charset CharSet
 		c := content[0]
-		if e.gsingle > 1 && e.gsingle < 4 {
-			charset = e.charsets[e.gsingle]
-			e.gsingle = 0
+		if single > 1 && single < 4 {
+			charset = e.charsets[single]
 		} else if c < 128 {
 			charset = e.charsets[e.gl]
 		} else {
