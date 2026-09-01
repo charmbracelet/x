@@ -420,7 +420,7 @@ func (e *Emulator) IndexedColor(i int) color.Color {
 	c := e.colors[i]
 	if c == nil {
 		// Return the default color.
-		return ansi.IndexedColor(i) //nolint:gosec
+		return ansi.IndexedColor(i)
 	}
 
 	return c
