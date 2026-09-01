@@ -41,8 +41,10 @@ type Emulator struct {
 
 	// The last written character.
 	lastChar rune // either ansi.Rune or ansi.Grapheme
-	// A slice of runes to compose a grapheme.
-	grapheme []rune
+	// The bytes of a grapheme cluster still being composed. Bytes rather than
+	// runes, so the segmenter can read the buffer without a conversion on
+	// every character.
+	grapheme []byte
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
@@ -275,12 +277,12 @@ func (e *Emulator) Write(p []byte) (n int, err error) {
 	for i := range p {
 		e.parser.Advance(p[i])
 		state := e.parser.State()
-		// flush grapheme if we transitioned to a non-utf8 state or we have
-		// written the whole byte slice.
-		if len(e.grapheme) > 0 {
-			if (e.lastState == parser.GroundState && state != parser.Utf8State) || i == len(p)-1 {
-				e.flushGrapheme()
-			}
+		// Flush the last cluster once the whole slice is written. Every
+		// sequence handler flushes on its own way in, so a cluster only has to
+		// survive until either the next printable character extends it or the
+		// write ends.
+		if len(e.grapheme) > 0 && i == len(p)-1 {
+			e.flushGrapheme()
 		}
 		e.lastState = state
 	}
