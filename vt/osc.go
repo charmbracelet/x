@@ -125,7 +125,11 @@ func (e *Emulator) handleWorkingDirectory(cmd int, data []byte) {
 }
 
 func (e *Emulator) handleHyperlink(cmd int, data []byte) {
-	parts := bytes.Split(data, []byte{';'})
+	// An OSC 8 payload is "8;params;uri". Only the first two semicolons are
+	// field separators; any later semicolons are part of the URI (URLs may
+	// legally contain them, e.g. in query strings or path parameters). Use
+	// SplitN so the URI keeps its own semicolons instead of being rejected.
+	parts := bytes.SplitN(data, []byte{';'}, 3)
 	if len(parts) != 3 || cmd != 8 {
 		// Invalid, ignore
 		return
