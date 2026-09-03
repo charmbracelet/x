@@ -7,7 +7,7 @@ import (
 
 // handleControl handles a control character.
 func (e *Emulator) handleControl(r byte) {
-	e.flushGrapheme() // Flush any pending grapheme before handling control codes.
+	e.endCluster() // A control code ends any cluster in progress.
 	if !e.handleCc(r) {
 		e.logf("unhandled sequence: ControlCode %q", r)
 	}
