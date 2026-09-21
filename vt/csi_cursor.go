@@ -12,7 +12,10 @@ func (e *Emulator) nextTab(n int) {
 	scroll := e.scr.ScrollRegion()
 	for range n {
 		ts := e.tabstops.Next(x)
-		if ts < x {
+		// Stop as soon as the cursor does not move: past the last tab stop the
+		// position stops changing, and without this the loop keeps going for
+		// however many repeats the sequence asked for.
+		if ts <= x {
 			break
 		}
 		x = ts
@@ -41,7 +44,9 @@ func (e *Emulator) prevTab(n int) {
 
 	for range n {
 		ts := e.tabstops.Prev(x)
-		if ts > x {
+		// As in [Emulator.nextTab]: no movement means there is nothing left to
+		// count down, whatever the sequence asked for.
+		if ts >= x {
 			break
 		}
 		x = ts
@@ -103,6 +108,15 @@ func (e *Emulator) carriageReturn() {
 func (e *Emulator) repeatPreviousCharacter(n int) {
 	if e.lastChar == 0 {
 		return
+	}
+	// A repeat count is a number from the sequence and can name far more
+	// characters than the screen could ever show, so it is capped rather than
+	// spent. Past a full screen the result repeats every [Emulator.Width]
+	// characters — the same cells, the cursor back in the same column, one
+	// more identical line of scrollback — so keeping that remainder leaves the
+	// screen and the cursor exactly where the whole count would have.
+	if w, area := e.Width(), e.Width()*e.Height(); w > 0 && n > area {
+		n = area + n%w
 	}
 	for range n {
 		e.handlePrint(e.lastChar)
