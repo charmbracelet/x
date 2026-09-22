@@ -59,7 +59,11 @@ func hardwrap(m Method, s string, limit int, preserveSpace bool) string {
 			cluster, width = FirstGraphemeCluster(b[i:], m)
 			i += len(cluster)
 
-			if curWidth+width > limit {
+			// Only break a line that has something on it. A cluster wider
+			// than the limit cannot be split and cannot fit either, so it goes
+			// on a line of its own; breaking first would put an empty line
+			// ahead of it.
+			if curWidth > 0 && curWidth+width > limit {
 				addNewline()
 			}
 			if !preserveSpace && curWidth == 0 && len(cluster) <= 4 {
@@ -369,7 +373,16 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 				wordLen += width
 
 				if curWidth+wordLen+spaceWidth > limit {
-					addNewline()
+					if curWidth == 0 {
+						// Nothing on the line to break, so there is no break to
+						// make; the word is simply wider than the limit. Drop
+						// the pending indent all the same, which is what the
+						// break would have done with it.
+						space.Reset()
+						spaceWidth = 0
+					} else {
+						addNewline()
+					}
 				}
 
 				if wordLen == limit {
