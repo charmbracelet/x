@@ -46,8 +46,9 @@ func EncodeGraphics(w io.Writer, m image.Image, o *Options) error {
 
 	var data bytes.Buffer // the data to be encoded into base64
 	e := &Encoder{
-		Compress: o.Compression == Zlib,
-		Format:   o.Format,
+		Compress:            o.Compression == Zlib,
+		Format:              o.Format,
+		PNGCompressionLevel: o.PNGCompressionLevel,
 	}
 
 	switch o.Transmission {
