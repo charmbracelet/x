@@ -130,15 +130,8 @@ func EncodeGraphicsData(w io.Writer, data []byte, o *Options) error {
 		o = &Options{}
 	}
 
-	// Encode image to base64
-	var payload bytes.Buffer // the base64 encoded image to be written to w
-	b64 := base64.NewEncoder(base64.StdEncoding, &payload)
-	if _, err := bytes.NewReader(data).WriteTo(b64); err != nil {
-		return fmt.Errorf("failed to write base64 encoded image to payload: %w", err)
-	}
-	if err := b64.Close(); err != nil {
-		return err //nolint:wrapcheck
-	}
+	// Encode the complete payload to base64 before writing protocol chunks.
+	payload := bytes.NewBuffer(base64.StdEncoding.AppendEncode(nil, data))
 
 	// If not chunking, write all at once
 	if !o.Chunk {
@@ -161,7 +154,7 @@ func EncodeGraphicsData(w io.Writer, data []byte, o *Options) error {
 
 	for {
 		// Stop if we read less than the chunk size [MaxChunkSize].
-		n, err = io.ReadFull(&payload, chunk)
+		n, err = io.ReadFull(payload, chunk)
 		if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
 			break
 		}

@@ -3,6 +3,7 @@ package kitty
 import (
 	"bytes"
 	"compress/zlib"
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -90,6 +91,44 @@ func TestEncoderPNGCompressionLevel(t *testing.T) {
 				assertPNG(t, data, img, level)
 			})
 		}
+	}
+}
+
+type pngErrorWriter struct {
+	err error
+}
+
+func (w pngErrorWriter) Write([]byte) (int, error) {
+	return 0, w.err
+}
+
+func TestEncoderPNGWriterError(t *testing.T) {
+	sentinel := errors.New("PNG write failed")
+	for _, level := range []png.CompressionLevel{png.DefaultCompression, png.BestSpeed} {
+		t.Run(fmt.Sprint(level), func(t *testing.T) {
+			enc := Encoder{Format: PNG, PNGCompressionLevel: level}
+			if err := enc.Encode(pngErrorWriter{sentinel}, testImage()); !errors.Is(err, sentinel) {
+				t.Fatalf("got error %v, want wrapped writer error %v", err, sentinel)
+			}
+		})
+	}
+}
+
+func TestEncodeGraphicsPNGInvalidDimensions(t *testing.T) {
+	img := image.NewNRGBA(image.Rect(0, 0, 0, 1))
+	for _, level := range []png.CompressionLevel{png.DefaultCompression, png.BestSpeed} {
+		t.Run(fmt.Sprint(level), func(t *testing.T) {
+			var out bytes.Buffer
+			opts := &Options{Transmission: Direct, Format: PNG, PNGCompressionLevel: level}
+			err := EncodeGraphics(&out, img, opts)
+			var formatErr png.FormatError
+			if !errors.As(err, &formatErr) {
+				t.Fatalf("got error %v, want wrapped PNG format error", err)
+			}
+			if out.Len() != 0 {
+				t.Fatal("image encoding failure must not write protocol output")
+			}
+		})
 	}
 }
 
