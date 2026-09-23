@@ -932,6 +932,22 @@ var cases = []struct {
 		},
 		pos: uv.Pos(3, 2),
 	},
+	{
+		name: "DECSTBM Bottom Beyond Screen",
+		w:    8, h: 4,
+		input: []string{
+			"\x1b[1;5r", // invalid bottom margin
+			"\x1bM",     // reverse index
+			"X",
+		},
+		want: []string{
+			"X       ",
+			"        ",
+			"        ",
+			"        ",
+		},
+		pos: uv.Pos(1, 0),
+	},
 
 	// Set Left/Right Margins [ansi.DECSLRM]
 	{
@@ -1017,6 +1033,22 @@ var cases = []struct {
 			"GHI     ",
 		},
 		pos: uv.Pos(3, 2),
+	},
+	{
+		name: "DECSLRM Right Beyond Screen",
+		w:    8, h: 3,
+		input: []string{
+			"\x1b[?69h", // enable left/right margins
+			"\x1b[1;9s", // invalid right margin
+			"\x1bM",     // reverse index
+			"X",
+		},
+		want: []string{
+			"X       ",
+			"        ",
+			"        ",
+		},
+		pos: uv.Pos(1, 0),
 	},
 
 	// Erase Character [ansi.ECH]
