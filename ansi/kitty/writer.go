@@ -107,10 +107,33 @@ func EncodeGraphics(w io.Writer, m image.Image, o *Options) error {
 		}
 	}
 
+	return EncodeGraphicsData(w, data.Bytes(), o)
+}
+
+// EncodeGraphicsData writes an already-encoded payload using the Kitty Graphics
+// protocol. It base64-encodes data and applies the same chunking, continuation
+// controls, and ChunkFormatter behavior as [EncodeGraphics]. Nil options use
+// the protocol defaults (direct transmission, RGBA).
+//
+// For [Direct] transmission, data contains encoded PNG or raw RGB/RGBA pixels.
+// For [File], [TempFile], or [SharedMemory], data contains the file or shared
+// memory name. The caller supplies the matching Format, dimensions, and other
+// controls; data is not validated, re-encoded, or compressed. Compression only
+// declares protocol-level compression already applied to the image data.
+//
+// PNGCompressionLevel and File do not supply or transform the payload. File
+// still participates in Options' default transmission selection. This function
+// does not open, create, or remove files or shared memory objects; the caller
+// manages those resources according to the selected transmission type.
+func EncodeGraphicsData(w io.Writer, data []byte, o *Options) error {
+	if o == nil {
+		o = &Options{}
+	}
+
 	// Encode image to base64
 	var payload bytes.Buffer // the base64 encoded image to be written to w
 	b64 := base64.NewEncoder(base64.StdEncoding, &payload)
-	if _, err := data.WriteTo(b64); err != nil {
+	if _, err := bytes.NewReader(data).WriteTo(b64); err != nil {
 		return fmt.Errorf("failed to write base64 encoded image to payload: %w", err)
 	}
 	if err := b64.Close(); err != nil {
