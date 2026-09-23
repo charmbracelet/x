@@ -1,6 +1,7 @@
 package vt
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -141,6 +142,93 @@ func TestScrollback(t *testing.T) {
 			t.Errorf("expected scrollback to grow after ED 2, was %d now %d", initialLen, newLen)
 		}
 		t.Logf("scrollback after ED 2: %d lines", newLen)
+	})
+
+	t.Run("Render returns empty string when scrollback is empty", func(t *testing.T) {
+		sb := NewScrollback(100)
+		if got := sb.Render(); got != "" {
+			t.Errorf("expected empty render, got %q", got)
+		}
+	})
+
+	t.Run("Render returns empty string on nil receiver", func(t *testing.T) {
+		var sb *Scrollback
+		if got := sb.Render(); got != "" {
+			t.Errorf("expected empty render on nil receiver, got %q", got)
+		}
+	})
+
+	t.Run("Render emits content from scrolled-off lines", func(t *testing.T) {
+		// The visible-grid Render() omits retired lines by definition.
+		// A consumer (e.g. a terminal multiplexer rehydrating a
+		// late-attaching client) needs the bytes that have scrolled
+		// off the visible screen so the client can display them in
+		// its own scrollback.
+		e := NewEmulator(20, 5)
+		for i := 1; i <= 10; i++ {
+			e.WriteString("scrolled-line\r\n")
+		}
+		// More than 5 (screen height) means at least 5 lines retired.
+		if e.ScrollbackLen() < 5 {
+			t.Fatalf("expected at least 5 retired lines, got %d", e.ScrollbackLen())
+		}
+
+		got := e.Scrollback().Render()
+		if !strings.Contains(got, "scrolled-line") {
+			t.Errorf("expected render to contain retired line content, got %q", got)
+		}
+	})
+
+	t.Run("Render preserves order from oldest to newest", func(t *testing.T) {
+		e := NewEmulator(20, 3)
+		// Each line is distinct so order is observable in the render.
+		for i := 1; i <= 8; i++ {
+			e.WriteString("line-")
+			e.WriteString(string(rune('0' + i)))
+			e.WriteString("\r\n")
+		}
+
+		got := e.Scrollback().Render()
+		earliest := strings.Index(got, "line-1")
+		latest := strings.LastIndex(got, "line-")
+		if earliest < 0 {
+			t.Fatalf("expected earliest line in render, got %q", got)
+		}
+		if latest <= earliest {
+			t.Errorf("expected oldest-to-newest order; earliest at %d, latest at %d (render: %q)", earliest, latest, got)
+		}
+	})
+
+	t.Run("Render separates lines with newline and no trailing newline", func(t *testing.T) {
+		// Mirrors Lines.Render in ultraviolet: bare LF between lines,
+		// no trailing LF after the last line. This matches the live
+		// grid's Render() row-to-row separator so a consumer that
+		// substitutes LF -> CRLF for live snapshots can reuse the
+		// pipeline verbatim.
+		sb := NewScrollback(100)
+		e := NewEmulator(10, 3)
+		e.WriteString("aaa\r\nbbb\r\nccc\r\nddd\r\n")
+		// Copy the emulator's retired lines into a standalone Scrollback
+		// so the test exercises Render() on an arbitrary instance, not
+		// only the one inside an emulator.
+		for i := 0; i < e.ScrollbackLen(); i++ {
+			sb.Push(e.Scrollback().Line(i))
+		}
+		got := sb.Render()
+		if strings.HasSuffix(got, "\n") {
+			t.Errorf("expected no trailing newline, got %q", got)
+		}
+		if sb.Len() > 1 && !strings.Contains(got, "\n") {
+			t.Errorf("expected newline separator between lines, got %q", got)
+		}
+		// Pin the LF-only-no-CR contract: callers (terminal
+		// multiplexers like ai-beacon) substitute LF -> CRLF when
+		// targeting receivers without an `onlcr` translation. A
+		// future change that emits CR here would silently double-CR
+		// downstream.
+		if strings.Contains(got, "\r") {
+			t.Errorf("expected no CR in render output (LF-only contract), got %q", got)
+		}
 	})
 
 	t.Run("ED 3 clears scrollback", func(t *testing.T) {
