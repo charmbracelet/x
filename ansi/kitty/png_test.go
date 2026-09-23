@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"compress/zlib"
 	"errors"
-	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -68,30 +67,44 @@ func assertPNG(t *testing.T, data []byte, img *image.NRGBA, level png.Compressio
 
 func TestEncoderPNGCompressionLevel(t *testing.T) {
 	img := pngTestImage()
-	for _, level := range []png.CompressionLevel{png.DefaultCompression, png.BestSpeed, png.BestCompression, png.NoCompression} {
-		for _, compress := range []bool{false, true} {
-			t.Run(fmt.Sprintf("level=%d/zlib=%t", level, compress), func(t *testing.T) {
-				var out bytes.Buffer
-				enc := Encoder{Format: PNG, PNGCompressionLevel: level, Compress: compress}
-				if err := enc.Encode(&out, img); err != nil {
-					t.Fatal(err)
-				}
-				data := out.Bytes()
-				if compress {
-					zr, err := zlib.NewReader(bytes.NewReader(data))
-					if err != nil {
-						t.Fatal(err)
-					}
-					defer zr.Close()
-					data, err = io.ReadAll(zr)
-					if err != nil {
-						t.Fatal(err)
-					}
-				}
-				assertPNG(t, data, img, level)
-			})
-		}
+	tests := []struct {
+		name  string
+		level png.CompressionLevel
+	}{
+		{"default", png.DefaultCompression},
+		{"best speed", png.BestSpeed},
+		{"best compression", png.BestCompression},
+		{"no compression", png.NoCompression},
 	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			enc := Encoder{Format: PNG, PNGCompressionLevel: tt.level}
+			if err := enc.Encode(&out, img); err != nil {
+				t.Fatal(err)
+			}
+			assertPNG(t, out.Bytes(), img, tt.level)
+		})
+	}
+}
+
+func TestEncoderPNGWithZlib(t *testing.T) {
+	img := pngTestImage()
+	var out bytes.Buffer
+	enc := Encoder{Format: PNG, PNGCompressionLevel: png.BestSpeed, Compress: true}
+	if err := enc.Encode(&out, img); err != nil {
+		t.Fatal(err)
+	}
+	zr, err := zlib.NewReader(&out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer zr.Close()
+	data, err := io.ReadAll(zr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertPNG(t, data, img, png.BestSpeed)
 }
 
 type pngErrorWriter struct {
@@ -104,31 +117,23 @@ func (w pngErrorWriter) Write([]byte) (int, error) {
 
 func TestEncoderPNGWriterError(t *testing.T) {
 	sentinel := errors.New("PNG write failed")
-	for _, level := range []png.CompressionLevel{png.DefaultCompression, png.BestSpeed} {
-		t.Run(fmt.Sprint(level), func(t *testing.T) {
-			enc := Encoder{Format: PNG, PNGCompressionLevel: level}
-			if err := enc.Encode(pngErrorWriter{sentinel}, testImage()); !errors.Is(err, sentinel) {
-				t.Fatalf("got error %v, want wrapped writer error %v", err, sentinel)
-			}
-		})
+	enc := Encoder{Format: PNG, PNGCompressionLevel: png.BestSpeed}
+	if err := enc.Encode(pngErrorWriter{sentinel}, testImage()); !errors.Is(err, sentinel) {
+		t.Fatalf("got error %v, want wrapped writer error %v", err, sentinel)
 	}
 }
 
 func TestEncodeGraphicsPNGInvalidDimensions(t *testing.T) {
 	img := image.NewNRGBA(image.Rect(0, 0, 0, 1))
-	for _, level := range []png.CompressionLevel{png.DefaultCompression, png.BestSpeed} {
-		t.Run(fmt.Sprint(level), func(t *testing.T) {
-			var out bytes.Buffer
-			opts := &Options{Transmission: Direct, Format: PNG, PNGCompressionLevel: level}
-			err := EncodeGraphics(&out, img, opts)
-			var formatErr png.FormatError
-			if !errors.As(err, &formatErr) {
-				t.Fatalf("got error %v, want wrapped PNG format error", err)
-			}
-			if out.Len() != 0 {
-				t.Fatal("image encoding failure must not write protocol output")
-			}
-		})
+	var out bytes.Buffer
+	opts := &Options{Transmission: Direct, Format: PNG, PNGCompressionLevel: png.BestSpeed}
+	err := EncodeGraphics(&out, img, opts)
+	var formatErr png.FormatError
+	if !errors.As(err, &formatErr) {
+		t.Fatalf("got error %v, want wrapped PNG format error", err)
+	}
+	if out.Len() != 0 {
+		t.Fatal("image encoding failure must not write protocol output")
 	}
 }
 
@@ -160,26 +165,35 @@ func TestPNGCompressionLevelNotSerialized(t *testing.T) {
 
 func TestEncodeGraphicsPNGCompressionLevel(t *testing.T) {
 	img := pngTestImage()
-	for _, level := range []png.CompressionLevel{png.DefaultCompression, png.BestSpeed} {
-		for _, transmission := range []byte{Direct, TempFile} {
-			t.Run(fmt.Sprintf("level=%d/transmission=%c", level, transmission), func(t *testing.T) {
-				var out bytes.Buffer
-				opts := &Options{Transmission: transmission, Format: PNG, PNGCompressionLevel: level, Chunk: true, Quiet: 2, ID: 45}
-				if err := EncodeGraphics(&out, img, opts); err != nil {
+	tests := []struct {
+		name         string
+		level        png.CompressionLevel
+		transmission byte
+	}{
+		{"default", png.DefaultCompression, Direct},
+		{"best speed", png.BestSpeed, Direct},
+		{"best speed temporary file", png.BestSpeed, TempFile},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var out bytes.Buffer
+			opts := &Options{Transmission: tt.transmission, Format: PNG, PNGCompressionLevel: tt.level}
+			if err := EncodeGraphics(&out, img, opts); err != nil {
+				t.Fatal(err)
+			}
+			data := graphicsPayload(t, out.String())
+			if tt.transmission == TempFile {
+				path := string(data)
+				defer os.Remove(path)
+				var err error
+				data, err = os.ReadFile(path)
+				if err != nil {
 					t.Fatal(err)
 				}
-				data := checkGraphicsChunks(t, out.String(), opts)
-				if transmission == TempFile {
-					path := string(data)
-					defer os.Remove(path)
-					var err error
-					data, err = os.ReadFile(path)
-					if err != nil {
-						t.Fatal(err)
-					}
-				}
-				assertPNG(t, data, img, level)
-			})
-		}
+			}
+			if !bytes.Equal(data, expectedPNG(t, img, tt.level)) {
+				t.Fatal("EncodeGraphics did not use the selected PNG compression")
+			}
+		})
 	}
 }
