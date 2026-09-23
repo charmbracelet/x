@@ -167,14 +167,16 @@ func (e *Emulator) WidthMethod() uv.WidthMethod {
 }
 
 // Draw implements the [uv.Drawable] interface.
+//
+// It paints the entire visible screen, not just the lines that changed
+// since the last write: most hosts (including Bubble Tea) rebuild the frame
+// every render pass and diff it themselves, so an incremental paint here
+// would make content vanish between writes.
 func (e *Emulator) Draw(scr uv.Screen, area uv.Rectangle) {
 	bg := uv.EmptyCell
 	bg.Style.Bg = e.BackgroundColor()
 	screen.FillArea(scr, &bg, area)
-	for y := range e.Touched() {
-		if y < 0 || y >= e.Height() {
-			continue
-		}
+	for y := 0; y < e.Height(); y++ {
 		for x := 0; x < e.Width(); {
 			w := 1
 			cell := e.CellAt(x, y)
@@ -210,6 +212,18 @@ func (e *Emulator) Width() int {
 func (e *Emulator) CursorPosition() uv.Position {
 	x, y := e.scr.CursorPosition()
 	return uv.Pos(x, y)
+}
+
+// CursorHidden reports whether the cursor is currently hidden. Full-screen
+// TUIs hide the cursor constantly, and a host that renders the cursor on
+// top of this emulator must respect that or it will show a phantom cursor.
+func (e *Emulator) CursorHidden() bool {
+	return e.scr.cur.Hidden
+}
+
+// CursorStyle returns the current cursor style and whether it is blinking.
+func (e *Emulator) CursorStyle() (style CursorStyle, blink bool) {
+	return e.scr.cur.Style, !e.scr.cur.Steady
 }
 
 // Resize resizes the terminal.
