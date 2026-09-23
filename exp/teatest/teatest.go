@@ -63,22 +63,22 @@ func WithDuration(d time.Duration) WaitForOption {
 	}
 }
 
-// WaitFor keeps reading from r until the condition matches.
+// WaitForOutput keeps reading from r until the condition matches.
 // Default duration is 1s, default check interval is 50ms.
 // These defaults can be changed with WithDuration and WithCheckInterval.
-func WaitFor(
+func WaitForOutput(
 	tb testing.TB,
 	r io.Reader,
 	condition func(bts []byte) bool,
 	options ...WaitForOption,
 ) {
 	tb.Helper()
-	if err := doWaitFor(r, condition, options...); err != nil {
+	if err := doWaitForOutput(r, condition, options...); err != nil {
 		tb.Fatal(err)
 	}
 }
 
-func doWaitFor(r io.Reader, condition func(bts []byte) bool, options ...WaitForOption) error {
+func doWaitForOutput(r io.Reader, condition func(bts []byte) bool, options ...WaitForOption) error {
 	wf := WaitingForContext{
 		Duration:      time.Second,
 		CheckInterval: 50 * time.Millisecond, //nolint: mnd
@@ -114,6 +114,8 @@ type TestModel struct {
 
 	done   sync.Once
 	doneCh chan bool
+
+	msgs *msgBuffer
 }
 
 // NewTestModel makes a new TestModel which can be used for tests.
@@ -123,11 +125,19 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		out:     safe(bytes.NewBuffer(nil)),
 		modelCh: make(chan tea.Model, 1),
 		doneCh:  make(chan bool, 1),
+		msgs: &msgBuffer{
+			msgs: make([]tea.Msg, 0),
+		},
+	}
+
+	wrappedModel := msgCaptureModel{
+		model:  m,
+		buffer: tm.msgs,
 	}
 
 	//nolint: staticcheck
 	tm.program = tea.NewProgram(
-		m,
+		wrappedModel,
 		tea.WithInput(tm.in),
 		tea.WithOutput(tm.out),
 		tea.WithoutSignals(),
@@ -160,6 +170,45 @@ func NewTestModel(tb testing.TB, m tea.Model, options ...TestOption) *TestModel 
 		tm.program.Send(opts.size)
 	}
 	return tm
+}
+
+// WaitForMsg keeps checking messages until the condition matches or timeout is reached.
+// Default duration is 1s, default check interval is 50ms.
+func (tm *TestModel) WaitForMsg(
+	tb testing.TB,
+	condition func(msg tea.Msg) bool,
+	options ...WaitForOption,
+) tea.Msg {
+	tb.Helper()
+	msg, err := tm.doWaitForMsg(condition, options...)
+	if err != nil {
+		tb.Fatal(err)
+	}
+	return msg
+}
+
+func (tm *TestModel) doWaitForMsg(
+	condition func(msg tea.Msg) bool,
+	options ...WaitForOption,
+) (tea.Msg, error) {
+	wf := WaitingForContext{
+		Duration:      time.Second,
+		CheckInterval: 50 * time.Millisecond,
+	}
+
+	for _, opt := range options {
+		opt(&wf)
+	}
+
+	start := time.Now()
+	for time.Since(start) <= wf.Duration {
+		if msg := tm.msgs.forEach(condition); msg != nil {
+			return msg, nil
+		}
+		time.Sleep(wf.CheckInterval)
+	}
+
+	return nil, fmt.Errorf("WaitForMsg: condition not met after %s", wf.Duration)
 }
 
 func (tm *TestModel) waitDone(tb testing.TB, opts []FinalOpt) {
