@@ -50,6 +50,12 @@ type Parser struct {
 
 	// state is the current state of the parser.
 	state byte
+
+	// stringUtf8Rem counts the remaining continuation bytes of a UTF-8
+	// multi-byte character being collected as string data (OSC, DCS, SOS, PM,
+	// APC). While it is non-zero, a 0x9C byte is part of the character rather
+	// than an 8-bit ST terminator.
+	stringUtf8Rem int
 }
 
 // NewParser returns a new parser with the default settings.
@@ -135,6 +141,7 @@ func (p *Parser) clear() {
 	}
 	p.paramsLen = 0
 	p.cmd = 0
+	p.stringUtf8Rem = 0
 }
 
 // State returns the current state of the parser.
@@ -203,7 +210,37 @@ func (p *Parser) advanceUtf8(b byte) parser.Action {
 	return parser.PrintAction
 }
 
+// inStringState reports whether the parser is collecting free-form string
+// data (OSC, DCS passthrough, SOS, PM, APC).
+func (p *Parser) inStringState() bool {
+	switch p.state {
+	case parser.OscStringState, parser.DcsStringState, parser.SosStringState,
+		parser.PmStringState, parser.ApcStringState:
+		return true
+	}
+	return false
+}
+
 func (p *Parser) advance(b byte) parser.Action {
+	if p.inStringState() {
+		// String data accepts UTF-8, and the continuation bytes of a
+		// multi-byte character overlap the C1 range — including 0x9C, which
+		// the transition table treats as an 8-bit ST. Track the character
+		// being collected so a continuation byte (e.g. the 0x9C in U+2733
+		// "✳", 0xE2 0x9C 0xB3) is stored as data instead of terminating the
+		// sequence mid-character. A 0x9C that is not a continuation byte
+		// still dispatches as ST through the table below.
+		if p.stringUtf8Rem > 0 && b >= 0x80 && b <= 0xBF {
+			p.stringUtf8Rem--
+			p.performAction(parser.PutAction, p.state, b)
+			return parser.PutAction
+		}
+		p.stringUtf8Rem = 0
+		if n := utf8ByteLen(b); n > 1 {
+			p.stringUtf8Rem = n - 1
+		}
+	}
+
 	state, action := parser.Table.Transition(p.state, b)
 
 	// We need to clear the parser state if the state changes from EscapeState.
@@ -323,6 +360,7 @@ func (p *Parser) performAction(action parser.Action, state parser.State, b byte)
 		}
 
 	case parser.StartAction:
+		p.stringUtf8Rem = 0
 		if p.dataLen < 0 && p.data != nil {
 			p.data = p.data[:0]
 		} else {
