@@ -20,10 +20,10 @@ jobs:
       run:
         working-directory: ./xpty
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           lfs: true
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           go-version-file: ./xpty/go.mod
           cache: true
@@ -31,7 +31,7 @@ jobs:
       - run: go build -v ./...
       - run: |
           go test -race -covermode=atomic -coverprofile='coverage.txt' ./...
-      - uses: codecov/codecov-action@v6
+      - uses: codecov/codecov-action@v7
         with:
           file: ./coverage.txt
           token: ${{ secrets.CODECOV_TOKEN }}
