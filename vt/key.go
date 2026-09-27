@@ -2,6 +2,7 @@ package vt
 
 import (
 	"io"
+	"strconv"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
@@ -21,6 +22,60 @@ const (
 // KeyPressEvent represents a key press event.
 type KeyPressEvent = uv.KeyPressEvent
 
+// xtermModParam maps modifier bits to the xterm CSI modifier parameter
+// (1 + shift|alt|ctrl|meta mask).
+func xtermModParam(mod KeyMod) int {
+	m := 1
+	if mod&ModShift != 0 {
+		m += 1
+	}
+	if mod&ModAlt != 0 {
+		m += 2
+	}
+	if mod&ModCtrl != 0 {
+		m += 4
+	}
+	if mod&ModMeta != 0 {
+		m += 8
+	}
+	return m
+}
+
+// modifiedNavSequence returns the legacy xterm CSI sequence for a navigation
+// key with modifiers, or "" if the key is not a modified nav key.
+// Unmodified keys return "" so the existing DECCKM-aware cases handle them.
+// When modifiers are present, xterm always uses CSI (DECCKM does not apply).
+func modifiedNavSequence(key KeyPressEvent) string {
+	if key.Mod == 0 {
+		return ""
+	}
+	mod := xtermModParam(key.Mod)
+	switch key.Code {
+	case KeyUp:
+		return "[1;" + strconv.Itoa(mod) + "A"
+	case KeyDown:
+		return "[1;" + strconv.Itoa(mod) + "B"
+	case KeyRight:
+		return "[1;" + strconv.Itoa(mod) + "C"
+	case KeyLeft:
+		return "[1;" + strconv.Itoa(mod) + "D"
+	case KeyHome:
+		return "[1;" + strconv.Itoa(mod) + "H"
+	case KeyEnd:
+		return "[1;" + strconv.Itoa(mod) + "F"
+	case KeyInsert:
+		return "[2;" + strconv.Itoa(mod) + "~"
+	case KeyDelete:
+		return "[3;" + strconv.Itoa(mod) + "~"
+	case KeyPgUp:
+		return "[5;" + strconv.Itoa(mod) + "~"
+	case KeyPgDown:
+		return "[6;" + strconv.Itoa(mod) + "~"
+	default:
+		return ""
+	}
+}
+
 // SendKey returns the default key map.
 func (e *Emulator) SendKey(k uv.KeyEvent) {
 	var seq string
@@ -32,6 +87,13 @@ func (e *Emulator) SendKey(k uv.KeyEvent) {
 	// TODO: Support Kitty, CSI u, and XTerm modifyOtherKeys.
 	switch key := k.(type) {
 	case KeyPressEvent:
+		// Modified navigation keys use legacy xterm CSI (modifiers force CSI;
+		// DECCKM does not apply). Write and leave before the Alt ESC-prefix path
+		// so Alt+Up becomes CSI 1;3A rather than ESC + CSI A.
+		if s := modifiedNavSequence(key); s != "" {
+			io.WriteString(e.pw, s) //nolint:errcheck,gosec
+			break
+		}
 		if key.Mod&ModAlt != 0 {
 			// Handle alt-modified keys
 			seq = "\x1b" + seq
