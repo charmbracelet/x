@@ -59,7 +59,7 @@ func hardwrap(m Method, s string, limit int, preserveSpace bool) string {
 			cluster, width = FirstGraphemeCluster(b[i:], m)
 			i += len(cluster)
 
-			if curWidth+width > limit {
+			if curWidth > 0 && curWidth+width > limit {
 				addNewline()
 			}
 			if !preserveSpace && curWidth == 0 && len(cluster) <= 4 {
@@ -369,11 +369,20 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 				wordLen += width
 
 				if curWidth+wordLen+spaceWidth > limit {
-					addNewline()
+					if curWidth == 0 {
+						// Nothing on the line to break; the word is simply wider
+						// than the limit. Drop pending indent the break would have
+						// discarded, then flush the oversized word.
+						space.Reset()
+						spaceWidth = 0
+					} else {
+						addNewline()
+					}
 				}
 
-				if wordLen == limit {
-					// Hardwrap the word if it's too long
+				if wordLen >= limit {
+					// Hardwrap the word if it's too long (also when a single
+					// grapheme is wider than the limit).
 					addWord()
 				}
 			}
@@ -418,20 +427,27 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 					curWidth++
 				}
 			default:
-				if curWidth == limit {
+				// curWidth can exceed limit after flushing a grapheme wider
+				// than the limit (#979).
+				if curWidth >= limit {
 					addNewline()
 				}
 
 				word.WriteRune(r)
 				wordLen++
 
-				if wordLen == limit {
+				if wordLen >= limit {
 					// Hardwrap the word if it's too long
 					addWord()
 				}
 
 				if curWidth+wordLen+spaceWidth > limit {
-					addNewline()
+					if curWidth == 0 {
+						space.Reset()
+						spaceWidth = 0
+					} else {
+						addNewline()
+					}
 				}
 			}
 
