@@ -114,6 +114,10 @@ func TestScrollback(t *testing.T) {
 			e.WriteString("alt\r\n")
 		}
 
+		if sb := e.scrs[1].Scrollback(); sb != nil {
+			t.Fatalf("expected nil alt-screen scrollback, got max=%d len=%d", sb.MaxLines(), sb.Len())
+		}
+
 		// Main screen scrollback should be unchanged
 		if e.ScrollbackLen() != mainScrollbackLen {
 			t.Errorf("expected scrollback len %d after alt screen writes, got %d",
