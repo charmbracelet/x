@@ -174,6 +174,22 @@ func (se *SafeEmulator) CursorPosition() uv.Position {
 	return se.Emulator.CursorPosition()
 }
 
+// CursorHidden returns whether the cursor is hidden in a concurrency-safe
+// manner.
+func (se *SafeEmulator) CursorHidden() bool {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.CursorHidden()
+}
+
+// CursorStyle returns the cursor style and blink state in a concurrency-safe
+// manner.
+func (se *SafeEmulator) CursorStyle() (style CursorStyle, blink bool) {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.CursorStyle()
+}
+
 // Draw draws the emulator's content onto a given surface in a concurrency-safe manner.
 func (se *SafeEmulator) Draw(s uv.Screen, a uv.Rectangle) {
 	se.mu.RLock()
