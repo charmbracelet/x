@@ -244,6 +244,22 @@ func (b *Buffer) setCell(x, y int, c *Cell, clone bool) bool {
 	return b.Lines[y].set(x, c, clone)
 }
 
+// moveCell moves the cell at (srcX, srcY) to (dstX, dstY) without cloning it.
+//
+// A wide cell's trailing placeholders (zero-width cells with no content) are
+// skipped rather than copied: [Line.set] already regenerates a wide cell's
+// placeholders when the wide cell itself is written, so separately copying
+// its old placeholder into a destination that was just given that same wide
+// cell would make [Line.set] mistake its own freshly written placeholder for
+// stale leftover content and blank out the wide cell it just placed.
+func (b *Buffer) moveCell(dstX, dstY, srcX, srcY int) {
+	c := b.Lines[srcY][srcX]
+	if c != nil && c.Empty() {
+		return
+	}
+	b.setCell(dstX, dstY, c, false)
+}
+
 // Height implements Screen.
 func (b *Buffer) Height() int {
 	return len(b.Lines)
@@ -346,7 +362,7 @@ func (b *Buffer) InsertLineRect(y, n int, c *Cell, rect Rectangle) {
 	for i := rect.Max.Y - 1; i >= y+n; i-- {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
 			// We don't need to clone c here because we're just moving lines down.
-			b.setCell(x, i, b.Lines[i-n][x], false)
+			b.moveCell(x, i, x, i-n)
 		}
 	}
 
@@ -379,7 +395,7 @@ func (b *Buffer) DeleteLineRect(y, n int, c *Cell, rect Rectangle) {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
 			// We don't need to clone c here because we're just moving cells up.
 			// b.lines[dst][x] = b.lines[src][x]
-			b.setCell(x, dst, b.Lines[src][x], false)
+			b.moveCell(x, dst, x, src)
 		}
 	}
 
@@ -463,7 +479,7 @@ func (b *Buffer) DeleteCellRect(x, y, n int, c *Cell, rect Rectangle) {
 			// We don't need to clone c here because we're just moving cells to
 			// the left.
 			// b.lines[y][i] = b.lines[y][i+n]
-			b.setCell(i, y, b.Lines[y][i+n], false)
+			b.moveCell(i, y, i+n, y)
 		}
 	}
 
