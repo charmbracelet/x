@@ -2,7 +2,6 @@ package nerdfont
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,16 +21,10 @@ type lookupEnv func(string) (string, bool)
 // probe reports Nerd Font support. getenv supplies the environment, dirs are
 // the font directories to scan, and families returns the installed font
 // family names (or raw fc-list lines). They are injectable so that tests do
-// not depend on the host.
+// not depend on the host. Overrides are applied by [resolve] before probing.
 func probe(getenv lookupEnv, dirs []string, families func() []string) Result {
 	if getenv == nil {
 		getenv = os.LookupEnv
-	}
-
-	if value, ok := getenv(EnvVar); ok {
-		if supported, parsed := parseOverride(value); parsed {
-			return Result{supported, fmt.Sprintf("%s=%s override", EnvVar, value)}
-		}
 	}
 
 	if name, ok := terminalWithBuiltinSymbols(getenv); ok {
@@ -66,23 +59,29 @@ func parseOverride(value string) (supported, ok bool) {
 	}
 }
 
+// Terminals that render Nerd Font glyphs without a patched font installed.
+const (
+	kitty   = "kitty"
+	ghostty = "ghostty"
+)
+
 // terminalWithBuiltinSymbols reports terminals that render Nerd Font glyphs
 // without a patched font installed: kitty bundles the Symbols Nerd Font as a
 // glyph fallback (0.36+), and Ghostty embeds a symbols-only Nerd Font.
 func terminalWithBuiltinSymbols(getenv lookupEnv) (string, bool) {
 	if hasEnv(getenv, "KITTY_WINDOW_ID") {
-		return "kitty", true
+		return kitty, true
 	}
 	if hasEnv(getenv, "GHOSTTY_RESOURCES_DIR") {
-		return "ghostty", true
+		return ghostty, true
 	}
 	switch {
 	case getEnv(getenv, "TERM") == "xterm-kitty":
-		return "kitty", true
+		return kitty, true
 	case getEnv(getenv, "TERM") == "xterm-ghostty":
-		return "ghostty", true
-	case strings.EqualFold(getEnv(getenv, "TERM_PROGRAM"), "ghostty"):
-		return "ghostty", true
+		return ghostty, true
+	case strings.EqualFold(getEnv(getenv, "TERM_PROGRAM"), ghostty):
+		return ghostty, true
 	}
 	return "", false
 }
@@ -214,7 +213,6 @@ func fontFamilies() []string {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), fcListTimeout)
 	defer cancel()
-	//nolint:gosec // the command path is resolved from PATH by exec.LookPath.
 	out, err := exec.CommandContext(ctx, path).Output()
 	if err != nil {
 		return nil
