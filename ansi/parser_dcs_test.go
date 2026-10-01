@@ -68,6 +68,35 @@ func TestDcsSequence(t *testing.T) {
 				Cmd('\\'),
 			},
 		},
+		{
+			// 0x9C as a UTF-8 continuation byte is passthrough data, not ST:
+			// U+2733 "✳" is 0xE2 0x9C 0xB3.
+			name:  "put_utf8_continuation_st",
+			input: "\x1bPq\xe2\x9c\xb3 data\x1b\\",
+			expected: []any{
+				dcsSequence{
+					Cmd:    'q',
+					Params: Params{},
+					Data:   []byte("\xe2\x9c\xb3 data"),
+				},
+				Cmd('\\'),
+			},
+		},
+		{
+			// A raw 0x9C outside a multi-byte character still terminates the
+			// passthrough as an 8-bit ST; the following 'Z' prints in ground
+			// state.
+			name:  "put_bare_9c_terminates",
+			input: "\x1bPqhello\x9cZ",
+			expected: []any{
+				dcsSequence{
+					Cmd:    'q',
+					Params: Params{},
+					Data:   []byte("hello"),
+				},
+				'Z',
+			},
+		},
 	}
 
 	for _, c := range cases {
