@@ -354,6 +354,20 @@ updates:
           - "*"
 
   - package-ecosystem: "gomod"
+    directory: "/nerdfont"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    groups:
+      all:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "gomod"
     directory: "/powernap"
     schedule:
       interval: "monthly"

@@ -23,6 +23,7 @@ vars:
       exp/teatest/v2,
       input,
       json,
+      nerdfont,
       sshkey,
       term,
       termios,

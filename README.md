@@ -29,6 +29,7 @@ Currently the following packages are available:
 - [`json`](./json): JSON parsing using generics • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/json)
 - [`maps`](./exp/maps): generic maps utilities • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/maps)
 - [`mosaic`](./mosaic): Image to terminal rendering • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/mosaic)
+- [`nerdfont`](./nerdfont): Nerd Font glyph detection and fallbacks • [Docs](https://pkg.go.dev/charm.land/x/nerdfont)
 - [`open`](./exp/open): open a file/URL using `open`, `xdg-open`, etc • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/open)
 - [`ordered`](./exp/ordered): generic `min`, `max`, and `clamp` functions for ordered types • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/exp/ordered)
 - [`pony`](./pony): Declarative terminal UI markup language • [Docs](https://pkg.go.dev/github.com/charmbracelet/x/pony)
