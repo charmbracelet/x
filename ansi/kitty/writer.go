@@ -46,8 +46,9 @@ func EncodeGraphics(w io.Writer, m image.Image, o *Options) error {
 
 	var data bytes.Buffer // the data to be encoded into base64
 	e := &Encoder{
-		Compress: o.Compression == Zlib,
-		Format:   o.Format,
+		Compress:            o.Compression == Zlib,
+		Format:              o.Format,
+		PNGCompressionLevel: o.PNGCompressionLevel,
 	}
 
 	switch o.Transmission {
@@ -106,15 +107,31 @@ func EncodeGraphics(w io.Writer, m image.Image, o *Options) error {
 		}
 	}
 
-	// Encode image to base64
-	var payload bytes.Buffer // the base64 encoded image to be written to w
-	b64 := base64.NewEncoder(base64.StdEncoding, &payload)
-	if _, err := data.WriteTo(b64); err != nil {
-		return fmt.Errorf("failed to write base64 encoded image to payload: %w", err)
+	return EncodeGraphicsData(w, data.Bytes(), o)
+}
+
+// EncodeGraphicsData writes an already-encoded payload using the Kitty Graphics
+// protocol. It base64-encodes data and applies the same chunking, continuation
+// controls, and ChunkFormatter behavior as [EncodeGraphics]. Nil options use
+// the protocol defaults (direct transmission, RGBA).
+//
+// For [Direct] transmission, data contains encoded PNG or raw RGB/RGBA pixels.
+// For [File], [TempFile], or [SharedMemory], data contains the file or shared
+// memory name. The caller supplies the matching Format, dimensions, and other
+// controls; data is not validated, re-encoded, or compressed. Compression only
+// declares protocol-level compression already applied to the image data.
+//
+// PNGCompressionLevel and File do not supply or transform the payload. File
+// still participates in Options' default transmission selection. This function
+// does not open, create, or remove files or shared memory objects; the caller
+// manages those resources according to the selected transmission type.
+func EncodeGraphicsData(w io.Writer, data []byte, o *Options) error {
+	if o == nil {
+		o = &Options{}
 	}
-	if err := b64.Close(); err != nil {
-		return err //nolint:wrapcheck
-	}
+
+	// Encode the complete payload to base64 before writing protocol chunks.
+	payload := bytes.NewBuffer(base64.StdEncoding.AppendEncode(nil, data))
 
 	// If not chunking, write all at once
 	if !o.Chunk {
@@ -137,7 +154,7 @@ func EncodeGraphics(w io.Writer, m image.Image, o *Options) error {
 
 	for {
 		// Stop if we read less than the chunk size [MaxChunkSize].
-		n, err = io.ReadFull(&payload, chunk)
+		n, err = io.ReadFull(payload, chunk)
 		if errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) {
 			break
 		}
