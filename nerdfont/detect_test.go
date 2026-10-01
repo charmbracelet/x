@@ -44,26 +44,6 @@ func TestProbe(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "override enables",
-			env:  map[string]string{EnvVar: "1"},
-			want: true,
-		},
-		{
-			name: "override disables",
-			env:  map[string]string{EnvVar: "off"},
-			want: false,
-		},
-		{
-			name: "override beats terminal detection",
-			env:  map[string]string{EnvVar: "0", "KITTY_WINDOW_ID": "1"},
-			want: false,
-		},
-		{
-			name: "unrecognized override falls through",
-			env:  map[string]string{EnvVar: "maybe", "KITTY_WINDOW_ID": "1"},
-			want: true,
-		},
-		{
 			name: "kitty window id",
 			env:  map[string]string{"KITTY_WINDOW_ID": "1"},
 			want: true,

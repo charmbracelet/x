@@ -2,7 +2,6 @@ package nerdfont
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -22,16 +21,10 @@ type lookupEnv func(string) (string, bool)
 // probe reports Nerd Font support. getenv supplies the environment, dirs are
 // the font directories to scan, and families returns the installed font
 // family names (or raw fc-list lines). They are injectable so that tests do
-// not depend on the host.
+// not depend on the host. Overrides are applied by [resolve] before probing.
 func probe(getenv lookupEnv, dirs []string, families func() []string) Result {
 	if getenv == nil {
 		getenv = os.LookupEnv
-	}
-
-	if value, ok := getenv(EnvVar); ok {
-		if supported, parsed := parseOverride(value); parsed {
-			return Result{supported, fmt.Sprintf("%s=%s override", EnvVar, value)}
-		}
 	}
 
 	if name, ok := terminalWithBuiltinSymbols(getenv); ok {
