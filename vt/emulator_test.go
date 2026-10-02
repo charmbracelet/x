@@ -1826,3 +1826,52 @@ func termText(term *Emulator) []string {
 	}
 	return lines
 }
+
+func TestCursorStyleCallback(t *testing.T) {
+	term := NewEmulator(10, 3)
+
+	type callbackCall struct {
+		style CursorStyle
+		blink bool
+	}
+
+	var calls []callbackCall
+	term.SetCallbacks(Callbacks{
+		CursorStyle: func(style CursorStyle, blink bool) {
+			calls = append(calls, callbackCall{style: style, blink: blink})
+		},
+	})
+
+	tests := []struct {
+		seq   string
+		style CursorStyle
+		blink bool
+	}{
+		// CSI 2 SP q = steady block
+		{"\x1b[2 q", CursorBlock, false},
+		// CSI 1 SP q = blinking block
+		{"\x1b[1 q", CursorBlock, true},
+		// CSI 3 SP q = blinking underline
+		{"\x1b[3 q", CursorUnderline, true},
+		// CSI 4 SP q = steady underline
+		{"\x1b[4 q", CursorUnderline, false},
+		// CSI 5 SP q = blinking bar
+		{"\x1b[5 q", CursorBar, true},
+		// CSI 6 SP q = steady bar
+		{"\x1b[6 q", CursorBar, false},
+		// CSI 0 SP q = blinking block (default)
+		{"\x1b[0 q", CursorBlock, true},
+	}
+
+	for _, tc := range tests {
+		calls = nil
+		term.WriteString(tc.seq)
+		if len(calls) != 1 {
+			t.Fatalf("sequence %q: expected 1 callback call, got %d", tc.seq, len(calls))
+		}
+		if calls[0].style != tc.style || calls[0].blink != tc.blink {
+			t.Errorf("sequence %q: got style=%v blink=%v, want style=%v blink=%v",
+				tc.seq, calls[0].style, calls[0].blink, tc.style, tc.blink)
+		}
+	}
+}
