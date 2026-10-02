@@ -15,6 +15,9 @@ type Logger interface {
 	Printf(format string, v ...any)
 }
 
+// DefaultParserDataSize is the default data buffer size (4 MiB) for the ANSI parser.
+const DefaultParserDataSize = 1024 * 1024 * 4
+
 // Emulator represents a virtual terminal emulator.
 type Emulator struct {
 	handlers
@@ -47,8 +50,9 @@ type Emulator struct {
 	grapheme []byte
 
 	// The ANSI parser to use.
-	parser *ansi.Parser
-	cb     Callbacks
+	parser         *ansi.Parser
+	parserDataSize int
+	cb             Callbacks
 
 	// The terminal's icon name and title.
 	iconName, title string
@@ -76,9 +80,27 @@ type Emulator struct {
 
 var _ Terminal = (*Emulator)(nil)
 
+// Option is a functional option for configuring an [Emulator].
+type Option func(*Emulator)
+
+// WithParserDataSize sets the initial parser data buffer size for the emulator.
+// If size is less than or equal to 0, the data buffer is unlimited and will
+// grow as needed.
+func WithParserDataSize(size int) Option {
+	return func(e *Emulator) {
+		e.parserDataSize = size
+	}
+}
+
 // NewEmulator creates a new virtual terminal emulator.
-func NewEmulator(w, h int) *Emulator {
+func NewEmulator(w, h int, opts ...Option) *Emulator {
 	t := new(Emulator)
+	t.parserDataSize = DefaultParserDataSize
+	for _, opt := range opts {
+		if opt != nil {
+			opt(t)
+		}
+	}
 	t.scrs[0] = *NewScreen(w, h)
 	t.scrs[1] = *NewScreen(w, h)
 	t.scr = &t.scrs[0]
@@ -86,7 +108,7 @@ func NewEmulator(w, h int) *Emulator {
 	t.scrs[1].cb = &t.cb
 	t.parser = ansi.NewParser()
 	t.parser.SetParamsSize(parser.MaxParamsSize)
-	t.parser.SetDataSize(1024 * 1024 * 4) // 4MB data buffer
+	t.parser.SetDataSize(t.parserDataSize)
 	t.parser.SetHandler(ansi.Handler{
 		Print:     t.handlePrint,
 		Execute:   t.handleControl,
@@ -487,6 +509,14 @@ func (e *Emulator) ScrollbackCellAt(x, y int) *uv.Cell {
 // SetScrollbackSize sets the maximum number of lines in the scrollback buffer.
 func (e *Emulator) SetScrollbackSize(maxLines int) {
 	e.scrs[0].SetScrollbackSize(maxLines)
+}
+
+// SetParserDataSize sets the data buffer size for the underlying ANSI parser.
+// If size is less than or equal to 0, the data buffer is unlimited and will
+// grow as needed.
+func (e *Emulator) SetParserDataSize(size int) {
+	e.parserDataSize = size
+	e.parser.SetDataSize(size)
 }
 
 // ClearScrollback clears the scrollback buffer.

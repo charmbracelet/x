@@ -16,9 +16,9 @@ type SafeEmulator struct {
 var _ Terminal = (*SafeEmulator)(nil)
 
 // NewSafeEmulator creates a new SafeEmulator instance.
-func NewSafeEmulator(w, h int) *SafeEmulator {
+func NewSafeEmulator(w, h int, opts ...Option) *SafeEmulator {
 	return &SafeEmulator{
-		Emulator: NewEmulator(w, h),
+		Emulator: NewEmulator(w, h, opts...),
 	}
 }
 
@@ -223,6 +223,13 @@ func (se *SafeEmulator) SetScrollbackSize(maxLines int) {
 	se.mu.Lock()
 	defer se.mu.Unlock()
 	se.Emulator.SetScrollbackSize(maxLines)
+}
+
+// SetParserDataSize sets the data buffer size for the underlying ANSI parser in a concurrency-safe manner.
+func (se *SafeEmulator) SetParserDataSize(size int) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.SetParserDataSize(size)
 }
 
 // ClearScrollback clears the scrollback buffer in a concurrency-safe manner.
