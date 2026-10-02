@@ -63,6 +63,7 @@ var wwCases = []struct {
 	{"emoji_breakpoint", "foo😃 foobar", 4, "😃", "foo😃\nfoobar"},
 	{"wide_emoji_breakpoint", "foo🫧 foobar", 4, "🫧", "foo🫧\nfoobar"},
 	{"space_breakpoint", "foo --bar", 9, "-", "foo --bar"},
+	{"breakpoint_overflow", "foo bar, fo", 7, ",", "foo\nbar, fo"},
 	{"simple", "foo bars foobars", 4, "", "foo\nbars\nfoobars"},
 	{"limit", "foo bar", 5, "", "foo\nbar"},
 	{"remove white spaces", "foo    \nb   ar   ", 4, "", "foo\nb\nar"},
