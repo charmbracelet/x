@@ -34,6 +34,14 @@ func (se *SafeEmulator) Read(p []byte) (int, error) {
 	return se.Emulator.Read(p)
 }
 
+// SetGraphemeWidthFunc sets the grapheme width func in a concurrency-safe
+// manner.
+func (se *SafeEmulator) SetGraphemeWidthFunc(f GraphemeWidthFunc) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.SetGraphemeWidthFunc(f)
+}
+
 // Resize resizes the emulator in a concurrency-safe manner.
 func (se *SafeEmulator) Resize(w, h int) {
 	se.mu.Lock()
