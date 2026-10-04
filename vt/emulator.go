@@ -265,23 +265,36 @@ func (e *Emulator) Close() error {
 	return e.pw.CloseWithError(io.EOF) //nolint:wrapcheck
 }
 
-// Write writes data to the terminal output buffer.
+// Write writes data to the terminal output buffer and flushes any trailing
+// grapheme cluster before returning. Callers processing an arbitrary byte
+// stream should use WritePending and choose a safe point to Flush instead.
 func (e *Emulator) Write(p []byte) (n int, err error) {
+	n, err = e.WritePending(p)
+	if err == nil {
+		e.Flush()
+	}
+	return n, err
+}
+
+// WritePending writes data to the terminal output buffer without flushing a
+// trailing grapheme cluster. It is for streaming callers whose write
+// boundaries do not carry Unicode meaning: holding the trailing candidate lets
+// a following combining mark, ZWJ, or emoji modifier join its base cell.
+// Call Flush at a known end-of-stream or rendering boundary.
+func (e *Emulator) WritePending(p []byte) (n int, err error) {
 	if e.closed {
 		return 0, io.ErrClosedPipe
 	}
 
-	for i := range p {
-		e.parser.Advance(p[i])
-		// Flush the last cluster once the whole slice is written. Every
-		// sequence handler flushes on its own way in, so a cluster only has to
-		// survive until either the next printable character extends it or the
-		// write ends.
-		if len(e.grapheme) > 0 && i == len(p)-1 {
-			e.flushGrapheme()
-		}
+	for _, c := range p {
+		e.parser.Advance(c)
 	}
 	return len(p), nil
+}
+
+// Flush commits the trailing grapheme cluster held by WritePending.
+func (e *Emulator) Flush() {
+	e.flushGrapheme()
 }
 
 // WriteString writes a string to the terminal output buffer.
