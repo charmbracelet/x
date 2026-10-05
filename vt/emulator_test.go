@@ -932,6 +932,47 @@ var cases = []struct {
 		},
 		pos: uv.Pos(3, 2),
 	},
+	{
+		name: "DECSTBM Bottom Past Screen Scroll Down",
+		w:    8, h: 4,
+		input: []string{
+			"\x1b[1;1H", // move to top-left
+			"\x1b[2J",   // clear screen
+			"ABC\r\n",
+			"DEF\r\n",
+			"GHI",
+			"\x1b[1;10r", // bottom margin past the 4 rows: clamp to the screen
+			"\x1b[T",     // scroll down through the region
+		},
+		want: []string{
+			"        ",
+			"ABC     ",
+			"DEF     ",
+			"GHI     ",
+		},
+		pos: uv.Pos(0, 0),
+	},
+	{
+		name: "DECSTBM Top Past Screen Leaves Prior Region",
+		w:    8, h: 4,
+		input: []string{
+			"\x1b[1;1H", // move to top-left
+			"\x1b[2J",   // clear screen
+			"ABC\r\n",
+			"DEF\r\n",
+			"GHI",
+			"\x1b[1;2r",   // valid region: lines 1-2
+			"\x1b[28;29r", // top and bottom both past the screen: ignore
+			"\x1b[T",      // scroll down within the still-valid region
+		},
+		want: []string{
+			"        ",
+			"ABC     ",
+			"GHI     ",
+			"        ",
+		},
+		pos: uv.Pos(0, 0),
+	},
 
 	// Set Left/Right Margins [ansi.DECSLRM]
 	{
@@ -1017,6 +1058,27 @@ var cases = []struct {
 			"GHI     ",
 		},
 		pos: uv.Pos(3, 2),
+	},
+	{
+		name: "DECSLRM Right Past Screen",
+		w:    8, h: 4,
+		input: []string{
+			"\x1b[1;1H", // move to top-left
+			"\x1b[2J",   // clear screen
+			"ABC\r\n",
+			"DEF\r\n",
+			"GHI",
+			"\x1b[?69h",  // enable left/right margins
+			"\x1b[1;20s", // right margin past the 8 columns: clamp to the screen
+			"\x1b[L",     // insert line in the clamped (full-width) region
+		},
+		want: []string{
+			"        ",
+			"ABC     ",
+			"DEF     ",
+			"GHI     ",
+		},
+		pos: uv.Pos(0, 0),
 	},
 
 	// Erase Character [ansi.ECH]
@@ -1807,6 +1869,41 @@ func TestTerminal(t *testing.T) {
 				t.Errorf("cursor position doesn't match: want %v, got %v", tt.pos, pos)
 			}
 		})
+	}
+}
+
+// DECSTBM and DECSLRM must clamp against the current screen. An application
+// that still draws for the height it had a moment ago can send CSI 1;29 r
+// after a shrink to 27 rows; xterm clamps, but without that the next reverse
+// index panics inside InsertLineArea.
+func TestDECSTBMClampsBottomPastScreen(t *testing.T) {
+	t.Parallel()
+	term := newTestTerminal(t, 40, 27)
+	if _, err := term.Write([]byte("\x1b[1;29r")); err != nil {
+		t.Fatal(err)
+	}
+	scroll := term.scr.ScrollRegion()
+	if scroll.Min.Y != 0 || scroll.Max.Y != 27 {
+		t.Fatalf("scroll region Y = [%d,%d), want [0,27)", scroll.Min.Y, scroll.Max.Y)
+	}
+	// Home, then reverse index: must not panic.
+	if _, err := term.Write([]byte("top\x1b[H\x1bM")); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDECSLRMClampsRightPastScreen(t *testing.T) {
+	t.Parallel()
+	term := newTestTerminal(t, 40, 27)
+	if _, err := term.Write([]byte("\x1b[?69h\x1b[1;60s")); err != nil {
+		t.Fatal(err)
+	}
+	scroll := term.scr.ScrollRegion()
+	if scroll.Min.X != 0 || scroll.Max.X != 40 {
+		t.Fatalf("scroll region X = [%d,%d), want [0,40)", scroll.Min.X, scroll.Max.X)
+	}
+	if _, err := term.Write([]byte("\x1b[H\x1b[L")); err != nil {
+		t.Fatal(err)
 	}
 }
 
