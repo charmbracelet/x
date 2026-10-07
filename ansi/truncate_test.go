@@ -355,6 +355,33 @@ func TestTruncateLeft(t *testing.T) {
 	}
 }
 
+// When a grapheme cluster interrupts an unterminated escape sequence, the
+// parser state was left mid-sequence, so the next byte was mistaken for the
+// sequence's final byte and emitted past the truncation point, making the
+// result wider than the requested length. See charmbracelet/x#541.
+func TestTruncateObeysWidth(t *testing.T) {
+	cases := []struct {
+		name   string
+		input  string
+		width  int
+		expect string
+	}{
+		{"escape interrupted by grapheme", "\x1b[3‘s", 1, "\x1b[3…"},
+		{"text before interrupted escape", "abcd\x1b[3‘sefg", 5, "abcd\x1b[3…"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			result := Truncate(c.input, c.width, "…")
+			if result != c.expect {
+				t.Errorf("expected: %q\n     got: %q", c.expect, result)
+			}
+			if w := StringWidth(result); w > c.width {
+				t.Errorf("width %d exceeds requested %d for %q", w, c.width, result)
+			}
+		})
+	}
+}
+
 func BenchmarkTruncateLeft(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		b.ReportAllocs()
