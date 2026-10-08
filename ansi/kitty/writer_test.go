@@ -3,8 +3,10 @@ package kitty
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"image"
 	"image/color"
+	"image/png"
 	"os"
 	"path/filepath"
 	"strings"
@@ -223,5 +225,64 @@ func TestWriteKittyGraphicsEdgeCases(t *testing.T) {
 				t.Errorf("WriteKittyGraphics() error = %v, wantError %v", err, tt.wantError)
 			}
 		})
+	}
+}
+
+func TestEncodeGraphicsFileSelectsTransmission(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "image.png")
+	if err := os.WriteFile(path, []byte("image data"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := EncodeGraphics(&out, nil, &Options{File: path, Format: PNG}); err != nil {
+		t.Fatal(err)
+	}
+	want := "\x1b_Gf=100,t=f;" + base64.StdEncoding.EncodeToString([]byte(path)) + "\x1b\\"
+	if out.String() != want {
+		t.Fatalf("got %q, want %q", out.String(), want)
+	}
+}
+
+func TestEncodeGraphicsRejectsDirectory(t *testing.T) {
+	var out bytes.Buffer
+	opts := &Options{Transmission: File, File: t.TempDir()}
+	err := EncodeGraphics(&out, nil, opts)
+	if err == nil || err.Error() != "file is not a regular file" {
+		t.Fatalf("got error %v, want non-regular file error", err)
+	}
+	if out.Len() != 0 {
+		t.Fatal("invalid file must not produce protocol output")
+	}
+}
+
+func TestEncodeGraphicsTempFileCreationError(t *testing.T) {
+	original := GraphicsTempDir
+	t.Cleanup(func() { GraphicsTempDir = original })
+	GraphicsTempDir = filepath.Join(t.TempDir(), "missing")
+
+	var out bytes.Buffer
+	err := EncodeGraphics(&out, testImage(), &Options{Transmission: TempFile})
+	if !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("got error %v, want wrapped file creation error", err)
+	}
+	if out.Len() != 0 {
+		t.Fatal("file creation failure must not produce protocol output")
+	}
+}
+
+func TestEncodeGraphicsTempFilePNGError(t *testing.T) {
+	original := GraphicsTempDir
+	t.Cleanup(func() { GraphicsTempDir = original })
+	GraphicsTempDir = t.TempDir()
+
+	img := image.NewNRGBA(image.Rect(0, 0, 0, 1))
+	var out bytes.Buffer
+	err := EncodeGraphics(&out, img, &Options{Transmission: TempFile, Format: PNG})
+	var formatErr png.FormatError
+	if !errors.As(err, &formatErr) {
+		t.Fatalf("got error %v, want wrapped PNG format error", err)
+	}
+	if out.Len() != 0 {
+		t.Fatal("PNG encoding failure must not produce protocol output")
 	}
 }
