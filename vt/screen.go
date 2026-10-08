@@ -138,12 +138,17 @@ func (s *Screen) FillArea(c *uv.Cell, area uv.Rectangle) {
 func (s *Screen) setHorizontalMargins(left, right int) {
 	s.scroll.Min.X = left
 	s.scroll.Max.X = right
+	s.scroll = s.scroll.Intersect(s.buf.Bounds())
 }
 
-// setVerticalMargins sets the vertical margins.
+// setVerticalMargins sets the vertical margins. The region is kept
+// inside the buffer no matter what the caller computed: a scroll
+// region past the last line is an out-of-range index on every
+// scroll, and the emulator must never panic on input bytes.
 func (s *Screen) setVerticalMargins(top, bottom int) {
 	s.scroll.Min.Y = top
 	s.scroll.Max.Y = bottom
+	s.scroll = s.scroll.Intersect(s.buf.Bounds())
 }
 
 // setCursorX sets the cursor X position. If margins is true, the cursor is
