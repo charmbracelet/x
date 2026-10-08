@@ -52,6 +52,7 @@ type Terminal interface {
 	SetForegroundColor(c color.Color)
 	SetIndexedColor(i int, c color.Color)
 	SetLogger(l Logger)
+	SetParserDataSize(size int)
 	SetScrollbackSize(maxLines int)
 	String() string
 	Touched() []*uv.LineData

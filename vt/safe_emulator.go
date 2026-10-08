@@ -209,6 +209,13 @@ func (se *SafeEmulator) SetScrollbackSize(maxLines int) {
 	se.Emulator.SetScrollbackSize(maxLines)
 }
 
+// SetParserDataSize sets the data buffer size for the underlying ANSI parser in a concurrency-safe manner.
+func (se *SafeEmulator) SetParserDataSize(size int) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.SetParserDataSize(size)
+}
+
 // ClearScrollback clears the scrollback buffer in a concurrency-safe manner.
 func (se *SafeEmulator) ClearScrollback() {
 	se.mu.Lock()
