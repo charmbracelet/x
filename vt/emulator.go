@@ -214,32 +214,31 @@ func (e *Emulator) CursorPosition() uv.Position {
 
 // Resize resizes the terminal.
 func (e *Emulator) Resize(width int, height int) {
-	x, y := e.scr.CursorPosition()
-	if e.atPhantom {
-		if x < width-1 {
+	old := e.CursorPosition()
+	reflowMain := e.scrs[0].Width() != width && e.isModeSet(ansi.ModeAutoWrap)
+	mainPastEnd := false
+	if reflowMain {
+		mainPastEnd = e.scrs[0].resize(width, height, e.scr == &e.scrs[0] && e.atPhantom)
+	} else {
+		e.scrs[0].resizeBuffer(width, height)
+	}
+	e.scrs[1].resizeBuffer(width, height)
+	e.tabstops = uv.DefaultTabStops(width)
+
+	if e.scr == &e.scrs[0] && reflowMain {
+		e.atPhantom = mainPastEnd
+	} else {
+		e.scr.cur.X = max(0, min(e.scr.cur.X, width-1))
+		e.scr.cur.Y = max(0, min(e.scr.cur.Y, height-1))
+		if e.atPhantom && e.scr.cur.X < width-1 {
 			e.atPhantom = false
-			x++
+			e.scr.cur.X++
 		}
 	}
 
-	if y < 0 {
-		y = 0
+	if current := e.CursorPosition(); e.cb.CursorPosition != nil && old != current {
+		e.cb.CursorPosition(old, current)
 	}
-	if y >= height {
-		y = height - 1
-	}
-	if x < 0 {
-		x = 0
-	}
-	if x >= width {
-		x = width - 1
-	}
-
-	e.scrs[0].Resize(width, height)
-	e.scrs[1].Resize(width, height)
-	e.tabstops = uv.DefaultTabStops(width)
-
-	e.setCursor(x, y)
 
 	if e.isModeSet(ansi.ModeInBandResize) {
 		_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
