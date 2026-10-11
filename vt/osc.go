@@ -19,14 +19,15 @@ func (e *Emulator) handleOsc(cmd int, data []byte) {
 }
 
 func (e *Emulator) handleTitle(cmd int, data []byte) {
-	parts := bytes.Split(data, []byte{';'})
-	if len(parts) != 2 {
+	// A title may itself contain ';'.
+	_, title, ok := bytes.Cut(data, []byte{';'})
+	if !ok {
 		// Invalid, ignore
 		return
 	}
 	switch cmd {
 	case 0: // Set window title and icon name
-		name := string(parts[1])
+		name := string(title)
 		e.iconName, e.title = name, name
 		if e.cb.Title != nil {
 			e.cb.Title(name)
@@ -35,13 +36,13 @@ func (e *Emulator) handleTitle(cmd int, data []byte) {
 			e.cb.IconName(name)
 		}
 	case 1: // Set icon name
-		name := string(parts[1])
+		name := string(title)
 		e.iconName = name
 		if e.cb.IconName != nil {
 			e.cb.IconName(name)
 		}
 	case 2: // Set window title
-		name := string(parts[1])
+		name := string(title)
 		e.title = name
 		if e.cb.Title != nil {
 			e.cb.Title(name)
@@ -109,14 +110,14 @@ func (e *Emulator) handleWorkingDirectory(cmd int, data []byte) {
 		return
 	}
 
-	// The data is the working directory path.
-	parts := bytes.Split(data, []byte{';'})
-	if len(parts) != 2 {
+	// The data is the working directory path, which may contain ';'.
+	_, dir, ok := bytes.Cut(data, []byte{';'})
+	if !ok {
 		// Invalid, ignore
 		return
 	}
 
-	path := string(parts[1])
+	path := string(dir)
 	e.cwd = path
 
 	if e.cb.WorkingDirectory != nil {
@@ -125,7 +126,8 @@ func (e *Emulator) handleWorkingDirectory(cmd int, data []byte) {
 }
 
 func (e *Emulator) handleHyperlink(cmd int, data []byte) {
-	parts := bytes.Split(data, []byte{';'})
+	// The URI may itself contain ';'.
+	parts := bytes.SplitN(data, []byte{';'}, 3)
 	if len(parts) != 3 || cmd != 8 {
 		// Invalid, ignore
 		return
