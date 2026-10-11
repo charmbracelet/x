@@ -72,6 +72,8 @@ func (e *Emulator) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 	e.logf("setting mode %T(%v) to %v", mode, mode, setting)
 	e.modes[mode] = setting
 	switch mode {
+	case ansi.ModeInsertReplace:
+		e.insertMode = setting.IsSet()
 	case ansi.ModeTextCursorEnable:
 		e.scr.setCursorHidden(!setting.IsSet())
 	case ansi.ModeAltScreen:

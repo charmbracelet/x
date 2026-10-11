@@ -1,6 +1,7 @@
 package vt
 
 import (
+	"strings"
 	"testing"
 
 	uv "github.com/charmbracelet/ultraviolet"
@@ -1825,4 +1826,15 @@ func termText(term *Emulator) []string {
 		lines = append(lines, line)
 	}
 	return lines
+}
+
+// rowText returns the text of row y, without trailing blanks.
+func rowText(e *Emulator, y int) string {
+	var b strings.Builder
+	for x := range e.Width() {
+		if c := e.CellAt(x, y); c != nil && c.Width > 0 {
+			b.WriteString(c.Content)
+		}
+	}
+	return strings.TrimRight(b.String(), " ")
 }

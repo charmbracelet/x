@@ -69,6 +69,9 @@ type Emulator struct {
 	// Indicates if the terminal is closed.
 	closed bool
 
+	// insertMode caches IRM, which every printed character consults.
+	insertMode bool
+
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
 	atPhantom bool
