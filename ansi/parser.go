@@ -215,6 +215,18 @@ func (p *Parser) collectRune(b byte) {
 }
 
 func (p *Parser) advanceUtf8(b byte) parser.Action {
+	if b < 0x80 || b > 0xBF {
+		// Not a continuation byte, so the rune is malformed. Print a
+		// replacement character for it, as terminals do, and read b afresh
+		// rather than swallowing an ESC or a printable character.
+		if p.handler.Print != nil {
+			p.handler.Print(utf8.RuneError)
+		}
+		p.state = parser.GroundState
+		p.paramsLen = 0
+		return p.Advance(b)
+	}
+
 	// Collect UTF-8 rune bytes.
 	p.collectRune(b)
 	rw := utf8ByteLen(byte(p.cmd & 0xff))
