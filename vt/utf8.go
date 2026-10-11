@@ -72,6 +72,13 @@ func (e *Emulator) flushGrapheme() {
 
 // handleGrapheme handles UTF-8 graphemes.
 func (e *Emulator) handleGrapheme(content string, width int) {
+	if width <= 0 {
+		// A cluster with no base character, such as a lone ZWJ or a
+		// combining mark after a control. Stored, it would be a zero-width
+		// cell, which reads as the tail of a wide character; drop it, as a
+		// terminal with nothing to attach it to does.
+		return
+	}
 	awm := e.isModeSet(ansi.ModeAutoWrap)
 	cell := uv.Cell{
 		Content: content,

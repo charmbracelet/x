@@ -104,3 +104,28 @@ func TestLongClusterRunStaysLinear(t *testing.T) {
 		t.Fatalf("writing %d bytes of one cluster did not finish in 10s", len(input))
 	}
 }
+
+func TestClusterWithoutBaseIsDropped(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		input string
+	}{
+		{"combining mark after a control", "ab\r\u0301"},
+		{"lone ZWJ after a control", "ab\r\u200d"},
+		{"variation selector after a control", "ab\r\ufe0f"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			term := newTestTerminal(t, 10, 1)
+			term.WriteString(tc.input)
+			if got := rowText(term, 0); got != "ab" {
+				t.Errorf("row 0: got = %q, want = %q", got, "ab")
+			}
+			if c := term.CellAt(0, 0); c == nil || c.Width != 1 || c.Content != "a" {
+				t.Errorf("cell 0: got = %+v, want a", c)
+			}
+			if x, _ := term.scr.CursorPosition(); x != 0 {
+				t.Errorf("cursor x: got = %d, want = 0", x)
+			}
+		})
+	}
+}
