@@ -26,8 +26,10 @@ type Emulator struct {
 	scrs [2]Screen
 	scr  *Screen
 
-	// Character sets
-	charsets [4]CharSet
+	// Character sets, and the final byte of the SCS sequence that designated
+	// each (0 for the default, ASCII).
+	charsets     [4]CharSet
+	designations [4]byte
 
 	// log is the logger to use.
 	logger Logger
@@ -48,7 +50,10 @@ type Emulator struct {
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
-	cb     Callbacks
+	// partial counts the bytes written since the parser was last in its
+	// ground state: the unfinished sequence it holds.
+	partial int
+	cb      Callbacks
 
 	// The terminal's icon name and title.
 	iconName, title string
@@ -281,6 +286,11 @@ func (e *Emulator) Write(p []byte) (n int, err error) {
 
 	for i := range p {
 		e.parser.Advance(p[i])
+		if e.parser.State() == parser.GroundState {
+			e.partial = 0
+		} else {
+			e.partial++
+		}
 	}
 	// Flush the last cluster once the whole slice is written, so a caller can
 	// read back what it wrote. Every sequence handler flushes on its own way

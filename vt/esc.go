@@ -32,6 +32,7 @@ func (e *Emulator) fullReset() {
 	e.gl, e.gr = 0, 1
 	e.gsingle = 0
 	e.charsets = [4]CharSet{}
+	e.designations = [4]byte{}
 	e.atPhantom = false
 	e.grapheme = e.grapheme[:0]
 	e.carry.valid = false
@@ -62,4 +63,5 @@ func (e *Emulator) softReset() {
 	e.gl, e.gr = 0, 1
 	e.gsingle = 0
 	e.charsets = [4]CharSet{}
+	e.designations = [4]byte{}
 }
