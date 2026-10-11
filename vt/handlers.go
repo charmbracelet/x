@@ -596,8 +596,10 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		// Insert Line [ansi.IL]
 		n, _, _ := params.Param(0, 1)
 		if e.scr.InsertLine(n) {
-			// Move the cursor to the left margin.
+			// Move the cursor to the left margin, which leaves no wrap
+			// pending, as in xterm.
 			e.scr.setCursorX(0, true)
+			e.atPhantom = false
 		}
 		return true
 	})
@@ -606,10 +608,10 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		// Delete Line [ansi.DL]
 		n, _, _ := params.Param(0, 1)
 		if e.scr.DeleteLine(n) {
-			// If the line was deleted successfully, move the cursor to the
-			// left.
-			// Move the cursor to the left margin.
+			// Move the cursor to the left margin, which leaves no wrap
+			// pending, as in xterm.
 			e.scr.setCursorX(0, true)
+			e.atPhantom = false
 		}
 		return true
 	})

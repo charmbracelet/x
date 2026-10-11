@@ -54,3 +54,15 @@ func TestCursorsStayOnShrunkScreen(t *testing.T) {
 		})
 	}
 }
+
+// TestInsertDeleteLineClearPendingWrap pins that IL and DL, which move the
+// cursor to the left margin, leave no wrap pending, as in xterm.
+func TestInsertDeleteLineClearPendingWrap(t *testing.T) {
+	for _, seq := range []string{"\x1b[L", "\x1b[M"} {
+		e := newTestTerminal(t, 10, 3)
+		_, _ = e.WriteString("\x1b[1;10Hx" + seq + "y")
+		if pos := e.CursorPosition(); pos.X != 1 || pos.Y != 0 {
+			t.Errorf("%q: cursor after one more character: got = %v, want = (1,0)", seq, pos)
+		}
+	}
+}
