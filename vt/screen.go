@@ -226,7 +226,11 @@ func (s *Screen) SaveCursor() {
 // RestoreCursor restores the cursor.
 func (s *Screen) RestoreCursor() {
 	old := s.cur.Position
+	// DECRC restores the position, pen and link, but not the cursor's
+	// visibility or shape, which DECSC does not save in xterm.
+	hidden, style, steady := s.cur.Hidden, s.cur.Style, s.cur.Steady
 	s.cur = s.saved
+	s.cur.Hidden, s.cur.Style, s.cur.Steady = hidden, style, steady
 
 	if s.cb.CursorPosition != nil && (old.X != s.cur.X || old.Y != s.cur.Y) {
 		s.cb.CursorPosition(old, s.cur.Position)

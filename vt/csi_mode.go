@@ -62,9 +62,11 @@ func (e *Emulator) saveCursor() {
 	e.scr.SaveCursor()
 }
 
-// restoreCursor restores the cursor position.
+// restoreCursor restores the cursor position. The saved slot holds no
+// pending wrap, so the restored cursor has none.
 func (e *Emulator) restoreCursor() {
 	e.scr.RestoreCursor()
+	e.atPhantom = false
 }
 
 // setMode sets the mode to the given value.

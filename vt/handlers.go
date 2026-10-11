@@ -364,7 +364,7 @@ func (e *Emulator) registerDefaultEscHandlers() {
 
 	e.RegisterEscHandler('8', func() bool {
 		// Restore Cursor [ansi.DECRC]
-		e.scr.RestoreCursor()
+		e.restoreCursor()
 		return true
 	})
 
