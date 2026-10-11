@@ -66,6 +66,8 @@ type Emulator struct {
 	// I/O pipes.
 	pr *io.PipeReader
 	pw *io.PipeWriter
+	// replyFunc, when set, receives replies to queries instead of pw.
+	replyFunc func([]byte)
 
 	// The GL and GR character set identifiers.
 	gl, gr  int
@@ -255,8 +257,33 @@ func (e *Emulator) Resize(width int, height int) {
 	e.setCursor(x, y)
 
 	if e.isModeSet(ansi.ModeInBandResize) {
-		_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
+		e.reply(ansi.InBandResize(e.Height(), e.Width(), 0, 0))
 	}
+}
+
+// SetReplyFunc sets fn to receive the emulator's replies to terminal queries
+// (DA1, DA2, DSR, CPR, DECRQM, OSC 10/11/12 color queries) and in-band resize
+// reports, instead of the pipe [Emulator.Read] reads.
+//
+// Replies written to the pipe block the Write that produced them until
+// something reads them, so an emulator fed program output with nobody reading
+// its replies stops on the first query. fn is called synchronously, never
+// blocks the emulator, and must not retain p or call back into the Emulator.
+// Pass a function that does nothing to discard replies, or nil to send them to
+// the pipe again. Input sent with [Emulator.SendKey], [Emulator.SendText],
+// [Emulator.Paste] and the like still goes to the pipe.
+func (e *Emulator) SetReplyFunc(fn func(p []byte)) {
+	e.replyFunc = fn
+}
+
+// reply sends a reply to a terminal query to the reply function, or to the
+// pipe [Emulator.Read] reads when there is none.
+func (e *Emulator) reply(s string) {
+	if e.replyFunc != nil {
+		e.replyFunc([]byte(s))
+		return
+	}
+	_, _ = io.WriteString(e.pw, s)
 }
 
 // Read reads data from the terminal input buffer.
