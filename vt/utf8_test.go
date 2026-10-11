@@ -174,3 +174,24 @@ func TestClusterAcrossWrites(t *testing.T) {
 		}
 	})
 }
+
+func TestPrintingASCIIDoesNotAllocate(t *testing.T) {
+	term := newTestTerminal(t, 80, 24)
+	line := []byte(strings.Repeat("abcdefgh", 10)[:79] + "\r")
+	allocs := testing.AllocsPerRun(100, func() {
+		term.Write(line)
+	})
+	if allocs > 0 {
+		t.Errorf("allocations per %d-byte line: got = %v, want = 0", len(line), allocs)
+	}
+}
+
+func BenchmarkWriteASCII(b *testing.B) {
+	term := NewEmulator(80, 24)
+	line := []byte(strings.Repeat("abcdefgh", 10)[:79] + "\r\n")
+	b.SetBytes(int64(len(line)))
+	b.ReportAllocs()
+	for b.Loop() {
+		term.Write(line)
+	}
+}
