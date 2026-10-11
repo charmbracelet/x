@@ -23,3 +23,34 @@ func TestRestoreCursorClearsPendingWrap(t *testing.T) {
 		}
 	}
 }
+
+// After a shrink, every way of getting a cursor back must land on the
+// screen; one left outside it drops whatever is printed next.
+func TestCursorsStayOnShrunkScreen(t *testing.T) {
+	tests := []struct {
+		name    string
+		setup   string
+		restore string
+	}{
+		{name: "DECRC", setup: "\x1b[20;70H\x1b7", restore: "\x1b8"},
+		{name: "?1048", setup: "\x1b[20;70H\x1b[?1048h", restore: "\x1b[?1048l"},
+		{name: "?1049", setup: "\x1b[20;70H\x1b[?1049h", restore: "\x1b[?1049l"},
+		{name: "?1047", setup: "\x1b[20;70H\x1b[?1047h", restore: "\x1b[?1047l"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newTestTerminal(t, 80, 24)
+			_, _ = e.WriteString(tc.setup)
+			e.Resize(40, 10)
+			_, _ = e.WriteString(tc.restore)
+			x, y := e.scr.CursorPosition()
+			if x >= 40 || y >= 10 {
+				t.Fatalf("cursor after restore: got = (%d,%d), want inside 40x10", x, y)
+			}
+			_, _ = e.WriteString("Z")
+			if c := e.CellAt(x, y); c == nil || c.Content != "Z" {
+				t.Errorf("cell (%d,%d) after printing: got = %+v, want Z", x, y, c)
+			}
+		})
+	}
+}

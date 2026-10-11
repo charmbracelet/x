@@ -79,6 +79,16 @@ func (s *Screen) Resize(width int, height int) {
 		s.buf.Touched = nil
 	}
 	s.scroll = s.buf.Bounds()
+	// The cursor and the DECSC slot stay inside the new size, whether or not
+	// this is the active screen: a cursor off the screen drops what is
+	// printed at it.
+	s.cur.Position = clampToScreen(s.cur.Position, width, height)
+	s.saved.Position = clampToScreen(s.saved.Position, width, height)
+}
+
+// clampToScreen returns p moved inside a width by height screen.
+func clampToScreen(p uv.Position, width, height int) uv.Position {
+	return uv.Pos(ordered.Clamp(p.X, 0, max(width-1, 0)), ordered.Clamp(p.Y, 0, max(height-1, 0)))
 }
 
 // Width returns the width of the screen.
@@ -231,6 +241,7 @@ func (s *Screen) RestoreCursor() {
 	hidden, style, steady := s.cur.Hidden, s.cur.Style, s.cur.Steady
 	s.cur = s.saved
 	s.cur.Hidden, s.cur.Style, s.cur.Steady = hidden, style, steady
+	s.cur.Position = clampToScreen(s.cur.Position, s.buf.Width(), s.buf.Height())
 
 	if s.cb.CursorPosition != nil && (old.X != s.cur.X || old.Y != s.cur.Y) {
 		s.cb.CursorPosition(old, s.cur.Position)
