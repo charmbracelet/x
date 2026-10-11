@@ -37,3 +37,15 @@ func TestInsertMode(t *testing.T) {
 		}
 	})
 }
+
+func TestOriginModeHomesCursor(t *testing.T) {
+	e := newTestTerminal(t, 10, 5)
+	_, _ = e.WriteString("\x1b[2;4r\x1b[5;5H\x1b[?6h")
+	if x, y := e.scr.CursorPosition(); x != 0 || y != 1 {
+		t.Errorf("cursor after DECOM set: got = (%d,%d), want the region's corner (0,1)", x, y)
+	}
+	_, _ = e.WriteString("\x1b[3;3H\x1b[?6l")
+	if x, y := e.scr.CursorPosition(); x != 0 || y != 0 {
+		t.Errorf("cursor after DECOM reset: got = (%d,%d), want (0,0)", x, y)
+	}
+}

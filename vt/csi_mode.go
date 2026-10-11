@@ -74,6 +74,10 @@ func (e *Emulator) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 	switch mode {
 	case ansi.ModeInsertReplace:
 		e.insertMode = setting.IsSet()
+	case ansi.ModeOrigin:
+		// Setting or resetting DECOM homes the cursor, to the scroll
+		// region's corner or the screen's.
+		e.setCursorPosition(0, 0)
 	case ansi.ModeTextCursorEnable:
 		e.scr.setCursorHidden(!setting.IsSet())
 	case ansi.ModeAltScreen:
