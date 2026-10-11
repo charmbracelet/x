@@ -843,6 +843,12 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		return true
 	})
 
+	e.RegisterCsiHandler(ansi.Command(0, '!', 'p'), func(ansi.Params) bool {
+		// Soft Terminal Reset [ansi.DECSTR]
+		e.softReset()
+		return true
+	})
+
 	e.RegisterCsiHandler(ansi.Command(0, ' ', 'q'), func(params ansi.Params) bool {
 		// Set Cursor Style [ansi.DECSCUSR]
 		n := 1

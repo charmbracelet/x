@@ -3,6 +3,7 @@ package vt
 import (
 	"testing"
 
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -47,5 +48,38 @@ func TestOriginModeHomesCursor(t *testing.T) {
 	_, _ = e.WriteString("\x1b[3;3H\x1b[?6l")
 	if x, y := e.scr.CursorPosition(); x != 0 || y != 0 {
 		t.Errorf("cursor after DECOM reset: got = (%d,%d), want (0,0)", x, y)
+	}
+}
+
+func TestSoftReset(t *testing.T) {
+	e := newTestTerminal(t, 20, 10)
+	_, _ = e.WriteString("\x1b[?25l\x1b[3;8r\x1b[4h\x1b[?6h\x1b[?7l\x1b[?1h\x1b=\x1b(0\x1b[1;31m\x1b[5;5H\x1b7\x1b[6;7H\x1b[!p")
+	for _, m := range []ansi.Mode{ansi.ModeInsertReplace, ansi.ModeOrigin, ansi.ModeCursorKeys, ansi.ModeNumericKeypad} {
+		if e.isModeSet(m) {
+			t.Errorf("mode %v still set", m)
+		}
+	}
+	if !e.isModeSet(ansi.ModeAutoWrap) {
+		t.Error("DECAWM not set")
+	}
+	if !e.isModeSet(ansi.ModeTextCursorEnable) || e.scr.Cursor().Hidden {
+		t.Error("cursor still hidden")
+	}
+	if r := e.scr.ScrollRegion(); r != uv.Rect(0, 0, 20, 10) {
+		t.Errorf("scroll region: got = %v, want the whole screen", r)
+	}
+	c := e.scr.Cursor()
+	// CUP 6;7 under DECOM in the 3;8 region put it at (6,7).
+	if c.X != 6 || c.Y != 7 {
+		t.Errorf("cursor: got = (%d,%d), want = (6,7): DECSTR does not move it", c.X, c.Y)
+	}
+	if !c.Pen.IsZero() {
+		t.Errorf("pen: got = %+v, want reset", c.Pen)
+	}
+	if s := e.scr.saved; s.X != 0 || s.Y != 0 || !s.Pen.IsZero() {
+		t.Errorf("saved cursor: got = (%d,%d) pen %+v, want home with no pen", s.X, s.Y, s.Pen)
+	}
+	if e.charsets[0] != nil || e.gl != 0 {
+		t.Errorf("charsets: got G0 %v GL %d, want ASCII in G0 and GL", e.charsets[0], e.gl)
 	}
 }

@@ -1,6 +1,7 @@
 package vt
 
 import (
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -34,4 +35,30 @@ func (e *Emulator) fullReset() {
 	e.atPhantom = false
 	e.grapheme = e.grapheme[:0]
 	e.lastChar = 0
+}
+
+// softReset performs a soft terminal reset as in [ansi.DECSTR], following
+// xterm: the cursor stays where it is, and the modes, margins, pen, charsets
+// and saved cursor a program may have left behind go back to their defaults.
+func (e *Emulator) softReset() {
+	x, y := e.scr.CursorPosition()
+	phantom := e.atPhantom
+	defer func() {
+		// Resetting DECOM homes the cursor; DECSTR leaves it.
+		e.scr.setCursor(x, y, false)
+		e.atPhantom = phantom
+	}()
+	e.setMode(ansi.ModeTextCursorEnable, ansi.ModeSet)
+	e.setMode(ansi.ModeInsertReplace, ansi.ModeReset)
+	e.setMode(ansi.ModeOrigin, ansi.ModeReset)
+	e.setMode(ansi.ModeAutoWrap, ansi.ModeSet)
+	e.setMode(ansi.ModeCursorKeys, ansi.ModeReset)
+	e.setMode(ansi.ModeNumericKeypad, ansi.ModeReset)
+	e.scr.setVerticalMargins(0, e.Height())
+	e.scr.setHorizontalMargins(0, e.Width())
+	e.scr.cur.Pen = uv.Style{}
+	e.scr.saved = Cursor{Style: e.scr.cur.Style, Steady: e.scr.cur.Steady}
+	e.gl, e.gr = 0, 1
+	e.gsingle = 0
+	e.charsets = [4]CharSet{}
 }
