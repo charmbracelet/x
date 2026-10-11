@@ -518,7 +518,14 @@ func (e *Emulator) ScrollbackCellAt(x, y int) *uv.Cell {
 	return sb.CellAt(x, y)
 }
 
+// SetScrollOffFunc sets fn to receive each line that scrolls off the top of
+// the main screen. See [Screen.SetScrollOffFunc].
+func (e *Emulator) SetScrollOffFunc(fn func(uv.Line)) {
+	e.scrs[0].SetScrollOffFunc(fn)
+}
+
 // SetScrollbackSize sets the maximum number of lines in the scrollback buffer.
+// A size of zero or less keeps no lines.
 func (e *Emulator) SetScrollbackSize(maxLines int) {
 	e.scrs[0].SetScrollbackSize(maxLines)
 }
