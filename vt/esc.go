@@ -33,7 +33,7 @@ func (e *Emulator) fullReset() {
 	e.gsingle = 0
 	e.charsets = [4]CharSet{}
 	e.designations = [4]byte{}
-	e.atPhantom = false
+	e.atPhantom, e.mainPhantom = false, false
 	e.grapheme = e.grapheme[:0]
 	e.carry.valid = false
 	e.lastChar = 0

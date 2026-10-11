@@ -44,6 +44,22 @@ func (e *Emulator) PendingWrap() bool {
 	return e.atPhantom
 }
 
+// MainPendingWrap reports whether the main screen's cursor has a wrap
+// pending, whichever screen is active: while the alternate screen is, it is
+// the one leaving it restores.
+func (e *Emulator) MainPendingWrap() bool {
+	if e.scr == &e.scrs[0] {
+		return e.atPhantom
+	}
+	return e.keptMainPhantom()
+}
+
+// keptMainPhantom is the pending wrap kept for the main screen while the
+// alternate screen is active, if its cursor is still on the last column.
+func (e *Emulator) keptMainPhantom() bool {
+	return e.mainPhantom && e.scrs[0].cur.X >= e.scrs[0].Width()-1
+}
+
 // AtBoundary reports whether the bytes written so far end between sequences:
 // the parser holds no partial escape sequence, control string or UTF-8 rune.
 func (e *Emulator) AtBoundary() bool {

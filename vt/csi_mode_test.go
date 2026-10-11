@@ -1,6 +1,7 @@
 package vt
 
 import (
+	"strings"
 	"testing"
 
 	uv "github.com/charmbracelet/ultraviolet"
@@ -81,5 +82,71 @@ func TestSoftReset(t *testing.T) {
 	}
 	if e.charsets[0] != nil || e.gl != 0 {
 		t.Errorf("charsets: got G0 %v GL %d, want ASCII in G0 and GL", e.charsets[0], e.gl)
+	}
+}
+
+// TestAltScreenKeepsEachScreensPendingWrap pins that leaving the alternate
+// screen brings the main cursor back with its own pending wrap: none when
+// it left without one, whatever the alternate screen's cursor had, and the
+// one it had otherwise, as xterm's ?1049l restores the wrap flag with the
+// cursor.
+func TestAltScreenKeepsEachScreensPendingWrap(t *testing.T) {
+	const cols = 10
+	full := strings.Repeat("x", cols)
+	for _, tc := range []struct {
+		name, in string
+		want     bool
+	}{
+		{"1047 from a clear main", "\x1b[?1047h" + full + "\x1b[?1047l", false},
+		{"1049 from a clear main", "\x1b[?1049h" + full + "\x1b[?1049l", false},
+		{"1047 back to a pending main", full + "\x1b[?1047h\x1b[?1047l", true},
+		{"1049 back to a pending main", full + "\x1b[?1049h" + full + "\x1b[?1049l", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := NewEmulator(cols, 4)
+			if _, err := e.WriteString(tc.in); err != nil {
+				t.Fatal(err)
+			}
+			if got := e.PendingWrap(); got != tc.want {
+				t.Errorf("PendingWrap: got = %v, want = %v (cursor %v)", got, tc.want, e.CursorPosition())
+			}
+			if got := e.MainPendingWrap(); got != tc.want {
+				t.Errorf("MainPendingWrap: got = %v, want = %v", got, tc.want)
+			}
+			// What the next character does shows it.
+			if _, err := e.WriteString("y"); err != nil {
+				t.Fatal(err)
+			}
+			wantY := 0
+			if tc.want {
+				wantY = 1
+			}
+			if pos := e.CursorPosition(); pos.Y != wantY {
+				t.Errorf("after one more character: got = row %d, want = row %d", pos.Y, wantY)
+			}
+		})
+	}
+}
+
+// TestMainPendingWrapWhileOnTheAltScreen pins that MainPendingWrap reports
+// the wrap kept for the main screen while the alternate one is active, and
+// none once a resize has moved the main cursor off the last column.
+func TestMainPendingWrapWhileOnTheAltScreen(t *testing.T) {
+	e := NewEmulator(10, 4)
+	if _, err := e.WriteString(strings.Repeat("x", 10) + "\x1b[?1049h"); err != nil {
+		t.Fatal(err)
+	}
+	if e.PendingWrap() || !e.MainPendingWrap() {
+		t.Errorf("on the alternate screen: got = PendingWrap %v MainPendingWrap %v, want = false true", e.PendingWrap(), e.MainPendingWrap())
+	}
+	e.Resize(20, 4)
+	if e.MainPendingWrap() {
+		t.Error("MainPendingWrap: got = true after a resize moved the main cursor off the last column")
+	}
+	if _, err := e.WriteString("\x1b[?1049l"); err != nil {
+		t.Fatal(err)
+	}
+	if e.PendingWrap() {
+		t.Error("PendingWrap: got = true back on a main screen whose cursor is not on the last column")
 	}
 }

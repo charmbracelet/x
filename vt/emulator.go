@@ -86,6 +86,10 @@ type Emulator struct {
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
 	atPhantom bool
+
+	// mainPhantom is the main screen's atPhantom while the alternate
+	// screen is active.
+	mainPhantom bool
 }
 
 var _ Terminal = (*Emulator)(nil)
