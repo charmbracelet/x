@@ -419,7 +419,7 @@ var cases = []struct {
 	},
 	{
 		name: "CUP Relative to Origin",
-		w:    10, h: 2,
+		w:    10, h: 3, // 2 rows cannot hold the 2;3 region
 		input: []string{
 			"\x1b[1;1H", // move to top-left
 			"\x1b[2J",   // clear screen
@@ -431,12 +431,13 @@ var cases = []struct {
 		want: []string{
 			"          ",
 			"X         ",
+			"          ",
 		},
 		pos: uv.Pos(1, 1),
 	},
 	{
 		name: "CUP Relative to Origin with Margins",
-		w:    10, h: 2,
+		w:    10, h: 3, // 2 rows cannot hold the 2;3 region
 		input: []string{
 			"\x1b[1;1H", // move to top-left
 			"\x1b[2J",   // clear screen
@@ -450,6 +451,7 @@ var cases = []struct {
 		want: []string{
 			"          ",
 			"  X       ",
+			"          ",
 		},
 		pos: uv.Pos(3, 1),
 	},
@@ -636,7 +638,7 @@ var cases = []struct {
 	},
 	{
 		name: "DL Cursor Outside Scroll Region",
-		w:    8, h: 3,
+		w:    8, h: 4, // 3 rows cannot hold the 3;4 region
 		input: []string{
 			"\x1b[1;1H", // move to top-left
 			"\x1b[2J",   // clear screen
@@ -651,6 +653,7 @@ var cases = []struct {
 			"ABC     ",
 			"DEF     ",
 			"GHI     ",
+			"        ",
 		},
 		pos: uv.Pos(1, 1),
 	},
@@ -721,7 +724,7 @@ var cases = []struct {
 	},
 	{
 		name: "IL Cursor Outside Scroll Region",
-		w:    8, h: 3,
+		w:    8, h: 4, // 3 rows cannot hold the 3;4 region
 		input: []string{
 			"\x1b[1;1H", // move to top-left
 			"\x1b[2J",   // clear screen
@@ -736,6 +739,7 @@ var cases = []struct {
 			"ABC     ",
 			"DEF     ",
 			"GHI     ",
+			"        ",
 		},
 		pos: uv.Pos(1, 1),
 	},
