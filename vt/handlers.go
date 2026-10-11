@@ -257,6 +257,16 @@ func (e *Emulator) registerDefaultCcHandlers() {
 				e.carriageReturn()
 				return true
 			})
+		case ansi.SO: // Shift Out [ansi.SO]
+			e.registerCcHandler(i, func() bool {
+				e.gl = 1
+				return true
+			})
+		case ansi.SI: // Shift In [ansi.SI]
+			e.registerCcHandler(i, func() bool {
+				e.gl = 0
+				return true
+			})
 		}
 	}
 
@@ -270,16 +280,6 @@ func (e *Emulator) registerDefaultCcHandlers() {
 		case ansi.RI: // Reverse Index [ansi.RI]
 			e.registerCcHandler(i, func() bool {
 				e.reverseIndex()
-				return true
-			})
-		case ansi.SO: // Shift Out [ansi.SO]
-			e.registerCcHandler(i, func() bool {
-				e.gl = 1
-				return true
-			})
-		case ansi.SI: // Shift In [ansi.SI]
-			e.registerCcHandler(i, func() bool {
-				e.gl = 0
 				return true
 			})
 		case ansi.IND: // Index [ansi.IND]
