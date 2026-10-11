@@ -24,6 +24,10 @@ func printableASCII(r rune) bool {
 // leaves the mark to become a zero-width cell of its own, which the next write
 // or erase then destroys.
 func (e *Emulator) handlePrint(r rune) {
+	if e.carry.valid {
+		e.resumeCluster(r)
+	}
+
 	// No ASCII character can extend the cluster before it: none of them is
 	// Extend, ZWJ, SpacingMark, Prepend, a regional indicator, or part of an
 	// Indic conjunct. So an ASCII character arriving is proof that whatever is
@@ -50,6 +54,9 @@ func (e *Emulator) handlePrint(r rune) {
 // flushGrapheme flushes the current grapheme buffer, if any, and handles the
 // grapheme as a single unit.
 func (e *Emulator) flushGrapheme() {
+	// Anything but printing between two Writes ends the cluster the first
+	// one finished with, and every sequence handler comes through here.
+	e.carry.valid = false
 	if len(e.grapheme) == 0 {
 		return
 	}
@@ -68,6 +75,55 @@ func (e *Emulator) flushGrapheme() {
 		graphemes = graphemes[len(cluster):]
 	}
 	e.grapheme = e.grapheme[:0] // Reset the grapheme buffer.
+}
+
+// clusterMark records where a cluster was printed, so that the next Write can
+// extend it.
+type clusterMark struct {
+	valid   bool
+	scr     *Screen
+	content string
+	x, y    int // the cluster's cell
+	width   int
+	// The cursor right after the cluster was printed.
+	curX, curY int
+	phantom    bool
+}
+
+// maxCarriedCluster bounds the cluster resumeCluster extends. Rejoining costs
+// the cluster's length, so a program writing one combining mark per Write
+// would otherwise make every Write slower and the cell larger without bound.
+// Real clusters (an emoji family, a flag) are a few dozen bytes.
+const maxCarriedCluster = 128
+
+// resumeCluster takes back the cluster the previous Write ended with when r
+// extends it, so a cluster split across two Writes lands in one cell, as it
+// would have arriving in one. It applies only if nothing but printing has
+// happened since.
+func (e *Emulator) resumeCluster(r rune) {
+	c := e.carry
+	e.carry.valid = false
+	if printableASCII(r) || e.scr != c.scr || e.atPhantom != c.phantom || len(c.content) >= maxCarriedCluster {
+		return
+	}
+	if x, y := e.scr.CursorPosition(); x != c.curX || y != c.curY {
+		return
+	}
+	joined := c.content + string(r)
+	if cluster, _ := ansi.FirstGraphemeCluster(joined, ansi.GraphemeWidth); len(cluster) != len(joined) {
+		return
+	}
+	if e.insertMode {
+		// Undo the insert that made room for it.
+		e.scr.buf.DeleteCellArea(c.x, c.y, c.width, e.scr.blankCell(), e.scr.scroll)
+	} else {
+		for i := range c.width {
+			e.scr.SetCell(c.x+i, c.y, nil)
+		}
+	}
+	e.scr.setCursor(c.x, c.y, false)
+	e.atPhantom = false
+	e.grapheme = append(e.grapheme[:0], c.content...)
 }
 
 // handleGrapheme handles UTF-8 graphemes.
@@ -132,6 +188,7 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 		e.scr.buf.InsertCellArea(x, y, cell.Width, e.scr.blankCell(), e.scr.scroll)
 	}
 	e.scr.SetCell(x, y, &cell)
+	cx, cy := x, y
 
 	// Handle phantom state at the end of the line
 	e.atPhantom = awm && x >= e.scr.Width()-1
@@ -141,4 +198,9 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 
 	// NOTE: We don't reset the phantom state here, we handle it up above.
 	e.scr.setCursor(x, y, false)
+	e.lastCluster = clusterMark{
+		// A cluster a charset mapped is not one the next Write can extend.
+		valid: cell.Content == content, scr: e.scr, content: content, x: cx, y: cy, width: cell.Width,
+		curX: e.scr.cur.X, curY: e.scr.cur.Y, phantom: e.atPhantom,
+	}
 }

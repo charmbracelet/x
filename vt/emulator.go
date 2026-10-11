@@ -72,6 +72,10 @@ type Emulator struct {
 	// insertMode caches IRM, which every printed character consults.
 	insertMode bool
 
+	// lastCluster is the most recently printed cluster, and carry is that
+	// cluster when it ended the previous Write.
+	lastCluster, carry clusterMark
+
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
 	atPhantom bool
@@ -217,6 +221,7 @@ func (e *Emulator) CursorPosition() uv.Position {
 
 // Resize resizes the terminal.
 func (e *Emulator) Resize(width int, height int) {
+	e.carry.valid = false
 	x, y := e.scr.CursorPosition()
 	if e.atPhantom {
 		if x < width-1 {
@@ -276,13 +281,16 @@ func (e *Emulator) Write(p []byte) (n int, err error) {
 
 	for i := range p {
 		e.parser.Advance(p[i])
-		// Flush the last cluster once the whole slice is written. Every
-		// sequence handler flushes on its own way in, so a cluster only has to
-		// survive until either the next printable character extends it or the
-		// write ends.
-		if len(e.grapheme) > 0 && i == len(p)-1 {
-			e.flushGrapheme()
-		}
+	}
+	// Flush the last cluster once the whole slice is written, so a caller can
+	// read back what it wrote. Every sequence handler flushes on its own way
+	// in, so a cluster only has to survive until either the next printable
+	// character extends it or the write ends. Remember the cluster, though:
+	// the next Write may begin with a mark that extends it, because a PTY read
+	// can end anywhere inside a cluster.
+	if len(e.grapheme) > 0 {
+		e.flushGrapheme()
+		e.carry = e.lastCluster
 	}
 	return len(p), nil
 }
