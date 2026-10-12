@@ -21,6 +21,7 @@ func (e *Emulator) handleEsc(cmd ansi.Cmd) {
 
 // fullReset performs a full terminal reset as in [ansi.RIS].
 func (e *Emulator) fullReset() {
+	wasHidden := e.scr.cur.Hidden
 	e.scrs[0].Reset()
 	e.scrs[1].Reset()
 	e.resetTabStops()
@@ -34,4 +35,7 @@ func (e *Emulator) fullReset() {
 	e.atPhantom = false
 	e.grapheme = e.grapheme[:0]
 	e.lastChar = 0
+	if wasHidden && e.cb.CursorVisibility != nil {
+		e.cb.CursorVisibility(true)
+	}
 }
