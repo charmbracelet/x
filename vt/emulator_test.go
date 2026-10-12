@@ -1826,3 +1826,131 @@ func termText(term *Emulator) []string {
 	}
 	return lines
 }
+
+// TestCursorVisibilityOnReset checks that a reset which makes the cursor
+// visible again tells the consumer. Visibility is only observable through the
+// callback, so a silent change leaves a renderer drawing a hidden cursor until
+// some later application happens to show it.
+func TestCursorVisibilityOnReset(t *testing.T) {
+	term := newTestTerminal(t, 20, 2)
+
+	visible := true
+	var calls int
+	term.SetCallbacks(Callbacks{
+		CursorVisibility: func(v bool) {
+			visible = v
+			calls++
+		},
+	})
+
+	term.Write([]byte("\x1b[?25l")) //nolint:errcheck // writing to an emulator cannot fail
+	if visible {
+		t.Fatal("hiding the cursor did not report it")
+	}
+
+	before := calls
+	term.Write([]byte("\x1bc")) //nolint:errcheck // writing to an emulator cannot fail
+	if !visible {
+		t.Error("RIS left the tracked cursor hidden; the emulator's is visible")
+	}
+	if calls != before+1 {
+		t.Errorf("RIS reported visibility %d times, want exactly 1", calls-before)
+	}
+}
+
+// TestCursorVisibilityUnchangedOnReset checks the other half: a reset that does
+// not change visibility must stay quiet rather than report a no-op change.
+func TestCursorVisibilityUnchangedOnReset(t *testing.T) {
+	term := newTestTerminal(t, 20, 2)
+
+	var calls int
+	term.SetCallbacks(Callbacks{
+		CursorVisibility: func(bool) { calls++ },
+	})
+
+	term.Write([]byte("\x1bc")) //nolint:errcheck // writing to an emulator cannot fail
+	if calls != 0 {
+		t.Errorf("reset with an already-visible cursor reported %d times, want 0", calls)
+	}
+}
+
+// TestCursorVisibilityResetFromAltScreen checks that a reset is one event to a
+// consumer. Several paths inside a reset touch visibility — leaving the
+// alternate screen reports it unconditionally — and reporting each of them
+// would make a single reset look like a burst of changes.
+func TestCursorVisibilityResetFromAltScreen(t *testing.T) {
+	term := newTestTerminal(t, 20, 2)
+
+	var calls int
+	term.SetCallbacks(Callbacks{CursorVisibility: func(bool) { calls++ }})
+
+	term.Write([]byte("\x1b[?1049h")) //nolint:errcheck // writing to an emulator cannot fail
+	term.Write([]byte("\x1b[?25l"))   //nolint:errcheck // writing to an emulator cannot fail
+
+	before := calls
+	term.Write([]byte("\x1bc")) //nolint:errcheck // writing to an emulator cannot fail
+	if got := calls - before; got != 1 {
+		t.Errorf("reset from the alternate screen reported visibility %d times, want 1", got)
+	}
+}
+
+// TestCursorStateReportedOnReset covers the other two properties a reset
+// silently returns to their defaults. A consumer that draws the cursor tracks
+// each through its callback, so a reset that moves it home and clears its style
+// without saying so leaves that consumer drawing a stale cursor.
+func TestCursorStateReportedOnReset(t *testing.T) {
+	term := newTestTerminal(t, 20, 5)
+
+	var (
+		moves  []uv.Position
+		styles int
+	)
+	term.SetCallbacks(Callbacks{
+		CursorPosition: func(_, to uv.Position) { moves = append(moves, to) },
+		CursorStyle:    func(CursorStyle, bool) { styles++ },
+	})
+
+	term.Write([]byte("\x1b[4;6H")) //nolint:errcheck // writing to an emulator cannot fail
+	term.Write([]byte("\x1b[3 q"))  //nolint:errcheck // blinking underline
+	moves, styles = nil, 0
+
+	term.Write([]byte("\x1bc")) //nolint:errcheck // writing to an emulator cannot fail
+
+	if want := []uv.Position{uv.Pos(0, 0)}; len(moves) != 1 || moves[0] != want[0] {
+		t.Errorf("RIS reported cursor positions %v, want %v", moves, want)
+	}
+	if styles != 1 {
+		t.Errorf("RIS reported the cursor style %d times, want 1", styles)
+	}
+}
+
+// TestCursorCallbacksSurviveAPanickingCallback checks that the mute applied for
+// the duration of a reset is lifted even when a callback panics part-way
+// through and the caller recovers, rather than silencing the cursor for good.
+func TestCursorCallbacksSurviveAPanickingCallback(t *testing.T) {
+	term := newTestTerminal(t, 20, 2)
+
+	var visibility int
+	count := func(bool) { visibility++ }
+
+	term.SetCallbacks(Callbacks{CursorVisibility: count})
+	term.Write([]byte("\x1b[?1049h")) //nolint:errcheck // writing to an emulator cannot fail
+
+	// Armed only now, so the panic happens while leaving the alternate screen
+	// during the reset — that is, after the callbacks have been muted.
+	term.SetCallbacks(Callbacks{
+		AltScreen:        func(bool) { panic("callback blew up") },
+		CursorVisibility: count,
+	})
+
+	func() {
+		defer func() { _ = recover() }()
+		term.Write([]byte("\x1bc")) //nolint:errcheck // writing to an emulator cannot fail
+	}()
+
+	visibility = 0
+	term.Write([]byte("\x1b[?25l")) //nolint:errcheck // writing to an emulator cannot fail
+	if visibility != 1 {
+		t.Errorf("hiding the cursor after a panicking reset reported %d times, want 1", visibility)
+	}
+}
