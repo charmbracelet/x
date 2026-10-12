@@ -11,8 +11,10 @@ const DefaultScrollbackSize = 10000
 
 // Scrollback represents a scrollback buffer that stores lines scrolled off the screen.
 type Scrollback struct {
-	lines    []uv.Line
-	maxLines int
+	lines     []uv.Line
+	wrapped   []bool
+	wrapWidth []int
+	maxLines  int
 }
 
 // NewScrollback creates a new scrollback buffer with the given maximum number of lines.
@@ -29,29 +31,29 @@ func NewScrollback(maxLines int) *Scrollback {
 // Push adds a line to the scrollback buffer.
 // If the buffer is full, the oldest line is removed.
 func (s *Scrollback) Push(line uv.Line) {
+	s.push(line, false, 0)
+}
+
+// push adds a line and records whether it continues onto the next line.
+func (s *Scrollback) push(line uv.Line, wrapped bool, wrapWidth int) {
 	if s == nil || s.maxLines <= 0 {
 		return
 	}
 
-	// Find last non-empty cell to trim trailing empty cells.
-	// This helps with wrapping and window resizing.
-	lastNonEmpty := -1
-	for i := len(line) - 1; i >= 0; i-- {
-		c := &line[i]
-		if !c.IsZero() && !c.Equal(&uv.EmptyCell) {
-			lastNonEmpty = i
-			break
-		}
+	last := lineContentWidth(line)
+	if wrapped || wrapWidth > 0 {
+		last = min(len(line), max(last, wrapWidth))
 	}
-
-	// Clone the line content up to and including the last non-empty cell
-	cloned := slices.Clone(line[:lastNonEmpty+1])
+	cloned := slices.Clone(line[:last])
 
 	if len(s.lines) >= s.maxLines {
-		// Remove oldest line and append new one
 		s.lines = slices.Delete(s.lines, 0, 1)
+		s.wrapped = slices.Delete(s.wrapped, 0, 1)
+		s.wrapWidth = slices.Delete(s.wrapWidth, 0, 1)
 	}
 	s.lines = append(s.lines, cloned)
+	s.wrapped = append(s.wrapped, wrapped)
+	s.wrapWidth = append(s.wrapWidth, wrapWidth)
 }
 
 // PushN adds n lines from the buffer starting at line y to the scrollback.
@@ -92,8 +94,10 @@ func (s *Scrollback) SetMaxLines(maxLines int) {
 
 	s.maxLines = maxLines
 	if len(s.lines) > maxLines {
-		// Remove oldest lines
-		s.lines = s.lines[len(s.lines)-maxLines:]
+		cut := len(s.lines) - maxLines
+		s.lines = s.lines[cut:]
+		s.wrapped = s.wrapped[cut:]
+		s.wrapWidth = s.wrapWidth[cut:]
 	}
 }
 
@@ -122,6 +126,8 @@ func (s *Scrollback) Clear() {
 		return
 	}
 	s.lines = s.lines[:0]
+	s.wrapped = s.wrapped[:0]
+	s.wrapWidth = s.wrapWidth[:0]
 }
 
 // CellAt returns the cell at the given position in the scrollback buffer.
