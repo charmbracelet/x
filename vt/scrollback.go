@@ -121,7 +121,9 @@ func (s *Scrollback) Clear() {
 	if s == nil {
 		return
 	}
-	s.lines = s.lines[:0]
+	// Start a new backing array instead of truncating, so the cleared lines
+	// can be garbage collected. Slices returned by Lines() are not modified.
+	s.lines = make([]uv.Line, 0, min(max(s.maxLines, 0), 1000))
 }
 
 // CellAt returns the cell at the given position in the scrollback buffer.
