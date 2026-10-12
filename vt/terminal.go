@@ -17,6 +17,10 @@ type Terminal interface {
 	Close() error
 	CursorColor() color.Color
 	CursorPosition() uv.Position
+	// CursorHidden reports whether the cursor is currently hidden.
+	CursorHidden() bool
+	// CursorStyle returns the current cursor style and whether it blinks.
+	CursorStyle() (style CursorStyle, blink bool)
 	Draw(scr uv.Screen, area uv.Rectangle)
 	Focus()
 	ForegroundColor() color.Color

@@ -291,8 +291,14 @@ func (e *Emulator) SendKey(k uv.KeyEvent) {
 			seq += "\x1b[Z"
 
 		default:
-			// Handle the rest of the keys.
-			if key.Mod == 0 {
+			// Handle the rest of the keys. Printable keys carry their
+			// resolved text, which is what the user actually typed:
+			// [Key.Code] is the unshifted base key, so sending it would
+			// turn "!" into "1" and "A" into "a".
+			switch {
+			case key.Text != "" && key.Mod&ModCtrl == 0:
+				seq += key.Text
+			case key.Text == "" && key.Mod == 0:
 				seq += string(key.Code)
 			}
 		}
