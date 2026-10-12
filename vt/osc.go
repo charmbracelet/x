@@ -5,7 +5,6 @@ package vt
 import (
 	"bytes"
 	"image/color"
-	"io"
 
 	"github.com/charmbracelet/x/ansi"
 )
@@ -84,17 +83,17 @@ func (e *Emulator) handleDefaultColor(cmd int, data []byte) {
 			case 10: // Query foreground color
 				xrgb.Color = e.ForegroundColor()
 				if xrgb.Color != nil {
-					io.WriteString(e.pw, ansi.SetForegroundColor(xrgb.String())) //nolint:errcheck,gosec
+					writeReplyString(e.replies, ansi.SetForegroundColor(xrgb.String())) //nolint:errcheck,gosec
 				}
 			case 11: // Query background color
 				xrgb.Color = e.BackgroundColor()
 				if xrgb.Color != nil {
-					io.WriteString(e.pw, ansi.SetBackgroundColor(xrgb.String())) //nolint:errcheck,gosec
+					writeReplyString(e.replies, ansi.SetBackgroundColor(xrgb.String())) //nolint:errcheck,gosec
 				}
 			case 12: // Query cursor color
 				xrgb.Color = e.CursorColor()
 				if xrgb.Color != nil {
-					io.WriteString(e.pw, ansi.SetCursorColor(xrgb.String())) //nolint:errcheck,gosec
+					writeReplyString(e.replies, ansi.SetCursorColor(xrgb.String())) //nolint:errcheck,gosec
 				}
 			}
 		} else if c := ansi.XParseColor(arg); c != nil {
