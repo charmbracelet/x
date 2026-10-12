@@ -2,6 +2,8 @@ package vt
 
 import (
 	"testing"
+
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 func TestScrollback(t *testing.T) {
@@ -84,6 +86,41 @@ func TestScrollback(t *testing.T) {
 
 		if e.ScrollbackLen() != 0 {
 			t.Errorf("expected empty scrollback after clear, got %d", e.ScrollbackLen())
+		}
+	})
+
+	t.Run("push copies input line", func(t *testing.T) {
+		sb := NewScrollback(2)
+		src := uv.Line{{Content: "a", Width: 1}}
+		sb.Push(src)
+
+		src[0].Content = "mutated"
+		if got := sb.Line(0)[0].Content; got != "a" {
+			t.Fatalf("scrollback aliased source line, got %q", got)
+		}
+	})
+
+	t.Run("full scrollback reuses evicted buffer", func(t *testing.T) {
+		sb := NewScrollback(1)
+		sb.Push(uv.Line{{Content: "first", Width: 5}})
+
+		first := sb.Line(0)
+		if len(first) == 0 {
+			t.Fatal("expected stored line")
+		}
+		firstPtr := &first[0]
+
+		sb.Push(uv.Line{{Content: "second", Width: 6}})
+
+		second := sb.Line(0)
+		if len(second) == 0 {
+			t.Fatal("expected replacement line")
+		}
+		if got := second[0].Content; got != "second" {
+			t.Fatalf("replacement line content = %q, want %q", got, "second")
+		}
+		if firstPtr != &second[0] {
+			t.Fatal("expected scrollback to reuse the evicted line buffer")
 		}
 	})
 
