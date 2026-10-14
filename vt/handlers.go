@@ -461,6 +461,7 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		// Insert Character [ansi.ICH]
 		n, _, _ := params.Param(0, 1)
 		e.scr.InsertCell(n)
+		e.atPhantom = false
 		return true
 	})
 
@@ -600,6 +601,7 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 			// Move the cursor to the left margin.
 			e.scr.setCursorX(0, true)
 		}
+		e.atPhantom = false
 		return true
 	})
 
@@ -612,6 +614,7 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 			// Move the cursor to the left margin.
 			e.scr.setCursorX(0, true)
 		}
+		e.atPhantom = false
 		return true
 	})
 
@@ -619,6 +622,7 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		// Delete Character [ansi.DCH]
 		n, _, _ := params.Param(0, 1)
 		e.scr.DeleteCell(n)
+		e.atPhantom = false
 		return true
 	})
 
