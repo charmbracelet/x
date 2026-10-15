@@ -11,7 +11,7 @@ import (
 )
 
 func TestWaitForErrorReader(t *testing.T) {
-	err := doWaitFor(iotest.ErrReader(fmt.Errorf("fake")), func(bts []byte) bool {
+	err := doWaitForOutput(iotest.ErrReader(fmt.Errorf("fake")), func(bts []byte) bool {
 		return true
 	}, WithDuration(time.Millisecond), WithCheckInterval(10*time.Microsecond))
 	if err == nil {
@@ -23,7 +23,7 @@ func TestWaitForErrorReader(t *testing.T) {
 }
 
 func TestWaitForTimeout(t *testing.T) {
-	err := doWaitFor(strings.NewReader("nope"), func(bts []byte) bool {
+	err := doWaitForOutput(strings.NewReader("nope"), func(bts []byte) bool {
 		return false
 	}, WithDuration(time.Millisecond), WithCheckInterval(10*time.Microsecond))
 	if err == nil {
