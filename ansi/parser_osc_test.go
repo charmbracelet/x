@@ -59,11 +59,22 @@ func TestOscSequence(t *testing.T) {
 			},
 		},
 		{
+			// U+672B encodes as e6 9c ab: the 9c is a UTF-8 continuation
+			// byte, not the 8-bit ST that ends the string here.
 			name:  "string_terminator",
 			input: "\x1b]2;\xe6\x9c\xab\x1b\\",
 			expected: []any{
-				[]byte("2;\xe6"),
+				[]byte("2;\xe6\x9c\xab"),
 				Cmd('\\'),
+			},
+		},
+		{
+			// U+2733 encodes as e2 9c b3. The payload's own 9c must not end
+			// the string; the 9c that follows the complete rune must.
+			name:  "eight_bit_string_terminator_after_utf8",
+			input: "\x1b]0;\xe2\x9c\xb3 title\x9c",
+			expected: []any{
+				[]byte("0;\xe2\x9c\xb3 title"),
 			},
 		},
 		{
