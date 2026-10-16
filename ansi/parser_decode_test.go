@@ -1,7 +1,9 @@
 package ansi
 
 import (
+	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/charmbracelet/x/ansi/parser"
@@ -356,6 +358,86 @@ func TestDecodeSequence(t *testing.T) {
 	}
 }
 
+func TestDecodeSequenceParameterLimit(t *testing.T) {
+	for _, size := range []int{0, 1, 2, parser.MaxParamsSize} {
+		for _, count := range []int{1, size, size + 1, size + 3} {
+			if count < 1 {
+				continue
+			}
+			for _, separator := range []string{";", ":"} {
+				for _, prefix := range []string{"\x1b[", "\x9b", "\x1bP", "\x90"} {
+					t.Run(fmt.Sprintf("size=%d/count=%d/sep=%s/prefix=%x", size, count, separator, prefix), func(t *testing.T) {
+						p := NewParser()
+						p.SetParamsSize(size)
+						values := make([]string, count)
+						for i := range values {
+							values[i] = fmt.Sprint(i + 1)
+						}
+						params := strings.Join(values, separator)
+						input := prefix + params + "m"
+						if prefix == "\x1bP" || prefix == "\x90" {
+							input += "data\x1b\\"
+						}
+						seq, width, n, state := DecodeSequence(input, NormalState, p)
+						if seq != input || width != 0 || n != len(input) || state != NormalState {
+							t.Fatalf("decode = (%q, %d, %d, %d)", seq, width, n, state)
+						}
+						if p.paramsLen != min(size, count) {
+							t.Fatalf("got %d parameters, want %d", p.paramsLen, min(size, count))
+						}
+						for i, value := range p.params[:p.paramsLen] {
+							want := i + 1
+							if separator == ":" && i < count-1 {
+								want |= parser.HasMoreFlag
+							}
+							if value != want {
+								t.Errorf("parameter %d = %d, want %d", i, value, want)
+							}
+						}
+						seq, width, n, state = DecodeSequence("x", state, p)
+						if seq != "x" || width != 1 || n != 1 || state != NormalState || p.paramsLen != 0 {
+							t.Fatalf("following text = (%q, %d, %d, %d), parameters = %d", seq, width, n, state, p.paramsLen)
+						}
+					})
+				}
+			}
+		}
+	}
+}
+
+func TestDecodeSequenceParameterOverflowStreaming(t *testing.T) {
+	for _, decode := range []struct {
+		name string
+		fn   func([]byte, byte, *Parser) ([]byte, int, int, byte)
+	}{
+		{"grapheme", DecodeSequence[[]byte]},
+		{"wc", DecodeSequenceWc[[]byte]},
+	} {
+		t.Run(decode.name, func(t *testing.T) {
+			p := NewParser()
+			input := []byte("\x1b[" + strings.Repeat("1;", parser.MaxParamsSize) + "2:3;;m")
+			for split := 2; split < len(input); split++ {
+				_, _, n, state := decode.fn(input[:split], NormalState, p)
+				if n != split {
+					t.Fatalf("first chunk consumed %d bytes, want %d", n, split)
+				}
+				seq, width, n, state := decode.fn(input[split:], state, p)
+				if !slices.Equal(seq, input[split:]) || width != 0 || n != len(input)-split || state != NormalState {
+					t.Fatalf("split %d: decode = (%q, %d, %d, %d)", split, seq, width, n, state)
+				}
+				if p.paramsLen != parser.MaxParamsSize {
+					t.Fatalf("split %d: got %d parameters", split, p.paramsLen)
+				}
+				for i, value := range p.params[:p.paramsLen] {
+					if value != 1 {
+						t.Errorf("split %d: parameter %d = %d, want 1", split, i, value)
+					}
+				}
+			}
+		})
+	}
+}
+
 func FuzzDecodeSequence(f *testing.F) {
 	var b byte
 	for b < 0x80 {
@@ -365,6 +447,8 @@ func FuzzDecodeSequence(f *testing.F) {
 
 	f.Add([]byte("\x1b"))
 	f.Add([]byte("\x1b[1;2;3m"))
+	f.Add([]byte("\x1b[" + strings.Repeat("1;", parser.MaxParamsSize) + "1m"))
+	f.Add([]byte("\x1bP" + strings.Repeat("1:", parser.MaxParamsSize) + "1qdata\x1b\\"))
 	f.Add([]byte("\x1b]2;charmbracelet: ~/Source/bubbletea\x07"))
 	f.Add([]byte("\x1b]11;ff/00/ff\x1b\\"))
 	f.Add([]byte("\x1b]11;ff/00/ff\x9c\x1baa\x8fa"))
@@ -375,10 +459,11 @@ func FuzzDecodeSequence(f *testing.F) {
 	f.Add([]byte("👋a"))
 	f.Add([]byte("👨🏿‍🌾"))
 	f.Fuzz(func(t *testing.T, b []byte) {
+		p := NewParser()
 		var state byte
 		var n int
 		for len(b) > 0 {
-			_, _, n, state = DecodeSequence(b, state, nil)
+			_, _, n, state = DecodeSequence(b, state, p)
 			if n == 0 {
 				break
 			}
