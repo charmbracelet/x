@@ -59,11 +59,60 @@ func TestOscSequence(t *testing.T) {
 			},
 		},
 		{
+			// U+672B is E6 9C AB, and 0x9C alone is C1 ST.
 			name:  "string_terminator",
 			input: "\x1b]2;\xe6\x9c\xab\x1b\\",
 			expected: []any{
-				[]byte("2;\xe6"),
+				[]byte("2;\xe6\x9c\xab"),
 				Cmd('\\'),
+			},
+		},
+		{
+			// U+2733 is E2 9C B3.
+			name:  "utf8_continuation_st",
+			input: "\x1b]0;✳ Claude Code\x07ok",
+			expected: []any{
+				[]byte("0;✳ Claude Code"),
+				'o',
+				'k',
+			},
+		},
+		{
+			// U+2014 is E2 80 94, and both continuation bytes are C1
+			// controls on their own.
+			name:  "utf8_continuation_c1",
+			input: "\x1b]2;a—b\x1b\\",
+			expected: []any{
+				[]byte("2;a—b"),
+				Cmd('\\'),
+			},
+		},
+		{
+			name:  "utf8_four_bytes",
+			input: "\x1b]2;\U0001F680\x9c",
+			expected: []any{
+				[]byte("2;\U0001F680"),
+			},
+		},
+		{
+			name:  "c1_st_after_ascii",
+			input: "\x1b]2;title\x9cok",
+			expected: []any{
+				[]byte("2;title"),
+				'o',
+				'k',
+			},
+		},
+		{
+			// A truncated rune does not hide the terminator that follows
+			// it.
+			name:  "terminator_after_truncated_rune",
+			input: "\x1b]2;\xe2\x9c\x1b\\ok",
+			expected: []any{
+				[]byte("2;\xe2\x9c"),
+				Cmd('\\'),
+				'o',
+				'k',
 			},
 		},
 		{
