@@ -120,11 +120,23 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 		e.lastChar, _ = utf8.DecodeRuneInString(content)
 	}
 
+	// A wide cell that does not fit before the right margin wraps first,
+	// clearing the cells it leaves behind.
+	if awm && x > 0 && x+cell.Width > e.scr.Width() {
+		e.scr.FillArea(e.scr.blankCell(), uv.Rect(x, y, e.scr.Width()-x, 1))
+		e.index()
+		_, y = e.scr.CursorPosition()
+		x = 0
+	}
+
 	e.scr.SetCell(x, y, &cell)
 
-	// Handle phantom state at the end of the line
-	e.atPhantom = awm && x >= e.scr.Width()-1
-	if !e.atPhantom {
+	// Handle phantom state at the end of the line: the cell reaches the
+	// last column, so the next print wraps.
+	e.atPhantom = awm && x+cell.Width >= e.scr.Width()
+	if e.atPhantom {
+		x = e.scr.Width() - 1
+	} else {
 		x += cell.Width
 	}
 
