@@ -47,6 +47,24 @@ func (e *Emulator) handlePrint(r rune) {
 	e.grapheme = utf8.AppendRune(e.grapheme, r)
 }
 
+// GraphemeWidthFunc returns the first cell-sized piece of s, a non-empty
+// prefix of it, and the number of cells that piece occupies.
+type GraphemeWidthFunc func(s string) (cluster string, width int)
+
+// SetGraphemeWidthFunc replaces how printed text is split into cells and
+// sized, e.g. to match a host terminal that measures each rune on its own.
+// Nil restores the default, which keeps grapheme clusters together and sizes
+// them with [ansi.GraphemeWidth].
+//
+// A printable ASCII character that no following character joins is always
+// one cell and never reaches f. f sees every run of non-ASCII text, together
+// with the ASCII character before it, which a combining mark may join. If f
+// returns an empty piece, or one longer than s, the first rune of s is taken
+// as the piece instead, so a misbehaving f cannot stall a write.
+func (e *Emulator) SetGraphemeWidthFunc(f GraphemeWidthFunc) {
+	e.graphemeWidth = f
+}
+
 // flushGrapheme flushes the current grapheme buffer, if any, and handles the
 // grapheme as a single unit.
 func (e *Emulator) flushGrapheme() {
@@ -54,20 +72,42 @@ func (e *Emulator) flushGrapheme() {
 		return
 	}
 
-	// XXX: We always use [ansi.GraphemeWidth] here to report accurate widths
-	// and it's up to the caller to decide how to handle Unicode vs non-Unicode
-	// modes.
-	method := ansi.GraphemeWidth
-	graphemes := e.grapheme
-	for len(graphemes) > 0 {
-		cluster, width := ansi.FirstGraphemeCluster(graphemes, method)
-		if len(cluster) == 0 {
-			break
+	switch {
+	case len(e.grapheme) == 1 && printableASCII(rune(e.grapheme[0])):
+		e.handleGrapheme(string(e.grapheme[0]), 1)
+	case e.graphemeWidth != nil:
+		e.flushGraphemeWith(e.graphemeWidth)
+	default:
+		// XXX: We always use [ansi.GraphemeWidth] here to report accurate
+		// widths and it's up to the caller to decide how to handle Unicode
+		// vs non-Unicode modes.
+		method := ansi.GraphemeWidth
+		graphemes := e.grapheme
+		for len(graphemes) > 0 {
+			cluster, width := ansi.FirstGraphemeCluster(graphemes, method)
+			if len(cluster) == 0 {
+				break
+			}
+			e.handleGrapheme(string(cluster), width)
+			graphemes = graphemes[len(cluster):]
 		}
-		e.handleGrapheme(string(cluster), width)
-		graphemes = graphemes[len(cluster):]
 	}
 	e.grapheme = e.grapheme[:0] // Reset the grapheme buffer.
+}
+
+// flushGraphemeWith handles the grapheme buffer in the pieces f splits it
+// into, each as wide as f says.
+func (e *Emulator) flushGraphemeWith(f GraphemeWidthFunc) {
+	graphemes := string(e.grapheme)
+	for len(graphemes) > 0 {
+		cluster, width := f(graphemes)
+		n := len(cluster)
+		if n == 0 || n > len(graphemes) {
+			_, n = utf8.DecodeRuneInString(graphemes)
+		}
+		e.handleGrapheme(graphemes[:n], width)
+		graphemes = graphemes[n:]
+	}
 }
 
 // handleGrapheme handles UTF-8 graphemes.
