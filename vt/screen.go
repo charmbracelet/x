@@ -248,7 +248,7 @@ func (s *Screen) setCursorStyle(style CursorStyle, blink bool) {
 	s.cur.Style = style
 	s.cur.Steady = !blink
 	if changed && s.cb.CursorStyle != nil {
-		s.cb.CursorStyle(style, !blink)
+		s.cb.CursorStyle(style, blink)
 	}
 }
 
