@@ -197,9 +197,16 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 				space.WriteRune(r)
 			} else if bytes.ContainsAny(cluster, breakpoints) {
 				addSpace()
-				addWord()
-				buf.Write(cluster)
-				curWidth++
+				if curWidth+wordLen+1 > limit {
+					// Breakpoint won't fit on this line, keep it
+					// attached to the preceding word.
+					word.Write(cluster)
+					wordLen++
+				} else {
+					addWord()
+					buf.Write(cluster)
+					curWidth++
+				}
 			} else {
 				word.Write(cluster)
 				wordLen += width
@@ -236,9 +243,16 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 				fallthrough
 			case runeContainsAny(r, breakpoints):
 				addSpace()
-				addWord()
-				buf.WriteByte(b[i])
-				curWidth++
+				if curWidth+wordLen+1 > limit {
+					// Breakpoint won't fit on this line, keep it
+					// attached to the preceding word.
+					word.WriteByte(b[i])
+					wordLen++
+				} else {
+					addWord()
+					buf.WriteByte(b[i])
+					curWidth++
+				}
 			default:
 				word.WriteByte(b[i])
 				wordLen++
