@@ -81,6 +81,94 @@ func (s *Screen) Resize(width int, height int) {
 	s.scroll = s.buf.Bounds()
 }
 
+// resizeReflow resizes a scrollback-backed (primary) screen the way
+// xterm/vte do, rather than the pad-bottom / cut-bottom of Resize:
+//
+//   - Growing taller pulls up to delta lines back down from scrollback
+//     onto the top, so existing content (and the cursor) stays anchored
+//     to the bottom.
+//   - Shrinking pushes displaced top lines into scrollback (recoverable
+//     by scrolling up) and keeps the bottom rows and cursor visible.
+//
+// Width changes still use the plain per-line pad/cut — vt/uv don't
+// rewrap. The cursor row (s.cur.Y) is moved to follow the content.
+func (s *Screen) resizeReflow(width, height int) {
+	if s.buf == nil {
+		s.buf = uv.NewRenderBuffer(width, height)
+		s.scroll = s.buf.Bounds()
+		return
+	}
+	oldH := s.buf.Height()
+
+	// Width first: plain pad/cut per line (no rewrap), keeping height.
+	if width != s.buf.Width() {
+		s.buf.Resize(width, oldH)
+	}
+
+	switch {
+	case height > oldH:
+		delta := height - oldH
+		pull := 0
+		if s.scrollback != nil {
+			pull = min(delta, s.scrollback.Len())
+		}
+		newLines := make([]uv.Line, 0, height)
+		pulled := make([]uv.Line, pull)
+		for i := pull - 1; i >= 0; i-- {
+			pulled[i] = fitLine(s.scrollback.Pop(), width)
+		}
+		newLines = append(newLines, pulled...)
+		newLines = append(newLines, s.buf.Lines...)
+		for i := 0; i < delta-pull; i++ {
+			newLines = append(newLines, blankLine(width))
+		}
+		s.buf.Lines = newLines
+		s.cur.Y += pull
+
+	case height < oldH:
+		// Push top lines above the cursor into scrollback so the cursor
+		// stays on-screen; any remainder is cut from the bottom.
+		drop := oldH - height
+		top := min(drop, s.cur.Y)
+		if s.scrollback != nil {
+			for i := 0; i < top; i++ {
+				s.scrollback.Push(s.buf.Lines[i])
+			}
+		}
+		kept := make([]uv.Line, height)
+		copy(kept, s.buf.Lines[top:top+height])
+		s.buf.Lines = kept
+		s.cur.Y -= top
+		if s.cur.Y < 0 {
+			s.cur.Y = 0
+		}
+	}
+
+	s.buf.Touched = nil
+	s.scroll = s.buf.Bounds()
+}
+
+// blankLine returns a fresh line of width empty cells.
+func blankLine(width int) uv.Line {
+	l := make(uv.Line, width)
+	for i := range l {
+		l[i] = uv.EmptyCell
+	}
+	return l
+}
+
+// fitLine returns a copy of line padded or truncated to exactly width
+// cells (scrollback lines are stored trailing-trimmed).
+func fitLine(line uv.Line, width int) uv.Line {
+	out := blankLine(width)
+	if line == nil {
+		return out
+	}
+	n := min(len(line), width)
+	copy(out, line[:n])
+	return out
+}
+
 // Width returns the width of the screen.
 func (s *Screen) Width() int {
 	return s.buf.Width()
