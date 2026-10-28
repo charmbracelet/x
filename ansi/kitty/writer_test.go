@@ -225,3 +225,52 @@ func TestWriteKittyGraphicsEdgeCases(t *testing.T) {
 		})
 	}
 }
+
+func TestEncodeGraphicsDefaultTransmissionIncludesPayload(t *testing.T) {
+	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	img.Set(0, 0, color.RGBA{R: 1, G: 2, B: 3, A: 255})
+
+	cases := []struct {
+		name string
+		opts *Options
+	}{
+		{name: "nil options", opts: nil},
+		{
+			name: "Transmission unset",
+			opts: &Options{Action: TransmitAndPut, Format: PNG},
+		},
+		{
+			name: "Transmission Direct",
+			opts: &Options{Action: TransmitAndPut, Format: PNG, Transmission: Direct},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := EncodeGraphics(&buf, img, tc.opts); err != nil {
+				t.Fatalf("EncodeGraphics: %v", err)
+			}
+			out := buf.Bytes()
+			semi := bytes.IndexByte(out, ';')
+			if semi < 0 {
+				t.Fatalf("missing payload separator in %q", out)
+			}
+			// Kitty graphics end with ST (\x1b\\). Payload sits between ';' and ST.
+			payload := out[semi+1:]
+			if len(payload) < 3 {
+				t.Fatalf("payload too short: %q", out)
+			}
+			if payload[len(payload)-2] != 0x1b || payload[len(payload)-1] != '\\' {
+				t.Fatalf("missing ST terminator in %q", out)
+			}
+			payload = payload[:len(payload)-2]
+			if len(payload) == 0 {
+				t.Fatalf("expected image payload when Transmission defaults to Direct; got %q", out)
+			}
+			if _, err := base64.StdEncoding.DecodeString(string(payload)); err != nil {
+				t.Fatalf("payload is not valid base64: %v (%q)", err, payload)
+			}
+		})
+	}
+}
