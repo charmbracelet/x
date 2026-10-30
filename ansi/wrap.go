@@ -54,7 +54,8 @@ func hardwrap(m Method, s string, limit int, preserveSpace bool) string {
 	i := 0
 	for i < len(b) {
 		state, action := parser.Table.Transition(pstate, b[i])
-		if state == parser.Utf8State {
+		if state == parser.Utf8State || (m == GraphemeWidth && action == parser.PrintAction &&
+			i+1 < len(b) && b[i+1] >= 0xC0) {
 			var width int
 			cluster, width = FirstGraphemeCluster(b[i:], m)
 			i += len(cluster)
@@ -186,7 +187,9 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 	i := 0
 	for i < len(b) {
 		state, action := parser.Table.Transition(pstate, b[i])
-		if state == parser.Utf8State { //nolint:nestif
+		isGrapheme := state == parser.Utf8State || (m == GraphemeWidth && action == parser.PrintAction &&
+			i+1 < len(b) && b[i+1] >= 0xC0)
+		if isGrapheme { //nolint:nestif
 			var width int
 			cluster, width = FirstGraphemeCluster(b[i:], m)
 			i += len(cluster)
@@ -338,7 +341,9 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 	i := 0
 	for i < len(s) {
 		state, action := parser.Table.Transition(pstate, s[i])
-		if state == parser.Utf8State { //nolint:nestif
+		isGrapheme := state == parser.Utf8State || (m == GraphemeWidth && action == parser.PrintAction &&
+			i+1 < len(s) && s[i+1] >= 0xC0)
+		if isGrapheme { //nolint:nestif
 			var width int
 			cluster, width = FirstGraphemeCluster(s[i:], m)
 			i += len(cluster)
