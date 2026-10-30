@@ -89,8 +89,9 @@ func truncate(m Method, s string, length int, tail string) string {
 	// collect ANSI escape codes until we reach the end of string.
 	for i < len(s) {
 		state, action := parser.Table.Transition(pstate, s[i])
-		if state == parser.Utf8State {
-			// This action happens when we transition to the Utf8State.
+		if state == parser.Utf8State || (m == GraphemeWidth && action == parser.PrintAction &&
+			i+1 < len(s) && s[i+1] >= 0xC0) {
+			// Decode the whole cluster, including marks on an ASCII base.
 			var width int
 			cluster, width = FirstGraphemeCluster(s[i:], m)
 			// increment the index by the length of the cluster
@@ -202,7 +203,8 @@ func truncateLeft(m Method, s string, n int, prefix string) string {
 		}
 
 		state, action := parser.Table.Transition(pstate, s[i])
-		if state == parser.Utf8State {
+		if state == parser.Utf8State || (m == GraphemeWidth && action == parser.PrintAction &&
+			i+1 < len(s) && s[i+1] >= 0xC0) {
 			var width int
 			cluster, width = FirstGraphemeCluster(s[i:], m)
 
