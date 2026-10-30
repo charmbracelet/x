@@ -18,6 +18,11 @@ type Encoder struct {
 
 	// Can be one of [RGBA], [RGB], or [PNG].
 	Format int
+
+	// PNGCompressionLevel controls PNG encoding when Format is [PNG].
+	// The zero value uses [png.DefaultCompression]. It is independent of
+	// Compress, which applies protocol-level zlib compression.
+	PNGCompressionLevel png.CompressionLevel
 }
 
 // Encode encodes the image data in the specified format and writes it to w.
@@ -52,7 +57,8 @@ func (e *Encoder) Encode(w io.Writer, m image.Image) error {
 		}
 
 	case PNG:
-		if err := png.Encode(w, m); err != nil {
+		enc := png.Encoder{CompressionLevel: e.PNGCompressionLevel}
+		if err := enc.Encode(w, m); err != nil {
 			return fmt.Errorf("failed to encode PNG: %w", err)
 		}
 
