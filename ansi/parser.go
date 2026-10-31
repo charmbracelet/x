@@ -50,6 +50,12 @@ type Parser struct {
 
 	// state is the current state of the parser.
 	state byte
+
+	// strUtf8 counts the continuation bytes still owed to the multi-byte
+	// UTF-8 rune a string payload has begun. It is only meaningful while
+	// state is [parser.OscStringState] or [parser.DcsStringState]; see
+	// [Parser.advance] for why those two states need it.
+	strUtf8 int
 }
 
 // NewParser returns a new parser with the default settings.
@@ -205,6 +211,40 @@ func (p *Parser) advanceUtf8(b byte) parser.Action {
 
 func (p *Parser) advance(b byte) parser.Action {
 	state, action := parser.Table.Transition(p.state, b)
+
+	// An OSC or DCS payload is raw UTF-8: the transition table extends the
+	// printable range to 0xFF for both string states so a title's own bytes
+	// pass through unexamined. It keeps one unconditional row inside that
+	// range, 0x9C, the 8-bit form of ST. That byte is also a legal UTF-8
+	// continuation byte -- U+2733 (the dingbat sextile, a common spinner
+	// glyph) encodes as E2 9C B3 -- so a window title or a status string
+	// carrying such a rune terminates its own sequence halfway through, and
+	// the remainder of the string is printed to the screen instead.
+	//
+	// Track how many continuation bytes the payload still owes the rune it
+	// has begun and put those bytes into the payload. A 0x9C that is not one
+	// of them is still a terminator, so the 8-bit ST keeps working for
+	// callers that send it.
+	switch p.state {
+	case parser.OscStringState, parser.DcsStringState:
+		switch {
+		case p.strUtf8 > 0 && b >= 0x80 && b <= 0xBF:
+			p.strUtf8--
+			if b == 0x9C {
+				state, action = p.state, parser.PutAction
+			}
+		case b >= 0xC2 && b <= 0xDF:
+			p.strUtf8 = 1
+		case b >= 0xE0 && b <= 0xEF:
+			p.strUtf8 = 2
+		case b >= 0xF0 && b <= 0xF4:
+			p.strUtf8 = 3
+		default:
+			p.strUtf8 = 0
+		}
+	default:
+		p.strUtf8 = 0
+	}
 
 	// We need to clear the parser state if the state changes from EscapeState.
 	// This is because when we enter the EscapeState, we don't get a chance to
