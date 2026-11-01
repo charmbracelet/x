@@ -1826,3 +1826,61 @@ func termText(term *Emulator) []string {
 	}
 	return lines
 }
+
+func TestEmulatorSetParserDataSize(t *testing.T) {
+	t.Run("default size is DefaultParserDataSize", func(t *testing.T) {
+		term := NewEmulator(80, 24)
+		if got := cap(term.parser.Data()); got != DefaultParserDataSize {
+			t.Errorf("expected parser data buffer cap %d, got %d", DefaultParserDataSize, got)
+		}
+	})
+
+	t.Run("configure custom size", func(t *testing.T) {
+		term := NewEmulator(80, 24)
+		customSize := 1024
+		term.SetParserDataSize(customSize)
+		if got := cap(term.parser.Data()); got != customSize {
+			t.Errorf("expected parser data buffer cap %d, got %d", customSize, got)
+		}
+
+		// Verify parsing OSC sequence still works correctly with custom size
+		_, err := term.WriteString("\x1b]0;custom-title\x07")
+		if err != nil {
+			t.Fatalf("WriteString failed: %v", err)
+		}
+		if term.title != "custom-title" {
+			t.Errorf("term.title = %q, want %q", term.title, "custom-title")
+		}
+	})
+
+	t.Run("configure dynamic size with zero", func(t *testing.T) {
+		term := NewEmulator(80, 24)
+		term.SetParserDataSize(0)
+
+		_, err := term.WriteString("\x1b]0;dynamic-title\x07")
+		if err != nil {
+			t.Fatalf("WriteString failed: %v", err)
+		}
+		if term.title != "dynamic-title" {
+			t.Errorf("term.title = %q, want %q", term.title, "dynamic-title")
+		}
+	})
+
+	t.Run("safe emulator", func(t *testing.T) {
+		se := NewSafeEmulator(80, 24)
+		se.SetParserDataSize(2048)
+		if got := cap(se.parser.Data()); got != 2048 {
+			t.Errorf("expected safe emulator parser data buffer cap 2048, got %d", got)
+		}
+	})
+
+	t.Run("terminal interface", func(t *testing.T) {
+		var term Terminal = NewEmulator(80, 24)
+		term.SetParserDataSize(512)
+		if e, ok := term.(*Emulator); ok {
+			if got := cap(e.parser.Data()); got != 512 {
+				t.Errorf("expected parser data buffer cap 512, got %d", got)
+			}
+		}
+	})
+}
