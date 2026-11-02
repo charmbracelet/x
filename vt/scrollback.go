@@ -10,8 +10,14 @@ import (
 const DefaultScrollbackSize = 10000
 
 // Scrollback represents a scrollback buffer that stores lines scrolled off the screen.
+//
+// It is a ring buffer: once full, each new line replaces the oldest one in
+// place, so adding a line costs the same however many lines are kept.
 type Scrollback struct {
+	// lines holds the lines, oldest at head once the buffer is full. Until
+	// then head is 0 and new lines are appended.
 	lines    []uv.Line
+	head     int
 	maxLines int
 }
 
@@ -28,30 +34,61 @@ func NewScrollback(maxLines int) *Scrollback {
 
 // Push adds a line to the scrollback buffer.
 // If the buffer is full, the oldest line is removed.
+//
+// The line is copied, so the caller may reuse it.
 func (s *Scrollback) Push(line uv.Line) {
 	if s == nil || s.maxLines <= 0 {
 		return
 	}
 
-	// Find last non-empty cell to trim trailing empty cells.
-	// This helps with wrapping and window resizing.
-	lastNonEmpty := -1
-	for i := len(line) - 1; i >= 0; i-- {
-		c := &line[i]
-		if !c.IsZero() && !c.Equal(&uv.EmptyCell) {
-			lastNonEmpty = i
-			break
+	// Trim trailing empty cells. This helps with wrapping and window
+	// resizing.
+	n := len(line)
+	for n > 0 && isBlank(&line[n-1]) {
+		n--
+	}
+
+	if len(s.lines) < s.maxLines {
+		s.lines = append(s.lines, slices.Clone(line[:n]))
+		return
+	}
+
+	// Replace the oldest line, reusing its memory when it is large enough.
+	old := s.lines[s.head]
+	if cap(old) >= n {
+		old = old[:n]
+		copy(old, line[:n])
+		// Drop what the rest of the old line referenced.
+		clear(old[n:cap(old)])
+	} else {
+		old = slices.Clone(line[:n])
+	}
+	s.lines[s.head] = old
+	s.head++
+	if s.head == len(s.lines) {
+		s.head = 0
+	}
+}
+
+// isBlank reports whether c is a zero cell or equal to [uv.EmptyCell]. It is
+// the same as checking c.IsZero() || c.Equal(&uv.EmptyCell), without
+// comparing colors.
+func isBlank(c *uv.Cell) bool {
+	switch c.Width {
+	case 1:
+		if len(c.Content) != 1 || c.Content[0] != ' ' {
+			return false
 		}
+	case 0:
+		if len(c.Content) != 0 {
+			return false
+		}
+	default:
+		return false
 	}
-
-	// Clone the line content up to and including the last non-empty cell
-	cloned := slices.Clone(line[:lastNonEmpty+1])
-
-	if len(s.lines) >= s.maxLines {
-		// Remove oldest line and append new one
-		s.lines = slices.Delete(s.lines, 0, 1)
-	}
-	s.lines = append(s.lines, cloned)
+	return c.Style.Fg == nil && c.Style.Bg == nil && c.Style.UnderlineColor == nil &&
+		c.Style.Attrs == 0 && c.Style.Underline == uv.UnderlineNone &&
+		len(c.Link.URL) == 0 && len(c.Link.Params) == 0
 }
 
 // PushN adds n lines from the buffer starting at line y to the scrollback.
@@ -90,30 +127,50 @@ func (s *Scrollback) SetMaxLines(maxLines int) {
 		return
 	}
 
-	s.maxLines = maxLines
-	if len(s.lines) > maxLines {
+	lines := s.Lines()
+	if len(lines) > maxLines {
 		// Remove oldest lines
-		s.lines = s.lines[len(s.lines)-maxLines:]
+		lines = lines[len(lines)-maxLines:]
 	}
+	// Copy the lines in order into a new buffer, which also lets go of the
+	// lines that were removed.
+	s.lines = append(make([]uv.Line, 0, max(len(lines), min(maxLines, 1000))), lines...)
+	s.head = 0
+	s.maxLines = maxLines
 }
 
 // Line returns the line at the given index.
 // Index 0 is the oldest line, Len()-1 is the most recent.
 // Returns nil if index is out of bounds.
+//
+// The line belongs to the scrollback buffer and may be overwritten once
+// another line is added.
 func (s *Scrollback) Line(index int) uv.Line {
 	if s == nil || index < 0 || index >= len(s.lines) {
 		return nil
+	}
+	index += s.head
+	if index >= len(s.lines) {
+		index -= len(s.lines)
 	}
 	return s.lines[index]
 }
 
 // Lines returns all lines in the scrollback buffer.
 // Index 0 is the oldest line.
+//
+// The lines belong to the scrollback buffer and may be overwritten once
+// another line is added.
 func (s *Scrollback) Lines() []uv.Line {
 	if s == nil {
 		return nil
 	}
-	return s.lines
+	if s.head == 0 {
+		return s.lines
+	}
+	lines := make([]uv.Line, 0, len(s.lines))
+	lines = append(lines, s.lines[s.head:]...)
+	return append(lines, s.lines[:s.head]...)
 }
 
 // Clear removes all lines from the scrollback buffer.
@@ -121,7 +178,9 @@ func (s *Scrollback) Clear() {
 	if s == nil {
 		return
 	}
+	clear(s.lines)
 	s.lines = s.lines[:0]
+	s.head = 0
 }
 
 // CellAt returns the cell at the given position in the scrollback buffer.

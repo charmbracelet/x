@@ -17,6 +17,11 @@ type Screen struct {
 	scroll uv.Rectangle
 	// scrollback is the scrollback buffer for lines scrolled off the top.
 	scrollback *Scrollback
+	// rotate is scratch space for moving lines.
+	rotate []uv.Line
+	// reference makes the screen use the plain cell by cell implementations
+	// instead of the fast paths, for tests to compare them.
+	reference bool
 }
 
 // NewScreen creates a new screen.
@@ -119,8 +124,7 @@ func (s *Screen) isLineEmpty(line uv.Line) bool {
 
 // ClearArea clears the given area.
 func (s *Screen) ClearArea(area uv.Rectangle) {
-	s.buf.ClearArea(area)
-	s.touchArea(area)
+	s.FillArea(nil, area)
 }
 
 // Fill fills the screen or part of it.
@@ -130,8 +134,32 @@ func (s *Screen) Fill(c *uv.Cell) {
 
 // FillArea fills the given area with the given cell.
 func (s *Screen) FillArea(c *uv.Cell, area uv.Rectangle) {
-	s.buf.FillArea(c, area)
+	if !s.reference && area.Min.X <= 0 && area.Max.X >= s.buf.Width() && (c == nil || c.Width <= 1) {
+		// Whole lines are filled at once, and need none of the fixups for
+		// wide cells cut in half.
+		fill := uv.EmptyCell
+		if c != nil {
+			fill = *c
+		}
+		for y := max(area.Min.Y, 0); y < min(area.Max.Y, s.buf.Height()); y++ {
+			fillLine(s.buf.Lines[y], fill)
+		}
+	} else {
+		s.buf.FillArea(c, area)
+	}
 	s.touchArea(area)
+}
+
+// fillLine sets every cell of the line to c.
+func fillLine(line uv.Line, c uv.Cell) {
+	if len(line) == 0 {
+		return
+	}
+	line[0] = c
+	// Fill by doubling, which copies whole runs of cells at once.
+	for filled := 1; filled < len(line); filled *= 2 {
+		copy(line[filled:], line[:filled])
+	}
 }
 
 // setHorizontalMargins sets the horizontal margins.
@@ -297,21 +325,17 @@ func (s *Screen) DeleteCell(n int) {
 // ScrollUp scrolls the content up n lines within the given region. Lines
 // scrolled past the top margin are lost. This is equivalent to [ansi.SU] which
 // moves the cursor to the top margin and performs a [ansi.DL] operation.
+// Unlike them, it leaves the cursor where it is.
 func (s *Screen) ScrollUp(n int) {
-	x, y := s.CursorPosition()
-	s.setCursor(s.cur.X, 0, true)
-	s.DeleteLine(n)
-	s.setCursor(x, y, false)
+	s.deleteLines(s.scroll.Min.Y, n)
 }
 
 // ScrollDown scrolls the content down n lines within the given region. Lines
 // scrolled past the bottom margin are lost. This is equivalent to [ansi.SD]
 // which moves the cursor to top margin and performs a [ansi.IL] operation.
+// Unlike them, it leaves the cursor where it is.
 func (s *Screen) ScrollDown(n int) {
-	x, y := s.CursorPosition()
-	s.setCursor(s.cur.X, 0, true)
-	s.InsertLine(n)
-	s.setCursor(x, y, false)
+	s.insertLines(s.scroll.Min.Y, n)
 }
 
 // InsertLine inserts n blank lines at the cursor position Y coordinate.
@@ -319,20 +343,11 @@ func (s *Screen) ScrollDown(n int) {
 // are moved down, with those past bottom margin being discarded.
 // It returns true if the operation was successful.
 func (s *Screen) InsertLine(n int) bool {
-	if n <= 0 {
+	if n <= 0 || !s.cur.In(s.scroll) {
 		return false
 	}
 
-	x, y := s.cur.X, s.cur.Y
-
-	// Only operate if cursor Y is within scroll region
-	if y < s.scroll.Min.Y || y >= s.scroll.Max.Y ||
-		x < s.scroll.Min.X || x >= s.scroll.Max.X {
-		return false
-	}
-
-	s.buf.InsertLineArea(y, n, s.blankCell(), s.scroll)
-
+	s.insertLines(s.cur.Y, n)
 	return true
 }
 
@@ -343,32 +358,113 @@ func (s *Screen) InsertLine(n int) bool {
 // are saved to the scrollback buffer before deletion.
 // It returns true if the operation was successful.
 func (s *Screen) DeleteLine(n int) bool {
-	if n <= 0 {
+	if n <= 0 || !s.cur.In(s.scroll) {
 		return false
 	}
 
-	scroll := s.scroll
-	x, y := s.cur.X, s.cur.Y
-
-	// Only operate if cursor Y is within scroll region
-	if y < scroll.Min.Y || y >= scroll.Max.Y ||
-		x < scroll.Min.X || x >= scroll.Max.X {
-		return false
-	}
-
-	// Save lines to scrollback if we're at the top of the scroll region
-	// and the scroll region uses the full width (typical terminal scroll).
-	// This captures lines that would be lost during scroll up operations.
-	if s.scrollback != nil && y == scroll.Min.Y &&
-		scroll.Min.X == 0 && scroll.Max.X == s.buf.Width() {
-		// Save lines that will be deleted
-		linesToSave := min(n, scroll.Max.Y-y)
-		s.scrollback.PushN(s.buf, y, linesToSave)
-	}
-
-	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
-
+	s.deleteLines(s.cur.Y, n)
 	return true
+}
+
+// fullWidth reports whether the scroll region spans the whole width of the
+// screen, so that scrolling it moves whole lines.
+func (s *Screen) fullWidth() bool {
+	return s.scroll.Min.X == 0 && s.scroll.Max.X == s.buf.Width()
+}
+
+// insertLines inserts n blank lines at line y of the scroll region, moving
+// the lines below down and dropping the ones moved past the bottom margin.
+func (s *Screen) insertLines(y, n int) {
+	scroll := s.scroll
+	if n <= 0 || y < scroll.Min.Y || y >= scroll.Max.Y {
+		return
+	}
+	if s.reference || !s.fullWidth() {
+		s.buf.InsertLineArea(y, n, s.blankCell(), scroll)
+		return
+	}
+
+	n = min(n, scroll.Max.Y-y)
+	// Move the lines that fall off the bottom to the top and blank them.
+	s.rotateLines(y, scroll.Max.Y, scroll.Max.Y-y-n)
+	for i := y; i < y+n; i++ {
+		s.blankLine(i)
+	}
+	s.touchLines(y, scroll.Max.Y)
+}
+
+// deleteLines deletes n lines at line y of the scroll region, moving the
+// lines below up and adding blank lines at the bottom margin. Lines deleted
+// from the top of a scroll region that spans the whole width go to the
+// scrollback buffer.
+func (s *Screen) deleteLines(y, n int) {
+	scroll := s.scroll
+	if n <= 0 || y < scroll.Min.Y || y >= scroll.Max.Y {
+		return
+	}
+	n = min(n, scroll.Max.Y-y)
+	fullWidth := s.fullWidth()
+
+	// Save lines that will be deleted, since they would otherwise be lost
+	// during scroll up operations.
+	if fullWidth && s.scrollback != nil && y == scroll.Min.Y {
+		s.scrollback.PushN(s.buf, y, n)
+	}
+
+	if s.reference || !fullWidth {
+		s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
+		return
+	}
+
+	// Move the deleted lines to the bottom and blank them.
+	s.rotateLines(y, scroll.Max.Y, n)
+	for i := scroll.Max.Y - n; i < scroll.Max.Y; i++ {
+		s.blankLine(i)
+	}
+	s.touchLines(y, scroll.Max.Y)
+}
+
+// rotateLines rotates the lines in [top, bottom) up by n lines, so the line
+// at top+n ends up at top and the first n lines at the bottom. Moving the
+// lines themselves is much cheaper than copying their cells.
+func (s *Screen) rotateLines(top, bottom, n int) {
+	lines := s.buf.Lines[top:bottom]
+	if n <= 0 || n >= len(lines) {
+		return
+	}
+	s.rotate = append(s.rotate[:0], lines[:n]...)
+	copy(lines, lines[n:])
+	copy(lines[len(lines)-n:], s.rotate)
+	clear(s.rotate)
+}
+
+// blankLine fills line y with blank cells.
+func (s *Screen) blankLine(y int) {
+	blank := uv.EmptyCell
+	if c := s.blankCell(); c != nil {
+		blank = *c
+	}
+	fillLine(s.buf.Lines[y], blank)
+}
+
+// touchLines marks the lines in [top, bottom) as changed across the whole
+// width. It does what calling TouchLine for each line does.
+func (s *Screen) touchLines(top, bottom int) {
+	b := s.buf
+	width := b.Width()
+	bottom = min(bottom, len(b.Lines))
+	if len(b.Touched) < bottom {
+		b.Touched = append(b.Touched, make([]*uv.LineData, bottom-len(b.Touched))...)
+	}
+	for y := max(top, 0); y < bottom; y++ {
+		t := b.Touched[y]
+		if t == nil {
+			b.Touched[y] = &uv.LineData{FirstCell: 0, LastCell: width}
+			continue
+		}
+		t.FirstCell = min(t.FirstCell, 0)
+		t.LastCell = max(t.LastCell, width)
+	}
 }
 
 // blankCell returns the cursor blank cell with the background color set to the

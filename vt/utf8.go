@@ -16,6 +16,26 @@ func printableASCII(r rune) bool {
 	return r >= ansi.SP && r < ansi.DEL
 }
 
+// isolatedRune reports whether r is a character that, next to another such
+// character or printable ASCII, is always a grapheme cluster of its own: it
+// is neither Extend, ZWJ, SpacingMark, Prepend, a regional indicator, a
+// Hangul jamo, Extended_Pictographic, nor part of an Indic conjunct. These
+// are the non-ASCII characters programs draw the most, and finding their
+// clusters needs no segmenting.
+func isolatedRune(r rune) bool {
+	switch {
+	case r >= 0x2500 && r <= 0x259F: // Box Drawing, Block Elements
+		return true
+	case r >= 0x2800 && r <= 0x28FF: // Braille Patterns
+		return true
+	case r >= 0x4E00 && r <= 0x9FFF: // CJK Unified Ideographs
+		return true
+	case r >= 0xAC00 && r <= 0xD7A3: // Hangul Syllables (LV and LVT)
+		return true
+	}
+	return false
+}
+
 // handlePrint handles printable characters.
 //
 // A character is held back rather than printed straight away, because the one
@@ -37,11 +57,19 @@ func (e *Emulator) handlePrint(r rune) {
 		// Two printable ASCII characters in a row is the common case by a wide
 		// margin, and needs no segmenting at all.
 		if len(e.grapheme) == 1 && printableASCII(rune(e.grapheme[0])) {
-			e.handleGrapheme(string(e.grapheme[0]), 1)
+			e.handleGrapheme(asciiStrings[e.grapheme[0]], 1)
 			e.grapheme = utf8.AppendRune(e.grapheme[:0], r)
 			return
 		}
 		e.flushGrapheme()
+	} else if !e.reference && isolatedRune(r) && len(e.grapheme) > 0 {
+		// Likewise, an isolated character can't extend a single isolated or
+		// ASCII character before it, which is then a cluster of its own.
+		if prev, n := utf8.DecodeRune(e.grapheme); n == len(e.grapheme) &&
+			(printableASCII(prev) || isolatedRune(prev)) {
+			e.printCluster(e.grapheme)
+			e.grapheme = e.grapheme[:0]
+		}
 	}
 
 	e.grapheme = utf8.AppendRune(e.grapheme, r)
@@ -51,6 +79,13 @@ func (e *Emulator) handlePrint(r rune) {
 // grapheme as a single unit.
 func (e *Emulator) flushGrapheme() {
 	if len(e.grapheme) == 0 {
+		return
+	}
+
+	// A single character is a single cluster.
+	if _, n := utf8.DecodeRune(e.grapheme); n == len(e.grapheme) && !e.reference {
+		e.printCluster(e.grapheme)
+		e.grapheme = e.grapheme[:0]
 		return
 	}
 
@@ -64,15 +99,126 @@ func (e *Emulator) flushGrapheme() {
 		if len(cluster) == 0 {
 			break
 		}
-		e.handleGrapheme(string(cluster), width)
+		e.handleGrapheme(e.cluster(cluster, width).content, width)
 		graphemes = graphemes[len(cluster):]
 	}
 	e.grapheme = e.grapheme[:0] // Reset the grapheme buffer.
 }
 
+// maxClusters bounds how many grapheme clusters are interned.
+const maxClusters = 4096
+
+// clusterInfo is an interned grapheme cluster and its width.
+type clusterInfo struct {
+	content string
+	width   int
+}
+
+// printCluster prints a complete grapheme cluster.
+func (e *Emulator) printCluster(cluster []byte) {
+	if len(cluster) == 1 && printableASCII(rune(cluster[0])) {
+		e.handleGrapheme(asciiStrings[cluster[0]], 1)
+		return
+	}
+	c := e.cluster(cluster, -1)
+	e.handleGrapheme(c.content, c.width)
+}
+
+// cluster returns the grapheme cluster as a string, with its width, computing
+// the width when it is negative. Clusters are interned, since programs draw
+// the same few non-ASCII characters (borders, blocks, symbols) over and over,
+// and each would otherwise cost an allocation and a width lookup.
+func (e *Emulator) cluster(cluster []byte, width int) clusterInfo {
+	if c, ok := e.clusters[string(cluster)]; ok {
+		return c
+	}
+	if width < 0 {
+		_, width = ansi.FirstGraphemeCluster(cluster, ansi.GraphemeWidth)
+	}
+	c := clusterInfo{content: string(cluster), width: width}
+	if len(e.clusters) < maxClusters {
+		if e.clusters == nil {
+			e.clusters = make(map[string]clusterInfo)
+		}
+		e.clusters[c.content] = c
+	}
+	return c
+}
+
+// asciiStrings holds a string for every ASCII character, so printing one
+// doesn't allocate.
+var asciiStrings = func() (s [128]string) {
+	for i := range s {
+		s[i] = string(rune(i))
+	}
+	return s
+}()
+
+// printASCII prints a run of printable ASCII characters received in the
+// ground state. It does what calling [Emulator.handlePrint] for each of them
+// does, but writes the cells straight into the screen.
+func (e *Emulator) printASCII(run []byte) {
+	// No ASCII character extends the cluster before it, so whatever is
+	// pending is complete.
+	e.flushGrapheme()
+
+	// The last character is held back like handlePrint does, since a
+	// combining mark may follow it.
+	last := len(run) - 1
+	if last > 0 {
+		e.printASCIICells(run[:last])
+	}
+	e.grapheme = append(e.grapheme[:0], run[last])
+}
+
+// printASCIICells prints printable ASCII characters, each in its own cell.
+func (e *Emulator) printASCIICells(chars []byte) {
+	scr := e.scr
+	width := scr.Width()
+	if e.gsingle != 0 || e.charsets[e.gl] != nil || width <= 0 {
+		// Character set mappings apply, or there are no cells to write.
+		for _, c := range chars {
+			e.handleGrapheme(asciiStrings[c], 1)
+		}
+		return
+	}
+
+	awm := e.autoWrap
+	cell := uv.Cell{Width: 1, Style: scr.cursorPen(), Link: scr.cursorLink()}
+	for _, c := range chars {
+		x, y := scr.CursorPosition()
+		if e.atPhantom && awm {
+			e.index()
+			_, y = scr.CursorPosition()
+			x = 0
+		}
+
+		cell.Content = asciiStrings[c]
+		if y < len(scr.buf.Lines) && x < len(scr.buf.Lines[y]) && scr.buf.Lines[y][x].Width == 1 {
+			// Overwriting a narrow cell needs none of the fixups for wide
+			// cells, and only marks the line changed when the cell changes.
+			if old := &scr.buf.Lines[y][x]; !old.Equal(&cell) {
+				*old = cell
+				scr.buf.TouchLine(x, y, 1)
+			}
+		} else {
+			// This also covers a cursor left outside of the screen, by a
+			// resize or a restored cursor, where nothing is written.
+			scr.SetCell(x, y, &cell)
+		}
+
+		e.atPhantom = awm && x >= width-1
+		if !e.atPhantom {
+			x++
+		}
+		scr.setCursor(x, y, false)
+	}
+	e.lastChar = rune(chars[len(chars)-1])
+}
+
 // handleGrapheme handles UTF-8 graphemes.
 func (e *Emulator) handleGrapheme(content string, width int) {
-	awm := e.isModeSet(ansi.ModeAutoWrap)
+	awm := e.autoWrap
 	cell := uv.Cell{
 		Content: content,
 		Width:   width,
