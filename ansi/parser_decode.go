@@ -165,6 +165,11 @@ func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (s
 				p.cmd = 0
 			}
 			if c > US && c < DEL {
+				// An ASCII base may belong to a larger cluster, such as a keycap.
+				if m == GraphemeWidth && i+1 < len(b) && b[i+1] >= 0xC0 {
+					seq, width = FirstGraphemeCluster(b[i:], m)
+					return seq, width, len(seq), NormalState
+				}
 				// ASCII printable characters
 				return b[i : i+1], 1, 1, NormalState
 			}
