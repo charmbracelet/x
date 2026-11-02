@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	uv "github.com/charmbracelet/ultraviolet"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // SafeEmulator is a wrapper around an Emulator that adds concurrency safety.
@@ -55,39 +56,54 @@ func (se *SafeEmulator) SetCell(x, y int, cell *uv.Cell) {
 	se.Emulator.SetCell(x, y, cell)
 }
 
-// CellAt retrieves a cell from the emulator in a concurrency-safe manner.
+// CellAt returns a copy of the cell at the given position, or nil if it is
+// out of bounds. It is a copy since the emulator keeps changing the cell
+// once the lock is released.
 func (se *SafeEmulator) CellAt(x, y int) *uv.Cell {
 	se.mu.RLock()
 	defer se.mu.RUnlock()
-	return se.Emulator.CellAt(x, y)
+	return cloneCell(se.Emulator.CellAt(x, y))
+}
+
+// cloneCell copies c, which may be nil.
+func cloneCell(c *uv.Cell) *uv.Cell {
+	if c == nil {
+		return nil
+	}
+	return c.Clone()
 }
 
 // SendKey sends a key event to the emulator in a concurrency-safe manner.
+//
+// The lock is only held to encode the key: writing to the input pipe blocks
+// until the program side reads it, and holding the lock meanwhile would stop
+// the program's output from being processed.
 func (se *SafeEmulator) SendKey(key uv.KeyEvent) {
-	se.mu.Lock()
-	defer se.mu.Unlock()
-	se.Emulator.SendKey(key)
+	se.mu.RLock()
+	seq := se.keySequence(key)
+	se.mu.RUnlock()
+	se.sendInput(seq)
 }
 
 // SendMouse sends a mouse event to the emulator in a concurrency-safe manner.
 func (se *SafeEmulator) SendMouse(mouse uv.MouseEvent) {
-	se.mu.Lock()
-	defer se.mu.Unlock()
-	se.Emulator.SendMouse(mouse)
+	se.mu.RLock()
+	seq := se.mouseSequence(mouse)
+	se.mu.RUnlock()
+	se.sendInput(seq)
 }
 
 // SendText sends text input to the emulator in a concurrency-safe manner.
 func (se *SafeEmulator) SendText(text string) {
-	se.mu.Lock()
-	defer se.mu.Unlock()
 	se.Emulator.SendText(text)
 }
 
 // Paste pastes text into the emulator in a concurrency-safe manner.
 func (se *SafeEmulator) Paste(text string) {
-	se.mu.Lock()
-	defer se.mu.Unlock()
-	se.Emulator.Paste(text)
+	se.mu.RLock()
+	bracketed := se.isModeSet(ansi.ModeBracketedPaste)
+	se.mu.RUnlock()
+	se.sendInput(pasteSequence(text, bracketed))
 }
 
 // SetForegroundColor sets the foreground color in a concurrency-safe manner.
@@ -211,11 +227,12 @@ func (se *SafeEmulator) ScrollbackLen() int {
 	return se.Emulator.ScrollbackLen()
 }
 
-// ScrollbackCellAt returns a cell from the scrollback buffer in a concurrency-safe manner.
+// ScrollbackCellAt returns a copy of a cell from the scrollback buffer in a
+// concurrency-safe manner.
 func (se *SafeEmulator) ScrollbackCellAt(x, y int) *uv.Cell {
 	se.mu.RLock()
 	defer se.mu.RUnlock()
-	return se.Emulator.ScrollbackCellAt(x, y)
+	return cloneCell(se.Emulator.ScrollbackCellAt(x, y))
 }
 
 // SetScrollbackSize sets the scrollback buffer size in a concurrency-safe manner.

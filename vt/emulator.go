@@ -3,6 +3,7 @@ package vt
 import (
 	"image/color"
 	"io"
+	"sync/atomic"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/ultraviolet/screen"
@@ -66,8 +67,9 @@ type Emulator struct {
 	gl, gr  int
 	gsingle int // temporarily select GL or GR
 
-	// Indicates if the terminal is closed.
-	closed bool
+	// Indicates if the terminal is closed. Atomic, since Read is not
+	// serialized with Close by [SafeEmulator].
+	closed atomic.Bool
 
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
@@ -262,7 +264,7 @@ func (e *Emulator) Resize(width int, height int) {
 
 // Read reads data from the terminal input buffer.
 func (e *Emulator) Read(p []byte) (n int, err error) {
-	if e.closed {
+	if e.closed.Load() {
 		return 0, io.EOF
 	}
 
@@ -271,17 +273,16 @@ func (e *Emulator) Read(p []byte) (n int, err error) {
 
 // Close closes the terminal.
 func (e *Emulator) Close() error {
-	if e.closed {
+	if !e.closed.CompareAndSwap(false, true) {
 		return nil
 	}
 
-	e.closed = true
 	return e.pw.CloseWithError(io.EOF) //nolint:wrapcheck
 }
 
 // Write writes data to the terminal output buffer.
 func (e *Emulator) Write(p []byte) (n int, err error) {
-	if e.closed {
+	if e.closed.Load() {
 		return 0, io.ErrClosedPipe
 	}
 
@@ -313,17 +314,28 @@ func (e *Emulator) InputPipe() io.Writer {
 // If bracketed paste mode is enabled, the text is bracketed with the
 // appropriate escape sequences.
 func (e *Emulator) Paste(text string) {
-	if e.isModeSet(ansi.ModeBracketedPaste) {
-		_, _ = io.WriteString(e.pw, ansi.BracketedPasteStart)
-		defer io.WriteString(e.pw, ansi.BracketedPasteEnd) //nolint:errcheck
-	}
+	e.sendInput(pasteSequence(text, e.isModeSet(ansi.ModeBracketedPaste)))
+}
 
-	_, _ = io.WriteString(e.pw, text)
+// pasteSequence returns the bytes pasting text sends to the program.
+func pasteSequence(text string, bracketed bool) string {
+	if bracketed {
+		return ansi.BracketedPasteStart + text + ansi.BracketedPasteEnd
+	}
+	return text
 }
 
 // SendText sends arbitrary text to the terminal.
 func (e *Emulator) SendText(text string) {
-	_, _ = io.WriteString(e.pw, text)
+	e.sendInput(text)
+}
+
+// sendInput writes s to the input pipe. Empty writes are skipped, as they
+// would block until the next read.
+func (e *Emulator) sendInput(s string) {
+	if s != "" {
+		_, _ = io.WriteString(e.pw, s)
+	}
 }
 
 // SendKeys sends multiple keys to the terminal.
