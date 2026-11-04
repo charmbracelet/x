@@ -87,6 +87,14 @@ func stringWidth(m Method, s string) int {
 	)
 
 	for i := 0; i < len(s); i++ {
+		// Printable ASCII (0x20-0x7e) counts as 1 unless a following
+		// non-ASCII byte may extend its grapheme.
+		if s[i]-0x20 < 0x5f && pstate == parser.GroundState &&
+			(i+1 == len(s) || s[i+1] < 0x80) {
+			width++
+			continue
+		}
+
 		state, action := parser.Table.Transition(pstate, s[i])
 		if action == parser.PrintAction || state == parser.Utf8State {
 			if m == WcWidth {

@@ -1,7 +1,12 @@
 package ansi
 
 import (
+	"math/rand"
+	"strings"
 	"testing"
+	"unicode/utf8"
+
+	"github.com/charmbracelet/x/ansi/parser"
 )
 
 var cases = []struct {
@@ -40,6 +45,15 @@ var cases = []struct {
 	// The halfwidth voiced sound mark is Extend, so it joins the cluster
 	// before it, but it's a spacing character that advances the cursor.
 	{"half width and ascii", "(ﾟ", "(ﾟ", 1, 2},
+	{"keycap", "1️⃣", "1️⃣", 2, 1},
+	{"combining after ascii", "a\u0301b", "a\u0301b", 2, 2},
+	{"variation selector after ascii", "a\ufe0fb", "a\ufe0fb", 3, 2},
+	{"zwj after ascii", "a\u200d👩", "a\u200d👩", 3, 3},
+	{"ascii at end", "界x", "界x", 3, 3},
+	{"mixed sgr and ascii", "ab\x1b[31mcd\x1b[0mef", "abcdef", 6, 6},
+	{"tabs and controls", "a\tb\x00c\n", "a\tb\x00c\n", 3, 3},
+	{"c1 bytes", "\x9b31mA\x9bm", "A", 1, 1},
+	{"invalid utf8", "A\xffB", "AB", 2, 2},
 }
 
 func TestStrip(t *testing.T) {
@@ -72,6 +86,75 @@ func TestWcStringWidth(t *testing.T) {
 	}
 }
 
+func stringWidthRef(m Method, s string) int {
+	if s == "" {
+		return 0
+	}
+
+	var (
+		pstate = parser.GroundState // initial state
+		width  int
+	)
+
+	for i := 0; i < len(s); i++ {
+		state, action := parser.Table.Transition(pstate, s[i])
+		if action == parser.PrintAction || state == parser.Utf8State {
+			if m == WcWidth {
+				r, size := utf8.DecodeRuneInString(s[i:])
+				width += wcRuneWidth(r)
+				i += size - 1
+				pstate = parser.GroundState
+				continue
+			}
+
+			cluster, w := FirstGraphemeCluster(s[i:], m)
+			width += w
+
+			i += len(cluster) - 1
+			pstate = parser.GroundState
+			continue
+		}
+
+		if action == parser.PrintAction {
+			width++
+		}
+
+		pstate = state
+	}
+
+	return width
+}
+
+func FuzzStringWidthFastPath(f *testing.F) {
+	for _, seed := range []string{"1️⃣", "a\u0301", "a\ufe0f", "a\u200d👩", "\x1b[31mhello\x1b[0m", "界x", "A\xffB", "\x9b31mA\x9bm"} {
+		f.Add([]byte(seed))
+	}
+	rng := rand.New(rand.NewSource(1))
+	parts := []string{"hello", "1️⃣", "a\u0301", "a\ufe0f", "a\u200d👩", "\x1b[31m", "\x1b[0m", "界", "\x9b31m", "\xff"}
+	for range 32 {
+		var s strings.Builder
+		for range 12 {
+			s.WriteString(parts[rng.Intn(len(parts))])
+		}
+		f.Add([]byte(s.String()))
+	}
+	for range 32 {
+		b := make([]byte, rng.Intn(64))
+		for i := range b {
+			b[i] = byte(rng.Intn(256))
+		}
+		f.Add(b)
+	}
+	f.Fuzz(func(t *testing.T, b []byte) {
+		s := string(b)
+		for _, m := range []Method{GraphemeWidth, WcWidth} {
+			if got, want := stringWidth(m, s), stringWidthRef(m, s); got != want {
+				t.Fatalf("stringWidth(%v, %q) = %d, want %d", m, s, got, want)
+			}
+		}
+	})
+}
+
 func BenchmarkStringWidth(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		b.ReportAllocs()
@@ -80,4 +163,38 @@ func BenchmarkStringWidth(b *testing.B) {
 			StringWidth("foo")
 		}
 	})
+}
+
+var widthBenchResult int
+
+func BenchmarkStringWidthCases(b *testing.B) {
+	cases := []struct{ name, input string }{
+		{"ASCII900", strings.Repeat("The quick brown fox jumps over the lazy dog. ", 20)},
+		{"SGRHeavy", strings.Repeat("\x1b[31mhello\x1b[0m", 60)},
+		{"CJK", strings.Repeat("世界你好", 60)},
+		{"Emoji", strings.Repeat("👨‍👩‍👦", 60)},
+	}
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			for b.Loop() {
+				widthBenchResult = StringWidth(tc.input)
+			}
+		})
+	}
+}
+
+func BenchmarkStringWidthWcCases(b *testing.B) {
+	cases := []struct{ name, input string }{
+		{"ASCII900", strings.Repeat("The quick brown fox jumps over the lazy dog. ", 20)},
+		{"SGRHeavy", strings.Repeat("\x1b[31mhello\x1b[0m", 60)},
+		{"CJK", strings.Repeat("世界你好", 60)},
+		{"Emoji", strings.Repeat("👨‍👩‍👦", 60)},
+	}
+	for _, tc := range cases {
+		b.Run(tc.name, func(b *testing.B) {
+			for b.Loop() {
+				widthBenchResult = StringWidthWc(tc.input)
+			}
+		})
+	}
 }
