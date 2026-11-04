@@ -135,7 +135,7 @@ func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (s
 					}
 					p.cmd = 0
 					p.paramsLen = 0
-					p.dataLen = 0
+					p.data = p.data[:0]
 				}
 				state = EscapeState
 				continue
@@ -146,21 +146,21 @@ func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (s
 					}
 					p.cmd = 0
 					p.paramsLen = 0
-					p.dataLen = 0
+					p.data = p.data[:0]
 				}
 				state = PrefixState
 				continue
 			case OSC, APC, SOS, PM:
 				if p != nil {
 					p.cmd = parser.MissingCommand
-					p.dataLen = 0
+					p.data = p.data[:0]
 				}
 				state = StringState
 				continue
 			}
 
 			if p != nil {
-				p.dataLen = 0
+				p.data = p.data[:0]
 				p.paramsLen = 0
 				p.cmd = 0
 			}
@@ -251,7 +251,7 @@ func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (s
 				if HasDcsPrefix(b) {
 					// Continue to collect DCS data
 					if p != nil {
-						p.dataLen = 0
+						p.data = p.data[:0]
 					}
 					state = StringState
 					continue
@@ -277,7 +277,7 @@ func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (s
 			case ']', 'X', '^', '_':
 				if p != nil {
 					p.cmd = parser.MissingCommand
-					p.dataLen = 0
+					p.data = p.data[:0]
 				}
 				state = StringState
 				continue
@@ -336,9 +336,8 @@ func decodeSequence[T string | []byte](m Method, b T, state State, p *Parser) (s
 				return b[:i], 0, i, NormalState
 			}
 
-			if p != nil && p.dataLen < len(p.data) {
-				p.data[p.dataLen] = c
-				p.dataLen++
+			if p != nil {
+				p.putData(c)
 
 				// Parse the OSC command number
 				if c == ';' && HasOscPrefix(b) {
@@ -355,8 +354,7 @@ func parseOscCmd(p *Parser) {
 	if p == nil || p.cmd != parser.MissingCommand {
 		return
 	}
-	for j := range p.dataLen {
-		d := p.data[j]
+	for _, d := range p.data {
 		if d < '0' || d > '9' {
 			break
 		}

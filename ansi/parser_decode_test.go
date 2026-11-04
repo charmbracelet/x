@@ -317,7 +317,7 @@ func TestDecodeSequence(t *testing.T) {
 			for len(input) > 0 {
 				seq, width, n, newState := DecodeSequence(input, state, p)
 				params := slices.Clone(p.params[:p.paramsLen])
-				data := slices.Clone(p.data[:p.dataLen])
+				data := slices.Clone(p.data)
 				results = append(results, expectedSequence{seq: seq, width: width, n: n, params: params, data: data, cmd: p.cmd})
 				state = newState
 				input = input[n:]
