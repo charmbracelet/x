@@ -164,3 +164,17 @@ func TestScrollback(t *testing.T) {
 		}
 	})
 }
+
+func TestScrollbackDisabled(t *testing.T) {
+	e := newTestTerminal(t, 10, 3)
+	e.SetScrollbackSize(0)
+	_, _ = e.WriteString("1\r\n2\r\n3\r\n4\r\n5")
+	if n := e.ScrollbackLen(); n != 0 {
+		t.Fatalf("want no scrollback, got %d lines", n)
+	}
+	e.SetScrollbackSize(10)
+	_, _ = e.WriteString("\r\n6")
+	if n := e.ScrollbackLen(); n != 1 {
+		t.Fatalf("want the scrollback back, got %d lines", n)
+	}
+}
