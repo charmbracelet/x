@@ -423,6 +423,75 @@ func TestCut(t *testing.T) {
 	}
 }
 
+func TestCutWc(t *testing.T) {
+	for i, c := range []struct {
+		desc   string
+		input  string
+		left   int
+		right  int
+		expect string
+	}{
+		{
+			"simple string",
+			"This is a long string", 2, 6,
+			"is i",
+		},
+		{
+			"with ansi",
+			"I really \x1B[38;2;249;38;114mlove\x1B[0m Go!", 4, 25,
+			"ally \x1b[38;2;249;38;114mlove\x1b[0m Go!",
+		},
+		{
+			"left is 0",
+			"Foo \x1B[38;2;249;38;114mbar\x1B[0mbaz", 0, 5,
+			"Foo \x1B[38;2;249;38;114mb\x1B[0m",
+		},
+		{
+			"right is 0",
+			"\x1b[7mHello\x1b[m", 3, 0,
+			"",
+		},
+		{
+			"right is less than left",
+			"\x1b[7mHello\x1b[m", 3, 2,
+			"",
+		},
+		{
+			"cut size is 0",
+			"\x1b[7mHello\x1b[m", 2, 2,
+			"",
+		},
+		{
+			"wide characters from the start",
+			"日本語です", 0, 4,
+			"日本",
+		},
+		{
+			"wide characters",
+			"日本語です", 2, 6,
+			"本語",
+		},
+		{
+			"wide characters in styled text",
+			"\x1b[7m日本語\x1b[m", 2, 4,
+			"\x1b[7m本\x1b[m",
+		},
+	} {
+		t.Run(c.desc, func(t *testing.T) {
+			got := CutWc(c.input, c.left, c.right)
+			if got != c.expect {
+				t.Errorf("%s (#%d):\nexpected: %q\ngot:      %q", c.desc, i+1, c.expect, got)
+			}
+
+			// Text without clusters that the two width methods measure
+			// differently must cut the same span.
+			if want := Cut(c.input, c.left, c.right); got != want {
+				t.Errorf("%s (#%d): Cut = %q, CutWc = %q", c.desc, i+1, want, got)
+			}
+		})
+	}
+}
+
 func TestByteToGraphemeRange(t *testing.T) {
 	cases := []struct {
 		name   string
