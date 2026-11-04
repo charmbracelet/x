@@ -25,12 +25,13 @@ type Parser struct {
 
 	// data contains the raw data of the sequence.
 	// These data used when constructing OSC, DCS, SOS, PM, and APC sequences.
+	// It is allocated as data arrives, up to dataMax: most sequences have
+	// none, and a parser that never sees a long string never pays for one.
 	data []byte
 
-	// dataLen keeps track of the length of the data buffer.
-	// If dataLen is -1, the data buffer is unlimited and will grow as needed.
-	// Otherwise, dataLen is limited by the size of the data buffer.
-	dataLen int
+	// dataMax is the most bytes data may hold; what comes past it is
+	// dropped. -1 means no limit.
+	dataMax int
 
 	// paramsLen keeps track of the number of parameters.
 	// This is limited by the size of the params buffer.
@@ -72,13 +73,32 @@ func (p *Parser) SetParamsSize(size int) {
 // SetDataSize sets the size of the data buffer.
 // This is used when constructing OSC, DCS, SOS, PM, and APC sequences.
 // If size is less than or equal to 0, the data buffer is unlimited and will
-// grow as needed.
+// grow as needed. The buffer is allocated as data arrives, so a large size
+// costs nothing until a sequence carries that much.
 func (p *Parser) SetDataSize(size int) {
 	if size <= 0 {
-		size = 0
-		p.dataLen = -1
+		size = -1
 	}
-	p.data = make([]byte, size)
+	p.dataMax = size
+	p.data = make([]byte, 0) // empty, not nil: a string without data dispatches []byte{}
+}
+
+// putData adds a byte to the data buffer, growing it as needed; a byte past
+// the buffer's size is dropped.
+func (p *Parser) putData(b byte) {
+	if p.dataMax >= 0 && len(p.data) >= p.dataMax {
+		return
+	}
+	if len(p.data) == cap(p.data) {
+		n := max(2*cap(p.data), 64)
+		if p.dataMax >= 0 {
+			n = min(n, p.dataMax)
+		}
+		grown := make([]byte, len(p.data), n)
+		copy(grown, p.data)
+		p.data = grown
+	}
+	p.data = append(p.data, b)
 }
 
 // Params returns the list of parsed packed parameters.
@@ -119,7 +139,7 @@ func (p *Parser) Control() byte {
 
 // Data returns the raw data of the last dispatched sequence.
 func (p *Parser) Data() []byte {
-	return p.data[:p.dataLen]
+	return p.data
 }
 
 // Reset resets the parser to its initial state.
@@ -241,12 +261,7 @@ func (p *Parser) advance(b byte) parser.Action {
 
 func (p *Parser) parseStringCmd() {
 	// Try to parse the command
-	datalen := len(p.data)
-	if p.dataLen >= 0 {
-		datalen = p.dataLen
-	}
-	for i := range datalen {
-		d := p.data[i]
+	for _, d := range p.data {
 		if d < '0' || d > '9' {
 			break
 		}
@@ -323,11 +338,7 @@ func (p *Parser) performAction(action parser.Action, state parser.State, b byte)
 		}
 
 	case parser.StartAction:
-		if p.dataLen < 0 && p.data != nil {
-			p.data = p.data[:0]
-		} else {
-			p.dataLen = 0
-		}
+		p.data = p.data[:0]
 		if p.state >= parser.DcsEntryState && p.state <= parser.DcsStringState {
 			// Collect the command byte for DCS
 			p.cmd |= int(b)
@@ -343,14 +354,7 @@ func (p *Parser) performAction(action parser.Action, state parser.State, b byte)
 			}
 		}
 
-		if p.dataLen < 0 {
-			p.data = append(p.data, b)
-		} else {
-			if p.dataLen < len(p.data) {
-				p.data[p.dataLen] = b
-				p.dataLen++
-			}
-		}
+		p.putData(b)
 
 	case parser.DispatchAction:
 		// Increment the last parameter
@@ -365,9 +369,6 @@ func (p *Parser) performAction(action parser.Action, state parser.State, b byte)
 		}
 
 		data := p.data
-		if p.dataLen >= 0 {
-			data = data[:p.dataLen]
-		}
 		switch p.state {
 		case parser.CsiEntryState, parser.CsiParamState, parser.CsiIntermediateState:
 			p.cmd |= int(b)
