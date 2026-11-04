@@ -15,11 +15,10 @@ type Scrollback struct {
 	maxLines int
 }
 
-// NewScrollback creates a new scrollback buffer with the given maximum number of lines.
+// NewScrollback creates a new scrollback buffer with the given maximum number
+// of lines. A maximum of zero or less keeps no lines.
 func NewScrollback(maxLines int) *Scrollback {
-	if maxLines <= 0 {
-		maxLines = DefaultScrollbackSize
-	}
+	maxLines = max(maxLines, 0)
 	return &Scrollback{
 		lines:    make([]uv.Line, 0, min(maxLines, 1000)), // Pre-allocate reasonable capacity
 		maxLines: maxLines,
@@ -85,10 +84,12 @@ func (s *Scrollback) MaxLines() int {
 
 // SetMaxLines sets the maximum number of lines in the scrollback buffer.
 // If the current number of lines exceeds the new maximum, oldest lines are removed.
+// A maximum of zero or less keeps no lines.
 func (s *Scrollback) SetMaxLines(maxLines int) {
-	if s == nil || maxLines <= 0 {
+	if s == nil {
 		return
 	}
+	maxLines = max(maxLines, 0)
 
 	s.maxLines = maxLines
 	if len(s.lines) > maxLines {

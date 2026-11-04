@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+	"unicode/utf8"
 )
 
 type csiSequence struct {
@@ -228,5 +229,46 @@ func assertEqual[T any](t *testing.T, expected, got T) {
 	t.Helper()
 	if !reflect.DeepEqual(expected, got) {
 		t.Fatalf("expected:\n  %#v, got:\n  %#v", expected, got)
+	}
+}
+
+func TestMalformedUtf8(t *testing.T) {
+	cases := []testCase{
+		{
+			// The ESC that cuts the rune short starts a sequence of its own.
+			name:  "truncated_by_esc",
+			input: "a\xe2\x1b[1mb",
+			expected: []any{
+				'a',
+				utf8.RuneError,
+				csiSequence{Cmd: 'm', Params: Params{1}},
+				'b',
+			},
+		},
+		{
+			name:     "truncated_by_ascii",
+			input:    "\xe2\x9cx",
+			expected: []any{utf8.RuneError, 'x'},
+		},
+		{
+			name:     "truncated_by_lead_byte",
+			input:    "\xe2✳",
+			expected: []any{utf8.RuneError, '✳'},
+		},
+		{
+			name:     "truncated_by_control",
+			input:    "\xf0\x9f\r",
+			expected: []any{utf8.RuneError, byte('\r')},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			dispatcher := &testDispatcher{}
+			parser := testParser(dispatcher)
+			parser.Parse([]byte(c.input))
+			assertEqual(t, len(c.expected), len(dispatcher.dispatched))
+			assertEqual(t, c.expected, dispatcher.dispatched)
+		})
 	}
 }

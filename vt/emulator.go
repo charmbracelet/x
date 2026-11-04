@@ -26,8 +26,10 @@ type Emulator struct {
 	scrs [2]Screen
 	scr  *Screen
 
-	// Character sets
-	charsets [4]CharSet
+	// Character sets, and the final byte of the SCS sequence that designated
+	// each (0 for the default, ASCII).
+	charsets     [4]CharSet
+	designations [4]byte
 
 	// log is the logger to use.
 	logger Logger
@@ -48,7 +50,10 @@ type Emulator struct {
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
-	cb     Callbacks
+	// partial counts the bytes written since the parser was last in its
+	// ground state: the unfinished sequence it holds.
+	partial int
+	cb      Callbacks
 
 	// The terminal's icon name and title.
 	iconName, title string
@@ -61,6 +66,8 @@ type Emulator struct {
 	// I/O pipes.
 	pr *io.PipeReader
 	pw *io.PipeWriter
+	// replyFunc, when set, receives replies to queries instead of pw.
+	replyFunc func([]byte)
 
 	// The GL and GR character set identifiers.
 	gl, gr  int
@@ -69,9 +76,20 @@ type Emulator struct {
 	// Indicates if the terminal is closed.
 	closed bool
 
+	// insertMode caches IRM, which every printed character consults.
+	insertMode bool
+
+	// lastCluster is the most recently printed cluster, and carry is that
+	// cluster when it ended the previous Write.
+	lastCluster, carry clusterMark
+
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
 	atPhantom bool
+
+	// mainPhantom is the main screen's atPhantom while the alternate
+	// screen is active.
+	mainPhantom bool
 }
 
 var _ Terminal = (*Emulator)(nil)
@@ -228,6 +246,7 @@ func (e *Emulator) CursorStyle() (style CursorStyle, blink bool) {
 
 // Resize resizes the terminal.
 func (e *Emulator) Resize(width int, height int) {
+	e.carry.valid = false
 	x, y := e.scr.CursorPosition()
 	if e.atPhantom {
 		if x < width-1 {
@@ -256,8 +275,33 @@ func (e *Emulator) Resize(width int, height int) {
 	e.setCursor(x, y)
 
 	if e.isModeSet(ansi.ModeInBandResize) {
-		_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
+		e.reply(ansi.InBandResize(e.Height(), e.Width(), 0, 0))
 	}
+}
+
+// SetReplyFunc sets fn to receive the emulator's replies to terminal queries
+// (DA1, DA2, DSR, CPR, DECRQM, OSC 10/11/12 color queries) and in-band resize
+// reports, instead of the pipe [Emulator.Read] reads.
+//
+// Replies written to the pipe block the Write that produced them until
+// something reads them, so an emulator fed program output with nobody reading
+// its replies stops on the first query. fn is called synchronously, never
+// blocks the emulator, and must not retain p or call back into the Emulator.
+// Pass a function that does nothing to discard replies, or nil to send them to
+// the pipe again. Input sent with [Emulator.SendKey], [Emulator.SendText],
+// [Emulator.Paste] and the like still goes to the pipe.
+func (e *Emulator) SetReplyFunc(fn func(p []byte)) {
+	e.replyFunc = fn
+}
+
+// reply sends a reply to a terminal query to the reply function, or to the
+// pipe [Emulator.Read] reads when there is none.
+func (e *Emulator) reply(s string) {
+	if e.replyFunc != nil {
+		e.replyFunc([]byte(s))
+		return
+	}
+	_, _ = io.WriteString(e.pw, s)
 }
 
 // Read reads data from the terminal input buffer.
@@ -287,13 +331,21 @@ func (e *Emulator) Write(p []byte) (n int, err error) {
 
 	for i := range p {
 		e.parser.Advance(p[i])
-		// Flush the last cluster once the whole slice is written. Every
-		// sequence handler flushes on its own way in, so a cluster only has to
-		// survive until either the next printable character extends it or the
-		// write ends.
-		if len(e.grapheme) > 0 && i == len(p)-1 {
-			e.flushGrapheme()
+		if e.parser.State() == parser.GroundState {
+			e.partial = 0
+		} else {
+			e.partial++
 		}
+	}
+	// Flush the last cluster once the whole slice is written, so a caller can
+	// read back what it wrote. Every sequence handler flushes on its own way
+	// in, so a cluster only has to survive until either the next printable
+	// character extends it or the write ends. Remember the cluster, though:
+	// the next Write may begin with a mark that extends it, because a PTY read
+	// can end anywhere inside a cluster.
+	if len(e.grapheme) > 0 {
+		e.flushGrapheme()
+		e.carry = e.lastCluster
 	}
 	return len(p), nil
 }
@@ -484,7 +536,14 @@ func (e *Emulator) ScrollbackCellAt(x, y int) *uv.Cell {
 	return sb.CellAt(x, y)
 }
 
+// SetScrollOffFunc sets fn to receive each line that scrolls off the top of
+// the main screen. See [Screen.SetScrollOffFunc].
+func (e *Emulator) SetScrollOffFunc(fn func(uv.Line)) {
+	e.scrs[0].SetScrollOffFunc(fn)
+}
+
 // SetScrollbackSize sets the maximum number of lines in the scrollback buffer.
+// A size of zero or less keeps no lines.
 func (e *Emulator) SetScrollbackSize(maxLines int) {
 	e.scrs[0].SetScrollbackSize(maxLines)
 }

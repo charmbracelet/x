@@ -33,6 +33,7 @@ func (e *Emulator) nextTab(n int) {
 // valid column and the operation completes.
 func (e *Emulator) prevTab(n int) {
 	x, _ := e.scr.CursorPosition()
+	from := x
 	leftmargin := 0
 	scroll := e.scr.ScrollRegion()
 	if e.isModeSet(ansi.DECOM) {
@@ -54,6 +55,10 @@ func (e *Emulator) prevTab(n int) {
 	// NOTE: We use t.scr.setCursorX here because we don't want to reset the
 	// phantom state.
 	e.scr.setCursorX(x, false)
+	if x != from {
+		// A cursor that left the last column has no wrap pending.
+		e.atPhantom = false
+	}
 }
 
 // moveCursor moves the cursor by the given x and y deltas. If the cursor

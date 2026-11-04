@@ -14,6 +14,35 @@ func TestSosPmApcSequence(t *testing.T) {
 				Cmd('\\'),
 			},
 		},
+		{
+			name:  "apc_utf8",
+			input: "\x1b_G日本\x1b\\ok",
+			expected: []any{
+				[]byte("G日本"),
+				Cmd('\\'),
+				'o',
+				'k',
+			},
+		},
+		{
+			name:  "apc_utf8_continuation_st",
+			input: "\x1b_✳\x9cok",
+			expected: []any{
+				[]byte("✳"),
+				'o',
+				'k',
+			},
+		},
+		{
+			name:     "sos_utf8",
+			input:    "\x1bX日本\x1b\\ok",
+			expected: []any{Cmd('\\'), 'o', 'k'},
+		},
+		{
+			name:     "pm_utf8",
+			input:    "\x1b^✳\x9cok",
+			expected: []any{'o', 'k'},
+		},
 	}
 
 	for _, c := range cases {

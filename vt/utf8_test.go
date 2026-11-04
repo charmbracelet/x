@@ -4,6 +4,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 )
 
 // A combining mark belongs to the character before it, however that character
@@ -102,5 +103,95 @@ func TestLongClusterRunStaysLinear(t *testing.T) {
 		t.Logf("%d bytes in %v", len(input), elapsed)
 	case <-time.After(10 * time.Second):
 		t.Fatalf("writing %d bytes of one cluster did not finish in 10s", len(input))
+	}
+}
+
+func TestClusterWithoutBaseIsDropped(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		input string
+	}{
+		{"combining mark after a control", "ab\r\u0301"},
+		{"lone ZWJ after a control", "ab\r\u200d"},
+		{"variation selector after a control", "ab\r\ufe0f"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			term := newTestTerminal(t, 10, 1)
+			term.WriteString(tc.input)
+			if got := rowText(term, 0); got != "ab" {
+				t.Errorf("row 0: got = %q, want = %q", got, "ab")
+			}
+			if c := term.CellAt(0, 0); c == nil || c.Width != 1 || c.Content != "a" {
+				t.Errorf("cell 0: got = %+v, want a", c)
+			}
+			if x, _ := term.scr.CursorPosition(); x != 0 {
+				t.Errorf("cursor x: got = %d, want = 0", x)
+			}
+		})
+	}
+}
+
+// A PTY read can end anywhere, including inside a grapheme cluster. A
+// cluster split across two Writes lands in one cell, as it does when it
+// arrives in one.
+func TestClusterAcrossWrites(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		chunks []string
+		want   []string // cell contents from column 0
+	}{
+		{"ZWJ sequence cut after a ZWJ", []string{"\U0001F468\u200d", "\U0001F469\u200d\U0001F467x"}, []string{"\U0001F468\u200d\U0001F469\u200d\U0001F467", "", "x"}},
+		{"combining mark in the next write", []string{"ae", "\u0301b"}, []string{"a", "e\u0301", "b"}},
+		{"rune split across writes", []string{"e\xcc", "\x81b"}, []string{"e\u0301", "b"}},
+		{"flag split between its regional indicators", []string{"\U0001F1FA", "\U0001F1F8x"}, []string{"\U0001F1FA\U0001F1F8", "", "x"}},
+		{"wide base at the end of the line", []string{"abcdefgh世", "\u0301"}, []string{"a", "b", "c", "d", "e", "f", "g", "h", "世\u0301", ""}},
+		{"insert mode shifts once", []string{"xyz\x1b[1;1H\x1b[4he", "\u0301"}, []string{"e\u0301", "x", "y", "z"}},
+		{"not joined after a control", []string{"e", "\r", "\u0301"}, []string{"e"}},
+		{"not joined after a sequence that does not move the cursor", []string{"ae", "\x1b[1m", "\u0301"}, []string{"a", "e", " "}},
+		{"not joined to an ASCII character", []string{"e", "f"}, []string{"e", "f"}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			term := newTestTerminal(t, 10, 1)
+			for _, c := range tc.chunks {
+				term.WriteString(c)
+			}
+			for x, want := range tc.want {
+				if c := term.CellAt(x, 0); c == nil || c.Content != want {
+					t.Errorf("cell %d: got %+v, want %q", x, c, want)
+				}
+			}
+		})
+	}
+
+	t.Run("carried cluster is bounded", func(t *testing.T) {
+		term := newTestTerminal(t, 10, 1)
+		term.WriteString("e")
+		for range 1000 {
+			term.WriteString("\u0301")
+		}
+		if n := len(term.CellAt(0, 0).Content); n > maxCarriedCluster+utf8.UTFMax {
+			t.Errorf("cell content: got %d bytes, want at most %d", n, maxCarriedCluster+utf8.UTFMax)
+		}
+	})
+}
+
+func TestPrintingASCIIDoesNotAllocate(t *testing.T) {
+	term := newTestTerminal(t, 80, 24)
+	line := []byte(strings.Repeat("abcdefgh", 10)[:79] + "\r")
+	allocs := testing.AllocsPerRun(100, func() {
+		term.Write(line)
+	})
+	if allocs > 0 {
+		t.Errorf("allocations per %d-byte line: got = %v, want = 0", len(line), allocs)
+	}
+}
+
+func BenchmarkWriteASCII(b *testing.B) {
+	term := NewEmulator(80, 24)
+	line := []byte(strings.Repeat("abcdefgh", 10)[:79] + "\r\n")
+	b.SetBytes(int64(len(line)))
+	b.ReportAllocs()
+	for b.Loop() {
+		term.Write(line)
 	}
 }

@@ -1,7 +1,10 @@
 package vt
 
 import (
+	"strings"
 	"testing"
+
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 func TestScrollback(t *testing.T) {
@@ -161,6 +164,53 @@ func TestScrollback(t *testing.T) {
 
 		if e.ScrollbackLen() != 0 {
 			t.Errorf("expected empty scrollback after ED 3, got %d", e.ScrollbackLen())
+		}
+	})
+}
+
+func TestScrollbackSizeZero(t *testing.T) {
+	if s := NewScrollback(0); s.MaxLines() != 0 {
+		t.Errorf("NewScrollback(0).MaxLines: got = %d, want = 0", s.MaxLines())
+	}
+
+	e := NewEmulator(10, 2)
+	e.SetScrollbackSize(0)
+	e.WriteString("a\r\nb\r\nc\r\nd")
+	if n := e.ScrollbackLen(); n != 0 {
+		t.Errorf("ScrollbackLen with size 0: got = %d, want = 0", n)
+	}
+
+	e = NewEmulator(10, 2)
+	e.WriteString("a\r\nb\r\nc\r\nd")
+	e.SetScrollbackSize(0)
+	if n := e.ScrollbackLen(); n != 0 {
+		t.Errorf("ScrollbackLen after shrinking to 0: got = %d, want = 0", n)
+	}
+}
+
+func TestScrollOffFunc(t *testing.T) {
+	for _, size := range []int{0, DefaultScrollbackSize} {
+		e := NewEmulator(10, 2)
+		e.SetScrollbackSize(size)
+		var off []string
+		e.SetScrollOffFunc(func(l uv.Line) { off = append(off, l.String()) })
+		// Two lines scroll off, then ED 2 pushes the two on the screen.
+		e.WriteString("a\r\nb\r\nc\r\nd\x1b[2J")
+		if want := []string{"a", "b", "c", "d"}; strings.Join(off, ",") != strings.Join(want, ",") {
+			t.Errorf("size %d: lines scrolled off: got = %q, want = %q", size, off, want)
+		}
+		if want := min(size, 4); e.ScrollbackLen() != want {
+			t.Errorf("size %d: ScrollbackLen: got = %d, want = %d", size, e.ScrollbackLen(), want)
+		}
+	}
+
+	t.Run("alternate screen does not scroll off", func(t *testing.T) {
+		e := NewEmulator(10, 2)
+		var n int
+		e.SetScrollOffFunc(func(uv.Line) { n++ })
+		e.WriteString("\x1b[?1049ha\r\nb\r\nc\r\nd")
+		if n != 0 {
+			t.Errorf("lines scrolled off the alternate screen: got = %d, want = 0", n)
 		}
 	})
 }

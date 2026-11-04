@@ -17,6 +17,9 @@ type Screen struct {
 	scroll uv.Rectangle
 	// scrollback is the scrollback buffer for lines scrolled off the top.
 	scrollback *Scrollback
+	// scrollOff, when set, receives each line that leaves the screen into
+	// history, before it is overwritten.
+	scrollOff func(uv.Line)
 }
 
 // NewScreen creates a new screen.
@@ -79,6 +82,16 @@ func (s *Screen) Resize(width int, height int) {
 		s.buf.Touched = nil
 	}
 	s.scroll = s.buf.Bounds()
+	// The cursor and the DECSC slot stay inside the new size, whether or not
+	// this is the active screen: a cursor off the screen drops what is
+	// printed at it.
+	s.cur.Position = clampToScreen(s.cur.Position, width, height)
+	s.saved.Position = clampToScreen(s.saved.Position, width, height)
+}
+
+// clampToScreen returns p moved inside a width by height screen.
+func clampToScreen(p uv.Position, width, height int) uv.Position {
+	return uv.Pos(ordered.Clamp(p.X, 0, max(width-1, 0)), ordered.Clamp(p.Y, 0, max(height-1, 0)))
 }
 
 // Width returns the width of the screen.
@@ -95,16 +108,35 @@ func (s *Screen) Clear() {
 // This is used for operations like ED 2 (erase screen) where content should
 // be preserved in history.
 func (s *Screen) ClearWithScrollback() {
-	if s.scrollback != nil {
+	if s.scrollback != nil || s.scrollOff != nil {
 		// Save all lines that have content before clearing
 		for y := 0; y < s.buf.Height(); y++ {
 			line := s.buf.Line(y)
 			if line != nil && !s.isLineEmpty(line) {
-				s.scrollback.Push(line)
+				s.pushScrollback(line)
 			}
 		}
 	}
 	s.Clear()
+}
+
+// pushScrollback hands a line leaving the screen to the scrollback buffer and
+// the scroll-off function.
+func (s *Screen) pushScrollback(line uv.Line) {
+	if s.scrollback != nil {
+		s.scrollback.Push(line)
+	}
+	if s.scrollOff != nil {
+		s.scrollOff(line)
+	}
+}
+
+// SetScrollOffFunc sets fn to receive each line that leaves the screen into
+// history: the lines that would be pushed to the scrollback buffer, whether
+// or not the screen has one. fn must not retain the line, which the screen
+// reuses. A nil fn removes it.
+func (s *Screen) SetScrollOffFunc(fn func(uv.Line)) {
+	s.scrollOff = fn
 }
 
 // isLineEmpty returns true if the line contains only empty/space cells.
@@ -226,7 +258,12 @@ func (s *Screen) SaveCursor() {
 // RestoreCursor restores the cursor.
 func (s *Screen) RestoreCursor() {
 	old := s.cur.Position
+	// DECRC restores the position, pen and link, but not the cursor's
+	// visibility or shape, which DECSC does not save in xterm.
+	hidden, style, steady := s.cur.Hidden, s.cur.Style, s.cur.Steady
 	s.cur = s.saved
+	s.cur.Hidden, s.cur.Style, s.cur.Steady = hidden, style, steady
+	s.cur.Position = clampToScreen(s.cur.Position, s.buf.Width(), s.buf.Height())
 
 	if s.cb.CursorPosition != nil && (old.X != s.cur.X || old.Y != s.cur.Y) {
 		s.cb.CursorPosition(old, s.cur.Position)
@@ -359,11 +396,14 @@ func (s *Screen) DeleteLine(n int) bool {
 	// Save lines to scrollback if we're at the top of the scroll region
 	// and the scroll region uses the full width (typical terminal scroll).
 	// This captures lines that would be lost during scroll up operations.
-	if s.scrollback != nil && y == scroll.Min.Y &&
+	if (s.scrollback != nil || s.scrollOff != nil) && y == scroll.Min.Y &&
 		scroll.Min.X == 0 && scroll.Max.X == s.buf.Width() {
 		// Save lines that will be deleted
-		linesToSave := min(n, scroll.Max.Y-y)
-		s.scrollback.PushN(s.buf, y, linesToSave)
+		for i := range min(n, scroll.Max.Y-y, s.buf.Height()-y) {
+			if line := s.buf.Line(y + i); line != nil {
+				s.pushScrollback(line)
+			}
+		}
 	}
 
 	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
