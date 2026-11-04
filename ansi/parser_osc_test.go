@@ -59,10 +59,42 @@ func TestOscSequence(t *testing.T) {
 			},
 		},
 		{
-			name:  "string_terminator",
+			// 0x9C as a UTF-8 continuation byte is string data, not ST:
+			// U+672B "末" is 0xE6 0x9C 0xAB.
+			name:  "utf8_continuation_st",
 			input: "\x1b]2;\xe6\x9c\xab\x1b\\",
 			expected: []any{
-				[]byte("2;\xe6"),
+				[]byte("2;\xe6\x9c\xab"),
+				Cmd('\\'),
+			},
+		},
+		{
+			// U+2733 "✳" is 0xE2 0x9C 0xB3; a raw 0x9C after a complete
+			// character is still an 8-bit ST.
+			name:  "utf8_continuation_st_spinner",
+			input: "\x1b]0;\xe2\x9c\xb3 Claude Code\x9c",
+			expected: []any{
+				[]byte("0;\xe2\x9c\xb3 Claude Code"),
+			},
+		},
+		{
+			// Invalid UTF-8: 0xE2 arms the continuation counter, but 0x05 is
+			// outside 0x80-0xBF so the counter resets; the 0x9C after it must
+			// terminate the OSC, and the following 'Z' prints in ground state.
+			name:  "utf8_invalid_resets_continuation",
+			input: "\x1b]0;\xe2\x05\x9cZ",
+			expected: []any{
+				[]byte("0;\xe2"),
+				'Z',
+			},
+		},
+		{
+			// OSC opened with the 8-bit C1 introducer (0x9D) instead of
+			// ESC ], carrying a character whose encoding contains 0x9C.
+			name:  "utf8_continuation_st_8bit_introducer",
+			input: "\x9d0;\xe2\x9c\xb3 hi\x1b\\",
+			expected: []any{
+				[]byte("0;\xe2\x9c\xb3 hi"),
 				Cmd('\\'),
 			},
 		},
