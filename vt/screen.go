@@ -134,16 +134,24 @@ func (s *Screen) FillArea(c *uv.Cell, area uv.Rectangle) {
 	s.touchArea(area)
 }
 
-// setHorizontalMargins sets the horizontal margins.
+// setHorizontalMargins sets the horizontal margins, clamped to the screen.
+// [ansi.DECSLRM] takes its bounds from the sequence, so a program can name a
+// column the screen does not have. The region is indexed directly when
+// scrolling and when inserting or deleting lines, so it has to stay inside the
+// buffer, and it has to stay non-empty: a region of no columns is one nothing
+// can scroll within, which garbles every line that follows.
 func (s *Screen) setHorizontalMargins(left, right int) {
-	s.scroll.Min.X = left
-	s.scroll.Max.X = right
+	w := s.Width()
+	s.scroll.Min.X = ordered.Clamp(left, 0, max(w-1, 0))
+	s.scroll.Max.X = ordered.Clamp(right, s.scroll.Min.X+1, w)
 }
 
-// setVerticalMargins sets the vertical margins.
+// setVerticalMargins sets the vertical margins, clamped to the screen, for the
+// same reasons as [Screen.setHorizontalMargins].
 func (s *Screen) setVerticalMargins(top, bottom int) {
-	s.scroll.Min.Y = top
-	s.scroll.Max.Y = bottom
+	h := s.Height()
+	s.scroll.Min.Y = ordered.Clamp(top, 0, max(h-1, 0))
+	s.scroll.Max.Y = ordered.Clamp(bottom, s.scroll.Min.Y+1, h)
 }
 
 // setCursorX sets the cursor X position. If margins is true, the cursor is
