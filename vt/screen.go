@@ -87,8 +87,9 @@ func (s *Screen) Resize(width int, height int) {
 //   - Growing taller pulls up to delta lines back down from scrollback
 //     onto the top, so existing content (and the cursor) stays anchored
 //     to the bottom.
-//   - Shrinking pushes displaced top lines into scrollback (recoverable
-//     by scrolling up) and keeps the bottom rows and cursor visible.
+//   - Shrinking pushes top lines into scrollback (recoverable by
+//     scrolling up) only as far as needed to keep the cursor row visible;
+//     rows below the cursor are cut from the bottom.
 //
 // Width changes still use the plain per-line pad/cut — vt/uv don't
 // rewrap. The cursor row (s.cur.Y) is moved to follow the content.
@@ -126,10 +127,11 @@ func (s *Screen) resizeReflow(width, height int) {
 		s.cur.Y += pull
 
 	case height < oldH:
-		// Push top lines above the cursor into scrollback so the cursor
-		// stays on-screen; any remainder is cut from the bottom.
+		// Push only as many top lines into scrollback as needed to keep
+		// the cursor row on-screen; the remainder (rows below the cursor)
+		// is cut from the bottom, as xterm does.
 		drop := oldH - height
-		top := min(drop, s.cur.Y)
+		top := max(0, min(drop, s.cur.Y-(height-1)))
 		if s.scrollback != nil {
 			for i := 0; i < top; i++ {
 				s.scrollback.Push(s.buf.Lines[i])
