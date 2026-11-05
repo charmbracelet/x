@@ -41,6 +41,7 @@ func (e *Emulator) setAltScreenMode(on bool) {
 		return
 	}
 	if on {
+		e.scrs[1].Resize(e.scrs[0].Width(), e.scrs[0].Height())
 		e.scr = &e.scrs[1]
 		e.scrs[1].cur = e.scrs[0].cur
 		e.scr.Clear()
