@@ -37,7 +37,7 @@ func (e *Emulator) handlePrint(r rune) {
 		// Two printable ASCII characters in a row is the common case by a wide
 		// margin, and needs no segmenting at all.
 		if len(e.grapheme) == 1 && printableASCII(rune(e.grapheme[0])) {
-			e.handleGrapheme(string(e.grapheme[0]), 1)
+			e.handleGrapheme(string(e.grapheme[:1]), 1) // a one-byte string is static: no allocation per character
 			e.grapheme = utf8.AppendRune(e.grapheme[:0], r)
 			return
 		}
@@ -72,7 +72,7 @@ func (e *Emulator) flushGrapheme() {
 
 // handleGrapheme handles UTF-8 graphemes.
 func (e *Emulator) handleGrapheme(content string, width int) {
-	awm := e.isModeSet(ansi.ModeAutoWrap)
+	awm := e.autoWrap
 	cell := uv.Cell{
 		Content: content,
 		Width:   width,
