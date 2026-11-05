@@ -1,6 +1,7 @@
 package vt
 
 import (
+	"strings"
 	"testing"
 
 	uv "github.com/charmbracelet/ultraviolet"
@@ -1825,4 +1826,34 @@ func termText(term *Emulator) []string {
 		lines = append(lines, line)
 	}
 	return lines
+}
+
+func TestAutoWrapMode(t *testing.T) {
+	e := NewEmulator(5, 2)
+
+	e.WriteString("\x1b[?7labcdefg") // no wrap: the last column takes the rest
+	if got := e.CellAt(4, 0).Content; got != "g" {
+		t.Fatalf("DECAWM off: last cell %q, want g", got)
+	}
+
+	if got := e.CellAt(0, 1).Content; got != " " && got != "" {
+		t.Fatalf("DECAWM off wrapped onto the next line: %q", got)
+	}
+
+	e.WriteString("\x1b[?7h\x1b[H12345678")
+	if got := e.CellAt(0, 1).Content; got != "6" {
+		t.Fatalf("DECAWM on: next line starts %q, want 6", got)
+	}
+}
+
+// BenchmarkWriteASCII prints lines of plain ASCII text.
+func BenchmarkWriteASCII(b *testing.B) {
+	e := NewEmulator(120, 40)
+	line := strings.Repeat("the quick brown fox jumps over the lazy dog ", 2) + "\r\n"
+
+	b.SetBytes(int64(len(line)))
+	b.ReportAllocs()
+	for b.Loop() {
+		e.WriteString(line)
+	}
 }
