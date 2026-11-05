@@ -13,6 +13,7 @@ const DefaultScrollbackSize = 10000
 type Scrollback struct {
 	lines    []uv.Line
 	maxLines int
+	sink     func(uv.Line)
 }
 
 // NewScrollback creates a new scrollback buffer with the given maximum number of lines.
@@ -37,11 +38,15 @@ func (s *Scrollback) Push(line uv.Line) {
 	// This helps with wrapping and window resizing.
 	lastNonEmpty := -1
 	for i := len(line) - 1; i >= 0; i-- {
-		c := &line[i]
-		if !c.IsZero() && !c.Equal(&uv.EmptyCell) {
+		if !blankCell(&line[i]) {
 			lastNonEmpty = i
 			break
 		}
+	}
+
+	if s.sink != nil {
+		s.sink(line[:lastNonEmpty+1])
+		return
 	}
 
 	// Clone the line content up to and including the last non-empty cell
@@ -52,6 +57,29 @@ func (s *Scrollback) Push(line uv.Line) {
 		s.lines = slices.Delete(s.lines, 0, 1)
 	}
 	s.lines = append(s.lines, cloned)
+}
+
+// SetSink makes Push hand each line to fn instead of keeping a copy of it,
+// for a caller that stores scrolled-off lines its own way. fn gets the line
+// without its trailing blank cells, and may only read it during the call: the
+// cells are the screen's. A nil fn keeps lines in the buffer again.
+func (s *Scrollback) SetSink(fn func(uv.Line)) {
+	if s != nil {
+		s.sink = fn
+	}
+}
+
+// blankCell reports a zero cell or one equal to [uv.EmptyCell], the content
+// compared first: most cells are told apart by it alone.
+func blankCell(c *uv.Cell) bool {
+	switch c.Content {
+	case "":
+		return c.IsZero()
+	case " ":
+		return c.Width == 1 && c.Style.IsZero() && c.Link.IsZero()
+	}
+
+	return false
 }
 
 // PushN adds n lines from the buffer starting at line y to the scrollback.

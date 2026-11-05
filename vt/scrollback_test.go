@@ -1,7 +1,10 @@
 package vt
 
 import (
+	"strings"
 	"testing"
+
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 func TestScrollback(t *testing.T) {
@@ -163,4 +166,41 @@ func TestScrollback(t *testing.T) {
 			t.Errorf("expected empty scrollback after ED 3, got %d", e.ScrollbackLen())
 		}
 	})
+}
+
+func TestScrollbackSink(t *testing.T) {
+	e := NewEmulator(10, 3)
+
+	var got []string
+	e.Scrollback().SetSink(func(l uv.Line) { got = append(got, l.String()) })
+
+	e.WriteString("one\r\ntwo\r\nthree\r\nfour\r\nfive")
+
+	if want := []string{"one", "two"}; len(got) != len(want) || got[0] != want[0] || got[1] != want[1] {
+		t.Fatalf("sink got %q, want %q", got, want)
+	}
+
+	if n := e.ScrollbackLen(); n != 0 {
+		t.Fatalf("a sink's lines are not kept, got %d", n)
+	}
+}
+
+// BenchmarkScrollOff writes colored lines that scroll off a 120x40 screen,
+// each kept by the scrollback or handed to a sink.
+func BenchmarkScrollOff(b *testing.B) {
+	line := strings.Repeat("\x1b[33mword\x1b[1m bold\x1b[0m ", 8) + "\r\n"
+	for _, sink := range []bool{false, true} {
+		b.Run(map[bool]string{false: "scrollback", true: "sink"}[sink], func(b *testing.B) {
+			e := NewEmulator(120, 40)
+			if sink {
+				e.Scrollback().SetSink(func(uv.Line) {})
+			}
+
+			b.ReportAllocs()
+			for b.Loop() {
+				e.WriteString(line)
+				e.Scrollback().Clear()
+			}
+		})
+	}
 }
