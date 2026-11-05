@@ -67,6 +67,19 @@ func (s *Scrollback) PushN(buf *uv.RenderBuffer, y, n int) {
 	}
 }
 
+// Pop removes and returns the most recently pushed (newest) line, or
+// nil if the buffer is empty. Grow-taller resize uses this to pull
+// history back onto the screen so content stays bottom-anchored.
+func (s *Scrollback) Pop() uv.Line {
+	if s == nil || len(s.lines) == 0 {
+		return nil
+	}
+	n := len(s.lines)
+	line := s.lines[n-1]
+	s.lines = s.lines[:n-1]
+	return line
+}
+
 // Len returns the number of lines in the scrollback buffer.
 func (s *Scrollback) Len() int {
 	if s == nil {

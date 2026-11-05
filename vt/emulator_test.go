@@ -1,6 +1,7 @@
 package vt
 
 import (
+	"slices"
 	"testing"
 
 	uv "github.com/charmbracelet/ultraviolet"
@@ -1808,6 +1809,46 @@ func TestTerminal(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestResizeShrinkKeepsCursorLine(t *testing.T) {
+	check := func(t *testing.T, term *Emulator, want []string, pos uv.Position, sb []string) {
+		t.Helper()
+		if got := termText(term); !slices.Equal(got, want) {
+			t.Errorf("screen: want %q, got %q", want, got)
+		}
+		if got := term.CursorPosition(); got != pos {
+			t.Errorf("cursor: want %v, got %v", pos, got)
+		}
+		var got []string
+		for y := range term.ScrollbackLen() {
+			got = append(got, term.ScrollbackCellAt(0, y).String())
+		}
+		if !slices.Equal(got, sb) {
+			t.Errorf("scrollback: want %q, got %q", sb, got)
+		}
+	}
+
+	t.Run("cursor on the last line", func(t *testing.T) {
+		term := newTestTerminal(t, 2, 5)
+		term.WriteString("1\r\n2\r\n3\r\n4\r\n5")
+		term.Resize(2, 3)
+		check(t, term, []string{"3 ", "4 ", "5 "}, uv.Pos(1, 2), []string{"1", "2"})
+	})
+
+	t.Run("cursor above the new height", func(t *testing.T) {
+		term := newTestTerminal(t, 2, 5)
+		term.WriteString("1\r\n2")
+		term.Resize(2, 3)
+		check(t, term, []string{"1 ", "2 ", "  "}, uv.Pos(1, 1), nil)
+	})
+
+	t.Run("alternate screen", func(t *testing.T) {
+		term := newTestTerminal(t, 2, 5)
+		term.WriteString("\x1b[?1049h1\r\n2\r\n3\r\n4\r\n5")
+		term.Resize(2, 3)
+		check(t, term, []string{"1 ", "2 ", "3 "}, uv.Pos(1, 2), nil)
+	})
 }
 
 func termText(term *Emulator) []string {
