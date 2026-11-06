@@ -9,7 +9,7 @@ import (
 )
 
 func (e *Emulator) handleCsi(cmd ansi.Cmd, params ansi.Params) {
-	e.flushGrapheme() // Flush any pending grapheme before handling CSI sequences.
+	e.endCluster() // A CSI sequence ends any cluster in progress.
 	if !e.handlers.handleCsi(cmd, params) {
 		e.logf("unhandled sequence: CSI %q", paramsString(cmd, params))
 	}
