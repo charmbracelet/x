@@ -33,7 +33,7 @@ type CcHandler func() bool
 
 // handlers contains the terminal's escape sequence handlers.
 type handlers struct {
-	ccHandlers  map[byte][]CcHandler
+	ccHandlers  [256][]CcHandler
 	dcsHandlers map[int][]DcsHandler
 	csiHandlers map[int][]CsiHandler
 	oscHandlers map[int][]OscHandler
@@ -92,9 +92,6 @@ func (h *handlers) RegisterEscHandler(cmd int, handler EscHandler) {
 
 // registerCcHandler registers a control character handler.
 func (h *handlers) registerCcHandler(r byte, handler CcHandler) {
-	if h.ccHandlers == nil {
-		h.ccHandlers = make(map[byte][]CcHandler)
-	}
 	h.ccHandlers[r] = append(h.ccHandlers[r], handler)
 }
 
@@ -103,8 +100,9 @@ func (h *handlers) registerCcHandler(r byte, handler CcHandler) {
 func (h *handlers) handleCc(r byte) bool {
 	// Reverse iterate over the handlers so that the last registered handler
 	// is the first to be called.
-	for i := len(h.ccHandlers[r]) - 1; i >= 0; i-- {
-		if h.ccHandlers[r][i]() {
+	handlers := h.ccHandlers[r]
+	for i := len(handlers) - 1; i >= 0; i-- {
+		if handlers[i]() {
 			return true
 		}
 	}
@@ -867,7 +865,9 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 
 		height := e.Height()
 		bottom, _ := e.parser.Param(1, height)
-		if bottom < 1 {
+		if bottom < 1 || bottom > height {
+			// Like xterm, a margin below the screen is the bottom of the
+			// screen. Lines past it don't exist to scroll.
 			bottom = height
 		}
 
@@ -900,7 +900,7 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 
 			width := e.Width()
 			right, _, _ := params.Param(1, width)
-			if right < 1 {
+			if right < 1 || right > width {
 				right = width
 			}
 

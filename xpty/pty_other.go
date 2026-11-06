@@ -3,6 +3,10 @@
 
 package xpty
 
+import "os/exec"
+
+func setSessionAttrs(*exec.Cmd) {}
+
 func (p *UnixPty) setWinsize(int, int, int, int) error {
 	return ErrUnsupported
 }
