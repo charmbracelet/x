@@ -17,11 +17,19 @@ type Screen struct {
 	scroll uv.Rectangle
 	// scrollback is the scrollback buffer for lines scrolled off the top.
 	scrollback *Scrollback
-	// rotate is scratch space for moving lines.
-	rotate []uv.Line
+	// rotate and rotateUsed are scratch space for moving lines.
+	rotate     []uv.Line
+	rotateUsed []int
 	// reference makes the screen use the plain cell by cell implementations
 	// instead of the fast paths, for tests to compare them.
 	reference bool
+	// used holds, for each line, a bound on the columns that can hold a
+	// character: every cell at or past used[y] is [uv.EmptyCell]. Scrollback
+	// and blanking lines use it to skip the empty cells instead of going
+	// over the whole line, which for the short lines of most output is most
+	// of the work. Every write marks the columns it may change, and anything
+	// unusual marks the whole line.
+	used []int
 }
 
 // NewScreen creates a new screen.
@@ -31,6 +39,7 @@ func NewScreen(w, h int) *Screen {
 		scrollback: NewScrollback(DefaultScrollbackSize),
 	}
 	s.scroll = s.buf.Bounds()
+	s.used = make([]int, h)
 	return &s
 }
 
@@ -39,6 +48,7 @@ func NewScreen(w, h int) *Screen {
 // cursor styles, and resets the scroll region.
 func (s *Screen) Reset() {
 	s.buf.Clear()
+	clear(s.used)
 	s.cur = Cursor{}
 	s.saved = Cursor{}
 	s.scroll = s.buf.Bounds()
@@ -68,6 +78,24 @@ func (s *Screen) CellAt(x int, y int) *uv.Cell {
 // SetCell sets the cell at the given x, y position.
 func (s *Screen) SetCell(x, y int, c *uv.Cell) {
 	s.buf.SetCell(x, y, c)
+	if c != nil {
+		s.markUsed(y, x+max(c.Width, 1))
+	}
+}
+
+// markUsed records that the cells of line y before column end may be
+// written.
+func (s *Screen) markUsed(y, end int) {
+	if y >= 0 && y < len(s.used) {
+		s.used[y] = max(s.used[y], end)
+	}
+}
+
+// markAllUsed records that every line may be written across its whole width.
+func (s *Screen) markAllUsed() {
+	for y := range s.used {
+		s.used[y] = s.buf.Width()
+	}
 }
 
 // Height returns the height of the screen.
@@ -83,6 +111,8 @@ func (s *Screen) Resize(width int, height int) {
 		s.buf.Resize(width, height)
 		s.buf.Touched = nil
 	}
+	s.used = make([]int, s.buf.Height())
+	s.markAllUsed()
 	s.scroll = s.buf.Bounds()
 }
 
@@ -135,19 +165,33 @@ func (s *Screen) Fill(c *uv.Cell) {
 // FillArea fills the given area with the given cell.
 func (s *Screen) FillArea(c *uv.Cell, area uv.Rectangle) {
 	if !s.reference && area.Min.X <= 0 && area.Max.X >= s.buf.Width() && (c == nil || c.Width <= 1) {
-		// Whole lines are filled at once, and need none of the fixups for
-		// wide cells cut in half.
-		fill := uv.EmptyCell
-		if c != nil {
-			fill = *c
-		}
-		for y := max(area.Min.Y, 0); y < min(area.Max.Y, s.buf.Height()); y++ {
-			fillLine(s.buf.Lines[y], fill)
-		}
+		s.fillLines(c, area)
 	} else {
 		s.buf.FillArea(c, area)
+		if c != nil && !isPlainEmpty(c) {
+			for y := max(area.Min.Y, 0); y < min(area.Max.Y, s.buf.Height()); y++ {
+				s.markUsed(y, area.Max.X)
+			}
+		}
 	}
 	s.touchArea(area)
+}
+
+// fillLines fills whole lines at once, which needs none of the fixups for
+// wide cells cut in half.
+func (s *Screen) fillLines(c *uv.Cell, area uv.Rectangle) {
+	fill := uv.EmptyCell
+	if c != nil {
+		fill = *c
+	}
+	used := s.buf.Width()
+	if isPlainEmpty(&fill) {
+		used = 0
+	}
+	for y := max(area.Min.Y, 0); y < min(area.Max.Y, s.buf.Height()); y++ {
+		fillLine(s.buf.Lines[y], fill)
+		s.used[y] = used
+	}
 }
 
 // fillLine sets every cell of the line to c.
@@ -309,6 +353,7 @@ func (s *Screen) InsertCell(n int) {
 
 	x, y := s.cur.X, s.cur.Y
 	s.buf.InsertCellArea(x, y, n, s.blankCell(), s.scroll)
+	s.markUsed(y, s.buf.Width())
 }
 
 // DeleteCell deletes n cells at the cursor position moving cells to the left.
@@ -320,6 +365,7 @@ func (s *Screen) DeleteCell(n int) {
 
 	x, y := s.cur.X, s.cur.Y
 	s.buf.DeleteCellArea(x, y, n, s.blankCell(), s.scroll)
+	s.markUsed(y, s.buf.Width())
 }
 
 // ScrollUp scrolls the content up n lines within the given region. Lines
@@ -381,6 +427,7 @@ func (s *Screen) insertLines(y, n int) {
 	}
 	if s.reference || !s.fullWidth() {
 		s.buf.InsertLineArea(y, n, s.blankCell(), scroll)
+		s.markAllUsed()
 		return
 	}
 
@@ -408,11 +455,14 @@ func (s *Screen) deleteLines(y, n int) {
 	// Save lines that will be deleted, since they would otherwise be lost
 	// during scroll up operations.
 	if fullWidth && s.scrollback != nil && y == scroll.Min.Y {
-		s.scrollback.PushN(s.buf, y, n)
+		for i := range n {
+			s.scrollback.pushRow(s.buf.Lines[y+i], s.used[y+i])
+		}
 	}
 
 	if s.reference || !fullWidth {
 		s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
+		s.markAllUsed()
 		return
 	}
 
@@ -436,15 +486,33 @@ func (s *Screen) rotateLines(top, bottom, n int) {
 	copy(lines, lines[n:])
 	copy(lines[len(lines)-n:], s.rotate)
 	clear(s.rotate)
+
+	used := s.used[top:bottom]
+	s.rotateUsed = append(s.rotateUsed[:0], used[:n]...)
+	copy(used, used[n:])
+	copy(used[len(used)-n:], s.rotateUsed)
 }
 
 // blankLine fills line y with blank cells.
 func (s *Screen) blankLine(y int) {
-	blank := uv.EmptyCell
+	line := s.buf.Lines[y]
 	if c := s.blankCell(); c != nil {
-		blank = *c
+		// Cells that take the background color aren't empty.
+		fillLine(line, *c)
+		s.used[y] = len(line)
+		return
 	}
-	fillLine(s.buf.Lines[y], blank)
+	// Past the bound the line is empty already.
+	end := min(s.used[y], len(line))
+	for i := range line[:end] {
+		line[i] = uv.EmptyCell
+	}
+	s.used[y] = 0
+}
+
+// isPlainEmpty reports whether the cell is [uv.EmptyCell].
+func isPlainEmpty(c *uv.Cell) bool {
+	return c.Content == " " && c.Width == 1 && isBlank(c)
 }
 
 // touchLines marks the lines in [top, bottom) as changed across the whole

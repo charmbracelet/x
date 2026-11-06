@@ -201,6 +201,7 @@ func (e *Emulator) printASCIICells(chars []byte) {
 				*old = cell
 				scr.buf.TouchLine(x, y, 1)
 			}
+			scr.markUsed(y, x+1)
 		} else {
 			// This also covers a cursor left outside of the screen, by a
 			// resize or a restored cursor, where nothing is written.

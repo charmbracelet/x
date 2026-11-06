@@ -174,6 +174,9 @@ func TestFastPathsMatchReference(t *testing.T) {
 				}
 			}
 			for _, e := range []*Emulator{fast, ref} {
+				if msg := checkUsedBounds(e); msg != "" {
+					t.Fatalf("seed %d: after writing %q: %s", seed, chunk, msg)
+				}
 				if e.autoWrap != e.isModeSet(ansi.ModeAutoWrap) ||
 					e.lineFeedNewLine != e.isModeSet(ansi.ModeLineFeedNewLine) ||
 					e.originMode != e.isModeSet(ansi.ModeOrigin) {
@@ -272,6 +275,25 @@ func compareEmulators(a, b *Emulator) string {
 		return fmt.Sprintf("pending cluster: %q != %q", a.grapheme, b.grapheme)
 	case a.parser.State() != b.parser.State():
 		return "parser state differs"
+	}
+	return ""
+}
+
+// checkUsedBounds checks the invariant of the written width of lines: all the
+// cells past it are empty cells.
+func checkUsedBounds(e *Emulator) string {
+	for i := range e.scrs {
+		scr := &e.scrs[i]
+		if len(scr.used) != scr.Height() {
+			return fmt.Sprintf("screen %d: %d bounds for %d lines", i, len(scr.used), scr.Height())
+		}
+		for y, line := range scr.buf.Lines {
+			for x := scr.used[y]; x < len(line); x++ {
+				if !isPlainEmpty(&line[x]) {
+					return fmt.Sprintf("screen %d: cell %d,%d is %#v but the line is bounded at %d", i, x, y, line[x], scr.used[y])
+				}
+			}
+		}
 	}
 	return ""
 }

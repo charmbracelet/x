@@ -37,13 +37,19 @@ func NewScrollback(maxLines int) *Scrollback {
 //
 // The line is copied, so the caller may reuse it.
 func (s *Scrollback) Push(line uv.Line) {
+	s.pushRow(line, len(line))
+}
+
+// pushRow is Push for a line that is known to be blank from column used on,
+// which saves looking at the blank cells to trim them.
+func (s *Scrollback) pushRow(line uv.Line, used int) {
 	if s == nil || s.maxLines <= 0 {
 		return
 	}
 
 	// Trim trailing empty cells. This helps with wrapping and window
 	// resizing.
-	n := len(line)
+	n := min(used, len(line))
 	for n > 0 && isBlank(&line[n-1]) {
 		n--
 	}
