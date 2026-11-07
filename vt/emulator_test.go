@@ -1,6 +1,7 @@
 package vt
 
 import (
+	"runtime"
 	"testing"
 
 	uv "github.com/charmbracelet/ultraviolet"
@@ -1826,3 +1827,125 @@ func termText(term *Emulator) []string {
 	}
 	return lines
 }
+
+func TestEmulatorSetParserDataSize(t *testing.T) {
+	t.Run("default size is DefaultParserDataSize", func(t *testing.T) {
+		term := NewEmulator(80, 24)
+		if got := cap(term.parser.Data()); got != DefaultParserDataSize {
+			t.Errorf("expected parser data buffer cap %d, got %d", DefaultParserDataSize, got)
+		}
+	})
+
+	t.Run("configure custom size", func(t *testing.T) {
+		term := NewEmulator(80, 24)
+		customSize := 1024
+		term.SetParserDataSize(customSize)
+		if got := cap(term.parser.Data()); got != customSize {
+			t.Errorf("expected parser data buffer cap %d, got %d", customSize, got)
+		}
+
+		// Verify parsing OSC sequence still works correctly with custom size
+		_, err := term.WriteString("\x1b]0;custom-title\x07")
+		if err != nil {
+			t.Fatalf("WriteString failed: %v", err)
+		}
+		if term.title != "custom-title" {
+			t.Errorf("term.title = %q, want %q", term.title, "custom-title")
+		}
+	})
+
+	t.Run("configure dynamic size with zero", func(t *testing.T) {
+		term := NewEmulator(80, 24)
+		term.SetParserDataSize(0)
+
+		_, err := term.WriteString("\x1b]0;dynamic-title\x07")
+		if err != nil {
+			t.Fatalf("WriteString failed: %v", err)
+		}
+		if term.title != "dynamic-title" {
+			t.Errorf("term.title = %q, want %q", term.title, "dynamic-title")
+		}
+	})
+
+	t.Run("safe emulator", func(t *testing.T) {
+		se := NewSafeEmulator(80, 24)
+		se.SetParserDataSize(2048)
+		if got := cap(se.parser.Data()); got != 2048 {
+			t.Errorf("expected safe emulator parser data buffer cap 2048, got %d", got)
+		}
+	})
+
+	t.Run("terminal interface", func(t *testing.T) {
+		var term Terminal = NewEmulator(80, 24)
+		term.SetParserDataSize(512)
+		if e, ok := term.(*Emulator); ok {
+			if got := cap(e.parser.Data()); got != 512 {
+				t.Errorf("expected parser data buffer cap 512, got %d", got)
+			}
+		}
+	})
+}
+
+func TestEmulatorWithParserDataSize(t *testing.T) {
+	t.Run("default size is DefaultParserDataSize", func(t *testing.T) {
+		term := NewEmulator(80, 24)
+		if got := cap(term.parser.Data()); got != DefaultParserDataSize {
+			t.Errorf("expected parser data buffer cap %d, got %d", DefaultParserDataSize, got)
+		}
+	})
+
+	t.Run("configure custom size option", func(t *testing.T) {
+		customSize := 1024
+		term := NewEmulator(80, 24, WithParserDataSize(customSize))
+		if got := cap(term.parser.Data()); got != customSize {
+			t.Errorf("expected parser data buffer cap %d, got %d", customSize, got)
+		}
+
+		// Verify parsing OSC sequence still works correctly with custom size option
+		_, err := term.WriteString("\x1b]0;custom-title\x07")
+		if err != nil {
+			t.Fatalf("WriteString failed: %v", err)
+		}
+		if term.title != "custom-title" {
+			t.Errorf("term.title = %q, want %q", term.title, "custom-title")
+		}
+	})
+
+	t.Run("configure dynamic size with zero option", func(t *testing.T) {
+		term := NewEmulator(80, 24, WithParserDataSize(0))
+
+		_, err := term.WriteString("\x1b]0;dynamic-title\x07")
+		if err != nil {
+			t.Fatalf("WriteString failed: %v", err)
+		}
+		if term.title != "dynamic-title" {
+			t.Errorf("term.title = %q, want %q", term.title, "dynamic-title")
+		}
+	})
+
+	t.Run("safe emulator option", func(t *testing.T) {
+		se := NewSafeEmulator(80, 24, WithParserDataSize(2048))
+		if got := cap(se.parser.Data()); got != 2048 {
+			t.Errorf("expected safe emulator parser data buffer cap 2048, got %d", got)
+		}
+	})
+
+	t.Run("avoids upfront memory allocation", func(t *testing.T) {
+		// When creating an emulator with a small custom parser data size,
+		// the upfront DefaultParserDataSize (4 MiB) buffer allocation must be avoided.
+		runtime.GC()
+		var m1, m2 runtime.MemStats
+		runtime.ReadMemStats(&m1)
+		term := NewEmulator(80, 24, WithParserDataSize(1024))
+		runtime.ReadMemStats(&m2)
+
+		allocated := m2.TotalAlloc - m1.TotalAlloc
+		if allocated >= DefaultParserDataSize {
+			t.Errorf("NewEmulator with WithParserDataSize(1024) allocated %d bytes; expected upfront %d-byte allocation to be avoided", allocated, DefaultParserDataSize)
+		}
+		if got := cap(term.parser.Data()); got != 1024 {
+			t.Errorf("expected parser data buffer cap 1024, got %d", got)
+		}
+	})
+}
+
