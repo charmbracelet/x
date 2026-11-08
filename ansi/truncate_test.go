@@ -335,6 +335,31 @@ func TestTruncate(t *testing.T) {
 	}
 }
 
+func TestTruncateWc(t *testing.T) {
+	for _, c := range []struct {
+		name   string
+		input  string
+		width  int
+		tail   string
+		expect string
+	}{
+		{"ascii", "foobar", 3, "", "foo"},
+		{"fits", "foo", 3, "", "foo"},
+		{"skin tone wider than width", "a👍🏽", 4, "…", "a…"},
+		{"zwj family wider than width", "👨‍👩‍👧‍👦", 2, "", ""},
+		{"vs16 fits", "⚠️a", 2, "…", "⚠️a"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			if result := TruncateWc(c.input, c.width, c.tail); result != c.expect {
+				t.Errorf("expected: %q\n     got: %q", c.expect, result)
+			}
+			if result := WcWidth.Truncate(c.input, c.width, c.tail); result != c.expect {
+				t.Errorf("WcWidth.Truncate: expected: %q\n     got: %q", c.expect, result)
+			}
+		})
+	}
+}
+
 func BenchmarkTruncateString(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		b.ReportAllocs()
