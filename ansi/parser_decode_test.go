@@ -2,6 +2,7 @@ package ansi
 
 import (
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/charmbracelet/x/ansi/parser"
@@ -354,6 +355,181 @@ func TestDecodeSequence(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestDecodeSequenceTooManyParams ensures decoding a sequence with more
+// parameters than the parser buffer holds does not panic. Excess parameters
+// are consumed but not stored, matching the streaming [Parser] behavior:
+// the first parameters are preserved and [Parser.Params] never returns
+// more parameters than the buffer holds. See #1037.
+func TestDecodeSequenceTooManyParams(t *testing.T) {
+	sgr := func(n int) string {
+		return "\x1b[" + strings.Repeat("1;", n-1) + "1m"
+	}
+	ones := func(n int) []int {
+		params := make([]int, n)
+		for i := range params {
+			params[i] = 1
+		}
+		return params
+	}
+	decodeAll := func(t *testing.T, p *Parser, input string) (cmd int, params []int, data []byte) {
+		t.Helper()
+		var state byte
+		for len(input) > 0 {
+			var n int
+			_, _, n, state = DecodeSequence(input, state, p)
+			if n == 0 {
+				t.Fatalf("decoder made no progress on %q", input)
+			}
+			input = input[n:]
+		}
+		params = make([]int, len(p.Params()))
+		for i, v := range p.Params() {
+			params[i] = int(v)
+		}
+		return p.Command(), params, p.Data()
+	}
+
+	t.Run("csi params exceed buffer", func(t *testing.T) {
+		for _, n := range []int{33, 100} {
+			p := NewParser()
+			cmd, params, _ := decodeAll(t, p, sgr(n))
+			if byte(cmd) != 'm' {
+				t.Errorf("n=%d: expected cmd 'm', got %q", n, byte(cmd))
+			}
+			if len(params) != parser.MaxParamsSize {
+				t.Fatalf("n=%d: expected %d params, got %d", n, parser.MaxParamsSize, len(params))
+			}
+			if !slices.Equal(params, ones(parser.MaxParamsSize)) {
+				t.Errorf("n=%d: expected first params preserved, got %v", n, params)
+			}
+		}
+	})
+
+	t.Run("csi params at buffer boundary", func(t *testing.T) {
+		// In-capacity behavior is unchanged.
+		p := NewParser()
+		_, params, _ := decodeAll(t, p, sgr(parser.MaxParamsSize))
+		if !slices.Equal(params, ones(parser.MaxParamsSize-1)) {
+			t.Errorf("expected %d params, got %v", parser.MaxParamsSize-1, params)
+		}
+	})
+
+	t.Run("separators exceed buffer", func(t *testing.T) {
+		p := NewParser()
+		_, params, _ := decodeAll(t, p, "\x1b["+strings.Repeat(";", 40)+"m")
+		if len(params) != parser.MaxParamsSize {
+			t.Fatalf("expected %d params, got %d", parser.MaxParamsSize, len(params))
+		}
+		for i, v := range params {
+			if v != parser.MissingParam {
+				t.Errorf("expected param[%d] to be missing, got %d", i, v)
+			}
+		}
+	})
+
+	t.Run("sub-parameters exceed buffer", func(t *testing.T) {
+		p := NewParser()
+		_, params, _ := decodeAll(t, p, "\x1b["+strings.Repeat("1:", 40)+"1m")
+		if len(params) != parser.MaxParamsSize {
+			t.Fatalf("expected %d params, got %d", parser.MaxParamsSize, len(params))
+		}
+		for i, v := range params {
+			if !Param(v).HasMore() || Param(v).Param(0) != 1 {
+				t.Errorf("expected param[%d] to be 1 with sub-parameters, got %d", i, v)
+			}
+		}
+	})
+
+	t.Run("dcs params exceed buffer", func(t *testing.T) {
+		p := NewParser()
+		cmd, params, data := decodeAll(t, p, "\x1bP"+strings.Repeat("1;", 32)+"1qpayload\x1b\\")
+		if byte(cmd) != 'q' {
+			t.Errorf("expected cmd 'q', got %q", byte(cmd))
+		}
+		if len(params) != parser.MaxParamsSize {
+			t.Errorf("expected %d params, got %d", parser.MaxParamsSize, len(params))
+		}
+		if string(data) != "payload" {
+			t.Errorf("expected data %q, got %q", "payload", data)
+		}
+	})
+
+	t.Run("text around overflowing sequence", func(t *testing.T) {
+		p := NewParser()
+		input := "a" + sgr(33) + "b"
+		var state byte
+		var got []int
+		for len(input) > 0 {
+			var n int
+			_, _, n, state = DecodeSequence(input, state, p)
+			if n == 0 {
+				t.Fatal("decoder made no progress")
+			}
+			input = input[n:]
+			if byte(p.Command()) == 'm' {
+				// Params reflect the last decoded sequence; snapshot
+				// them before the trailing text resets the parser.
+				got = make([]int, len(p.Params()))
+				for i, v := range p.Params() {
+					got[i] = int(v)
+				}
+			}
+		}
+		if len(got) != parser.MaxParamsSize {
+			t.Errorf("expected %d params, got %d", parser.MaxParamsSize, len(got))
+		}
+	})
+
+	t.Run("sequence split across calls", func(t *testing.T) {
+		p := NewParser()
+		input := sgr(33)
+		half := len(input) / 2
+		_, _, n, state := DecodeSequence(input[:half], 0, p)
+		if n != half {
+			t.Fatalf("expected %d bytes consumed, got %d", half, n)
+		}
+		rest := input[half:]
+		for len(rest) > 0 {
+			var m int
+			_, _, m, state = DecodeSequence(rest, state, p)
+			if m == 0 {
+				t.Fatal("decoder made no progress")
+			}
+			rest = rest[m:]
+		}
+		if got := len(p.Params()); got != parser.MaxParamsSize {
+			t.Errorf("expected %d params, got %d", parser.MaxParamsSize, got)
+		}
+	})
+
+	t.Run("small params buffer", func(t *testing.T) {
+		p := NewParser()
+		p.SetParamsSize(2)
+		_, params, _ := decodeAll(t, p, "\x1b[1;2;3;4;5m")
+		if !slices.Equal(params, []int{1, 2}) {
+			t.Errorf("expected params [1 2], got %v", params)
+		}
+	})
+
+	t.Run("zero params buffer", func(t *testing.T) {
+		p := NewParser()
+		p.SetParamsSize(0)
+		var state byte
+		input := "\x1b[1;2m"
+		for len(input) > 0 {
+			var n int
+			_, _, n, state = DecodeSequence(input, state, p)
+			if n == 0 {
+				t.Fatal("decoder made no progress")
+			}
+			input = input[n:]
+		}
+		if byte(p.Command()) != 'm' {
+			t.Errorf("expected cmd 'm', got %q", byte(p.Command()))
+		}
+	})
 }
 
 func FuzzDecodeSequence(f *testing.F) {
