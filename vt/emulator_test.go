@@ -2,6 +2,7 @@ package vt
 
 import (
 	"testing"
+	"time"
 
 	uv "github.com/charmbracelet/ultraviolet"
 )
@@ -1783,6 +1784,124 @@ var cases = []struct {
 		want: []string{"                       "},
 		pos:  uv.Pos(22, 0),
 	},
+
+	// Insert/Replace Mode [ansi.ModeInsertReplace]
+	{
+		// Replace is the default: the printed cell lands on top of what is
+		// already there.
+		name: "IRM Reset Overwrites",
+		w:    10, h: 1,
+		input: []string{
+			"abc",
+			"\x1b[3D", // back to column 0
+			"X",
+		},
+		want: []string{"Xbc       "},
+		pos:  uv.Pos(1, 0),
+	},
+	{
+		// With IRM set the line shifts right instead, so the same sequence
+		// renders like an ICH of 1 followed by the character.
+		name: "IRM Set Shifts Line Right",
+		w:    10, h: 1,
+		input: []string{
+			"abc",
+			"\x1b[3D",
+			"\x1b[4h", // set IRM
+			"X",
+			"\x1b[4l", // reset IRM
+		},
+		want: []string{"Xabc      "},
+		pos:  uv.Pos(1, 0),
+	},
+	{
+		name: "IRM Set Shifts Once Per Character",
+		w:    10, h: 1,
+		input: []string{
+			"abc",
+			"\x1b[3D",
+			"\x1b[4h",
+			"XY",
+		},
+		want: []string{"XYabc     "},
+		pos:  uv.Pos(2, 0),
+	},
+	{
+		// A wide grapheme has to open a gap as wide as it is, or it lands on
+		// half of the character it displaced.
+		name: "IRM Set Wide Grapheme Opens Two Cells",
+		w:    10, h: 1,
+		input: []string{
+			"abc",
+			"\x1b[3D",
+			"\x1b[4h",
+			"世",
+		},
+		want: []string{"世abc     "},
+		pos:  uv.Pos(2, 0),
+	},
+	{
+		// Cells pushed past the right edge are lost, they do not wrap.
+		name: "IRM Set Pushes Cells Off The Right Edge",
+		w:    5, h: 1,
+		input: []string{
+			"abcde",
+			"\x1b[5D",
+			"\x1b[4h",
+			"X",
+		},
+		want: []string{"Xabcd"},
+		pos:  uv.Pos(1, 0),
+	},
+	{
+		// The gap opens where the character actually lands, which after a wrap
+		// is column 0 of the next line — not where the cursor still sits, at
+		// the edge of the line just filled.
+		name: "IRM Set Inserts At The Wrapped Position",
+		w:    5, h: 2,
+		input: []string{
+			"\x1b[2;1H", // row 1
+			"xy",
+			"\x1b[1;1H", // row 0
+			"abcde",     // fills row 0, leaving the cursor pending-wrap
+			"\x1b[4h",
+			"Z", // wraps to row 1 and inserts there
+		},
+		want: []string{"abcde", "Zxy  "},
+		pos:  uv.Pos(1, 1),
+	},
+	{
+		// The vertical scrolling region bounds what scrolls, not what a
+		// character printed under insert mode shifts: a line outside the region
+		// still opens a gap. Without this the mode would quietly degrade to
+		// replace on those lines, since the cell is printed either way.
+		name: "IRM Set Inserts Outside The Scroll Region",
+		w:    10, h: 3,
+		input: []string{
+			"\x1b[2;3r", // scrolling region is rows 2-3
+			"\x1b[1;1H", // row 1, outside it
+			"abc",
+			"\x1b[1;1H",
+			"\x1b[4h",
+			"X",
+		},
+		want: []string{"Xabc      ", "          ", "          "},
+		pos:  uv.Pos(1, 0),
+	},
+	{
+		// IRM is an ANSI mode, so RIS returns it to its reset default.
+		name: "IRM Cleared By RIS",
+		w:    10, h: 1,
+		input: []string{
+			"\x1b[4h",
+			"\x1bc", // RIS
+			"abc",
+			"\x1b[3D",
+			"X",
+		},
+		want: []string{"Xbc       "},
+		pos:  uv.Pos(1, 0),
+	},
 }
 
 // TestTerminal tests the terminal.
@@ -1825,4 +1944,51 @@ func termText(term *Emulator) []string {
 		lines = append(lines, line)
 	}
 	return lines
+}
+
+// TestIRMModeReport checks that IRM is a mode the emulator knows about: DECRQM
+// has to answer set/reset for it rather than "not recognised", which is what a
+// program asks before it trusts insert mode.
+func TestIRMModeReport(t *testing.T) {
+	term := newTestTerminal(t, 10, 1)
+
+	// The emulator writes its replies into a pipe, so something has to be
+	// reading while the request is written or the write blocks. Reading is what
+	// runs in the goroutine: every Write stays on this one, because concurrent
+	// writes race on the parser state.
+	replies := make(chan string, 2)
+	go func() {
+		for {
+			buf := make([]byte, 32)
+			n, err := term.Read(buf)
+			if err != nil {
+				close(replies)
+				return
+			}
+			replies <- string(buf[:n])
+		}
+	}()
+
+	next := func() string {
+		select {
+		case reply, ok := <-replies:
+			if !ok {
+				t.Fatal("emulator closed before replying")
+			}
+			return reply
+		case <-time.After(time.Second):
+			t.Fatal("timed out waiting for a mode report")
+			return ""
+		}
+	}
+
+	term.Write([]byte("\x1b[4$p")) //nolint:errcheck // writing to an emulator cannot fail
+	if got, want := next(), "\x1b[4;2$y"; got != want {
+		t.Errorf("DECRQM before setting IRM: got %q, want %q (2 = reset)", got, want)
+	}
+
+	term.Write([]byte("\x1b[4h\x1b[4$p")) //nolint:errcheck // writing to an emulator cannot fail
+	if got, want := next(), "\x1b[4;1$y"; got != want {
+		t.Errorf("DECRQM after setting IRM: got %q, want %q (1 = set)", got, want)
+	}
 }
