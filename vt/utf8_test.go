@@ -51,6 +51,47 @@ func TestLastCharacterIsFlushedWhenTheWriteEnds(t *testing.T) {
 	}
 }
 
+func TestWritePendingKeepsGraphemesTogetherAcrossWrites(t *testing.T) {
+	for _, input := range []string{"a\u0301", "👨\u200d💻"} {
+		t.Run(input, func(t *testing.T) {
+			term := newTestTerminal(t, 10, 1)
+			for _, boundary := range []int{1, 2, len(input) - 1} {
+				if boundary >= len(input) {
+					continue
+				}
+				term = newTestTerminal(t, 10, 1)
+				_, _ = term.WritePending([]byte(input[:boundary]))
+				_, _ = term.WritePending([]byte(input[boundary:]))
+				term.Flush()
+				if got := term.CellAt(0, 0).Content; got != input {
+					t.Fatalf("boundary %d: cell = %q, want %q", boundary, got, input)
+				}
+			}
+		})
+	}
+}
+
+func TestWideGraphemesWrapWithoutLoss(t *testing.T) {
+	for _, width := range []int{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 80, 120, 160} {
+		t.Run("width", func(t *testing.T) {
+			term := newTestTerminal(t, width, 300)
+			want := 300
+			term.WriteString(strings.Repeat("中", want))
+			got := 0
+			for y := 0; y < term.Height(); y++ {
+				for x := 0; x < term.Width(); x++ {
+					if cell := term.CellAt(x, y); cell != nil && cell.Content == "中" {
+						got++
+					}
+				}
+			}
+			if got != want {
+				t.Fatalf("width %d: got %d CJK cells, want %d", width, got, want)
+			}
+		})
+	}
+}
+
 // A single shift applies to one character, and the character it applies to may
 // be a cluster no charset has a mapping for. Taking the shift only when the
 // mapping happens left it set, and it landed on the character after.

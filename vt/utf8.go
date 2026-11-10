@@ -90,6 +90,20 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 		x = 0
 	}
 
+	// A wide cell must fit as a unit. If it does not fit at the right edge,
+	// perform the same pending-wrap transition a real terminal uses before
+	// placing it. Previously SetCell happened first, which could silently drop
+	// the cell with one column left or leave an exact-fit cell vulnerable to the
+	// following character overwriting it.
+	if cell.Width > 0 && x+cell.Width > e.scr.Width() {
+		if !awm || cell.Width > e.scr.Width() {
+			return
+		}
+		e.index()
+		_, y = e.scr.CursorPosition()
+		x = 0
+	}
+
 	// A single shift applies to the next character, whatever that character
 	// turns out to be. Take it now, so it cannot leak onto the one after this
 	// when this is a cluster no charset has a mapping for.
@@ -123,7 +137,7 @@ func (e *Emulator) handleGrapheme(content string, width int) {
 	e.scr.SetCell(x, y, &cell)
 
 	// Handle phantom state at the end of the line
-	e.atPhantom = awm && x >= e.scr.Width()-1
+	e.atPhantom = awm && cell.Width > 0 && x+cell.Width >= e.scr.Width()
 	if !e.atPhantom {
 		x += cell.Width
 	}
