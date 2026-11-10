@@ -45,6 +45,9 @@ type Emulator struct {
 	// runes, so the segmenter can read the buffer without a conversion on
 	// every character.
 	grapheme []byte
+	// graphemeWidth splits and sizes the grapheme buffer; nil uses
+	// [ansi.FirstGraphemeCluster] with [ansi.GraphemeWidth].
+	graphemeWidth GraphemeWidthFunc
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
