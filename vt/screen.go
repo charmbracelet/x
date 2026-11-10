@@ -9,8 +9,8 @@ import (
 type Screen struct {
 	// cb is the callbacks struct to use.
 	cb *Callbacks
-	// The buffer of the screen.
-	buf *uv.RenderBuffer
+	// buf owns both visible cells and their semantic row boundaries.
+	buf *semanticBuffer
 	// The cur of the screen.
 	cur, saved Cursor
 	// scroll is the scroll region.
@@ -22,10 +22,10 @@ type Screen struct {
 // NewScreen creates a new screen.
 func NewScreen(w, h int) *Screen {
 	s := Screen{
-		buf:        uv.NewRenderBuffer(w, h),
+		buf:        newSemanticBuffer(w, h),
 		scrollback: NewScrollback(DefaultScrollbackSize),
 	}
-	s.scroll = s.buf.Bounds()
+	s.scroll = s.buf.bounds()
 	return &s
 }
 
@@ -33,57 +33,55 @@ func NewScreen(w, h int) *Screen {
 // It clears the screen, sets the cursor to the top left corner, reset the
 // cursor styles, and resets the scroll region.
 func (s *Screen) Reset() {
-	s.buf.Clear()
+	s.buf.reset()
 	s.cur = Cursor{}
 	s.saved = Cursor{}
-	s.scroll = s.buf.Bounds()
-	s.buf.Touched = nil
+	s.scroll = s.buf.bounds()
 }
 
 // Bounds returns the bounds of the screen.
 func (s *Screen) Bounds() uv.Rectangle {
-	return s.buf.Bounds()
+	return s.buf.bounds()
 }
 
 // Touched returns touched lines in the screen buffer.
 func (s *Screen) Touched() []*uv.LineData {
-	return s.buf.Touched
+	return s.buf.touched()
 }
 
 // ClearTouched clears the touched state.
 func (s *Screen) ClearTouched() {
-	s.buf.Touched = nil
+	s.buf.clearTouched()
 }
 
 // CellAt returns the cell at the given x, y position.
 func (s *Screen) CellAt(x int, y int) *uv.Cell {
-	return s.buf.CellAt(x, y)
+	return s.buf.cellAt(x, y)
 }
 
 // SetCell sets the cell at the given x, y position.
 func (s *Screen) SetCell(x, y int, c *uv.Cell) {
-	s.buf.SetCell(x, y, c)
+	s.buf.setCell(x, y, c)
 }
 
 // Height returns the height of the screen.
 func (s *Screen) Height() int {
-	return s.buf.Height()
+	return s.buf.height()
 }
 
 // Resize resizes the screen.
 func (s *Screen) Resize(width int, height int) {
 	if s.buf == nil {
-		s.buf = uv.NewRenderBuffer(width, height)
+		s.buf = newSemanticBuffer(width, height)
 	} else {
-		s.buf.Resize(width, height)
-		s.buf.Touched = nil
+		s.resizeReflow(width, height)
 	}
-	s.scroll = s.buf.Bounds()
+	s.scroll = s.buf.bounds()
 }
 
 // Width returns the width of the screen.
 func (s *Screen) Width() int {
-	return s.buf.Width()
+	return s.buf.widthValue()
 }
 
 // Clear clears the screen with blank cells.
@@ -97,10 +95,19 @@ func (s *Screen) Clear() {
 func (s *Screen) ClearWithScrollback() {
 	if s.scrollback != nil {
 		// Save all lines that have content before clearing
-		for y := 0; y < s.buf.Height(); y++ {
-			line := s.buf.Line(y)
+		lastSaved := -1
+		for y := 0; y < s.buf.height(); y++ {
+			line := s.buf.visibleLine(y)
 			if line != nil && !s.isLineEmpty(line) {
-				s.scrollback.Push(line)
+				row := semanticRow{
+					line:     line,
+					boundary: s.buf.boundary(y),
+				}
+				if y != lastSaved+1 && row.boundary == boundarySoft {
+					row.boundary = boundaryHard
+				}
+				s.scrollback.pushSemanticRow(row)
+				lastSaved = y
 			}
 		}
 	}
@@ -119,7 +126,7 @@ func (s *Screen) isLineEmpty(line uv.Line) bool {
 
 // ClearArea clears the given area.
 func (s *Screen) ClearArea(area uv.Rectangle) {
-	s.buf.ClearArea(area)
+	s.buf.clearArea(area)
 	s.touchArea(area)
 }
 
@@ -130,7 +137,7 @@ func (s *Screen) Fill(c *uv.Cell) {
 
 // FillArea fills the given area with the given cell.
 func (s *Screen) FillArea(c *uv.Cell, area uv.Rectangle) {
-	s.buf.FillArea(c, area)
+	s.buf.fillArea(c, area)
 	s.touchArea(area)
 }
 
@@ -157,8 +164,8 @@ func (s *Screen) setCursorX(x int, margins bool) {
 func (s *Screen) setCursor(x, y int, margins bool) {
 	old := s.cur.Position
 	if !margins {
-		y = ordered.Clamp(y, 0, s.buf.Height()-1)
-		x = ordered.Clamp(x, 0, s.buf.Width()-1)
+		y = ordered.Clamp(y, 0, s.buf.height()-1)
+		x = ordered.Clamp(x, 0, s.buf.widthValue()-1)
 	} else {
 		y = ordered.Clamp(s.scroll.Min.Y+y, s.scroll.Min.Y, s.scroll.Max.Y-1)
 		x = ordered.Clamp(s.scroll.Min.X+x, s.scroll.Min.X, s.scroll.Max.X-1)
@@ -182,7 +189,7 @@ func (s *Screen) moveCursor(dx, dy int) {
 		scroll.Min.X = 0
 	}
 	if old.X >= scroll.Max.X {
-		scroll.Max.X = s.buf.Width()
+		scroll.Max.X = s.buf.widthValue()
 	}
 
 	pt := uv.Pos(s.cur.X+dx, s.cur.Y+dy)
@@ -192,8 +199,8 @@ func (s *Screen) moveCursor(dx, dy int) {
 		y = ordered.Clamp(pt.Y, scroll.Min.Y, scroll.Max.Y-1)
 		x = ordered.Clamp(pt.X, scroll.Min.X, scroll.Max.X-1)
 	} else {
-		y = ordered.Clamp(pt.Y, 0, s.buf.Height()-1)
-		x = ordered.Clamp(pt.X, 0, s.buf.Width()-1)
+		y = ordered.Clamp(pt.Y, 0, s.buf.height()-1)
+		x = ordered.Clamp(pt.X, 0, s.buf.widthValue()-1)
 	}
 
 	s.cur.X, s.cur.Y = x, y
@@ -280,7 +287,7 @@ func (s *Screen) InsertCell(n int) {
 	}
 
 	x, y := s.cur.X, s.cur.Y
-	s.buf.InsertCellArea(x, y, n, s.blankCell(), s.scroll)
+	s.buf.insertCells(x, y, n, s.blankCell(), s.scroll)
 }
 
 // DeleteCell deletes n cells at the cursor position moving cells to the left.
@@ -291,7 +298,7 @@ func (s *Screen) DeleteCell(n int) {
 	}
 
 	x, y := s.cur.X, s.cur.Y
-	s.buf.DeleteCellArea(x, y, n, s.blankCell(), s.scroll)
+	s.buf.deleteCells(x, y, n, s.blankCell(), s.scroll)
 }
 
 // ScrollUp scrolls the content up n lines within the given region. Lines
@@ -331,7 +338,7 @@ func (s *Screen) InsertLine(n int) bool {
 		return false
 	}
 
-	s.buf.InsertLineArea(y, n, s.blankCell(), s.scroll)
+	s.buf.insertRows(y, n, s.blankCell(), s.scroll)
 
 	return true
 }
@@ -359,14 +366,19 @@ func (s *Screen) DeleteLine(n int) bool {
 	// Save lines to scrollback if we're at the top of the scroll region
 	// and the scroll region uses the full width (typical terminal scroll).
 	// This captures lines that would be lost during scroll up operations.
-	if s.scrollback != nil && y == scroll.Min.Y &&
-		scroll.Min.X == 0 && scroll.Max.X == s.buf.Width() {
+	savedToScrollback := s.scrollback != nil && y == scroll.Min.Y &&
+		scroll.Min.X == 0 && scroll.Max.X == s.buf.widthValue()
+	if savedToScrollback {
 		// Save lines that will be deleted
 		linesToSave := min(n, scroll.Max.Y-y)
-		s.scrollback.PushN(s.buf, y, linesToSave)
+		s.scrollback.pushSemanticRows(s.buf.rows(y, linesToSave))
 	}
 
-	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
+	s.buf.deleteRows(y, n, s.blankCell(), scroll)
+	if !savedToScrollback && scroll.Min.X == 0 && scroll.Max.X == s.buf.widthValue() &&
+		s.buf.boundary(y) == boundarySoft {
+		s.buf.setBoundary(y, boundaryTruncatedHead)
+	}
 
 	return true
 }
@@ -387,7 +399,7 @@ func (s *Screen) blankCell() *uv.Cell {
 // touchArea marks all lines in the given area as touched.
 func (s *Screen) touchArea(area uv.Rectangle) {
 	for y := area.Min.Y; y < area.Max.Y; y++ {
-		s.buf.TouchLine(area.Min.X, y, area.Max.X-area.Min.X)
+		s.buf.touchLine(area.Min.X, y, area.Max.X-area.Min.X)
 	}
 }
 
@@ -409,4 +421,15 @@ func (s *Screen) SetScrollbackSize(maxLines int) {
 	} else {
 		s.scrollback.SetMaxLines(maxLines)
 	}
+}
+
+// setCurrentRowWrapped records whether the cursor row begins as an autowrap
+// continuation. Explicit line transitions harden the destination row.
+func (s *Screen) setCurrentRowWrapped(wrapped bool) {
+	_, y := s.CursorPosition()
+	boundary := boundaryHard
+	if wrapped {
+		boundary = boundarySoft
+	}
+	s.buf.setBoundary(y, boundary)
 }

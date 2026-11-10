@@ -24,6 +24,10 @@ func (e *Emulator) linefeed() {
 // index moves the cursor down one line, scrolling up if necessary. This
 // always resets the phantom state i.e. pending wrap state.
 func (e *Emulator) index() {
+	e.indexWithWrap(false)
+}
+
+func (e *Emulator) indexWithWrap(wrapped bool) {
 	x, y := e.scr.CursorPosition()
 	scroll := e.scr.ScrollRegion()
 	// XXX: Handle scrollback whenever we add it.
@@ -32,6 +36,7 @@ func (e *Emulator) index() {
 	} else if y < scroll.Max.Y-1 || !uv.Pos(x, y).In(scroll) {
 		e.scr.moveCursor(0, 1)
 	}
+	e.scr.setCurrentRowWrapped(wrapped)
 	e.atPhantom = false
 }
 
