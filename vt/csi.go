@@ -2,7 +2,6 @@ package vt
 
 import (
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
@@ -27,7 +26,7 @@ func (e *Emulator) handleRequestMode(params ansi.Params, isAnsi bool) {
 	}
 
 	setting := e.modes[mode]
-	_, _ = io.WriteString(e.pw, ansi.ReportMode(mode, setting))
+	_, _ = writeReplyString(e.replies, ansi.ReportMode(mode, setting))
 }
 
 func paramsString(cmd ansi.Cmd, params ansi.Params) string {
