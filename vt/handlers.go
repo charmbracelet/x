@@ -870,6 +870,12 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		if bottom < 1 {
 			bottom = height
 		}
+		if bottom > height {
+			// The bottom margin cannot be past the last row. xterm clamps it
+			// to the screen height, otherwise the scroll region reaches past
+			// the buffer and scrolling inside it reads out of bounds.
+			bottom = height
+		}
 
 		if top >= bottom {
 			return false
@@ -901,6 +907,11 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 			width := e.Width()
 			right, _, _ := params.Param(1, width)
 			if right < 1 {
+				right = width
+			}
+			if right > width {
+				// The right margin cannot be past the last column. xterm
+				// clamps it to the screen width.
 				right = width
 			}
 
