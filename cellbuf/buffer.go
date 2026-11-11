@@ -345,8 +345,15 @@ func (b *Buffer) InsertLineRect(y, n int, c *Cell, rect Rectangle) {
 	// Move existing lines down within the bounds
 	for i := rect.Max.Y - 1; i >= y+n; i-- {
 		for x := rect.Min.X; x < rect.Max.X; x++ {
+			src := b.Lines[i-n][x]
+			// A placeholder marks the columns a wide cell covers. It
+			// belongs to the cell before it, which is moved as a unit and
+			// writes its own placeholders.
+			if src != nil && src.Width == 0 {
+				continue
+			}
 			// We don't need to clone c here because we're just moving lines down.
-			b.setCell(x, i, b.Lines[i-n][x], false)
+			b.setCell(x, i, src, false)
 		}
 	}
 
@@ -377,9 +384,16 @@ func (b *Buffer) DeleteLineRect(y, n int, c *Cell, rect Rectangle) {
 	for dst := y; dst < rect.Max.Y-n; dst++ {
 		src := dst + n
 		for x := rect.Min.X; x < rect.Max.X; x++ {
+			cell := b.Lines[src][x]
+			// A placeholder marks the columns a wide cell covers. It
+			// belongs to the cell before it, which is moved as a unit and
+			// writes its own placeholders.
+			if cell != nil && cell.Width == 0 {
+				continue
+			}
 			// We don't need to clone c here because we're just moving cells up.
 			// b.lines[dst][x] = b.lines[src][x]
-			b.setCell(x, dst, b.Lines[src][x], false)
+			b.setCell(x, dst, cell, false)
 		}
 	}
 
@@ -460,10 +474,17 @@ func (b *Buffer) DeleteCellRect(x, y, n int, c *Cell, rect Rectangle) {
 	// Shift the remaining cells to the left
 	for i := x; i < rect.Max.X-n; i++ {
 		if i+n < rect.Max.X {
+			cell := b.Lines[y][i+n]
+			// A placeholder marks the columns a wide cell covers. It
+			// belongs to the cell before it, which is moved as a unit and
+			// writes its own placeholders.
+			if cell != nil && cell.Width == 0 {
+				continue
+			}
 			// We don't need to clone c here because we're just moving cells to
 			// the left.
 			// b.lines[y][i] = b.lines[y][i+n]
-			b.setCell(i, y, b.Lines[y][i+n], false)
+			b.setCell(i, y, cell, false)
 		}
 	}
 
