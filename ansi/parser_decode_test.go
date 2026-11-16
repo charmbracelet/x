@@ -509,3 +509,37 @@ func TestParameter(t *testing.T) {
 		})
 	}
 }
+
+// TestDecodeSequenceTooManyParams makes sure that a sequence with more
+// parameters than the parser can hold neither panics nor overruns the
+// parameter buffer. Extra parameters are dropped, as in [Parser.Advance].
+func TestDecodeSequenceTooManyParams(t *testing.T) {
+	for _, n := range []int{31, 32, 33, 34, 100} {
+		for _, sep := range []string{";", ":"} {
+			in := "\x1b["
+			for i := 0; i < n; i++ {
+				in += "1" + sep
+			}
+			in += "1m"
+
+			p := NewParser()
+			var state byte
+			rest := []byte(in)
+			var seq []byte
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						t.Fatalf("n=%d sep=%q: panic: %v", n, sep, r)
+					}
+				}()
+				seq, _, _, state = DecodeSequence(rest, state, p)
+			}()
+			if string(seq) != in {
+				t.Errorf("n=%d sep=%q: seq length %d, want %d", n, sep, len(seq), len(in))
+			}
+			if got := len(p.Params()); got > parser.MaxParamsSize {
+				t.Errorf("n=%d sep=%q: Params() has %d entries, max %d", n, sep, got, parser.MaxParamsSize)
+			}
+		}
+	}
+}
