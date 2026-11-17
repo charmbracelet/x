@@ -19,6 +19,15 @@ func Strip(s string) string {
 	// This implements a subset of the Parser to only collect runes and
 	// printable characters.
 	for i := range len(s) {
+		if pstate == parser.Utf8State && s[i]&0xC0 != 0x80 {
+			// The rune was cut short: this byte is not a continuation byte.
+			// Leave the partial rune as it is and handle this byte from
+			// GroundState, so an ESC here still starts a sequence.
+			pstate = parser.GroundState
+			ri = 0
+			rw = 0
+		}
+
 		if pstate == parser.Utf8State {
 			// During this state, collect rw bytes to form a valid rune in the
 			// buffer. After getting all the rune bytes into the buffer,
