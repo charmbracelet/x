@@ -283,6 +283,24 @@ func (s *Screen) InsertCell(n int) {
 	s.buf.InsertCellArea(x, y, n, s.blankCell(), s.scroll)
 }
 
+// insertCellsInRow inserts n blank characters at the given position, pushing
+// out cells to the right and out of the screen. It differs from
+// [Screen.InsertCell] in two ways, both of which a print under insert mode
+// needs: the position is passed in rather than read from the cursor, because a
+// print that wrapped lands on the next line while the cursor still sits at the
+// edge of the last one; and only the left and right margins bound the shift,
+// because the line a character prints on shifts whether or not that line is
+// inside the vertical scrolling region.
+func (s *Screen) insertCellsInRow(x, y, n int) {
+	if n <= 0 {
+		return
+	}
+
+	row := s.scroll
+	row.Min.Y, row.Max.Y = y, y+1
+	s.buf.InsertCellArea(x, y, n, s.blankCell(), row)
+}
+
 // DeleteCell deletes n cells at the cursor position moving cells to the left.
 // This has no effect if the cursor is outside the scroll region.
 func (s *Screen) DeleteCell(n int) {
