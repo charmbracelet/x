@@ -1826,3 +1826,35 @@ func termText(term *Emulator) []string {
 	}
 	return lines
 }
+
+func TestAltScreenSizedWhenUsed(t *testing.T) {
+	e := NewEmulator(20, 5)
+	if w := e.scrs[1].Width(); w != 0 {
+		t.Fatalf("alt screen allocated up front: width %d", w)
+	}
+
+	e.Resize(30, 6)
+	e.WriteString("\x1b[?1049hab\x1b[6;30Hz")
+
+	if !e.IsAltScreen() || e.Width() != 30 || e.Height() != 6 {
+		t.Fatalf("alt screen %dx%d, alt %v; want 30x6", e.Width(), e.Height(), e.IsAltScreen())
+	}
+
+	if got := e.CellAt(0, 0).Content + e.CellAt(29, 5).Content; got != "az" {
+		t.Fatalf("alt screen corners %q, want az", got)
+	}
+
+	e.Resize(25, 4)
+	e.WriteString("\x1b[?1049l")
+	if e.IsAltScreen() || e.Width() != 25 || e.Height() != 4 {
+		t.Fatalf("back on the main screen: %dx%d, alt %v", e.Width(), e.Height(), e.IsAltScreen())
+	}
+}
+
+// BenchmarkNewEmulator is what an emulator takes before anything is written.
+func BenchmarkNewEmulator(b *testing.B) {
+	b.ReportAllocs()
+	for b.Loop() {
+		_ = NewEmulator(120, 40)
+	}
+}

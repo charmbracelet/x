@@ -80,7 +80,7 @@ var _ Terminal = (*Emulator)(nil)
 func NewEmulator(w, h int) *Emulator {
 	t := new(Emulator)
 	t.scrs[0] = *NewScreen(w, h)
-	t.scrs[1] = *NewScreen(w, h)
+	t.scrs[1] = *NewScreen(0, 0) // sized when first used: most programs never switch to it
 	t.scr = &t.scrs[0]
 	t.scrs[0].cb = &t.cb
 	t.scrs[1].cb = &t.cb
@@ -250,7 +250,9 @@ func (e *Emulator) Resize(width int, height int) {
 	}
 
 	e.scrs[0].Resize(width, height)
-	e.scrs[1].Resize(width, height)
+	if e.IsAltScreen() { // otherwise sized as it is switched to
+		e.scrs[1].Resize(width, height)
+	}
 	e.tabstops = uv.DefaultTabStops(width)
 
 	e.setCursor(x, y)
