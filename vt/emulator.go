@@ -69,6 +69,10 @@ type Emulator struct {
 	// Indicates if the terminal is closed.
 	closed bool
 
+	// autoWrap mirrors DECAWM in modes: every printed character asks for
+	// it, and a map lookup per character is a tenth of the time printing takes.
+	autoWrap bool
+
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
 	atPhantom bool

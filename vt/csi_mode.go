@@ -71,6 +71,10 @@ func (e *Emulator) restoreCursor() {
 func (e *Emulator) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 	e.logf("setting mode %T(%v) to %v", mode, mode, setting)
 	e.modes[mode] = setting
+	if mode == ansi.ModeAutoWrap {
+		e.autoWrap = setting.IsSet()
+	}
+
 	switch mode {
 	case ansi.ModeTextCursorEnable:
 		e.scr.setCursorHidden(!setting.IsSet())
