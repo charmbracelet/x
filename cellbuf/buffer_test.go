@@ -212,6 +212,55 @@ func TestBuffer(t *testing.T) {
 			t.Error("After DeleteLine, first line should be empty")
 		}
 	})
+
+	// Regression test for https://github.com/charmbracelet/x/issues/980:
+	// shifting a line with InsertLine, DeleteLine or DeleteCell used to blank
+	// out a wide cell it moved, turning it into a blank cell followed by an
+	// empty zero-width cell instead of keeping it intact as InsertCell does.
+	t.Run("insert line, delete line and delete cell preserve wide cells", func(t *testing.T) {
+		t.Run("InsertLine", func(t *testing.T) {
+			b := NewBuffer(5, 2)
+			b.SetCell(0, 0, NewCell('世'))
+			b.SetCell(2, 0, NewCell('x'))
+			b.InsertLine(0, 1, nil)
+			if got, want := b.Line(1).String(), "世x"; got != want {
+				t.Errorf("After InsertLine, line = %q, want %q", got, want)
+			}
+		})
+
+		t.Run("DeleteLine", func(t *testing.T) {
+			b := NewBuffer(5, 2)
+			b.SetCell(0, 1, NewCell('世'))
+			b.SetCell(2, 1, NewCell('x'))
+			b.DeleteLine(0, 1, nil)
+			if got, want := b.Line(0).String(), "世x"; got != want {
+				t.Errorf("After DeleteLine, line = %q, want %q", got, want)
+			}
+		})
+
+		t.Run("DeleteCell", func(t *testing.T) {
+			b := NewBuffer(5, 1)
+			b.SetCell(1, 0, NewCell('世'))
+			b.SetCell(3, 0, NewCell('x'))
+			b.DeleteCell(0, 0, 1, nil)
+			if got, want := b.Line(0).String(), "世x"; got != want {
+				t.Errorf("After DeleteCell, line = %q, want %q", got, want)
+			}
+		})
+
+		t.Run("InsertCell", func(t *testing.T) {
+			// Unlike the cases above, InsertCell pushes content right by one
+			// column, so the leading space here is the inserted blank cell,
+			// not lost content: 世 correctly survives the shift.
+			b := NewBuffer(5, 1)
+			b.SetCell(0, 0, NewCell('世'))
+			b.SetCell(2, 0, NewCell('x'))
+			b.InsertCell(0, 0, 1, nil)
+			if got, want := b.Line(0).String(), " 世x"; got != want {
+				t.Errorf("After InsertCell, line = %q, want %q", got, want)
+			}
+		})
+	})
 }
 
 func TestBufferBounds(t *testing.T) {
