@@ -67,6 +67,15 @@ var wwCases = []struct {
 	{"limit", "foo bar", 5, "", "foo\nbar"},
 	{"remove white spaces", "foo    \nb   ar   ", 4, "", "foo\nb\nar"},
 	{"white space trail width", "foo\nb\t a\n bar", 4, "", "foo\nb\t a\n bar"},
+	{"unicode_space", "a\u2002b", 3, "", "a\u2002b"},
+	{"unicode_space_wide", "a\u3000b", 4, "", "a\u3000b"},
+	{"unicode_space_unicode_word", "a\u2002é", 3, "", "a\u2002é"},
+	{"unicode_space_accumulated", "a\u2002b c", 5, "", "a\u2002b c"},
+	{"unicode_space_newline", "a\u2002\nb", 2, "", "a\u2002\nb"},
+	{"unicode_space_wrap", "a\u2002b c d", 3, "", "a\u2002b\nc d"},
+	{"unicode_space_styled", "\x1b[31ma\u2002b\x1b[0m", 3, "", "\x1b[31ma\u2002b\x1b[0m"},
+	{"unicode_space_wide_wrap", "a\u3000b", 3, "", "a\nb"},
+	{"unicode_space_nonbreaking", "a\u00a0b", 2, "", "a\u00a0b"},
 	{"explicit_line_break", "foo bar foo\n", 4, "", "foo\nbar\nfoo\n"},
 	{"explicit_breaks", "\nfoo bar\n\n\nfoo\n", 4, "", "\nfoo\nbar\n\n\nfoo\n"},
 	{"example", " This is a list: \n\n\t* foo\n\t* bar\n\n\n\t* foo  \nbar    ", 6, "", " This\nis a\nlist: \n\n\t* foo\n\t* bar\n\n\n\t* foo\nbar"},
@@ -80,6 +89,9 @@ func TestWordwrap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := ansi.Wordwrap(tt.input, tt.limit, tt.breakPoints); got != tt.expected {
 				t.Errorf("case %d, expected %q, got %q", i+1, tt.expected, got)
+			}
+			if got := ansi.WordwrapWc(tt.input, tt.limit, tt.breakPoints); got != tt.expected {
+				t.Errorf("case %d (wcwidth), expected %q, got %q", i+1, tt.expected, got)
 			}
 		})
 	}

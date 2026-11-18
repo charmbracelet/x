@@ -149,20 +149,22 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 	}
 
 	var (
-		cluster  []byte
-		buf      bytes.Buffer
-		word     bytes.Buffer
-		space    bytes.Buffer
-		curWidth int
-		wordLen  int
-		pstate   = parser.GroundState // initial state
-		b        = []byte(s)
+		cluster    []byte
+		buf        bytes.Buffer
+		word       bytes.Buffer
+		space      bytes.Buffer
+		spaceWidth int
+		curWidth   int
+		wordLen    int
+		pstate     = parser.GroundState // initial state
+		b          = []byte(s)
 	)
 
 	addSpace := func() {
-		curWidth += space.Len()
+		curWidth += spaceWidth
 		buf.Write(space.Bytes())
 		space.Reset()
+		spaceWidth = 0
 	}
 
 	addWord := func() {
@@ -181,6 +183,7 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 		buf.WriteByte('\n')
 		curWidth = 0
 		space.Reset()
+		spaceWidth = 0
 	}
 
 	i := 0
@@ -195,6 +198,7 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 			if r != utf8.RuneError && unicode.IsSpace(r) && r != nbsp {
 				addWord()
 				space.WriteRune(r)
+				spaceWidth += width
 			} else if bytes.ContainsAny(cluster, breakpoints) {
 				addSpace()
 				addWord()
@@ -203,7 +207,7 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 			} else {
 				word.Write(cluster)
 				wordLen += width
-				if curWidth+space.Len()+wordLen > limit &&
+				if curWidth+spaceWidth+wordLen > limit &&
 					wordLen < limit {
 					addNewline()
 				}
@@ -219,12 +223,13 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 			switch {
 			case r == '\n':
 				if wordLen == 0 {
-					if curWidth+space.Len() > limit {
+					if curWidth+spaceWidth > limit {
 						curWidth = 0
 					} else {
 						buf.Write(space.Bytes())
 					}
 					space.Reset()
+					spaceWidth = 0
 				}
 
 				addWord()
@@ -232,6 +237,7 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 			case unicode.IsSpace(r):
 				addWord()
 				space.WriteByte(b[i])
+				spaceWidth++
 			case r == '-':
 				fallthrough
 			case runeContainsAny(r, breakpoints):
@@ -242,7 +248,7 @@ func wordwrap(m Method, s string, limit int, breakpoints string) string {
 			default:
 				word.WriteByte(b[i])
 				wordLen++
-				if curWidth+space.Len()+wordLen > limit &&
+				if curWidth+spaceWidth+wordLen > limit &&
 					wordLen < limit {
 					addNewline()
 				}
