@@ -104,3 +104,27 @@ func TestLongClusterRunStaysLinear(t *testing.T) {
 		t.Fatalf("writing %d bytes of one cluster did not finish in 10s", len(input))
 	}
 }
+
+// A grapheme cluster that arrives in two Write calls, split between a base
+// and a following combining mark, must join the same cell. Flushing at the
+// end of every Write used to close the cluster early.
+func TestGraphemeClusterSplitAcrossWrites(t *testing.T) {
+	const whole = "a नमस्ते b\r\n"
+	render := func(parts ...string) string {
+		term := newTestTerminal(t, 40, 3)
+		for _, p := range parts {
+			_, _ = term.Write([]byte(p))
+		}
+		row, _, _ := strings.Cut(term.String(), "\n")
+		return strings.TrimRight(row, " ")
+	}
+
+	want := render(whole)
+	got := render(whole[:11], whole[11:])
+	if got != want {
+		t.Fatalf("split write: got %q, want %q (one-write result)", got, want)
+	}
+	if want != "a नमस्ते b" {
+		t.Fatalf("one-write result = %q, want %q", want, "a नमस्ते b")
+	}
+}

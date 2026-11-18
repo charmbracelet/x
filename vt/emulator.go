@@ -125,11 +125,13 @@ func (e *Emulator) SetCallbacks(cb Callbacks) {
 
 // Touched returns the touched lines in the current screen buffer.
 func (e *Emulator) Touched() []*uv.LineData {
+	e.flushGrapheme()
 	return e.scr.Touched()
 }
 
 // String returns a string representation of the underlying screen buffer.
 func (e *Emulator) String() string {
+	e.flushGrapheme()
 	s := e.scr.buf.String()
 	return uv.TrimSpace(s)
 }
@@ -137,6 +139,7 @@ func (e *Emulator) String() string {
 // Render renders a snapshot of the terminal screen as a string with styles and
 // links encoded as ANSI escape codes.
 func (e *Emulator) Render() string {
+	e.flushGrapheme()
 	return e.scr.buf.Render()
 }
 
@@ -150,6 +153,7 @@ func (e *Emulator) Bounds() uv.Rectangle {
 // CellAt returns the current focused screen cell at the given x, y position.
 // It returns nil if the cell is out of bounds.
 func (e *Emulator) CellAt(x, y int) *uv.Cell {
+	e.flushGrapheme()
 	return e.scr.CellAt(x, y)
 }
 
@@ -173,6 +177,7 @@ func (e *Emulator) WidthMethod() uv.WidthMethod {
 // every render pass and diff it themselves, so an incremental paint here
 // would make content vanish between writes.
 func (e *Emulator) Draw(scr uv.Screen, area uv.Rectangle) {
+	e.flushGrapheme()
 	bg := uv.EmptyCell
 	bg.Style.Bg = e.BackgroundColor()
 	screen.FillArea(scr, &bg, area)
@@ -210,6 +215,7 @@ func (e *Emulator) Width() int {
 
 // CursorPosition returns the terminal's cursor position.
 func (e *Emulator) CursorPosition() uv.Position {
+	e.flushGrapheme()
 	x, y := e.scr.CursorPosition()
 	return uv.Pos(x, y)
 }
@@ -228,6 +234,7 @@ func (e *Emulator) CursorStyle() (style CursorStyle, blink bool) {
 
 // Resize resizes the terminal.
 func (e *Emulator) Resize(width int, height int) {
+	e.flushGrapheme()
 	x, y := e.scr.CursorPosition()
 	if e.atPhantom {
 		if x < width-1 {
@@ -287,14 +294,12 @@ func (e *Emulator) Write(p []byte) (n int, err error) {
 
 	for i := range p {
 		e.parser.Advance(p[i])
-		// Flush the last cluster once the whole slice is written. Every
-		// sequence handler flushes on its own way in, so a cluster only has to
-		// survive until either the next printable character extends it or the
-		// write ends.
-		if len(e.grapheme) > 0 && i == len(p)-1 {
-			e.flushGrapheme()
-		}
 	}
+	// Leave a pending grapheme open: the next Write may extend it (a
+	// combining mark, virama, or ZWJ sequence split across pty reads).
+	// Screen readers (String, CellAt, Render, Draw, CursorPosition, …)
+	// flush before observing the display so a complete last character is
+	// still visible after the write returns.
 	return len(p), nil
 }
 
