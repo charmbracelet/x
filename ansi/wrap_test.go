@@ -351,3 +351,63 @@ func BenchmarkWrap(b *testing.B) {
 		_ = ansi.Wrap(input, limit, "")
 	}
 }
+
+func TestWrapClusterWiderThanLimit(t *testing.T) {
+	tests := []struct {
+		name  string
+		in    string
+		limit int
+		want  string
+	}{
+		{name: "double width alone", in: "世", limit: 1, want: "世"},
+		{name: "emoji alone", in: "🚀", limit: 1, want: "🚀"},
+		{name: "double width then narrow", in: "世a", limit: 1, want: "世\na"},
+		{name: "emoji then narrow", in: "🚀ab", limit: 1, want: "🚀\na\nb"},
+		{name: "two double widths", in: "世界", limit: 1, want: "世\n界"},
+		{name: "two double widths then narrow", in: "世界ab", limit: 1, want: "世\n界\na\nb"},
+		{name: "cjk then ascii", in: "中a", limit: 1, want: "中\na"},
+		{name: "narrow then wide", in: "a世", limit: 1, want: "a\n世"},
+		{name: "narrow emoji narrow", in: "a🚀b", limit: 1, want: "a\n🚀\nb"},
+		{name: "fits exactly", in: "世", limit: 2, want: "世"},
+		{name: "two double widths limit 2", in: "世界", limit: 2, want: "世\n界"},
+		{name: "two double widths then narrow limit 2", in: "世界ab", limit: 2, want: "世\n界\nab"},
+		{name: "emoji then narrow limit 2", in: "🚀ab", limit: 2, want: "🚀\nab"},
+		{name: "leading space wide grapheme limit 1", in: " 世", limit: 1, want: "世"},
+		{name: "leading space wide grapheme limit 2", in: " 世", limit: 2, want: "世"},
+		{name: "trailing space wide grapheme limit 1", in: "世 ", limit: 1, want: "世"},
+		{name: "styled wide grapheme alone", in: "\x1b[31m世\x1b[0m", limit: 1, want: "\x1b[31m世\x1b[0m"},
+		{name: "styled wide grapheme then narrow", in: "\x1b[31m世\x1b[0ma", limit: 1, want: "\x1b[31m世\n\x1b[0ma"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ansi.Wrap(tc.in, tc.limit, ""); got != tc.want {
+				t.Fatalf("Wrap(%q, %d) = %q, want %q", tc.in, tc.limit, got, tc.want)
+			}
+		})
+	}
+}
+
+func TestHardwrapClusterWiderThanLimit(t *testing.T) {
+	tests := []struct {
+		name  string
+		in    string
+		limit int
+		want  string
+	}{
+		{name: "double width alone", in: "世", limit: 1, want: "世"},
+		{name: "two double widths", in: "世界", limit: 1, want: "世\n界"},
+		{name: "double width then narrow", in: "世a", limit: 1, want: "世\na"},
+		{name: "narrow then double width", in: "a世", limit: 1, want: "a\n世"},
+		{name: "emoji alone", in: "🚀", limit: 1, want: "🚀"},
+		{name: "emoji then narrow", in: "🚀ab", limit: 1, want: "🚀\na\nb"},
+		{name: "styled double width alone", in: "\x1b[31m世\x1b[0m", limit: 1, want: "\x1b[31m世\x1b[0m"},
+		{name: "styled double width then narrow", in: "\x1b[31m世\x1b[0ma", limit: 1, want: "\x1b[31m世\x1b[0m\na"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := ansi.Hardwrap(tc.in, tc.limit, false); got != tc.want {
+				t.Fatalf("Hardwrap(%q, %d) = %q, want %q", tc.in, tc.limit, got, tc.want)
+			}
+		})
+	}
+}

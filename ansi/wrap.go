@@ -59,7 +59,7 @@ func hardwrap(m Method, s string, limit int, preserveSpace bool) string {
 			cluster, width = FirstGraphemeCluster(b[i:], m)
 			i += len(cluster)
 
-			if curWidth+width > limit {
+			if curWidth > 0 && curWidth+width > limit {
 				addNewline()
 			}
 			if !preserveSpace && curWidth == 0 && len(cluster) <= 4 {
@@ -369,10 +369,15 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 				wordLen += width
 
 				if curWidth+wordLen+spaceWidth > limit {
-					addNewline()
+					if curWidth == 0 {
+						space.Reset()
+						spaceWidth = 0
+					} else {
+						addNewline()
+					}
 				}
 
-				if wordLen == limit {
+				if wordLen >= limit {
 					// Hardwrap the word if it's too long
 					addWord()
 				}
@@ -418,20 +423,25 @@ func wrap(m Method, s string, limit int, breakpoints string) string {
 					curWidth++
 				}
 			default:
-				if curWidth == limit {
+				if curWidth >= limit {
 					addNewline()
 				}
 
 				word.WriteRune(r)
 				wordLen++
 
-				if wordLen == limit {
+				if wordLen >= limit {
 					// Hardwrap the word if it's too long
 					addWord()
 				}
 
 				if curWidth+wordLen+spaceWidth > limit {
-					addNewline()
+					if curWidth == 0 {
+						space.Reset()
+						spaceWidth = 0
+					} else {
+						addNewline()
+					}
 				}
 			}
 
