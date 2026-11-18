@@ -3,6 +3,7 @@ package kitty
 import (
 	"encoding"
 	"fmt"
+	"image/png"
 	"strconv"
 	"strings"
 )
@@ -52,6 +53,11 @@ type Options struct {
 
 	// Format (f=32) is the image format. One of [RGBA], [RGB], [PNG].
 	Format int
+
+	// PNGCompressionLevel controls PNG encoding when Format is [PNG].
+	// The zero value uses [png.DefaultCompression]. This is a local encoding
+	// option, not a protocol control, and is independent of Compression (o=).
+	PNGCompressionLevel png.CompressionLevel
 
 	// ImageWidth (s=0) is the transmitted image width.
 	ImageWidth int
