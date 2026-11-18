@@ -1,6 +1,7 @@
 package vt
 
 import (
+	"slices"
 	"testing"
 )
 
@@ -163,4 +164,33 @@ func TestScrollback(t *testing.T) {
 			t.Errorf("expected empty scrollback after ED 3, got %d", e.ScrollbackLen())
 		}
 	})
+}
+
+// TestScrollbackOnlyFromTheTop checks that lines go to the scrollback only when
+// they scroll off the screen's top, as in xterm: not out of a region below it,
+// nor when deleted.
+func TestScrollbackOnlyFromTheTop(t *testing.T) {
+	for _, tc := range []struct {
+		name, input string
+		want        []string
+	}{
+		{"index", "1\r\n2\r\n3\r\n4", []string{"1"}},
+		{"scroll up", "1\r\n2\r\n3\x1b[2S", []string{"1", "2"}},
+		{"region at the top", "\x1b[1;2r1\r\n2\r\n3", []string{"1"}},
+		{"region below the top", "\x1b[2;3r\x1b[2;1H1\r\n2\r\n3\x1b[S", nil},
+		{"delete line", "1\r\n2\x1b[H\x1b[2M", nil},
+		{"left and right margins", "\x1b[?69h\x1b[1;5s1\r\n2\r\n3\r\n4", nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			e := newTestTerminal(t, 10, 3)
+			_, _ = e.WriteString(tc.input)
+			var got []string
+			for _, line := range e.Scrollback().Lines() {
+				got = append(got, line.String())
+			}
+			if !slices.Equal(got, tc.want) {
+				t.Fatalf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
 }

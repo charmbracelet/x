@@ -295,9 +295,16 @@ func (s *Screen) DeleteCell(n int) {
 }
 
 // ScrollUp scrolls the content up n lines within the given region. Lines
-// scrolled past the top margin are lost. This is equivalent to [ansi.SU] which
-// moves the cursor to the top margin and performs a [ansi.DL] operation.
+// scrolled past the top margin go to the scrollback when the region starts
+// at the screen's top and spans its width, as in xterm, and are lost
+// otherwise. This is equivalent to [ansi.SU] which moves the cursor to the
+// top margin and performs a [ansi.DL] operation.
 func (s *Screen) ScrollUp(n int) {
+	scroll := s.scroll
+	if s.scrollback != nil && n > 0 && scroll.Min.Y == 0 &&
+		scroll.Min.X == 0 && scroll.Max.X == s.buf.Width() {
+		s.scrollback.PushN(s.buf, 0, min(n, scroll.Max.Y))
+	}
 	x, y := s.CursorPosition()
 	s.setCursor(s.cur.X, 0, true)
 	s.DeleteLine(n)
@@ -339,8 +346,7 @@ func (s *Screen) InsertLine(n int) bool {
 // DeleteLine deletes n lines at the cursor position Y coordinate.
 // Only operates if cursor is within scroll region. Lines below cursor Y
 // are moved up, with blank lines inserted at the bottom of scroll region.
-// If scrollback is enabled and cursor is at top of scroll region, lines
-// are saved to the scrollback buffer before deletion.
+// Deleted lines are lost: they never go to the scrollback.
 // It returns true if the operation was successful.
 func (s *Screen) DeleteLine(n int) bool {
 	if n <= 0 {
@@ -354,16 +360,6 @@ func (s *Screen) DeleteLine(n int) bool {
 	if y < scroll.Min.Y || y >= scroll.Max.Y ||
 		x < scroll.Min.X || x >= scroll.Max.X {
 		return false
-	}
-
-	// Save lines to scrollback if we're at the top of the scroll region
-	// and the scroll region uses the full width (typical terminal scroll).
-	// This captures lines that would be lost during scroll up operations.
-	if s.scrollback != nil && y == scroll.Min.Y &&
-		scroll.Min.X == 0 && scroll.Max.X == s.buf.Width() {
-		// Save lines that will be deleted
-		linesToSave := min(n, scroll.Max.Y-y)
-		s.scrollback.PushN(s.buf, y, linesToSave)
 	}
 
 	s.buf.DeleteLineArea(y, n, s.blankCell(), scroll)
