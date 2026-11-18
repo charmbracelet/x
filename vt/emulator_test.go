@@ -23,6 +23,20 @@ func newTestTerminal(t testing.TB, width, height int) *Emulator {
 	return term
 }
 
+func TestRISRestoresAndReportsCursorVisibility(t *testing.T) {
+	term := newTestTerminal(t, 10, 1)
+	visible := true
+	term.SetCallbacks(Callbacks{CursorVisibility: func(v bool) { visible = v }})
+	term.WriteString("\x1b[?25l")
+	if visible {
+		t.Fatal("cursor should be hidden")
+	}
+	term.WriteString("\x1bc")
+	if !visible {
+		t.Fatal("RIS must report the cursor-visible reset")
+	}
+}
+
 var cases = []struct {
 	name  string
 	w, h  int
