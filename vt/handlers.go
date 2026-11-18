@@ -867,7 +867,12 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 
 		height := e.Height()
 		bottom, _ := e.parser.Param(1, height)
-		if bottom < 1 {
+		if bottom < 1 || bottom > height {
+			// xterm clamps a bottom margin past the last row to the
+			// last row. Applications re-send their margins for the OLD
+			// size in the window between a shrink and their SIGWINCH;
+			// taking those verbatim made the scroll region taller than
+			// the screen, and the next scroll indexed past the buffer.
 			bottom = height
 		}
 
@@ -900,8 +905,8 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 
 			width := e.Width()
 			right, _, _ := params.Param(1, width)
-			if right < 1 {
-				right = width
+			if right < 1 || right > width {
+				right = width // same clamp as DECSTBM's bottom margin
 			}
 
 			if left >= right {
