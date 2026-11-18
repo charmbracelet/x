@@ -3,6 +3,8 @@ package vt
 import (
 	"image/color"
 	"io"
+	"sync/atomic"
+	"unicode/utf8"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/ultraviolet/screen"
@@ -38,6 +40,9 @@ type Emulator struct {
 
 	// Terminal modes.
 	modes ansi.Modes
+	// Modes checked for every character or line, kept in step with modes by
+	// setMode so that checking them doesn't cost a map lookup.
+	autoWrap, lineFeedNewLine, originMode bool
 
 	// The last written character.
 	lastChar rune // either ansi.Rune or ansi.Grapheme
@@ -45,6 +50,8 @@ type Emulator struct {
 	// runes, so the segmenter can read the buffer without a conversion on
 	// every character.
 	grapheme []byte
+	// clusters interns the non-ASCII grapheme clusters printed.
+	clusters map[string]clusterInfo
 
 	// The ANSI parser to use.
 	parser *ansi.Parser
@@ -66,12 +73,17 @@ type Emulator struct {
 	gl, gr  int
 	gsingle int // temporarily select GL or GR
 
-	// Indicates if the terminal is closed.
-	closed bool
+	// Indicates if the terminal is closed. Atomic, since Read is not
+	// serialized with Close by [SafeEmulator].
+	closed atomic.Bool
 
 	// atPhantom indicates if the cursor is out of bounds.
 	// When true, and a character is written, the cursor is moved to the next line.
 	atPhantom bool
+
+	// reference makes the emulator take no fast paths, for tests to compare
+	// them with the plain implementations.
+	reference bool
 }
 
 var _ Terminal = (*Emulator)(nil)
@@ -176,22 +188,24 @@ func (e *Emulator) Draw(scr uv.Screen, area uv.Rectangle) {
 	bg := uv.EmptyCell
 	bg.Style.Bg = e.BackgroundColor()
 	screen.FillArea(scr, &bg, area)
+	// One cell is reused for every cell drawn, rather than allocating a copy
+	// of each: screens copy the cells they are given.
+	var c uv.Cell
 	for y := 0; y < e.Height(); y++ {
 		for x := 0; x < e.Width(); {
 			w := 1
-			cell := e.CellAt(x, y)
-			if cell != nil {
-				cell = cell.Clone()
-				if cell.Width > 1 {
-					w = cell.Width
+			if cell := e.CellAt(x, y); cell != nil {
+				c = *cell
+				if c.Width > 1 {
+					w = c.Width
 				}
-				if cell.Style.Bg == nil && e.bgColor != nil {
-					cell.Style.Bg = e.bgColor
+				if c.Style.Bg == nil && e.bgColor != nil {
+					c.Style.Bg = e.bgColor
 				}
-				if cell.Style.Fg == nil && e.fgColor != nil {
-					cell.Style.Fg = e.fgColor
+				if c.Style.Fg == nil && e.fgColor != nil {
+					c.Style.Fg = e.fgColor
 				}
-				scr.SetCell(x+area.Min.X, y+area.Min.Y, cell)
+				scr.SetCell(x+area.Min.X, y+area.Min.Y, &c)
 			}
 			x += w
 		}
@@ -262,7 +276,7 @@ func (e *Emulator) Resize(width int, height int) {
 
 // Read reads data from the terminal input buffer.
 func (e *Emulator) Read(p []byte) (n int, err error) {
-	if e.closed {
+	if e.closed.Load() {
 		return 0, io.EOF
 	}
 
@@ -271,29 +285,51 @@ func (e *Emulator) Read(p []byte) (n int, err error) {
 
 // Close closes the terminal.
 func (e *Emulator) Close() error {
-	if e.closed {
+	if !e.closed.CompareAndSwap(false, true) {
 		return nil
 	}
 
-	e.closed = true
 	return e.pw.CloseWithError(io.EOF) //nolint:wrapcheck
 }
 
 // Write writes data to the terminal output buffer.
 func (e *Emulator) Write(p []byte) (n int, err error) {
-	if e.closed {
+	if e.closed.Load() {
 		return 0, io.ErrClosedPipe
 	}
 
-	for i := range p {
-		e.parser.Advance(p[i])
-		// Flush the last cluster once the whole slice is written. Every
-		// sequence handler flushes on its own way in, so a cluster only has to
-		// survive until either the next printable character extends it or the
-		// write ends.
-		if len(e.grapheme) > 0 && i == len(p)-1 {
-			e.flushGrapheme()
+	for i := 0; i < len(p); {
+		// Runs of printable ASCII outside of any sequence are by far the most
+		// common input, and are printed without going through the parser one
+		// byte at a time.
+		if !e.reference && e.parser.State() == parser.GroundState {
+			if b := p[i]; printableASCII(rune(b)) {
+				j := i + 1
+				for j < len(p) && printableASCII(rune(p[j])) {
+					j++
+				}
+				e.printASCII(p[i:j])
+				i = j
+				continue
+			} else if b >= 0xC2 && b <= 0xF4 {
+				// So is a complete, valid UTF-8 character, which the parser
+				// would collect a byte at a time and print the same way.
+				// Partial and invalid ones are left to the parser.
+				if r, n := utf8.DecodeRune(p[i:]); n > 1 {
+					e.handlePrint(r)
+					i += n
+					continue
+				}
+			}
 		}
+		e.parser.Advance(p[i])
+		i++
+	}
+	// Flush the last cluster once the whole slice is written. Every sequence
+	// handler flushes on its own way in, so a cluster only has to survive
+	// until either the next printable character extends it or the write ends.
+	if len(e.grapheme) > 0 {
+		e.flushGrapheme()
 	}
 	return len(p), nil
 }
@@ -313,17 +349,28 @@ func (e *Emulator) InputPipe() io.Writer {
 // If bracketed paste mode is enabled, the text is bracketed with the
 // appropriate escape sequences.
 func (e *Emulator) Paste(text string) {
-	if e.isModeSet(ansi.ModeBracketedPaste) {
-		_, _ = io.WriteString(e.pw, ansi.BracketedPasteStart)
-		defer io.WriteString(e.pw, ansi.BracketedPasteEnd) //nolint:errcheck
-	}
+	e.sendInput(pasteSequence(text, e.isModeSet(ansi.ModeBracketedPaste)))
+}
 
-	_, _ = io.WriteString(e.pw, text)
+// pasteSequence returns the bytes pasting text sends to the program.
+func pasteSequence(text string, bracketed bool) string {
+	if bracketed {
+		return ansi.BracketedPasteStart + text + ansi.BracketedPasteEnd
+	}
+	return text
 }
 
 // SendText sends arbitrary text to the terminal.
 func (e *Emulator) SendText(text string) {
-	_, _ = io.WriteString(e.pw, text)
+	e.sendInput(text)
+}
+
+// sendInput writes s to the input pipe. Empty writes are skipped, as they
+// would block until the next read.
+func (e *Emulator) sendInput(s string) {
+	if s != "" {
+		_, _ = io.WriteString(e.pw, s)
+	}
 }
 
 // SendKeys sends multiple keys to the terminal.

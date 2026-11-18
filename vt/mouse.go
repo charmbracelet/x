@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"io"
-
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -60,6 +58,12 @@ type MouseMotion = uv.MouseMotionEvent
 // SendMouse sends a mouse event to the terminal. This can be any kind of mouse
 // events such as [MouseClick], [MouseRelease], [MouseWheel], or [MouseMotion].
 func (e *Emulator) SendMouse(m Mouse) {
+	e.sendInput(e.mouseSequence(m))
+}
+
+// mouseSequence returns the bytes a mouse event sends to the program, or
+// nothing when the program hasn't enabled mouse reporting.
+func (e *Emulator) mouseSequence(m Mouse) string {
 	// XXX: Support [Utf8ExtMouseMode], [UrxvtExtMouseMode], and
 	// [SgrPixelExtMouseMode].
 	var (
@@ -80,7 +84,7 @@ func (e *Emulator) SendMouse(m Mouse) {
 	}
 
 	if mode == nil {
-		return
+		return ""
 	}
 
 	for _, mm := range []ansi.DECMode{
@@ -108,8 +112,9 @@ func (e *Emulator) SendMouse(m Mouse) {
 	// XXX: Support [ansi.Utf8ExtMouseMode], [ansi.UrxvtExtMouseMode], and
 	// [ansi.SgrPixelExtMouseMode].
 	case nil: // X10 mouse encoding
-		_, _ = io.WriteString(e.pw, ansi.MouseX10(b, mouse.X, mouse.Y))
+		return ansi.MouseX10(b, mouse.X, mouse.Y)
 	case ansi.ModeMouseExtSgr: // SGR mouse encoding
-		_, _ = io.WriteString(e.pw, ansi.MouseSgr(b, mouse.X, mouse.Y, isRelease))
+		return ansi.MouseSgr(b, mouse.X, mouse.Y, isRelease)
 	}
+	return ""
 }

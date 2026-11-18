@@ -3,10 +3,51 @@
 package xpty
 
 import (
+	"bytes"
 	"context"
+	"os/exec"
+	"strings"
 	"testing"
 	"time"
 )
+
+func TestUnixPtyStartControllingTerminal(t *testing.T) {
+	p, err := NewUnixPty(80, 24)
+	if err != nil {
+		t.Fatalf("new pty: %v", err)
+	}
+	defer p.Close() //nolint:errcheck
+
+	// Opening /dev/tty only works with a controlling terminal.
+	cmd := exec.Command("sh", "-c", "exec 3</dev/tty && echo CTTY-OK || echo CTTY-FAIL")
+	if err := p.Start(cmd); err != nil {
+		t.Fatalf("start: %v", err)
+	}
+
+	out := make(chan string, 1)
+	go func() {
+		var buf bytes.Buffer
+		b := make([]byte, 256)
+		for !strings.Contains(buf.String(), "CTTY-") {
+			n, err := p.Read(b)
+			buf.Write(b[:n])
+			if err != nil {
+				break
+			}
+		}
+		out <- buf.String()
+	}()
+
+	select {
+	case s := <-out:
+		if !strings.Contains(s, "CTTY-OK") {
+			t.Fatalf("expected a controlling terminal, got %q", s)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("timed out")
+	}
+	_ = cmd.Wait()
+}
 
 func TestWaitProcessCancelIgnored(t *testing.T) {
 	// The unix path ignores ctx: it waits for the process to exit on its
