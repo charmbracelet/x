@@ -405,6 +405,22 @@ func TestDecodeSequenceParameterLimit(t *testing.T) {
 	}
 }
 
+func TestParserMatchesDecodeSequenceAtParameterLimit(t *testing.T) {
+	for _, count := range []int{parser.MaxParamsSize - 1, parser.MaxParamsSize, parser.MaxParamsSize + 1} {
+		input := "\x1b[" + strings.TrimSuffix(strings.Repeat("1;", count), ";") + "m"
+		decoded := NewParser()
+		DecodeSequence(input, NormalState, decoded)
+		streamed := NewParser()
+		for i := 0; i < len(input); i++ {
+			streamed.Advance(input[i])
+		}
+		want := min(count, parser.MaxParamsSize)
+		if decoded.paramsLen != want || streamed.paramsLen != want {
+			t.Errorf("count=%d: DecodeSequence kept %d, Parser kept %d, want %d", count, decoded.paramsLen, streamed.paramsLen, want)
+		}
+	}
+}
+
 func TestDecodeSequenceParameterOverflowStreaming(t *testing.T) {
 	for _, decode := range []struct {
 		name string
