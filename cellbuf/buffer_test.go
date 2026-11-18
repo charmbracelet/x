@@ -214,6 +214,59 @@ func TestBuffer(t *testing.T) {
 	})
 }
 
+func TestBufferWideCellShifts(t *testing.T) {
+	// A wide cell is a cell and the placeholders that mark the columns it
+	// covers. Moving a line or a cell moves them as a unit, or the wide
+	// character is lost and the row reads as a blank.
+	t.Run("InsertLine keeps the wide cell", func(t *testing.T) {
+		b := NewBuffer(5, 2)
+		b.SetCell(0, 0, NewCell('\u4e16'))
+		b.SetCell(2, 0, NewCell('x'))
+
+		b.InsertLine(0, 1, nil)
+
+		if got := b.Line(1).String(); got != "\u4e16x" {
+			t.Errorf("after InsertLine the line is %q, want %q", got, "\u4e16x")
+		}
+	})
+
+	t.Run("DeleteLine keeps the wide cell", func(t *testing.T) {
+		b := NewBuffer(5, 2)
+		b.SetCell(0, 1, NewCell('\u4e16'))
+		b.SetCell(2, 1, NewCell('x'))
+
+		b.DeleteLine(0, 1, nil)
+
+		if got := b.Line(0).String(); got != "\u4e16x" {
+			t.Errorf("after DeleteLine the line is %q, want %q", got, "\u4e16x")
+		}
+	})
+
+	t.Run("DeleteCell keeps the wide cell", func(t *testing.T) {
+		b := NewBuffer(5, 1)
+		b.SetCell(1, 0, NewCell('\u4e16'))
+		b.SetCell(3, 0, NewCell('x'))
+
+		b.DeleteCell(0, 0, 1, nil)
+
+		if got := b.Line(0).String(); got != "\u4e16x" {
+			t.Errorf("after DeleteCell the line is %q, want %q", got, "\u4e16x")
+		}
+	})
+
+	t.Run("InsertCell keeps the wide cell", func(t *testing.T) {
+		b := NewBuffer(5, 1)
+		b.SetCell(0, 0, NewCell('\u4e16'))
+		b.SetCell(2, 0, NewCell('x'))
+
+		b.InsertCell(0, 0, 1, nil)
+
+		if got := b.Line(0).String(); got != " \u4e16x" {
+			t.Errorf("after InsertCell the line is %q, want %q", got, " \u4e16x")
+		}
+	})
+}
+
 func TestBufferBounds(t *testing.T) {
 	b := NewBuffer(4, 3)
 	bounds := b.Bounds()
