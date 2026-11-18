@@ -1826,3 +1826,13 @@ func termText(term *Emulator) []string {
 	}
 	return lines
 }
+
+func TestShiftOutShiftIn(t *testing.T) {
+	term := newTestTerminal(t, 10, 1)
+	_, _ = term.WriteString("\x1b)0q\x0eq\x0fq")
+	for x, want := range []string{"q", "─", "q"} {
+		if c := term.CellAt(x, 0); c == nil || c.Content != want {
+			t.Fatalf("want %q at %d, got %+v", want, x, c)
+		}
+	}
+}
