@@ -164,3 +164,41 @@ func TestScrollback(t *testing.T) {
 		}
 	})
 }
+
+func floodLines(e *Emulator, n int) {
+	for range n {
+		_, _ = e.WriteString("x\r\n")
+	}
+}
+
+func TestSetScrollbackSizeZeroDisablesMainScreen(t *testing.T) {
+	e := NewEmulator(10, 3)
+	e.SetScrollbackSize(0)
+	floodLines(e, 20)
+	if e.Scrollback() != nil || e.ScrollbackLen() != 0 {
+		t.Fatalf("main screen kept %d scrollback lines after SetScrollbackSize(0), want none", e.ScrollbackLen())
+	}
+}
+
+func TestSetScrollbackSizeZeroDisablesAltScreen(t *testing.T) {
+	e := NewEmulator(10, 3)
+	e.SetScrollbackSize(0)
+	_, _ = e.WriteString("\x1b[?1049h")
+	floodLines(e, 20)
+	if sb := e.scrs[1].Scrollback(); sb != nil {
+		t.Fatalf("alt screen kept %d scrollback lines after SetScrollbackSize(0), want none", sb.Len())
+	}
+}
+
+func TestSetScrollbackSizeAppliesToBothScreens(t *testing.T) {
+	e := NewEmulator(10, 3)
+	e.SetScrollbackSize(5)
+	floodLines(e, 20)
+	_, _ = e.WriteString("\x1b[?1049h")
+	floodLines(e, 20)
+	for i := range e.scrs {
+		if got := e.scrs[i].Scrollback().Len(); got != 5 {
+			t.Errorf("screen %d kept %d scrollback lines, want 5", i, got)
+		}
+	}
+}
