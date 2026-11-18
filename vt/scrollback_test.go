@@ -2,6 +2,8 @@ package vt
 
 import (
 	"testing"
+
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 func TestScrollback(t *testing.T) {
@@ -161,6 +163,34 @@ func TestScrollback(t *testing.T) {
 
 		if e.ScrollbackLen() != 0 {
 			t.Errorf("expected empty scrollback after ED 3, got %d", e.ScrollbackLen())
+		}
+	})
+
+	t.Run("clear releases the cleared lines", func(t *testing.T) {
+		sb := NewScrollback(5000)
+		line := uv.Line{{Content: "x", Width: 1}}
+		for i := 0; i < 3000; i++ {
+			sb.Push(line)
+		}
+		before := sb.Lines()
+
+		sb.Clear()
+
+		if sb.Len() != 0 {
+			t.Fatalf("expected len 0 after clear, got %d", sb.Len())
+		}
+		// The cleared lines must not stay reachable through the backing array.
+		if c := cap(sb.Lines()); c > 1000 {
+			t.Errorf("expected a fresh backing array after clear, got capacity %d", c)
+		}
+		// Slices returned by Lines() before the clear are left untouched.
+		if len(before) != 3000 || before[0] == nil {
+			t.Errorf("expected previously returned lines to be unchanged")
+		}
+
+		sb.Push(line)
+		if sb.Len() != 1 {
+			t.Errorf("expected len 1 after push, got %d", sb.Len())
 		}
 	})
 }
