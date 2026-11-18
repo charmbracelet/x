@@ -45,6 +45,19 @@ func TestDcsSequence(t *testing.T) {
 			},
 		},
 		{
+			// U+2733 is E2 9C B3, and 0x9C alone is C1 ST.
+			name:  "utf8_continuation_st",
+			input: "\x1bP1$q✳\x1b\\",
+			expected: []any{
+				dcsSequence{
+					Cmd:    'q' | '$'<<parser.IntermedShift,
+					Params: Params{1},
+					Data:   []byte("✳"),
+				},
+				Cmd('\\'),
+			},
+		},
+		{
 			name:  "intermediate_reset_on_exit",
 			input: "\x1bP=1sZZZ\x1b+\x5c",
 			expected: []any{

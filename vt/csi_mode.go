@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"io"
-
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -41,6 +39,9 @@ func (e *Emulator) setAltScreenMode(on bool) {
 		return
 	}
 	if on {
+		// The pending wrap belongs to the main screen's cursor, which the
+		// switch back restores: keep it for then.
+		e.mainPhantom = e.atPhantom
 		e.scr = &e.scrs[1]
 		e.scrs[1].cur = e.scrs[0].cur
 		e.scr.Clear()
@@ -48,6 +49,12 @@ func (e *Emulator) setAltScreenMode(on bool) {
 		e.setCursor(0, 0)
 	} else {
 		e.scr = &e.scrs[0]
+		// The main cursor comes back with its pending wrap, as xterm's
+		// ?1049l restores it with the cursor; the alternate screen's does
+		// not follow. A resize meanwhile may have moved the cursor off
+		// the last column, where no wrap is pending.
+		e.atPhantom = e.keptMainPhantom()
+		e.mainPhantom = false
 	}
 	if e.cb.AltScreen != nil {
 		e.cb.AltScreen(on)
@@ -62,9 +69,11 @@ func (e *Emulator) saveCursor() {
 	e.scr.SaveCursor()
 }
 
-// restoreCursor restores the cursor position.
+// restoreCursor restores the cursor position. The saved slot holds no
+// pending wrap, so the restored cursor has none.
 func (e *Emulator) restoreCursor() {
 	e.scr.RestoreCursor()
+	e.atPhantom = false
 }
 
 // setMode sets the mode to the given value.
@@ -72,6 +81,12 @@ func (e *Emulator) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 	e.logf("setting mode %T(%v) to %v", mode, mode, setting)
 	e.modes[mode] = setting
 	switch mode {
+	case ansi.ModeInsertReplace:
+		e.insertMode = setting.IsSet()
+	case ansi.ModeOrigin:
+		// Setting or resetting DECOM homes the cursor, to the scroll
+		// region's corner or the screen's.
+		e.setCursorPosition(0, 0)
 	case ansi.ModeTextCursorEnable:
 		e.scr.setCursorHidden(!setting.IsSet())
 	case ansi.ModeAltScreen:
@@ -92,7 +107,7 @@ func (e *Emulator) setMode(mode ansi.Mode, setting ansi.ModeSetting) {
 		e.setAltScreenMode(setting.IsSet())
 	case ansi.ModeInBandResize:
 		if setting.IsSet() {
-			_, _ = io.WriteString(e.pw, ansi.InBandResize(e.Height(), e.Width(), 0, 0))
+			e.reply(ansi.InBandResize(e.Height(), e.Width(), 0, 0))
 		}
 	}
 	if setting.IsSet() {
