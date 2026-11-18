@@ -62,6 +62,32 @@ func (se *SafeEmulator) CellAt(x, y int) *uv.Cell {
 	return se.Emulator.CellAt(x, y)
 }
 
+// View runs fn while holding the emulator's read lock, giving it
+// direct access to the underlying Emulator for the duration. Use it
+// to batch many reads under a single lock acquisition — a renderer
+// walking the full cell grid pays one RLock here instead of a
+// per-cell RLock+defer through CellAt, which profiles as a
+// significant share of frame time in real applications (thousands of
+// lock acquisitions per frame on a large grid). fn must not retain
+// the *Emulator or any cell pointers past its return, and must not
+// call the SafeEmulator's own locking methods (deadlock).
+func (se *SafeEmulator) View(fn func(*Emulator)) {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	fn(se.Emulator)
+}
+
+// Update is View's write-locked counterpart: fn gets exclusive
+// access to the underlying Emulator, letting callers batch many
+// mutations (e.g. replaying a snapshot cell by cell via SetCell)
+// under one lock acquisition. The same retention and reentrancy
+// rules as View apply.
+func (se *SafeEmulator) Update(fn func(*Emulator)) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	fn(se.Emulator)
+}
+
 // SendKey sends a key event to the emulator in a concurrency-safe manner.
 func (se *SafeEmulator) SendKey(key uv.KeyEvent) {
 	se.mu.Lock()
