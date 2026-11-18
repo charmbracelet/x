@@ -40,8 +40,17 @@ func EncodeGraphics(w io.Writer, m image.Image, o *Options) error {
 		o = &Options{}
 	}
 
-	if o.Transmission == 0 && len(o.File) != 0 {
-		o.Transmission = File
+	// Apply the same Transmission defaults as Options() before building the
+	// payload. Options() already defaults an unset Transmission to Direct (or
+	// File when o.File is set), but EncodeGraphics previously only defaulted
+	// the File case. Leaving Transmission at zero skipped every switch case,
+	// so the command went out with no image data (issue #1016).
+	if o.Transmission == 0 {
+		if len(o.File) != 0 {
+			o.Transmission = File
+		} else {
+			o.Transmission = Direct
+		}
 	}
 
 	var data bytes.Buffer // the data to be encoded into base64
