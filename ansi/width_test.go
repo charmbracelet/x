@@ -1,6 +1,7 @@
 package ansi
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -49,6 +50,31 @@ func TestStrip(t *testing.T) {
 				t.Errorf("test case %d (%s) failed:\nexpected %q, got %q", i, c.name, c.stripped, res)
 			}
 		})
+	}
+}
+
+func TestStripTruncatedRune(t *testing.T) {
+	// A multibyte lead byte followed by ESC must not swallow the ESC.
+	tests := []struct {
+		input    string
+		stripped string
+	}{
+		{"\xe8\x1b", "\xe8"},
+		{"\xe8\x1b[31m", "\xe8"},
+		{"\xe8\x1b[31mred", "\xe8red"},
+		{"\xf0\x9f\x1b[0mx", "\xf0\x9fx"},
+		{"\xc2\x1b]8;;https://example.com\x07link", "\xc2link"},
+		{"\xe8a", "\xe8a"},
+		{"caf\xc3\xa9\x1b[0m", "caf\xc3\xa9"},
+	}
+	for _, tt := range tests {
+		got := Strip(tt.input)
+		if got != tt.stripped {
+			t.Errorf("Strip(%q) = %q, want %q", tt.input, got, tt.stripped)
+		}
+		if strings.Contains(got, "\x1b") {
+			t.Errorf("Strip(%q) left an ESC in %q", tt.input, got)
+		}
 	}
 }
 
