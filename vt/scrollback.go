@@ -134,3 +134,15 @@ func (s *Scrollback) CellAt(x, y int) *uv.Cell {
 	}
 	return &line[x]
 }
+
+// Render renders the scrollback buffer to a styled string with all the
+// required attributes and styles, matching the encoding used by
+// [Emulator.Render] for the visible screen. Lines are separated by a bare
+// LF; there is no trailing LF after the last line. Returns an empty string
+// when the scrollback is empty or the receiver is nil.
+func (s *Scrollback) Render() string {
+	if s == nil {
+		return ""
+	}
+	return uv.Lines(s.lines).Render()
+}
