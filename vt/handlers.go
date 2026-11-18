@@ -920,4 +920,10 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 
 		return true
 	})
+
+	e.RegisterCsiHandler('u', func(params ansi.Params) bool {
+		// Restore Current Cursor Position [ansi.SCORC]
+		e.scr.RestoreCursor()
+		return true
+	})
 }
