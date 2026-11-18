@@ -57,22 +57,28 @@ func (r *Router) Route(ctx context.Context, req *jsonrpc2.Request) (any, error) 
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
+	// Safely handle missing params (some requests/notifications have none)
+	var params json.RawMessage
+	if req.Params != nil {
+		params = *req.Params
+	}
+
 	// Check if it's a notification (no ID)
 	if req.ID == (jsonrpc2.ID{}) {
 		if handler, ok := r.notificationHandlers[req.Method]; ok {
-			handler(ctx, req.Method, *req.Params)
+			handler(ctx, req.Method, params)
 		}
 		return nil, nil
 	}
 
 	// It's a request
 	if handler, ok := r.handlers[req.Method]; ok {
-		return handler(ctx, req.Method, *req.Params)
+		return handler(ctx, req.Method, params)
 	}
 
 	// Use default handler if available
 	if r.defaultHandler != nil {
-		return r.defaultHandler(ctx, req.Method, *req.Params)
+		return r.defaultHandler(ctx, req.Method, params)
 	}
 
 	return nil, fmt.Errorf("no handler for method: %s", req.Method)
