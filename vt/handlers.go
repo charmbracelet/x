@@ -870,10 +870,10 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		if bottom < 1 {
 			bottom = height
 		}
-
-		if top >= bottom {
+		if top >= bottom || top > height {
 			return false
 		}
+		bottom = min(bottom, height)
 
 		// Rect is [x, y) which means y is exclusive. So the top margin
 		// is the top of the screen minus one.
@@ -903,10 +903,10 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 			if right < 1 {
 				right = width
 			}
-
-			if left >= right {
+			if left >= right || left > width {
 				return false
 			}
+			right = min(right, width)
 
 			e.scr.setHorizontalMargins(left-1, right)
 
