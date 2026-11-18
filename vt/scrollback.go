@@ -10,8 +10,17 @@ import (
 const DefaultScrollbackSize = 10000
 
 // Scrollback represents a scrollback buffer that stores lines scrolled off the screen.
+//
+// Storage is a ring once the buffer reaches maxLines: head indexes
+// the oldest line and pushes overwrite in place. The previous
+// implementation removed the oldest line with slices.Delete — an
+// O(maxLines) memmove on EVERY push once full, which profiled as the
+// dominant cost of bulk output in a real emulator (every newline at
+// the bottom of the screen pushes a line; at the default 10k cap
+// that was ~240KB moved per line of output).
 type Scrollback struct {
 	lines    []uv.Line
+	head     int // index of the oldest line; 0 until the ring is full
 	maxLines int
 }
 
@@ -38,6 +47,15 @@ func (s *Scrollback) Push(line uv.Line) {
 	lastNonEmpty := -1
 	for i := len(line) - 1; i >= 0; i-- {
 		c := &line[i]
+		// Fast path: a structurally-blank cell (zero value or plain
+		// space, no style/link) via single whole-struct compares —
+		// one type-generated equality call per cell instead of
+		// Cell.Equal's interface-unwrapping color comparisons. This
+		// scan runs for every line pushed, which is every line of
+		// output once the screen is full.
+		if *c == uv.EmptyCell || *c == (uv.Cell{}) {
+			continue
+		}
 		if !c.IsZero() && !c.Equal(&uv.EmptyCell) {
 			lastNonEmpty = i
 			break
@@ -48,8 +66,10 @@ func (s *Scrollback) Push(line uv.Line) {
 	cloned := slices.Clone(line[:lastNonEmpty+1])
 
 	if len(s.lines) >= s.maxLines {
-		// Remove oldest line and append new one
-		s.lines = slices.Delete(s.lines, 0, 1)
+		// Ring is full: overwrite the oldest line in place.
+		s.lines[s.head] = cloned
+		s.head = (s.head + 1) % len(s.lines)
+		return
 	}
 	s.lines = append(s.lines, cloned)
 }
@@ -92,8 +112,10 @@ func (s *Scrollback) SetMaxLines(maxLines int) {
 
 	s.maxLines = maxLines
 	if len(s.lines) > maxLines {
-		// Remove oldest lines
-		s.lines = s.lines[len(s.lines)-maxLines:]
+		// Keep the newest maxLines lines, linearized.
+		all := s.Lines()
+		s.lines = all[len(all)-maxLines:]
+		s.head = 0
 	}
 }
 
@@ -104,16 +126,24 @@ func (s *Scrollback) Line(index int) uv.Line {
 	if s == nil || index < 0 || index >= len(s.lines) {
 		return nil
 	}
-	return s.lines[index]
+	return s.lines[(s.head+index)%len(s.lines)]
 }
 
 // Lines returns all lines in the scrollback buffer.
-// Index 0 is the oldest line.
+// Index 0 is the oldest line. When the ring has wrapped, this
+// allocates to return the lines in order; Line(i) is the
+// allocation-free accessor.
 func (s *Scrollback) Lines() []uv.Line {
 	if s == nil {
 		return nil
 	}
-	return s.lines
+	if s.head == 0 {
+		return s.lines
+	}
+	out := make([]uv.Line, len(s.lines))
+	n := copy(out, s.lines[s.head:])
+	copy(out[n:], s.lines[:s.head])
+	return out
 }
 
 // Clear removes all lines from the scrollback buffer.
@@ -122,6 +152,7 @@ func (s *Scrollback) Clear() {
 		return
 	}
 	s.lines = s.lines[:0]
+	s.head = 0
 }
 
 // CellAt returns the cell at the given position in the scrollback buffer.
