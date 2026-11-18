@@ -64,11 +64,11 @@ func TruncateWc(s string, length int, tail string) string {
 }
 
 func truncate(m Method, s string, length int, tail string) string {
-	if sw := StringWidth(s); sw <= length {
+	if sw := stringWidth(m, s); sw <= length {
 		return s
 	}
 
-	tw := StringWidth(tail)
+	tw := stringWidth(m, tail)
 	length -= tw
 	if length < 0 {
 		return ""
