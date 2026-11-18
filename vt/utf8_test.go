@@ -4,6 +4,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	uv "github.com/charmbracelet/ultraviolet"
 )
 
 // A combining mark belongs to the character before it, however that character
@@ -73,6 +75,52 @@ func TestSingleShiftDoesNotLeakPastACluster(t *testing.T) {
 				if cell := term.CellAt(x, 0); cell == nil || cell.Content != want {
 					t.Errorf("cell %d: got %v, want %q", x, cell, want)
 				}
+			}
+		})
+	}
+}
+
+// A wide cell has to fit before the right margin. One that exactly fills the
+// row used to set no pending wrap, so the next print overwrote its right half;
+// one that started on the last column was written past the margin and lost.
+// Like xterm, it now wraps first and erases the columns it skips.
+func TestWideCellAtRightMargin(t *testing.T) {
+	type cell struct {
+		x, y int
+		want string
+	}
+	for _, tc := range []struct {
+		name  string
+		input string
+		cells []cell
+		pos   uv.Position
+	}{
+		{
+			"filling the last two columns defers the wrap", "abcd中x",
+			[]cell{{4, 0, "中"}, {0, 1, "x"}},
+			uv.Pos(1, 1),
+		},
+		{
+			"starting on the last column wraps first", "abcde中",
+			[]cell{{4, 0, "e"}, {5, 0, " "}, {0, 1, "中"}},
+			uv.Pos(2, 1),
+		},
+		{
+			"starting on the last column erases it", "abcdeZ\rabcde中",
+			[]cell{{4, 0, "e"}, {5, 0, " "}, {0, 1, "中"}},
+			uv.Pos(2, 1),
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			term := newTestTerminal(t, 6, 2)
+			term.WriteString(tc.input)
+			for _, c := range tc.cells {
+				if got := term.CellAt(c.x, c.y); got == nil || got.Content != c.want {
+					t.Errorf("cell (%d, %d): got %v, want %q", c.x, c.y, got, c.want)
+				}
+			}
+			if pos := term.CursorPosition(); pos != tc.pos {
+				t.Errorf("cursor: got %v, want %v", pos, tc.pos)
 			}
 		})
 	}
