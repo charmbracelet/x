@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"image/color"
 	"io"
+	"strconv"
 
 	"github.com/charmbracelet/x/ansi"
 )
@@ -99,6 +100,69 @@ func (e *Emulator) handleDefaultColor(cmd int, data []byte) {
 			}
 		} else if c := ansi.XParseColor(arg); c != nil {
 			cb(c)
+		}
+	}
+}
+
+// handleIndexedColor handles OSC 4 (set/query palette entry) and OSC 104
+// (reset palette entries).
+//
+//	OSC 4 ; index ; color ST
+//	OSC 4 ; index ; ? ST
+//	OSC 104 [ ; index ... ] ST
+//
+// Note the handler runs while the emulator holds no lock, so it calls the
+// non-locking [Emulator.SetIndexedColor] directly, like handleDefaultColor
+// calls the other non-locking color setters.
+//
+// See: https://invisible-island.net/xterm/ctlseqs/ctlseqs.html#h3-Operating-System-Commands
+func (e *Emulator) handleIndexedColor(cmd int, data []byte) {
+	if cmd != 4 && cmd != 104 {
+		// Invalid, ignore
+		return
+	}
+
+	parts := bytes.Split(data, []byte{';'})
+	if len(parts) == 0 {
+		// Invalid, ignore
+		return
+	}
+
+	switch cmd {
+	case 4: // Set/Query palette entry
+		// parts[0] is the command number, the rest are index;color pairs.
+		for i := 1; i+1 < len(parts); i += 2 {
+			idx, err := strconv.Atoi(string(parts[i]))
+			if err != nil || idx < 0 || idx > 255 {
+				// Invalid index, ignore this pair
+				continue
+			}
+			arg := string(parts[i+1])
+			if arg == "?" {
+				var xrgb ansi.XRGBColor
+				xrgb.Color = e.IndexedColor(idx)
+				if xrgb.Color != nil {
+					io.WriteString(e.pw, "\x1b]4;"+strconv.Itoa(idx)+";"+xrgb.String()+"\x1b\\") //nolint:errcheck,gosec
+				}
+			} else if c := ansi.XParseColor(arg); c != nil {
+				e.SetIndexedColor(idx, c)
+			}
+		}
+	case 104: // Reset palette entries
+		if len(parts) == 1 {
+			// No index given, reset all entries
+			for i := 0; i < 256; i++ {
+				e.SetIndexedColor(i, nil)
+			}
+			return
+		}
+		for _, p := range parts[1:] {
+			idx, err := strconv.Atoi(string(p))
+			if err != nil || idx < 0 || idx > 255 {
+				// Invalid index, ignore
+				continue
+			}
+			e.SetIndexedColor(idx, nil)
 		}
 	}
 }

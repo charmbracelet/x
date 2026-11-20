@@ -340,6 +340,16 @@ func (e *Emulator) registerDefaultOscHandlers() {
 			return true
 		})
 	}
+
+	for _, cmd := range []int{
+		4,   // Set/Query palette entry
+		104, // Reset palette entry
+	} {
+		e.RegisterOscHandler(cmd, func(data []byte) bool {
+			e.handleIndexedColor(cmd, data)
+			return true
+		})
+	}
 }
 
 // registerDefaultEscHandlers registers the default ESC escape sequence handlers.
