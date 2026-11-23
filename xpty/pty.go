@@ -97,6 +97,9 @@ func (p *UnixPty) Start(c *exec.Cmd) error {
 	if c.Stdin == nil {
 		c.Stdin = p.slave
 	}
+	if c.Stdin == p.slave {
+		setSessionAttrs(c)
+	}
 	if err := c.Start(); err != nil {
 		return err //nolint:wrapcheck
 	}

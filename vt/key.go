@@ -1,7 +1,7 @@
 package vt
 
 import (
-	"io"
+	"fmt"
 
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
@@ -21,8 +21,14 @@ const (
 // KeyPressEvent represents a key press event.
 type KeyPressEvent = uv.KeyPressEvent
 
-// SendKey returns the default key map.
+// SendKey sends a key event to the terminal, encoded for the current
+// terminal modes.
 func (e *Emulator) SendKey(k uv.KeyEvent) {
+	e.sendInput(e.keySequence(k))
+}
+
+// keySequence returns the bytes a key event sends to the program.
+func (e *Emulator) keySequence(k uv.KeyEvent) string {
 	var seq string
 
 	ack := e.isModeSet(ansi.ModeCursorKeys)    // Application cursor keys mode
@@ -32,6 +38,25 @@ func (e *Emulator) SendKey(k uv.KeyEvent) {
 	// TODO: Support Kitty, CSI u, and XTerm modifyOtherKeys.
 	switch key := k.(type) {
 	case KeyPressEvent:
+		if s, ok := modifiedKeySeq(key); ok {
+			return s
+		}
+
+		// Shift and Ctrl don't change what Enter sends, and Ctrl+Shift+letter
+		// is the same control character as Ctrl+letter.
+		switch {
+		case key.Code == KeyEnter && key.Mod&(ModShift|ModCtrl) != 0:
+			key.Mod &^= ModShift | ModCtrl
+		case key.Code == KeyBackspace && key.Mod&ModCtrl != 0:
+			return "\x08"
+		case key.Mod&ModCtrl != 0 && key.Mod&ModShift != 0:
+			key.Mod &^= ModShift
+			if key.Code >= 'A' && key.Code <= 'Z' {
+				key.Code += 'a' - 'A'
+			}
+			key.Text = ""
+		}
+
 		if key.Mod&ModAlt != 0 {
 			// Handle alt-modified keys
 			seq = "\x1b" + seq
@@ -236,7 +261,7 @@ func (e *Emulator) SendKey(k uv.KeyEvent) {
 			if akk {
 				seq += "\x1bOx"
 			} else {
-				seq = "8"
+				seq += "8"
 			}
 		case KeyPressEvent{Code: KeyKp9}:
 			if akk {
@@ -302,9 +327,84 @@ func (e *Emulator) SendKey(k uv.KeyEvent) {
 				seq += string(key.Code)
 			}
 		}
-
-		io.WriteString(e.pw, seq) //nolint:errcheck,gosec
 	}
+	return seq
+}
+
+// modifiedKeySeq returns the xterm sequence for a cursor, editing, or
+// function key pressed together with Shift, Alt, or Ctrl, e.g. "\x1b[1;5D"
+// for Ctrl+Left. It reports false for any other key.
+func modifiedKeySeq(key KeyPressEvent) (string, bool) {
+	mods := key.Mod & (ModShift | ModAlt | ModCtrl)
+	if mods == 0 {
+		return "", false
+	}
+	m := 1
+	if mods&ModShift != 0 {
+		m++
+	}
+	if mods&ModAlt != 0 {
+		m += 2
+	}
+	if mods&ModCtrl != 0 {
+		m += 4
+	}
+
+	var final byte
+	var num int
+	switch key.Code {
+	case KeyUp:
+		final = 'A'
+	case KeyDown:
+		final = 'B'
+	case KeyRight:
+		final = 'C'
+	case KeyLeft:
+		final = 'D'
+	case KeyHome:
+		final = 'H'
+	case KeyEnd:
+		final = 'F'
+	case KeyF1:
+		final = 'P'
+	case KeyF2:
+		final = 'Q'
+	case KeyF3:
+		final = 'R'
+	case KeyF4:
+		final = 'S'
+	case KeyInsert:
+		num = 2
+	case KeyDelete:
+		num = 3
+	case KeyPgUp:
+		num = 5
+	case KeyPgDown:
+		num = 6
+	case KeyF5:
+		num = 15
+	case KeyF6:
+		num = 17
+	case KeyF7:
+		num = 18
+	case KeyF8:
+		num = 19
+	case KeyF9:
+		num = 20
+	case KeyF10:
+		num = 21
+	case KeyF11:
+		num = 23
+	case KeyF12:
+		num = 24
+	default:
+		return "", false
+	}
+
+	if final != 0 {
+		return fmt.Sprintf("\x1b[1;%d%c", m, final), true
+	}
+	return fmt.Sprintf("\x1b[%d;%d~", num, m), true
 }
 
 // Key codes.
