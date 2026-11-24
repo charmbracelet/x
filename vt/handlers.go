@@ -1,8 +1,6 @@
 package vt
 
 import (
-	"io"
-
 	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/ansi"
 )
@@ -257,6 +255,16 @@ func (e *Emulator) registerDefaultCcHandlers() {
 				e.carriageReturn()
 				return true
 			})
+		case ansi.SO: // Shift Out [ansi.SO]
+			e.registerCcHandler(i, func() bool {
+				e.gl = 1
+				return true
+			})
+		case ansi.SI: // Shift In [ansi.SI]
+			e.registerCcHandler(i, func() bool {
+				e.gl = 0
+				return true
+			})
 		}
 	}
 
@@ -270,16 +278,6 @@ func (e *Emulator) registerDefaultCcHandlers() {
 		case ansi.RI: // Reverse Index [ansi.RI]
 			e.registerCcHandler(i, func() bool {
 				e.reverseIndex()
-				return true
-			})
-		case ansi.SO: // Shift Out [ansi.SO]
-			e.registerCcHandler(i, func() bool {
-				e.gl = 1
-				return true
-			})
-		case ansi.SI: // Shift In [ansi.SI]
-			e.registerCcHandler(i, func() bool {
-				e.gl = 0
 				return true
 			})
 		case ansi.IND: // Index [ansi.IND]
@@ -364,7 +362,7 @@ func (e *Emulator) registerDefaultEscHandlers() {
 
 	e.RegisterEscHandler('8', func() bool {
 		// Restore Cursor [ansi.DECRC]
-		e.scr.RestoreCursor()
+		e.restoreCursor()
 		return true
 	})
 
@@ -396,6 +394,7 @@ func (e *Emulator) registerDefaultEscHandlers() {
 			default:
 				return false
 			}
+			e.designations[set] = c.Final()
 			return true
 		})
 	}
@@ -597,8 +596,10 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		// Insert Line [ansi.IL]
 		n, _, _ := params.Param(0, 1)
 		if e.scr.InsertLine(n) {
-			// Move the cursor to the left margin.
+			// Move the cursor to the left margin, which leaves no wrap
+			// pending, as in xterm.
 			e.scr.setCursorX(0, true)
+			e.atPhantom = false
 		}
 		return true
 	})
@@ -607,10 +608,10 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		// Delete Line [ansi.DL]
 		n, _, _ := params.Param(0, 1)
 		if e.scr.DeleteLine(n) {
-			// If the line was deleted successfully, move the cursor to the
-			// left.
-			// Move the cursor to the left margin.
+			// Move the cursor to the left margin, which leaves no wrap
+			// pending, as in xterm.
 			e.scr.setCursorX(0, true)
+			e.atPhantom = false
 		}
 		return true
 	})
@@ -692,7 +693,7 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		}
 
 		// Do we fully support VT220?
-		_, _ = io.WriteString(e.pw, ansi.PrimaryDeviceAttributes(
+		e.reply(ansi.PrimaryDeviceAttributes(
 			62, // VT220
 			1,  // 132 columns
 			6,  // Selective Erase
@@ -709,7 +710,7 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		}
 
 		// Do we fully support VT220?
-		_, _ = io.WriteString(e.pw, ansi.SecondaryDeviceAttributes(
+		e.reply(ansi.SecondaryDeviceAttributes(
 			1,  // VT220
 			10, // Version 1.0
 			0,  // ROM Cartridge is always zero
@@ -803,10 +804,10 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		case 5: // Operating Status
 			// We're always ready ;)
 			// See: https://vt100.net/docs/vt510-rm/DSR-OS.html
-			_, _ = io.WriteString(e.pw, ansi.DeviceStatusReport(ansi.DECStatusReport(0)))
+			e.reply(ansi.DeviceStatusReport(ansi.DECStatusReport(0)))
 		case 6: // Cursor Position Report [ansi.CPR]
 			x, y := e.scr.CursorPosition()
-			_, _ = io.WriteString(e.pw, ansi.CursorPositionReport(y+1, x+1))
+			e.reply(ansi.CursorPositionReport(y+1, x+1))
 		default:
 			return false
 		}
@@ -823,7 +824,7 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 		switch n {
 		case 6: // Extended Cursor Position Report [ansi.DECXCPR]
 			x, y := e.scr.CursorPosition()
-			_, _ = io.WriteString(e.pw, ansi.ExtendedCursorPositionReport(y+1, x+1, 0)) // We don't support page numbers //nolint:errcheck
+			e.reply(ansi.ExtendedCursorPositionReport(y+1, x+1, 0)) // We don't support page numbers
 		default:
 			return false
 		}
@@ -840,6 +841,12 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 	e.RegisterCsiHandler(ansi.Command('?', '$', 'p'), func(params ansi.Params) bool {
 		// Request Mode [ansi.DECRQM] - DEC
 		e.handleRequestMode(params, false)
+		return true
+	})
+
+	e.RegisterCsiHandler(ansi.Command(0, '!', 'p'), func(ansi.Params) bool {
+		// Soft Terminal Reset [ansi.DECSTR]
+		e.softReset()
 		return true
 	})
 
@@ -867,7 +874,9 @@ func (e *Emulator) registerDefaultCsiHandlers() {
 
 		height := e.Height()
 		bottom, _ := e.parser.Param(1, height)
-		if bottom < 1 {
+		if bottom < 1 || bottom > height {
+			// A bottom margin past the screen means the last row, as in
+			// xterm.
 			bottom = height
 		}
 

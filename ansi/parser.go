@@ -50,6 +50,10 @@ type Parser struct {
 
 	// state is the current state of the parser.
 	state byte
+
+	// strRune is the number of UTF-8 continuation bytes still owed to a rune
+	// inside a control string.
+	strRune int
 }
 
 // NewParser returns a new parser with the default settings.
@@ -126,6 +130,7 @@ func (p *Parser) Data() []byte {
 func (p *Parser) Reset() {
 	p.clear()
 	p.state = parser.GroundState
+	p.strRune = 0
 }
 
 // clear clears the parser parameters and command.
@@ -162,9 +167,40 @@ func (p *Parser) Advance(b byte) parser.Action {
 	case parser.Utf8State:
 		// We handle UTF-8 here.
 		return p.advanceUtf8(b)
+	case parser.OscStringState, parser.DcsStringState,
+		parser.SosStringState, parser.PmStringState, parser.ApcStringState:
+		if p.advanceStringUtf8(b) {
+			return parser.PutAction
+		}
+		return p.advance(b)
 	default:
 		return p.advance(b)
 	}
+}
+
+// advanceStringUtf8 collects b into a control string's data when b belongs
+// to a well-formed UTF-8 rune, and reports whether it did.
+//
+// The transition table reads a string's bytes one at a time, so a UTF-8
+// continuation byte in 0x80-0x9F looks like a C1 control: the 0x9C (ST) in
+// "✳" (E2 9C B3) would end an OSC early, and in SOS, PM and APC every
+// non-ASCII byte would abort the string. A C1 byte that is not part of a
+// rune still acts as a C1 control.
+func (p *Parser) advanceStringUtf8(b byte) bool {
+	if p.strRune > 0 {
+		if b >= 0x80 && b <= 0xBF {
+			p.strRune--
+			p.performAction(parser.PutAction, p.state, b)
+			return true
+		}
+		p.strRune = 0
+	}
+	if b < 0xC2 || b > 0xF4 {
+		return false
+	}
+	p.strRune = utf8ByteLen(b) - 1
+	p.performAction(parser.PutAction, p.state, b)
+	return true
 }
 
 func (p *Parser) collectRune(b byte) {
@@ -179,6 +215,18 @@ func (p *Parser) collectRune(b byte) {
 }
 
 func (p *Parser) advanceUtf8(b byte) parser.Action {
+	if b < 0x80 || b > 0xBF {
+		// Not a continuation byte, so the rune is malformed. Print a
+		// replacement character for it, as terminals do, and read b afresh
+		// rather than swallowing an ESC or a printable character.
+		if p.handler.Print != nil {
+			p.handler.Print(utf8.RuneError)
+		}
+		p.state = parser.GroundState
+		p.paramsLen = 0
+		return p.Advance(b)
+	}
+
 	// Collect UTF-8 rune bytes.
 	p.collectRune(b)
 	rw := utf8ByteLen(byte(p.cmd & 0xff))
