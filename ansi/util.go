@@ -52,6 +52,7 @@ func shift[T shiftable](x T) T {
 //   - rgb:RRRR/GGGG/BBBB
 //   - rgba:RRRR/GGGG/BBBB/AAAA
 //
+// The rgb: and rgba: formats accept one to four hex digits per channel.
 // If the string is not a valid color, nil is returned.
 //
 // See: https://linux.die.net/man/3/xparsecolor
@@ -65,28 +66,32 @@ func XParseColor(s string) color.Color {
 
 		return c
 	case strings.HasPrefix(s, "rgb:"):
-		parts := strings.Split(s[4:], "/")
-		if len(parts) != 3 {
-			return nil
-		}
-
-		r, _ := strconv.ParseUint(parts[0], 16, 32)
-		g, _ := strconv.ParseUint(parts[1], 16, 32)
-		b, _ := strconv.ParseUint(parts[2], 16, 32)
-
-		return color.RGBA{uint8(shift(r)), uint8(shift(g)), uint8(shift(b)), 255} //nolint:gosec
+		return parseXColor(s[4:], 3)
 	case strings.HasPrefix(s, "rgba:"):
-		parts := strings.Split(s[5:], "/")
-		if len(parts) != 4 {
-			return nil
-		}
-
-		r, _ := strconv.ParseUint(parts[0], 16, 32)
-		g, _ := strconv.ParseUint(parts[1], 16, 32)
-		b, _ := strconv.ParseUint(parts[2], 16, 32)
-		a, _ := strconv.ParseUint(parts[3], 16, 32)
-
-		return color.RGBA{uint8(shift(r)), uint8(shift(g)), uint8(shift(b)), uint8(shift(a))} //nolint:gosec
+		return parseXColor(s[5:], 4)
 	}
 	return nil
+}
+
+func parseXColor(s string, numChannels int) color.Color {
+	parts := strings.Split(s, "/")
+	if len(parts) != numChannels {
+		return nil
+	}
+
+	channels := [4]uint8{3: 0xff}
+	for i, part := range parts {
+		if len(part) == 0 || len(part) > 4 {
+			return nil
+		}
+		value, err := strconv.ParseUint(part, 16, 16)
+		if err != nil {
+			return nil
+		}
+
+		// Scale to the 16-bit range as Xlib does, then take the high byte.
+		maxValue := (uint64(1) << (4 * len(part))) - 1
+		channels[i] = uint8((value * 0xffff / maxValue) >> 8) //nolint:gosec // value <= maxValue
+	}
+	return color.RGBA{channels[0], channels[1], channels[2], channels[3]}
 }
