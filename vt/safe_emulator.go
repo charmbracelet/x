@@ -29,6 +29,13 @@ func (se *SafeEmulator) Write(data []byte) (int, error) {
 	return se.Emulator.Write(data)
 }
 
+// WriteString writes a string to the emulator in a concurrency-safe manner.
+func (se *SafeEmulator) WriteString(s string) (int, error) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	return se.Emulator.WriteString(s)
+}
+
 // Read reads data from the emulator in a concurrency-safe manner.
 //
 // It does not take the lock, as it blocks until there is input to read, and
@@ -43,6 +50,41 @@ func (se *SafeEmulator) Read(p []byte) (int, error) {
 // while it waits for its input to be read.
 func (se *SafeEmulator) Close() error {
 	return se.Emulator.Close()
+}
+
+// String returns the emulator's screen as text in a concurrency-safe manner.
+func (se *SafeEmulator) String() string {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.String()
+}
+
+// Bounds returns the bounds of the emulator in a concurrency-safe manner.
+func (se *SafeEmulator) Bounds() uv.Rectangle {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.Bounds()
+}
+
+// WidthMethod returns the emulator's width method in a concurrency-safe manner.
+func (se *SafeEmulator) WidthMethod() uv.WidthMethod {
+	se.mu.RLock()
+	defer se.mu.RUnlock()
+	return se.Emulator.WidthMethod()
+}
+
+// SetLogger sets the emulator's logger in a concurrency-safe manner.
+func (se *SafeEmulator) SetLogger(l Logger) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.SetLogger(l)
+}
+
+// SetCallbacks sets the emulator's callbacks in a concurrency-safe manner.
+func (se *SafeEmulator) SetCallbacks(cb Callbacks) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.SetCallbacks(cb)
 }
 
 // Resize resizes the emulator in a concurrency-safe manner.
@@ -78,6 +120,27 @@ func (se *SafeEmulator) SendKey(key uv.KeyEvent) {
 	se.mu.Lock()
 	defer se.mu.Unlock()
 	se.Emulator.SendKey(key)
+}
+
+// SendKeys sends multiple keys to the emulator in a concurrency-safe manner.
+func (se *SafeEmulator) SendKeys(keys ...uv.KeyEvent) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.SendKeys(keys...)
+}
+
+// Focus sends a focus event to the emulator in a concurrency-safe manner.
+func (se *SafeEmulator) Focus() {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.Focus()
+}
+
+// Blur sends a blur event to the emulator in a concurrency-safe manner.
+func (se *SafeEmulator) Blur() {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.Blur()
 }
 
 // SendMouse sends a mouse event to the emulator in a concurrency-safe manner.
@@ -120,6 +183,27 @@ func (se *SafeEmulator) SetCursorColor(color color.Color) {
 	se.mu.Lock()
 	defer se.mu.Unlock()
 	se.Emulator.SetCursorColor(color)
+}
+
+// SetDefaultForegroundColor sets the default foreground color in a concurrency-safe manner.
+func (se *SafeEmulator) SetDefaultForegroundColor(c color.Color) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.SetDefaultForegroundColor(c)
+}
+
+// SetDefaultBackgroundColor sets the default background color in a concurrency-safe manner.
+func (se *SafeEmulator) SetDefaultBackgroundColor(c color.Color) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.SetDefaultBackgroundColor(c)
+}
+
+// SetDefaultCursorColor sets the default cursor color in a concurrency-safe manner.
+func (se *SafeEmulator) SetDefaultCursorColor(c color.Color) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.SetDefaultCursorColor(c)
 }
 
 // SetIndexedColor sets an indexed color in a concurrency-safe manner.
@@ -248,4 +332,53 @@ func (se *SafeEmulator) IsAltScreen() bool {
 	se.mu.RLock()
 	defer se.mu.RUnlock()
 	return se.Emulator.IsAltScreen()
+}
+
+// RegisterDcsHandler registers a DCS handler in a concurrency-safe manner.
+func (se *SafeEmulator) RegisterDcsHandler(cmd int, handler DcsHandler) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.RegisterDcsHandler(cmd, handler)
+}
+
+// RegisterCsiHandler registers a CSI handler in a concurrency-safe manner.
+func (se *SafeEmulator) RegisterCsiHandler(cmd int, handler CsiHandler) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.RegisterCsiHandler(cmd, handler)
+}
+
+// RegisterOscHandler registers an OSC handler in a concurrency-safe manner.
+func (se *SafeEmulator) RegisterOscHandler(cmd int, handler OscHandler) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.RegisterOscHandler(cmd, handler)
+}
+
+// RegisterApcHandler registers an APC handler in a concurrency-safe manner.
+func (se *SafeEmulator) RegisterApcHandler(handler ApcHandler) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.RegisterApcHandler(handler)
+}
+
+// RegisterSosHandler registers an SOS handler in a concurrency-safe manner.
+func (se *SafeEmulator) RegisterSosHandler(handler SosHandler) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.RegisterSosHandler(handler)
+}
+
+// RegisterPmHandler registers a PM handler in a concurrency-safe manner.
+func (se *SafeEmulator) RegisterPmHandler(handler PmHandler) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.RegisterPmHandler(handler)
+}
+
+// RegisterEscHandler registers an ESC handler in a concurrency-safe manner.
+func (se *SafeEmulator) RegisterEscHandler(cmd int, handler EscHandler) {
+	se.mu.Lock()
+	defer se.mu.Unlock()
+	se.Emulator.RegisterEscHandler(cmd, handler)
 }
