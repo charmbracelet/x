@@ -30,8 +30,19 @@ func (se *SafeEmulator) Write(data []byte) (int, error) {
 }
 
 // Read reads data from the emulator in a concurrency-safe manner.
+//
+// It does not take the lock, as it blocks until there is input to read, and
+// the methods that send input hold the lock while they write it.
 func (se *SafeEmulator) Read(p []byte) (int, error) {
 	return se.Emulator.Read(p)
+}
+
+// Close closes the emulator in a concurrency-safe manner.
+//
+// It does not take the lock, so that it can end a method that holds the lock
+// while it waits for its input to be read.
+func (se *SafeEmulator) Close() error {
+	return se.Emulator.Close()
 }
 
 // Resize resizes the emulator in a concurrency-safe manner.
