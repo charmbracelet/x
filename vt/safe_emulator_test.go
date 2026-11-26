@@ -5,6 +5,7 @@ import (
 	"io"
 	"reflect"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -37,10 +38,6 @@ func TestSafeEmulatorLocksEveryMethod(t *testing.T) {
 // it.
 func TestSafeEmulatorConcurrent(t *testing.T) {
 	se := NewSafeEmulator(80, 24)
-	// Focus events, so that Focus and Blur have something to send.
-	if _, err := se.WriteString("\x1b[?1004h"); err != nil {
-		t.Fatalf("write: %v", err)
-	}
 
 	drained := make(chan struct{})
 	go func() {
@@ -48,9 +45,23 @@ func TestSafeEmulatorConcurrent(t *testing.T) {
 		_, _ = io.Copy(io.Discard, se)
 	}()
 
+	// What a program writes, to touch the state that each method reads: the
+	// modes, the default colors, the logger and the handlers.
+	output := strings.Join([]string{
+		"hello\r\n",
+		"\x1b[6n",                    // a reply on the input pipe
+		"\x1b[?1004h\x1b[?1004l",     // focus events, for Focus and Blur
+		"\x1b[?1h\x1b[?1l",           // cursor keys, for SendKey and SendKeys
+		"\x1b[?2027h\x1b[?2027l",     // unicode core, for WidthMethod
+		"\x1b]10;?\x07\x1b]11;?\x07", // the default colors
+		"\x1b]12;?\x07",              // the default cursor color
+		"\x1b[y\x1b]7777;x\x07\x1by", // the handlers registered below
+		"\x1b[?99999h",               // an unknown mode, for the logger
+	}, "")
+
 	calls := []func(){
-		func() { _, _ = se.Write([]byte("hello\r\n\x1b[6n")) },
-		func() { _, _ = se.WriteString("world\r\n") },
+		func() { _, _ = se.Write([]byte(output)) },
+		func() { _, _ = se.WriteString(output) },
 		func() { _ = se.String() },
 		func() { _ = se.Render() },
 		func() { _ = se.Bounds() },
@@ -128,8 +139,17 @@ func TestSafeEmulatorClose(t *testing.T) {
 			runtime.Gosched()
 		}
 
-		if err := se.Close(); err != nil {
-			t.Fatalf("close: %v", err)
+		// Close runs apart from the test, so that one that waits for the lock
+		// fails here, and not at the timeout of the whole run.
+		closed := make(chan error, 1)
+		go func() { closed <- se.Close() }()
+		select {
+		case err := <-closed:
+			if err != nil {
+				t.Fatalf("close: %v", err)
+			}
+		case <-time.After(5 * time.Second):
+			t.Fatal("Close did not return while a send holds the lock")
 		}
 		select {
 		case <-sent:
