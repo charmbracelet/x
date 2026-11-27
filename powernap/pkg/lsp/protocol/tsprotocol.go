@@ -5417,8 +5417,11 @@ type TextDocumentContentClientCapabilities struct {
 //
 // See https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification#textDocumentContentOptions
 type TextDocumentContentOptions struct {
-	// The scheme for which the server provides content.
-	Scheme string `json:"scheme"`
+	// The URI schemes for which the server provides content (LSP 3.18).
+	// A nil slice is omitted so the legacy form can still be used.
+	Schemes []string `json:"schemes,omitzero"`
+	// The legacy single URI scheme from the proposed protocol.
+	Scheme string `json:"scheme,omitempty"`
 }
 
 // Parameters for the `workspace/textDocumentContent` request.
