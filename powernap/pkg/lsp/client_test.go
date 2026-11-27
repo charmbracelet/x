@@ -2,11 +2,92 @@ package lsp
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"net"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/charmbracelet/x/powernap/pkg/lsp/protocol"
+	"github.com/charmbracelet/x/powernap/pkg/transport"
+	"github.com/sourcegraph/jsonrpc2"
 )
+
+func TestInitializeTextDocumentContent(t *testing.T) {
+	tests := []struct {
+		name    string
+		content string
+	}{
+		{name: "JDT LS", content: `{"schemes":["jdt"]}`},
+		{name: "registration", content: `{"schemes":["jdt","file"],"id":"java-content"}`},
+		{name: "empty schemes", content: `{"schemes":[]}`},
+		{name: "legacy", content: `{"scheme":"jdt"}`},
+		{name: "absent"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			workspace := "{}"
+			if tt.content != "" {
+				workspace = `{"textDocumentContent":` + tt.content + "}"
+			}
+			result := json.RawMessage(`{"capabilities":{"workspace":` + workspace + "}}")
+
+			ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
+			defer cancel()
+			clientStream, serverStream := net.Pipe()
+			defer clientStream.Close()
+			defer serverStream.Close()
+
+			server := jsonrpc2.NewConn(ctx,
+				jsonrpc2.NewBufferedStream(serverStream, jsonrpc2.VSCodeObjectCodec{}),
+				jsonrpc2.HandlerWithError(func(_ context.Context, _ *jsonrpc2.Conn, req *jsonrpc2.Request) (any, error) {
+					switch req.Method {
+					case MethodInitialize:
+						return result, nil
+					case MethodInitialized:
+						return nil, nil
+					default:
+						return nil, fmt.Errorf("unexpected method %q", req.Method)
+					}
+				}),
+			)
+			defer server.Close()
+
+			conn, err := transport.NewConnection(ctx, clientStream, slog.Default())
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer conn.Close()
+			client := Client{conn: conn}
+			if err := client.Initialize(ctx, false); err != nil {
+				t.Fatal(err)
+			}
+			if !client.IsInitialized() {
+				t.Fatal("client is not initialized")
+			}
+
+			capabilities := client.GetCapabilities().Workspace
+			if capabilities == nil {
+				t.Fatal("missing workspace capabilities")
+			}
+			if tt.content == "" {
+				if capabilities.TextDocumentContent != nil {
+					t.Fatalf("want absent textDocumentContent, got %v", capabilities.TextDocumentContent)
+				}
+				return
+			}
+			got, err := json.Marshal(capabilities.TextDocumentContent)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(got) != tt.content {
+				t.Fatalf("textDocumentContent = %s, want %s", got, tt.content)
+			}
+		})
+	}
+}
 
 func TestPositionToByteOffset(t *testing.T) {
 	tests := []struct {
