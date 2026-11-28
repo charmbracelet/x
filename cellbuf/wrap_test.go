@@ -143,6 +143,24 @@ func TestWrap(t *testing.T) {
 	}
 }
 
+func TestWrapWhitespaceBeforeBreakpoint(t *testing.T) {
+	for _, tc := range []struct {
+		name, input, breakpoints, want string
+		width                          int
+	}{
+		{"hyphen", "ab  -", "", "ab\n-", 2},
+		{"custom breakpoint", "a  /", "/", "a\n/", 2},
+		{"whitespace fits", "ab -", "", "ab \n-", 3},
+		{"breakpoint fits", "a -", "", "a -", 3},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := Wrap(tc.input, tc.width, tc.breakpoints); got != tc.want {
+				t.Errorf("Wrap(%q, %d, %q) = %q, want %q", tc.input, tc.width, tc.breakpoints, got, tc.want)
+			}
+		})
+	}
+}
+
 func ExampleWrap() {
 	fmt.Println(Wrap("The quick brown fox jumped over the lazy dog.", 20, ""))
 	// Output:
