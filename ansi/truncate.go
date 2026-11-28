@@ -36,7 +36,7 @@ func cut(m Method, s string, left, right int) string {
 	truncateLeft := TruncateLeft
 	if m == WcWidth {
 		truncate = TruncateWc
-		truncateLeft = TruncateWc
+		truncateLeft = TruncateLeftWc
 	}
 
 	if left == 0 {
