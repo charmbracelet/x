@@ -136,7 +136,7 @@ func Wrap(s string, limit int, breakpoints string) string {
 					addWord()
 					space.WriteRune(r)
 					break
-				} else if r == '-' || runeContainsAny(r, breakpoints) {
+				} else if (r == '-' || runeContainsAny(r, breakpoints)) && curWidth+space.Len() <= limit {
 					addSpace()
 					if curWidth+wordLen+width <= limit {
 						addWord()
